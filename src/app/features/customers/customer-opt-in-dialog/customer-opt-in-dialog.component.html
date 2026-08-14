@@ -1,0 +1,59 @@
+<h2 mat-dialog-title>Record opt-in</h2>
+
+<mat-dialog-content>
+  <p class="intro muted">
+    Records consent for <strong>{{ displayName }}</strong> ({{ data.customer.phoneNumberE164 }}),
+    which allows automated messaging. Only record it if the customer actually agreed —
+    this is the compliance evidence.
+  </p>
+
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>How was consent captured?</mat-label>
+      <input
+        matInput
+        formControlName="source"
+        [maxlength]="maxSourceLength"
+        placeholder="WebForm"
+      />
+      <mat-hint>Required — consent with no recorded provenance is not evidence.</mat-hint>
+      <mat-error *ngIf="form.controls.source.hasError('required')">
+        Record how consent was captured.
+      </mat-error>
+      <mat-error *ngIf="form.controls.source.hasError('maxlength')">
+        Use at most {{ maxSourceLength }} characters.
+      </mat-error>
+    </mat-form-field>
+
+    <div class="suggestions">
+      <button
+        mat-stroked-button
+        type="button"
+        *ngFor="let suggestion of suggestedSources"
+        (click)="useSuggestion(suggestion)"
+      >
+        {{ suggestion }}
+      </button>
+    </div>
+
+    <mat-form-field class="full-width">
+      <mat-label>When (optional)</mat-label>
+      <input
+        matInput
+        [matDatepicker]="picker"
+        [max]="today"
+        formControlName="capturedAt"
+      />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+      <mat-hint>Defaults to now. Consent cannot be dated in the future.</mat-hint>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Record opt-in' }}
+  </button>
+</mat-dialog-actions>

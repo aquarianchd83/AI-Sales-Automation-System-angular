@@ -1,0 +1,42 @@
+<div class="page">
+  <app-page-header
+    [title]="'Dashboard'"
+    subtitle="Phase 2 scope: authentication, users & roles, and customer management."
+  >
+    <a mat-flat-button color="primary" routerLink="/customers">
+      <mat-icon>groups</mat-icon>
+      Manage customers
+    </a>
+  </app-page-header>
+
+  <div class="greeting" *ngIf="currentUser$ | async as user">
+    Signed in as <strong>{{ user.fullName || user.email }}</strong>
+    <span class="muted" *ngIf="user.roles.length"> — {{ user.roles.join(', ') }}</span>
+  </div>
+
+  <div class="stat-grid">
+    <a class="stat-card-link" *ngFor="let stat of stats" [routerLink]="stat.route">
+      <mat-card class="stat-card">
+        <mat-icon class="stat-icon">{{ stat.icon }}</mat-icon>
+        <div class="stat-body">
+          <div class="stat-value">
+            <mat-spinner *ngIf="stat.value === null && loading" diameter="20"></mat-spinner>
+            <ng-container *ngIf="stat.value !== null">{{ stat.value }}</ng-container>
+            <span class="unavailable" *ngIf="stat.value === null && !loading">—</span>
+          </div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      </mat-card>
+    </a>
+  </div>
+
+  <mat-card class="roadmap">
+    <h2>Not built yet</h2>
+    <p class="muted">
+      Campaigns, Media Library, Agent Inbox, Knowledge Base, Leads/CRM and Reports arrive
+      in Phases 3–6 of the architecture plan. Their API endpoints do not exist yet, so no
+      navigation is offered for them. A breakdown of customers by opt-in status is also
+      pending — the customer list endpoint accepts no status filter.
+    </p>
+  </mat-card>
+</div>

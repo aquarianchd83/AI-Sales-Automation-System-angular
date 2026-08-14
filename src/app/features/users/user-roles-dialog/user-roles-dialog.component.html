@@ -1,0 +1,31 @@
+<h2 mat-dialog-title>Roles — {{ data.user.fullName }}</h2>
+
+<mat-dialog-content>
+  <p class="muted">{{ data.user.email }}</p>
+
+  <mat-checkbox
+    class="role-option"
+    *ngFor="let role of data.roles"
+    [checked]="isChecked(role)"
+    (change)="toggle(role, $event.checked)"
+  >
+    <strong>{{ role }}</strong>
+    <div class="muted">{{ describe(role) }}</div>
+  </mat-checkbox>
+
+  <p class="muted" *ngIf="!data.roles.length">
+    No roles were returned by the API. Check that the backend seeded its roles.
+  </p>
+
+  <p class="mat-error warning" *ngIf="isSelfDemotion">
+    You are removing your own admin access. Saving this will lock you out of user
+    management until another admin restores it.
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Save roles' }}
+  </button>
+</mat-dialog-actions>

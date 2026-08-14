@@ -1,0 +1,109 @@
+<h2 mat-dialog-title>Import customers</h2>
+
+<mat-dialog-content>
+  <ng-container *ngIf="!result">
+    <p class="muted">
+      Upload a CSV or Excel file with the columns
+      <code>PhoneNumber, FirstName, LastName, Email, Tags</code>. Tags are separated by
+      semicolons. Rows whose phone number already exists are skipped as duplicates.
+    </p>
+
+    <div
+      class="dropzone"
+      [class.dropzone--filled]="!!file"
+      (drop)="onDrop($event)"
+      (dragover)="onDragOver($event)"
+    >
+      <ng-container *ngIf="!file">
+        <mat-icon class="dropzone-icon">cloud_upload</mat-icon>
+        <p>Drag a file here, or</p>
+        <button mat-stroked-button type="button" (click)="fileInput.click()">
+          Choose file
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="file">
+        <mat-icon class="dropzone-icon" color="primary">description</mat-icon>
+        <p class="file-name">{{ file.name }}</p>
+        <p class="muted">{{ (file.size / 1024).toFixed(0) }} KB</p>
+        <button mat-button type="button" [disabled]="uploading" (click)="reset()">
+          Choose a different file
+        </button>
+      </ng-container>
+
+      <input
+        #fileInput
+        type="file"
+        hidden
+        [accept]="accept"
+        (change)="onFileSelected($event)"
+      />
+    </div>
+
+    <p class="mat-error" *ngIf="fileError">{{ fileError }}</p>
+
+    <div class="progress" *ngIf="uploading">
+      <mat-progress-bar
+        [mode]="progress >= 100 ? 'indeterminate' : 'determinate'"
+        [value]="progress"
+      ></mat-progress-bar>
+      <p class="muted">
+        {{ progress >= 100 ? 'Processing rows…' : 'Uploading… ' + progress + '%' }}
+      </p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="result as summary">
+    <div class="summary">
+      <div class="summary-item">
+        <span class="summary-value">{{ summary.totalRows }}</span>
+        <span class="muted">rows read</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-value added">{{ summary.importedCount }}</span>
+        <span class="muted">added</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-value">{{ summary.skippedDuplicateCount }}</span>
+        <span class="muted">duplicates skipped</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-value failed">{{ summary.failedCount }}</span>
+        <span class="muted">failed</span>
+      </div>
+    </div>
+
+    <ng-container *ngIf="summary.rowErrors?.length">
+      <h3 class="errors-title">Rows that failed</h3>
+      <div class="errors">
+        <div class="error-row" *ngFor="let error of summary.rowErrors">
+          <span class="error-line">Row {{ error.rowNumber }}</span>
+          <span class="error-message">{{ error.reason }}</span>
+        </div>
+      </div>
+      <p class="muted">
+        Fix those rows in the source file and import again — rows that already exist are
+        skipped as duplicates rather than imported twice.
+      </p>
+    </ng-container>
+  </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [disabled]="uploading" (click)="close()">
+    {{ result ? 'Done' : 'Cancel' }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    *ngIf="!result"
+    [disabled]="!file || uploading"
+    (click)="upload()"
+  >
+    {{ uploading ? 'Importing…' : 'Import' }}
+  </button>
+  <button mat-stroked-button type="button" *ngIf="result" (click)="reset()">
+    Import another file
+  </button>
+</mat-dialog-actions>

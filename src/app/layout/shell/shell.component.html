@@ -1,0 +1,83 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    #drawer
+    class="shell-sidenav"
+    fixedInViewport
+    [attr.role]="(isHandset$ | async) ? 'dialog' : 'navigation'"
+    [mode]="(isHandset$ | async) ? 'over' : 'side'"
+    [opened]="(isHandset$ | async) === false"
+  >
+    <div class="brand">
+      <mat-icon color="primary">forum</mat-icon>
+      <div class="brand-text">
+        <span class="brand-title">Sales Automation</span>
+        <span class="brand-subtitle">Admin Panel</span>
+      </div>
+    </div>
+
+    <mat-nav-list>
+      <ng-container *ngFor="let item of navItems">
+        <a
+          mat-list-item
+          *appHasRole="item.roles"
+          [routerLink]="item.route"
+          routerLinkActive="nav-active"
+          (click)="drawer.mode === 'over' ? drawer.close() : null"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.label }}</span>
+        </a>
+      </ng-container>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar color="primary" class="shell-toolbar">
+      <button
+        type="button"
+        mat-icon-button
+        aria-label="Toggle navigation"
+        *ngIf="isHandset$ | async"
+        (click)="drawer.toggle()"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <span class="spacer"></span>
+
+      <ng-container *ngIf="currentUser$ | async as user">
+        <button
+          mat-button
+          class="account-button"
+          [matMenuTriggerFor]="accountMenu"
+          aria-label="Account menu"
+        >
+          <span class="avatar">{{ initials(user) }}</span>
+          <span class="account-name">{{ user.fullName || user.email }}</span>
+          <mat-icon>arrow_drop_down</mat-icon>
+        </button>
+
+        <mat-menu #accountMenu="matMenu">
+          <div class="menu-header" mat-menu-item disabled>
+            <div class="menu-name">{{ user.fullName }}</div>
+            <div class="menu-email">{{ user.email }}</div>
+            <div class="menu-roles">{{ user.roles.join(', ') || 'No role assigned' }}</div>
+          </div>
+          <mat-divider></mat-divider>
+          <a mat-menu-item routerLink="/change-password">
+            <mat-icon>lock_reset</mat-icon>
+            <span>Change password</span>
+          </a>
+          <button mat-menu-item type="button" (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Sign out</span>
+          </button>
+        </mat-menu>
+      </ng-container>
+    </mat-toolbar>
+
+    <main class="shell-content">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

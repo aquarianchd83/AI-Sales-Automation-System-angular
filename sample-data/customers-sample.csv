@@ -1,0 +1,9 @@
+PhoneNumber,FirstName,LastName,Email,Tags
++12025550143,Ada,Lovelace,ada.lovelace@example.com,vip;newsletter
++12025550167,Katherine,Johnson,katherine.johnson@example.com,enterprise
++442079460958,Charles,Babbage,charles.babbage@example.com,vip;uk
++442079460102,Joan,Clarke,joan.clarke@example.com,uk
++12025550190,Margaret,Hamilton,,newsletter
++12025550136,Barbara,,,
++1 (202) 555-0178,Alan,Turing,alan.turing@example.com,vip
+0012025550112,Grace,Hopper,grace.hopper@example.com,newsletter;enterprise

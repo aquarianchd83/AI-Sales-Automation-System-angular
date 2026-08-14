@@ -1,0 +1,90 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit user' : 'New user' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>Full name</mat-label>
+      <input matInput formControlName="fullName" />
+      <mat-error *ngIf="form.controls.fullName.hasError('required')">
+        Full name is required.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" formControlName="email" autocomplete="off" />
+      <mat-hint *ngIf="isEdit">
+        The email is the sign-in identifier and cannot be changed here.
+      </mat-hint>
+      <mat-error *ngIf="form.controls.email.hasError('required')">
+        Email is required.
+      </mat-error>
+      <mat-error *ngIf="form.controls.email.hasError('email')">
+        Enter a valid email address.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Phone number</mat-label>
+      <input matInput formControlName="phoneNumber" />
+    </mat-form-field>
+
+    <ng-container *ngIf="!isEdit">
+      <mat-form-field class="full-width">
+        <mat-label>Temporary password</mat-label>
+        <input
+          matInput
+          [type]="hidePassword ? 'password' : 'text'"
+          formControlName="password"
+          autocomplete="new-password"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'"
+          (click)="hidePassword = !hidePassword"
+        >
+          <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        <mat-hint>Share it securely; the user changes it from their own account.</mat-hint>
+        <mat-error *ngIf="form.controls.password.hasError('required')">
+          A password is required.
+        </mat-error>
+        <mat-error *ngIf="form.controls.password.hasError('minlength')">
+          Use at least 6 characters.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width">
+        <mat-label>Roles</mat-label>
+        <mat-select formControlName="roles" multiple>
+          <mat-option *ngFor="let role of data.roles" [value]="role">
+            {{ role }}
+          </mat-option>
+        </mat-select>
+        <mat-hint>A user with no role can sign in but sees almost nothing.</mat-hint>
+      </mat-form-field>
+
+      <p class="muted note">New users are created active.</p>
+    </ng-container>
+
+    <ng-container *ngIf="isEdit">
+      <mat-slide-toggle formControlName="isActive" class="active-toggle">
+        Account is active
+      </mat-slide-toggle>
+
+      <p class="muted note">
+        Roles are changed from the roles action on the list — this form does not touch
+        them.
+      </p>
+    </ng-container>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create user' }}
+  </button>
+</mat-dialog-actions>

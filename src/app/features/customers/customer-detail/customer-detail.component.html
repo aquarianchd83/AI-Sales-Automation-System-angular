@@ -1,0 +1,131 @@
+<div class="page">
+  <a mat-button routerLink="/customers" class="back-link">
+    <mat-icon>arrow_back</mat-icon>
+    Back to customers
+  </a>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="empty-state" *ngIf="!loading && !customer">
+    <mat-icon class="empty-icon">person_off</mat-icon>
+    <p>That customer could not be loaded. It may have been deleted.</p>
+  </div>
+
+  <ng-container *ngIf="customer as c">
+    <app-page-header [title]="displayName" [subtitle]="c.phoneNumberE164">
+      <button mat-stroked-button type="button" (click)="edit()">
+        <mat-icon>edit</mat-icon>
+        Edit
+      </button>
+      <button
+        mat-stroked-button
+        color="primary"
+        type="button"
+        [disabled]="isOptedIn"
+        (click)="optIn()"
+      >
+        <mat-icon>how_to_reg</mat-icon>
+        Record opt-in
+      </button>
+      <button
+        mat-stroked-button
+        color="warn"
+        type="button"
+        [disabled]="isOptedOut"
+        (click)="optOut()"
+      >
+        <mat-icon>block</mat-icon>
+        Opt out
+      </button>
+      <button mat-icon-button type="button" [matMenuTriggerFor]="menu" aria-label="More">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #menu="matMenu">
+        <button mat-menu-item type="button" (click)="delete()">
+          <mat-icon color="warn">delete</mat-icon>
+          <span>Delete customer</span>
+        </button>
+      </mat-menu>
+    </app-page-header>
+
+    <div class="detail-grid">
+      <mat-card class="detail-card">
+        <h2>Profile</h2>
+        <dl>
+          <dt>First name</dt>
+          <dd>{{ c.firstName || '—' }}</dd>
+
+          <dt>Last name</dt>
+          <dd>{{ c.lastName || '—' }}</dd>
+
+          <dt>WhatsApp number</dt>
+          <dd>{{ c.phoneNumberE164 }}</dd>
+
+          <dt>Email</dt>
+          <dd>{{ c.email || '—' }}</dd>
+
+          <dt>Source</dt>
+          <dd>{{ c.source || '—' }}</dd>
+
+          <dt>Preferred language</dt>
+          <dd>{{ c.preferredLanguage || '—' }}</dd>
+
+          <dt>Assigned agent</dt>
+          <dd class="mono">{{ c.assignedAgentId || 'Unassigned' }}</dd>
+        </dl>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h2>Messaging consent</h2>
+        <dl>
+          <dt>Status</dt>
+          <dd>
+            <span [class]="statusClass(c.optInStatus)">{{ c.optInStatus }}</span>
+          </dd>
+
+          <dt>Opted in</dt>
+          <dd>{{ (c.optInTimestamp | date: 'medium') || '—' }}</dd>
+
+          <dt>Consent source</dt>
+          <dd>{{ c.optInSource || '—' }}</dd>
+
+          <dt>Opted out</dt>
+          <dd>{{ (c.optOutTimestamp | date: 'medium') || '—' }}</dd>
+        </dl>
+
+        <p class="muted consent-note" *ngIf="isOptedOut">
+          This customer is excluded from campaigns and automated replies. Only record a new
+          opt-in if they have actually consented again — the source you enter is the
+          compliance evidence for it.
+        </p>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h2>Tags</h2>
+        <div class="tags">
+          <span class="tag" *ngFor="let tag of c.tags">{{ tag }}</span>
+          <span class="muted" *ngIf="!c.tags?.length">No tags. Use Edit to add some.</span>
+        </div>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h2>Record</h2>
+        <dl>
+          <dt>Created</dt>
+          <dd>{{ c.createdAt | date: 'medium' }}</dd>
+
+          <dt>ID</dt>
+          <dd class="mono">{{ c.id }}</dd>
+        </dl>
+      </mat-card>
+    </div>
+
+    <mat-card class="timeline-placeholder">
+      <h2>Conversation timeline</h2>
+      <p class="muted">
+        Message history, campaign membership and lead details appear here once Phases 3–5
+        ship the campaign, messaging and CRM endpoints.
+      </p>
+    </mat-card>
+  </ng-container>
+</div>

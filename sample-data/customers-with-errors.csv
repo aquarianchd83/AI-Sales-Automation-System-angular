@@ -1,0 +1,7 @@
+PhoneNumber,FirstName,LastName,Email,Tags
++12025550143,Ada,Lovelace,ada.lovelace@example.com,vip
+12025550155,Missing,Plus,missing.plus@example.com,
+5820098200,Bad,Series,bad.series@example.com,
++123,Too,Short,too.short@example.com,
+,No,Phone,no.phone@example.com,vip
++12025550188,Valid,Row,valid.row@example.com,newsletter

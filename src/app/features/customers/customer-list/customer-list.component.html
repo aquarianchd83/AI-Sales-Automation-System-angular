@@ -1,0 +1,206 @@
+<div class="page">
+  <app-page-header
+    title="Customers"
+    subtitle="Contact records, tags, and opt-in status. Opted-out customers are excluded from all automated messaging."
+  >
+    <button mat-stroked-button type="button" (click)="importCsv()">
+      <mat-icon>upload_file</mat-icon>
+      Import CSV / Excel
+    </button>
+    <button mat-flat-button color="primary" type="button" (click)="create()">
+      <mat-icon>person_add</mat-icon>
+      New customer
+    </button>
+  </app-page-header>
+
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search</mat-label>
+        <input
+          matInput
+          [formControl]="searchControl"
+          placeholder="Name, phone, or email"
+        />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <button
+        mat-button
+        type="button"
+        *ngIf="searchControl.value"
+        (click)="searchControl.setValue('')"
+      >
+        Clear
+      </button>
+
+      <span class="spacer"></span>
+      <span class="muted result-count" *ngIf="!loading">
+        {{ page.totalCount }} customer{{ page.totalCount === 1 ? '' : 's' }}
+      </span>
+    </div>
+
+    <div class="bulk-bar" *ngIf="selection.hasValue()">
+      <mat-icon>check_circle</mat-icon>
+      <span class="bulk-count">
+        {{ selection.selected.length }} selected on this page
+      </span>
+      <button mat-button type="button" (click)="selection.clear()">Clear</button>
+      <span class="spacer"></span>
+      <button
+        mat-flat-button
+        color="warn"
+        type="button"
+        [disabled]="bulkDeleting"
+        (click)="deleteSelected()"
+      >
+        <mat-icon>delete</mat-icon>
+        {{ bulkDeleting ? 'Deleting…' : 'Delete selected' }}
+      </button>
+    </div>
+
+    <mat-progress-bar
+      mode="indeterminate"
+      *ngIf="loading || bulkDeleting"
+    ></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="page.items">
+        <ng-container matColumnDef="select">
+          <th mat-header-cell *matHeaderCellDef class="select-cell">
+            <mat-checkbox
+              [checked]="allOnPageSelected"
+              [indeterminate]="someOnPageSelected"
+              [disabled]="!page.items.length"
+              (change)="toggleAllOnPage()"
+              aria-label="Select all customers on this page"
+            ></mat-checkbox>
+          </th>
+          <td mat-cell *matCellDef="let customer" class="select-cell">
+            <mat-checkbox
+              [checked]="selection.isSelected(customer)"
+              (change)="selection.toggle(customer)"
+              (click)="$event.stopPropagation()"
+              [attr.aria-label]="'Select ' + displayName(customer)"
+            ></mat-checkbox>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let customer">
+            <span class="primary-cell">{{ displayName(customer) }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="phoneNumberE164">
+          <th mat-header-cell *matHeaderCellDef>Phone</th>
+          <td mat-cell *matCellDef="let customer">{{ customer.phoneNumberE164 }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef>Email</th>
+          <td mat-cell *matCellDef="let customer">
+            {{ customer.email || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="optInStatus">
+          <th mat-header-cell *matHeaderCellDef>Opt-in</th>
+          <td mat-cell *matCellDef="let customer">
+            <span [class]="statusClass(customer.optInStatus)">
+              {{ customer.optInStatus }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="tags">
+          <th mat-header-cell *matHeaderCellDef>Tags</th>
+          <td mat-cell *matCellDef="let customer">
+            <span class="tag" *ngFor="let tag of customer.tags">{{ tag }}</span>
+            <span class="muted" *ngIf="!customer.tags?.length">—</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Added</th>
+          <td mat-cell *matCellDef="let customer">
+            {{ customer.createdAt | date: 'mediumDate' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef aria-label="Actions"></th>
+          <td mat-cell *matCellDef="let customer" class="actions-cell">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Edit"
+              (click)="edit(customer, $event)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="More"
+              [matMenuTriggerFor]="rowMenu"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #rowMenu="matMenu">
+              <button
+                mat-menu-item
+                type="button"
+                [disabled]="isOptedIn(customer)"
+                (click)="optIn(customer, $event)"
+              >
+                <mat-icon>how_to_reg</mat-icon>
+                <span>Record opt-in</span>
+              </button>
+              <button
+                mat-menu-item
+                type="button"
+                [disabled]="isOptedOut(customer)"
+                (click)="optOut(customer, $event)"
+              >
+                <mat-icon>block</mat-icon>
+                <span>Opt out</span>
+              </button>
+              <button mat-menu-item type="button" (click)="delete(customer, $event)">
+                <mat-icon color="warn">delete</mat-icon>
+                <span>Delete</span>
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let customer; columns: displayedColumns"
+          class="clickable-row"
+          (click)="view(customer)"
+        ></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">group_off</mat-icon>
+      <p *ngIf="searchControl.value">No customers match that search.</p>
+      <p *ngIf="!searchControl.value">
+        No customers yet — add one, or import a CSV.
+      </p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

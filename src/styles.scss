@@ -1,0 +1,151 @@
+// Roboto and the Material Icons font are self-hosted — see the "styles" array in
+// angular.json, which loads the @fontsource CSS ahead of this file. They are listed
+// there rather than @use'd here because Sass derives a module namespace from the
+// filename, and "300.css" is not a valid Sass identifier.
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$app-primary: mat.define-palette(mat.$teal-palette, 700, 400, 900);
+$app-accent: mat.define-palette(mat.$indigo-palette, A200, A100, A400);
+$app-warn: mat.define-palette(mat.$red-palette);
+
+$app-theme: mat.define-light-theme(
+  (
+    color: (
+      primary: $app-primary,
+      accent: $app-accent,
+      warn: $app-warn,
+    ),
+    typography: mat.define-typography-config(),
+    density: 0,
+  )
+);
+
+@include mat.all-component-themes($app-theme);
+
+/* Binds the Material Icons font to the class Angular Material puts on every ligature
+   <mat-icon>. @fontsource ships only the @font-face rules; the helper class came from
+   Google's CDN stylesheet, so without this every icon renders as its literal ligature
+   text ("menu", "search") in the app's body font. */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background: #f5f6f8;
+}
+
+/* ---- small layout utilities used across feature pages ---- */
+
+.page {
+  padding: 24px;
+}
+
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.table-card {
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table.mat-mdc-table {
+  width: 100%;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px 16px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.muted {
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+/* Snackbar variants used by NotificationService. The MDC snackbar keeps its label
+   inside a shadow-ish subtree, so the surface colour is set on the container. */
+.snack-success .mdc-snackbar__surface {
+  background-color: #1e7e34 !important;
+}
+
+.snack-error .mdc-snackbar__surface {
+  background-color: #b3261e !important;
+}
+
+.snack-info .mdc-snackbar__surface {
+  background-color: #37474f !important;
+}
+
+/* Opt-in status chips */
+.status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-chip--opted-in {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.status-chip--pending {
+  background: #fff4e5;
+  color: #a15c00;
+}
+
+.status-chip--opted-out {
+  background: #fdecea;
+  color: #b3261e;
+}
+
+.status-chip--inactive {
+  background: #eceff1;
+  color: #546e7a;
+}

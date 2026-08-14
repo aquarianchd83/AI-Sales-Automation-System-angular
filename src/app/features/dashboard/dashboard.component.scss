@@ -1,0 +1,68 @@
+.greeting {
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.stat-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  transition: box-shadow 150ms ease;
+
+  &:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.stat-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  color: #00695c;
+}
+
+.stat-value {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  font-size: 26px;
+  font-weight: 500;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.unavailable {
+  color: rgba(0, 0, 0, 0.38);
+}
+
+.roadmap {
+  margin-top: 24px;
+  padding: 20px;
+
+  h2 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    max-width: 720px;
+  }
+}
