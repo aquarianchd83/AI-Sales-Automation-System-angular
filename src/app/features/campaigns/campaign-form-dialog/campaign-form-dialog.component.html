@@ -4,7 +4,11 @@
   <form [formGroup]="form" novalidate>
     <mat-form-field class="full-width">
       <mat-label>Name</mat-label>
-      <input matInput formControlName="name" cdkFocusInitial />
+      <!-- No cdkFocusInitial: forcing focus onto an outlined field before the dialog's
+           open animation settles is what causes its floating label to render collapsed
+           over the input instead of properly notching the outline. The dialog already
+           focuses a sensible default on its own, correctly timed after the animation. -->
+      <input matInput formControlName="name" />
       <mat-error *ngIf="form.controls.name.hasError('required')">Name is required.</mat-error>
       <mat-error *ngIf="form.controls.name.hasError('maxlength')">
         Use at most 200 characters.

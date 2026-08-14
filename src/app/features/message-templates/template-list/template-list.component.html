@@ -66,6 +66,51 @@
             <button mat-icon-button type="button" matTooltip="Edit" (click)="edit(t)">
               <mat-icon>edit</mat-icon>
             </button>
+
+            <!-- A labeled button, not hidden inside the overflow menu: approving a
+                 template is what lets a campaign use it at all, so it needs to be a
+                 first-class action for the roles that can do it, not a buried menu item. -->
+            <button
+              mat-stroked-button
+              type="button"
+              class="review-button"
+              *appHasRole="['SuperAdmin', 'Admin']"
+              [matMenuTriggerFor]="reviewMenu"
+              [matTooltip]="'Review — currently ' + t.whatsAppTemplateStatus"
+            >
+              <mat-icon>rate_review</mat-icon>
+              Review
+            </button>
+            <mat-menu #reviewMenu="matMenu">
+              <button
+                mat-menu-item
+                type="button"
+                [disabled]="t.whatsAppTemplateStatus === WhatsAppTemplateStatus.Approved"
+                (click)="review(t, WhatsAppTemplateStatus.Approved)"
+              >
+                <mat-icon>check_circle</mat-icon>
+                <span>Approve</span>
+              </button>
+              <button
+                mat-menu-item
+                type="button"
+                [disabled]="t.whatsAppTemplateStatus === WhatsAppTemplateStatus.Rejected"
+                (click)="review(t, WhatsAppTemplateStatus.Rejected)"
+              >
+                <mat-icon>cancel</mat-icon>
+                <span>Reject</span>
+              </button>
+              <button
+                mat-menu-item
+                type="button"
+                [disabled]="t.whatsAppTemplateStatus === WhatsAppTemplateStatus.Pending"
+                (click)="resetToPending(t)"
+              >
+                <mat-icon>hourglass_empty</mat-icon>
+                <span>Reset to Pending</span>
+              </button>
+            </mat-menu>
+
             <button
               mat-icon-button
               type="button"
@@ -75,36 +120,6 @@
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #rowMenu="matMenu">
-              <ng-container *appHasRole="['SuperAdmin', 'Admin']">
-                <button
-                  mat-menu-item
-                  type="button"
-                  [disabled]="t.whatsAppTemplateStatus === WhatsAppTemplateStatus.Approved"
-                  (click)="review(t, WhatsAppTemplateStatus.Approved)"
-                >
-                  <mat-icon>check_circle</mat-icon>
-                  <span>Approve</span>
-                </button>
-                <button
-                  mat-menu-item
-                  type="button"
-                  [disabled]="t.whatsAppTemplateStatus === WhatsAppTemplateStatus.Rejected"
-                  (click)="review(t, WhatsAppTemplateStatus.Rejected)"
-                >
-                  <mat-icon>cancel</mat-icon>
-                  <span>Reject</span>
-                </button>
-                <button
-                  mat-menu-item
-                  type="button"
-                  [disabled]="t.whatsAppTemplateStatus === WhatsAppTemplateStatus.Pending"
-                  (click)="resetToPending(t)"
-                >
-                  <mat-icon>hourglass_empty</mat-icon>
-                  <span>Reset to Pending</span>
-                </button>
-                <mat-divider></mat-divider>
-              </ng-container>
               <button mat-menu-item type="button" (click)="delete(t)">
                 <mat-icon color="warn">delete</mat-icon>
                 <span>Delete</span>

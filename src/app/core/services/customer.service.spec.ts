@@ -65,6 +65,14 @@ describe('CustomerService', () => {
     request.flush({});
   });
 
+  it('DELETEs a URL-encoded tag name to remove it', () => {
+    service.removeTag('customer-1', 'VIP Customer').subscribe();
+
+    const request = http.expectOne(`${baseUrl}/customer-1/tags/VIP%20Customer`);
+    expect(request.request.method).toBe('DELETE');
+    request.flush({});
+  });
+
   it('posts all ids to bulk-delete in one request', () => {
     let result: { deletedCount: number } | undefined;
     service.bulkDelete(['id-1', 'id-2', 'id-3']).subscribe((r) => (result = r));

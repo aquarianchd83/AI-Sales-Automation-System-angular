@@ -4,7 +4,8 @@
   <form [formGroup]="form" novalidate>
     <mat-form-field class="full-width">
       <mat-label>Name</mat-label>
-      <input matInput formControlName="name" [maxlength]="maxLength" cdkFocusInitial />
+      <!-- No cdkFocusInitial - see the note in campaign-form-dialog.component.html. -->
+      <input matInput formControlName="name" [maxlength]="maxLength" />
       <mat-hint *ngIf="isEdit">
         Renaming re-labels this tag everywhere it's already applied.
       </mat-hint>

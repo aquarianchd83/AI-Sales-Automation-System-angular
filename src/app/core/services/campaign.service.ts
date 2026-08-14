@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   Campaign,
+  CampaignAudienceMember,
   CampaignProgress,
   CreateCampaignRequest,
   RunJobsResult,
@@ -103,6 +104,13 @@ export class CampaignService {
 
   getProgress(campaignId: string): Observable<CampaignProgress> {
     return this.http.get<CampaignProgress>(`${this.baseUrl}/${campaignId}/progress`);
+  }
+
+  /** The roster behind SetCampaignAudienceResult's counts — who is actually attached. */
+  getAudience(campaignId: string, query: PagedQuery): Observable<PagedResult<CampaignAudienceMember>> {
+    return this.http.get<PagedResult<CampaignAudienceMember>>(`${this.baseUrl}/${campaignId}/audience`, {
+      params: toPagedParams(query),
+    });
   }
 
   /**

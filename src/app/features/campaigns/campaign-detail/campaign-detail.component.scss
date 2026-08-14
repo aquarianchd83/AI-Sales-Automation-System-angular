@@ -2,27 +2,18 @@
   margin-bottom: 12px;
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
 .detail-card,
+.audience-card,
 .steps-card,
 .progress-card {
   padding: 20px;
+  margin-bottom: 16px;
 
   h2 {
     margin: 0;
     font-size: 15px;
     font-weight: 500;
   }
-}
-
-.steps-card {
-  margin-bottom: 16px;
 }
 
 .card-header {
@@ -50,9 +41,56 @@ dd {
 }
 
 .audience-count {
-  margin: 4px 0 2px;
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 500;
+}
+
+.audience-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.filter-search {
+  min-width: 240px;
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+
+.audience-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  th {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+}
+
+.member-name {
+  font-weight: 500;
+}
+
+.member-phone {
+  font-size: 12px;
 }
 
 .steps-note {

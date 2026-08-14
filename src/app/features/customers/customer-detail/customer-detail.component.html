@@ -106,6 +106,9 @@
           <span class="tag" *ngFor="let tag of c.tags">{{ tag }}</span>
           <span class="muted" *ngIf="!c.tags?.length">No tags. Use Edit to add some.</span>
         </div>
+        <p class="muted tags-note" *ngIf="c.tags?.length">
+          Use Edit to add or remove tags.
+        </p>
       </mat-card>
 
       <mat-card class="detail-card">

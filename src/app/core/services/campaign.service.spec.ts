@@ -64,6 +64,15 @@ describe('CampaignService', () => {
     check(() => service.stop('camp-1').subscribe(), `${baseUrl}/camp-1/stop`);
   });
 
+  it('fetches the audience roster with paging params', () => {
+    service.getAudience('camp-1', { page: 1, pageSize: 25 }).subscribe();
+
+    const req = http.expectOne((r) => r.url === `${baseUrl}/camp-1/audience`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('Page')).toBe('1');
+    req.flush({ items: [], page: 1, pageSize: 25, totalCount: 0, totalPages: 0 });
+  });
+
   it('calls the global ops/run-jobs endpoint with no campaign id', () => {
     service.runJobsNow().subscribe();
 

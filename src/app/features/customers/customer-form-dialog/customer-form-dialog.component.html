@@ -53,8 +53,31 @@
     <div class="tag-section">
       <label class="tag-label">Tags</label>
 
-      <div class="existing-tags" *ngIf="existingTags.length">
-        <span class="tag" *ngFor="let tag of existingTags">{{ tag }}</span>
+      <div class="existing-tags" *ngIf="visibleExistingTags.length || removedTags.length">
+        <span class="tag" *ngFor="let tag of visibleExistingTags">
+          {{ tag }}
+          <button
+            type="button"
+            class="chip-remove"
+            [attr.aria-label]="'Remove ' + tag"
+            matTooltip="Remove"
+            (click)="removeExistingTag(tag)"
+          >
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </span>
+        <span class="tag tag--removed" *ngFor="let tag of removedTags">
+          {{ tag }}
+          <button
+            type="button"
+            class="chip-undo"
+            [attr.aria-label]="'Undo removing ' + tag"
+            matTooltip="Undo"
+            (click)="undoRemoveTag(tag)"
+          >
+            <mat-icon>undo</mat-icon>
+          </button>
+        </span>
       </div>
 
       <mat-form-field class="full-width">
@@ -68,13 +91,22 @@
           </mat-chip-row>
         </mat-chip-grid>
         <input
-          placeholder="Type a tag and press Enter…"
+          [formControl]="tagSearchControl"
+          placeholder="Type to search existing tags, or Enter to add a new one…"
           [matChipInputFor]="chipGrid"
           [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+          [matAutocomplete]="tagAuto"
           (matChipInputTokenEnd)="addTag($event)"
         />
-        <mat-hint *ngIf="existingTags.length">
-          Tags can only be added — this API version has no remove-tag endpoint.
+        <mat-autocomplete #tagAuto="matAutocomplete" (optionSelected)="onTagOptionSelected($event)">
+          <mat-option *ngIf="loadingTagOptions" disabled>Searching…</mat-option>
+          <mat-option *ngFor="let tag of tagOptions" [value]="tag">
+            {{ tag.name }} <span class="muted">· {{ tag.customerCount }}</span>
+          </mat-option>
+        </mat-autocomplete>
+        <mat-hint *ngIf="removedTags.length">
+          {{ removedTags.length }} tag{{ removedTags.length === 1 ? '' : 's' }} will be
+          removed when you save.
         </mat-hint>
       </mat-form-field>
     </div>

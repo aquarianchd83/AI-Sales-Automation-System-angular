@@ -56,14 +56,21 @@ export class CustomerService {
     } as BulkDeleteCustomersRequest);
   }
 
-  /**
-   * Adds tags. There is no remove-tag endpoint in this API version, so callers must
-   * not present tag removal as if it were persisted.
-   */
   addTags(id: string, tagNames: string[]): Observable<Customer> {
     return this.http.post<Customer>(`${this.baseUrl}/${id}/tags`, {
       tagNames,
     } as AddCustomerTagsRequest);
+  }
+
+  /**
+   * Detaches one tag from the customer (case-insensitive match server-side). Does not
+   * delete the tag itself — other customers may still use it. A no-op, not an error, if
+   * the customer never had it.
+   */
+  removeTag(id: string, tagName: string): Observable<Customer> {
+    return this.http.delete<Customer>(
+      `${this.baseUrl}/${id}/tags/${encodeURIComponent(tagName)}`
+    );
   }
 
   /**

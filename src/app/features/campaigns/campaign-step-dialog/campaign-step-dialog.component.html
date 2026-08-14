@@ -61,7 +61,8 @@
 
     <div class="media-section">
       <label class="media-label">
-        Media ({{ minMedia }}–{{ maxMedia }} required)
+        Media
+        <span class="muted">— the count required is configured server-side; a step with too few or too many is rejected on save, not pre-checked here</span>
       </label>
 
       <div class="media-chips" *ngIf="selectedMedia.length">
@@ -97,10 +98,6 @@
         </mat-autocomplete>
       </mat-form-field>
 
-      <p class="mat-error" *ngIf="form.controls.mediaAssetIds.touched && form.controls.mediaAssetIds.hasError('mediaCount')">
-        Needs between {{ minMedia }} and {{ maxMedia }} media items;
-        {{ form.controls.mediaAssetIds.getError('mediaCount').actual }} selected.
-      </p>
     </div>
 
     <mat-slide-toggle formControlName="isActive" class="active-toggle">

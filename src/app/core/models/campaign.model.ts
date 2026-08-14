@@ -119,6 +119,22 @@ export interface SetCampaignAudienceResult {
   notOptedInCount: number;
 }
 
+/**
+ * CampaignAudienceMemberDto — one row of the roster behind SetCampaignAudienceResult's
+ * counts. `currentStepNumber` is -1 until the first message actually sends.
+ */
+export interface CampaignAudienceMember {
+  customerId: string;
+  phoneNumberE164: string;
+  firstName: string | null;
+  lastName: string | null;
+  status: CampaignCustomerStatus | string;
+  currentStepNumber: number;
+  lastMessageSentAt: string | null;
+  nextFollowUpDueAt: string | null;
+  stoppedReason: string | null;
+}
+
 export interface CampaignProgress {
   campaignId: string;
   totalCustomers: number;
@@ -139,9 +155,20 @@ export interface RunJobsResult {
   retries: SendRunResult;
 }
 
-/** CampaignService.RequireStatus rules, mirrored so the UI never offers an action the API refuses. */
+/**
+ * CampaignService.RequireStatus rules, mirrored so the UI never offers an action the API
+ * refuses. Edit is Draft, Scheduled, or Paused — a Scheduled campaign hasn't sent anything
+ * yet, so its name/description/date are still safe to change; Running is excluded since a
+ * live campaign's schedule should not shift under it. Clearing the date on a Scheduled
+ * campaign falls it back to Draft server-side (nothing would ever promote it out of
+ * Scheduled again with no date to promote on).
+ */
 export function canEditCampaign(status: string): boolean {
-  return status === CampaignStatus.Draft;
+  return (
+    status === CampaignStatus.Draft ||
+    status === CampaignStatus.Scheduled ||
+    status === CampaignStatus.Paused
+  );
 }
 
 export function canDeleteCampaign(status: string): boolean {

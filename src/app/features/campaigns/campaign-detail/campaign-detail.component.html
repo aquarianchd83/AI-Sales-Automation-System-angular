@@ -73,47 +73,101 @@
       </mat-menu>
     </app-page-header>
 
-    <div class="detail-grid">
-      <mat-card class="detail-card">
-        <h2>Overview</h2>
-        <dl>
-          <dt>Description</dt>
-          <dd>{{ c.description || '—' }}</dd>
+    <mat-card class="detail-card">
+      <h2>Overview</h2>
+      <dl>
+        <dt>Description</dt>
+        <dd>{{ c.description || '—' }}</dd>
 
-          <dt>Scheduled start</dt>
-          <dd>{{ (c.scheduledStartAt | date: 'medium') || 'Not scheduled — starts immediately' }}</dd>
+        <dt>Scheduled start</dt>
+        <dd>{{ (c.scheduledStartAt | date: 'medium') || 'Not scheduled — starts immediately' }}</dd>
 
-          <dt>Started</dt>
-          <dd>{{ (c.startedAt | date: 'medium') || '—' }}</dd>
+        <dt>Started</dt>
+        <dd>{{ (c.startedAt | date: 'medium') || '—' }}</dd>
 
-          <dt>Stopped</dt>
-          <dd>{{ (c.stoppedAt | date: 'medium') || '—' }}</dd>
+        <dt>Stopped</dt>
+        <dd>{{ (c.stoppedAt | date: 'medium') || '—' }}</dd>
 
-          <dt>Created</dt>
-          <dd>{{ c.createdAt | date: 'medium' }}</dd>
-        </dl>
-      </mat-card>
+        <dt>Created</dt>
+        <dd>{{ c.createdAt | date: 'medium' }}</dd>
+      </dl>
+    </mat-card>
 
-      <mat-card class="detail-card">
-        <div class="card-header">
-          <h2>Audience</h2>
-          <button
-            mat-button
-            type="button"
-            [disabled]="!canSetAudienceNow"
-            (click)="setAudience()"
-          >
-            <mat-icon>group_add</mat-icon>
-            Add audience
-          </button>
-        </div>
-        <p class="audience-count">{{ c.audienceCount }}</p>
-        <p class="muted">
-          customer{{ c.audienceCount === 1 ? '' : 's' }} attached. There is no way to list or
-          remove individual customers once added — only to add more by tag or id.
+    <mat-card class="audience-card">
+      <div class="card-header">
+        <h2>Audience</h2>
+        <span class="audience-count">{{ c.audienceCount }}</span>
+        <span class="spacer"></span>
+        <button
+          mat-button
+          type="button"
+          [disabled]="!canSetAudienceNow"
+          (click)="setAudience()"
+        >
+          <mat-icon>group_add</mat-icon>
+          Add audience
+        </button>
+      </div>
+
+      <p class="muted audience-note">
+        Attaching is additive only — there is no way to remove a customer from a campaign
+        once added, only to add more by tag or id.
+      </p>
+
+      <div class="filters">
+        <mat-form-field class="filter-search" subscriptSizing="dynamic">
+          <mat-label>Search</mat-label>
+          <input matInput [formControl]="audienceSearchControl" placeholder="Name or phone" />
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingAudience"></mat-progress-bar>
+
+      <div class="table-scroll" *ngIf="audiencePage.items.length">
+        <table class="audience-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Status</th>
+              <th>Step</th>
+              <th>Last message sent</th>
+              <th>Next follow-up due</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let member of audiencePage.items">
+              <td>
+                <div class="member-name">{{ audienceDisplayName(member) }}</div>
+                <div class="muted member-phone">{{ member.phoneNumberE164 }}</div>
+              </td>
+              <td>{{ member.status }}</td>
+              <td>{{ member.currentStepNumber < 0 ? 'Not sent yet' : member.currentStepNumber }}</td>
+              <td>{{ (member.lastMessageSentAt | date: 'medium') || '—' }}</td>
+              <td>{{ (member.nextFollowUpDueAt | date: 'medium') || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!loadingAudience && !audiencePage.items.length">
+        <mat-icon class="empty-icon">group_off</mat-icon>
+        <p *ngIf="audienceSearchControl.value">No attached customers match that search.</p>
+        <p *ngIf="!audienceSearchControl.value">
+          No customers attached yet — use "Add audience" to attach some by tag or id.
         </p>
-      </mat-card>
-    </div>
+      </div>
+
+      <mat-paginator
+        *ngIf="audiencePage.totalCount > 0"
+        [length]="audiencePage.totalCount"
+        [pageSize]="audiencePage.pageSize"
+        [pageIndex]="audiencePage.page - 1"
+        [pageSizeOptions]="audiencePageSizeOptions"
+        showFirstLastButtons
+        (page)="onAudiencePage($event)"
+      ></mat-paginator>
+    </mat-card>
 
     <mat-card class="steps-card">
       <div class="card-header">

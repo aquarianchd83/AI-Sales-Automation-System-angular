@@ -167,8 +167,18 @@ These API behaviours shaped the UI, and are worth knowing before you extend it:
    the number in the unique index.
 3. **`CreateCustomerRequest` does not accept tags.** The dialog creates the customer, then
    calls `POST /customers/{id}/tags` in a second request.
-4. **Tags can only be added, never removed** — there is no delete-tag endpoint. Existing
-   tags render as read-only chips; only tags staged in the current dialog can be removed.
+4. **Tags can now be both added and removed.** This repo's API gained
+   `DELETE /customers/{id}/tags/{tagName}` (added alongside the frontend change that
+   uses it, matching how the campaign audience gap was closed — see
+   `CustomerService.RemoveTagAsync`) — case-insensitive match, a no-op rather than an
+   error if the customer never had that tag, and it detaches the join row only, never
+   the `CustomerTag` entity itself (other customers may still reference it). Removal in
+   [`CustomerFormDialogComponent`](src/app/features/customers/customer-form-dialog/customer-form-dialog.component.ts)
+   is staged, not immediate — clicking the X marks a tag for removal (shown
+   struck-through with an undo), and it's only actually deleted when you click Save,
+   alongside whatever new tags were added in the same session. Re-typing a tag that's
+   staged for removal just cancels the removal rather than queuing a redundant
+   remove-then-re-add round trip.
 5. **Opt-in requires a consent source.** `POST /customers/{id}/opt-in` takes
    `{ source, capturedAt? }`; `source` is mandatory because consent with no provenance is
    not evidence, and `capturedAt` may not be in the future. It is idempotent — re-recording
@@ -205,57 +215,79 @@ domain enums) rather than guessed:
 
 1. **Campaign status is a state machine, and every action is gated client-side to match
    it exactly** — see the `can*` functions in
-   [`campaign.model.ts`](src/app/core/models/campaign.model.ts). Edit and Delete: Draft
-   only. Steps: Draft or Paused. Audience: anything except Stopped/Completed. Start:
-   Draft only (Resume is the equivalent action from Paused — same server-side check, but
-   a distinct endpoint). Pause: Running or Scheduled. Stop: anything except
-   Stopped/Completed. These mirror `CampaignService.RequireStatus` — if the backend's
-   allowed-status lists change, this is the one place to update.
-2. **Starting a campaign validates more than the UI can pre-check.** The API requires an
-   active Initial step, and every active step needs its media count within the
-   configured range (default 2–5, from `CampaignOptions` — configurable server-side, so
-   the client's `DEFAULT_MIN_STEP_MEDIA`/`MAX` are a fast-fail hint, not the authority)
-   **and** an assigned template that is both `Approved` and active. The step dialog lets
-   you save a step missing a template or with a Pending template (useful while building a
+   [`campaign.model.ts`](src/app/core/models/campaign.model.ts). Edit: Draft, Scheduled,
+   or Paused — a Scheduled campaign hasn't sent anything yet, so its fields are still
+   safe to change; clearing the date on a Scheduled campaign falls it back to Draft
+   server-side, since nothing would ever promote it out of Scheduled again with no date
+   to promote on. Delete: Draft only. Steps: Draft or Paused. Audience: anything except
+   Stopped/Completed. Start: Draft only (Resume is the equivalent action from Paused —
+   same server-side check, but a distinct endpoint). Pause: Running or Scheduled. Stop:
+   anything except Stopped/Completed. These mirror `CampaignService.RequireStatus` — if
+   the backend's allowed-status lists change, this is the one place to update.
+2. **Media count is a server-configured range, enforced at both step-save and Start
+   time, not a fixed number the client can validate against.** `CampaignOptions`
+   (`Campaigns:MinStepMedia`/`MaxStepMedia`) is bound from `appsettings.json`, and the
+   Phase 1 spec's 2–5 is only a default — this repo's API currently runs with
+   `MinStepMedia: 0`, so a step (and a campaign) can be created and started without
+   first sourcing 2–5 real media assets. Because there's no endpoint exposing the live
+   value and it has already changed once during this build, the step dialog does **not**
+   client-side block on a count at all — it shows an informational hint and lets the
+   server's own response (400 on save, 409 on Start) be the one source of truth. A
+   hardcoded client minimum would silently drift out of sync every time this changes.
+3. Starting a campaign also requires an active Initial step and, on every active step,
+   **an assigned template that is both `Approved` and active**. The step dialog lets you
+   save a step missing a template or with a Pending template (useful while building a
    campaign before templates are approved) — Start's 409 is what actually enforces this,
    surfaced via `ErrorInterceptor`.
-3. **There is no endpoint to list or remove a campaign's audience** — only
-   `POST .../audience` to add more by tag name or customer id. The detail page can show
-   `audienceCount` but never a roster. `SetAudienceRequestValidator` requires at least one
-   tag or id; a matched-but-not-opted-in customer is silently excluded and counted in
-   `notOptedInCount` rather than rejecting the whole call.
-4. **`POST /campaigns/ops/run-jobs` is global, not per-campaign** — it has no id in its
+4. **There is no endpoint to *remove* a customer from a campaign's audience** — only
+   `POST .../audience` to add more by tag name or customer id, additive and safe to call
+   repeatedly. `GET .../audience` (added alongside the roster table on the detail page —
+   see `CampaignService.getAudience` and
+   [`CampaignDetailComponent`](src/app/features/campaigns/campaign-detail/campaign-detail.component.ts))
+   lets you see who's attached, their per-campaign status, and their current step, but
+   there's still no way to detach anyone once added. `SetAudienceRequestValidator`
+   requires at least one tag or id on the add call; a matched-but-not-opted-in customer
+   is silently excluded and counted in `notOptedInCount` rather than rejecting the whole
+   call.
+5. **`POST /campaigns/ops/run-jobs` is global, not per-campaign** — it has no id in its
    route and runs the send pipeline (initial sends, follow-ups, retries) across every
    eligible campaign at once. **SuperAdmin only**; the button is hidden via `*appHasRole`
    for everyone else, same UI-only-gate caveat as elsewhere.
-5. **Message templates: only `bodyText` and `isActive` are editable after creation** —
+6. **Message templates: only `bodyText` and `isActive` are editable after creation** —
    name, language, category and the Meta-registered `whatsAppTemplateName` are fixed.
    Editing the body of an `Approved` template **silently reverts it to Pending**
    server-side; [`TemplateFormDialogComponent`](src/app/features/message-templates/template-form-dialog/template-form-dialog.component.ts)
    detects this client-side and warns before you save, but the backend enforces it
    regardless.
-6. **The `review` action is SuperAdmin/Admin only**; every other template/campaign/media
-   endpoint accepts any authenticated user. Deleting a template referenced by any campaign
-   step 409s with **no force option** — unlike tags and media, you must remove it from
-   the step first.
-7. **Media has no in-use counter** the way `TagDto.customerCount` does, so
+7. **The `review` action is SuperAdmin/Admin only**; every other template/campaign/media
+   endpoint accepts any authenticated user. It's a first-class button on each row (not
+   hidden inside the overflow menu) for exactly the roles that can use it — approving a
+   template is what lets a campaign use it at all, so burying that action was a real
+   discoverability problem, not just a role-gating one. Deleting a template referenced by
+   any campaign step 409s with **no force option** — unlike tags and media, you must
+   remove it from the step first.
+8. **Media has no in-use counter** the way `TagDto.customerCount` does, so
    [`MediaListComponent.delete`](src/app/features/media/media-list/media-list.component.ts)
    can't decide up front whether to force. It always attempts a plain delete first; a 409
    triggers a second confirm offering `force=true`. Uploads are deduplicated by content
    checksum server-side — uploading identical bytes twice returns the existing asset.
-8. **`{{Token}}` placeholders are restricted to `FirstName`, `LastName`, `PhoneNumber`**,
+9. **`{{Token}}` placeholders are restricted to `FirstName`, `LastName`, `PhoneNumber`**,
    in both campaign step message text and template body text, enforced by the same
    `TemplatePlaceholderResolver` pattern on the backend and mirrored in
    [`placeholder-tokens.ts`](src/app/core/utils/placeholder-tokens.ts). The regex requires
    no whitespace inside the braces — `{{First Name}}` isn't flagged as invalid, it's
    simply never recognized as a placeholder at all (and so is sent to WhatsApp verbatim,
    unsubstituted). This is a real trap the UI does not fully protect against; the token
-   quick-insert buttons exist specifically to avoid typing braces by hand.
-9. **A campaign step's type can't be changed once created** — the step dialog disables
-   the type selector in edit mode; changing it means removing the step and adding a new
-   one of the desired type via the "Add step" menu, which only offers step types the
-   campaign doesn't already have.
-10. **`MediaAssetDto.url` is host-relative, not absolute.** In local dev,
+   quick-insert buttons exist specifically to avoid typing braces by hand. **This list is
+   hardcoded server-side** — there is no way for a template or step to introduce a new
+   named placeholder (e.g. `{{CompanyName}}`) without a real customer field for the
+   resolver to read from, since an unmapped token silently resolves to an empty string
+   at send time rather than erroring. See §7 for what a real fix would need.
+10. **A campaign step's type can't be changed once created** — the step dialog disables
+    the type selector in edit mode; changing it means removing the step and adding a new
+    one of the desired type via the "Add step" menu, which only offers step types the
+    campaign doesn't already have.
+11. **`MediaAssetDto.url` is host-relative, not absolute.** In local dev,
     `MediaStorage:PublicBaseUrl` is empty (`appsettings.json`), so the API returns e.g.
     `/media/2026/08/<guid>.jpg` — a path with no scheme or host. `<img [src]="asset.url">`
     resolves a relative URL against the *current page's* origin, so without a proxy entry
@@ -269,6 +301,16 @@ domain enums) rather than guessed:
 
 ## 7. Known gaps
 
+- **No custom placeholders beyond `FirstName`/`LastName`/`PhoneNumber`.** This was asked
+  for and deliberately *not* built: `TemplatePlaceholderResolver.KnownTokens` is a fixed
+  list on the backend, and an unrecognized token resolves to an empty string at send
+  time rather than erroring — so relaxing the validator (client or server) without
+  giving the resolver somewhere real to read a new value from (e.g. `{{CompanyName}}`)
+  would let a user save a message that looks correct in the editor and then sends with
+  a silent blank where that text should be. A real fix needs a customer custom-field
+  schema (admin UI to define fields, storage, and a resolver update to read them) — a
+  genuine feature, not a validation tweak. Flagging this rather than shipping a
+  half-working version of it.
 - **No forgot/reset password.** The Phase 2 API has no such endpoint; the login screen
   says so rather than offering a dead link.
 - **No admin password reset.** Editing a user cannot change their password.

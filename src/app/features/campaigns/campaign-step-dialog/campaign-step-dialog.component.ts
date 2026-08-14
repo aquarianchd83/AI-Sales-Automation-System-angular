@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { AbstractControl, FormBuilder, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { FormBuilder, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { Observable, forkJoin, of } from 'rxjs';
@@ -10,8 +10,6 @@ import {
   Campaign,
   CampaignStep,
   CampaignStepType,
-  DEFAULT_MAX_STEP_MEDIA,
-  DEFAULT_MIN_STEP_MEDIA,
 } from '../../../core/models/campaign.model';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { KNOWN_PLACEHOLDER_TOKENS, placeholderTokenValidator } from '../../../core/utils/placeholder-tokens';
@@ -29,13 +27,6 @@ export interface CampaignStepDialogData {
   preferredStepType?: string;
 }
 
-function mediaCountValidator(min: number, max: number): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    const ids = (control.value as string[] | null) ?? [];
-    return ids.length < min || ids.length > max ? { mediaCount: { min, max, actual: ids.length } } : null;
-  };
-}
-
 @Component({
   selector: 'app-campaign-step-dialog',
   templateUrl: './campaign-step-dialog.component.html',
@@ -43,8 +34,6 @@ function mediaCountValidator(min: number, max: number): ValidatorFn {
 })
 export class CampaignStepDialogComponent implements OnInit {
   readonly isEdit = !!this.data.step;
-  readonly minMedia = DEFAULT_MIN_STEP_MEDIA;
-  readonly maxMedia = DEFAULT_MAX_STEP_MEDIA;
   readonly knownTokens = KNOWN_PLACEHOLDER_TOKENS;
   readonly WhatsAppTemplateStatus = WhatsAppTemplateStatus;
 
@@ -72,10 +61,13 @@ export class CampaignStepDialogComponent implements OnInit {
     ],
     messageTemplateId: [this.data.step?.messageTemplateId ?? (null as string | null)],
     isActive: [this.data.step?.isActive ?? true],
-    mediaAssetIds: [
-      [...(this.data.step?.mediaAssetIds ?? [])],
-      [mediaCountValidator(this.minMedia, this.maxMedia)],
-    ],
+    // No client-side min/max validator: the server's CampaignOptions.MinStepMedia/
+    // MaxStepMedia is configurable (and already overridden to 0 in this dev environment
+    // per appsettings.Development.json), so a hardcoded client range would drift out of
+    // sync with whatever the API is actually enforcing. minMedia/maxMedia below stay as
+    // a non-blocking hint; the API's own 400 is what's authoritative, surfaced by
+    // ErrorInterceptor if the count it currently requires isn't met.
+    mediaAssetIds: [[...(this.data.step?.mediaAssetIds ?? [])]],
   });
 
   readonly mediaSearchControl = this.fb.nonNullable.control('');
@@ -202,7 +194,7 @@ export class CampaignStepDialogComponent implements OnInit {
     }
   }
 
-  /** Bounded by maxMedia (5) — cheap even as N individual GETs. */
+  /** Bounded by however many media ids the step already had — cheap even as N individual GETs. */
   private resolveExistingMedia(ids: string[]): void {
     // A media asset could have been deleted since this step was saved — drop it from the
     // chip list rather than fail the whole dialog.

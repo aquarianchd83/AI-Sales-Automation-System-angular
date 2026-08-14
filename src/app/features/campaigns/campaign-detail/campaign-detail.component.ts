@@ -1,13 +1,16 @@
 import { ActivatedRoute, Router } from '@angular/router';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
-import { finalize, switchMap } from 'rxjs/operators';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { Observable, Subject, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil } from 'rxjs/operators';
 
 import {
   CAMPAIGN_CUSTOMER_STATUS_ORDER,
   CAMPAIGN_STEP_TYPES_IN_ORDER,
   Campaign,
+  CampaignAudienceMember,
   CampaignProgress,
   CampaignStep,
   CampaignStepType,
@@ -26,6 +29,7 @@ import { CampaignFormDialogComponent } from '../campaign-form-dialog/campaign-fo
 import { CampaignService } from '../../../core/services/campaign.service';
 import { CampaignStepDialogComponent, CampaignStepDialogData } from '../campaign-step-dialog/campaign-step-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
@@ -33,16 +37,27 @@ import { NotificationService } from '../../../core/services/notification.service
   templateUrl: './campaign-detail.component.html',
   styleUrls: ['./campaign-detail.component.scss'],
 })
-export class CampaignDetailComponent implements OnInit {
+export class CampaignDetailComponent implements OnInit, OnDestroy {
+  @ViewChild(MatPaginator) audiencePaginator?: MatPaginator;
+
   readonly stepTypesInOrder = CAMPAIGN_STEP_TYPES_IN_ORDER;
   readonly customerStatusOrder = CAMPAIGN_CUSTOMER_STATUS_ORDER;
   readonly statusClass = campaignStatusChipClass;
+  readonly audiencePageSizeOptions = PAGE_SIZE_OPTIONS;
+  readonly audienceSearchControl = new FormControl<string>('', { nonNullable: true });
 
   campaign: Campaign | null = null;
   progress: CampaignProgress | null = null;
   loading = true;
   loadingProgress = false;
   actionInFlight = false;
+
+  audiencePage: PagedResult<CampaignAudienceMember> = emptyPage<CampaignAudienceMember>();
+  loadingAudience = true;
+
+  private audienceQuery: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
+  private readonly reloadAudience$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -60,15 +75,56 @@ export class CampaignDetailComponent implements OnInit {
           return this.campaigns
             .getById(params.get('id') ?? '')
             .pipe(finalize(() => (this.loading = false)));
-        })
+        }),
+        takeUntil(this.destroy$)
       )
       .subscribe({
         next: (campaign) => {
           this.campaign = campaign;
           this.loadProgress(campaign.id);
+          this.reloadAudience$.next();
         },
         error: () => (this.campaign = null),
       });
+
+    this.audienceSearchControl.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((search) => {
+        this.audienceQuery = { ...this.audienceQuery, page: 1, search: search || undefined };
+        this.audiencePaginator?.firstPage();
+        this.reloadAudience$.next();
+      });
+
+    this.reloadAudience$
+      .pipe(
+        switchMap(() => {
+          if (!this.campaign) {
+            return of(emptyPage<CampaignAudienceMember>(this.audienceQuery.pageSize));
+          }
+          this.loadingAudience = true;
+          return this.campaigns.getAudience(this.campaign.id, this.audienceQuery).pipe(
+            catchError(() => of(emptyPage<CampaignAudienceMember>(this.audienceQuery.pageSize))),
+            finalize(() => (this.loadingAudience = false))
+          );
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((page) => (this.audiencePage = page));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  onAudiencePage(event: PageEvent): void {
+    this.audienceQuery = { ...this.audienceQuery, page: event.pageIndex + 1, pageSize: event.pageSize };
+    this.reloadAudience$.next();
+  }
+
+  audienceDisplayName(member: CampaignAudienceMember): string {
+    const name = [member.firstName, member.lastName].filter(Boolean).join(' ').trim();
+    return name || member.phoneNumberE164;
   }
 
   // ---- lifecycle guards, bound to the current campaign ----------------------------------
@@ -211,6 +267,7 @@ export class CampaignDetailComponent implements OnInit {
       .subscribe((changed) => {
         if (changed) {
           this.reload();
+          this.reloadAudience$.next();
         }
       });
   }

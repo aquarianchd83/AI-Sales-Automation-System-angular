@@ -21,10 +21,40 @@
 }
 
 .tag {
-  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px 3px 10px;
   border-radius: 12px;
   background: #eceff1;
   font-size: 12px;
+}
+
+.tag--removed {
+  background: #fdecea;
+  color: #b3261e;
+  text-decoration: line-through;
+}
+
+.chip-remove,
+.chip-undo {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  color: rgba(0, 0, 0, 0.54);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.chip-undo {
+  color: #b3261e;
 }
 
 .opt-in-note {

@@ -1,14 +1,17 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { Component, Inject } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatChipInputEvent } from '@angular/material/chips';
-import { Observable, of } from 'rxjs';
-import { finalize, switchMap } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize, switchMap } from 'rxjs/operators';
 
 import { Customer } from '../../../core/models/customer.model';
 import { CustomerService } from '../../../core/services/customer.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { Tag } from '../../../core/models/tag.model';
+import { TagService } from '../../../core/services/tag.service';
 import { normalizePhoneNumber, phoneNumberValidator } from '../../../core/utils/phone-number';
 
 export interface CustomerFormDialogData {
@@ -47,10 +50,16 @@ export class CustomerFormDialogComponent {
     return normalized && normalized !== typed.trim() ? normalized : null;
   }
 
-  /** Already persisted; the API has no remove-tag endpoint, so these are read-only. */
+  /** The immutable initial snapshot — never mutated; removedTags tracks what's staged off it. */
   readonly existingTags: string[] = [...(this.data.customer?.tags ?? [])];
   /** Staged in this dialog and still removable until saved. */
   newTags: string[] = [];
+  /** Existing tags staged for removal — applied via a separate call per tag on save. */
+  removedTags: string[] = [];
+
+  readonly tagSearchControl = new FormControl('', { nonNullable: true });
+  tagOptions: Tag[] = [];
+  loadingTagOptions = false;
 
   saving = false;
 
@@ -58,20 +67,78 @@ export class CustomerFormDialogComponent {
     @Inject(MAT_DIALOG_DATA) public readonly data: CustomerFormDialogData,
     private readonly fb: FormBuilder,
     private readonly customers: CustomerService,
+    private readonly tags: TagService,
     private readonly notify: NotificationService,
     private readonly dialogRef: MatDialogRef<CustomerFormDialogComponent, boolean>
-  ) {}
+  ) {
+    this.tagSearchControl.valueChanges
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((search) => {
+          this.loadingTagOptions = true;
+          return this.tags
+            .getPaged({ page: 1, pageSize: 10, search: search || undefined })
+            .pipe(finalize(() => (this.loadingTagOptions = false)));
+        })
+      )
+      .subscribe((page) => {
+        // Don't suggest a tag that's already attached (and not staged for removal) or
+        // already staged as new — a removed one is fair to suggest again, since picking
+        // it just cancels the removal (see stageTag).
+        this.tagOptions = page.items.filter(
+          (tag) => !this.visibleExistingTags.includes(tag.name) && !this.newTags.includes(tag.name)
+        );
+      });
+  }
 
+  /** Existing tags not currently staged for removal — what the chip list actually shows. */
+  get visibleExistingTags(): string[] {
+    return this.existingTags.filter((t) => !this.removedTags.includes(t));
+  }
+
+  /** Free-text entry — Enter or comma commits whatever was typed, existing tag or new. */
   addTag(event: MatChipInputEvent): void {
-    const value = (event.value || '').trim();
-    if (value && !this.existingTags.includes(value) && !this.newTags.includes(value)) {
-      this.newTags.push(value);
-    }
+    this.stageTag((event.value || '').trim());
     event.chipInput?.clear();
+    this.tagSearchControl.setValue('');
+  }
+
+  /** Picking a suggestion from the autocomplete dropdown. */
+  onTagOptionSelected(event: MatAutocompleteSelectedEvent): void {
+    const tag = event.option.value as Tag;
+    this.stageTag(tag.name);
+    this.tagSearchControl.setValue('');
   }
 
   removeNewTag(tag: string): void {
     this.newTags = this.newTags.filter((t) => t !== tag);
+  }
+
+  /** Stages an already-attached tag for removal on save; reversible via undoRemoveTag. */
+  removeExistingTag(tag: string): void {
+    if (!this.removedTags.includes(tag)) {
+      this.removedTags = [...this.removedTags, tag];
+    }
+  }
+
+  undoRemoveTag(tag: string): void {
+    this.removedTags = this.removedTags.filter((t) => t !== tag);
+  }
+
+  private stageTag(name: string): void {
+    if (!name) {
+      return;
+    }
+    if (this.removedTags.includes(name)) {
+      // Re-typing/re-selecting a tag just staged for removal simply cancels the removal
+      // — cleaner than staging a redundant remove-then-re-add round trip on save.
+      this.undoRemoveTag(name);
+      return;
+    }
+    if (!this.existingTags.includes(name) && !this.newTags.includes(name)) {
+      this.newTags.push(name);
+    }
   }
 
   save(): void {
@@ -100,12 +167,23 @@ export class CustomerFormDialogComponent {
     this.saving = true;
     saved$
       .pipe(
-        // Tags are a separate endpoint — CreateCustomerRequest does not accept them.
-        switchMap((customer) =>
-          this.newTags.length
-            ? this.customers.addTags(customer.id, this.newTags)
-            : of(customer)
-        ),
+        // Tags are separate endpoints — CreateCustomerRequest/UpdateCustomerRequest don't
+        // accept them. Removals first (independent, safe in parallel), then the single
+        // additions call — so a tag that was removed and re-typed in the same session
+        // (see stageTag) ends up attached, not stuck mid-toggle.
+        switchMap((customer) => {
+          // Typed as Observable<unknown> — its emission is never used, only its
+          // completion. Left to inference, the ternary's two branches (Observable<
+          // Customer[]> vs Observable<null>) confuse the switchMap overload below.
+          const removals$: Observable<unknown> = this.removedTags.length
+            ? forkJoin(this.removedTags.map((name) => this.customers.removeTag(customer.id, name)))
+            : of(null);
+          return removals$.pipe(
+            switchMap(() =>
+              this.newTags.length ? this.customers.addTags(customer.id, this.newTags) : of(customer)
+            )
+          );
+        }),
         finalize(() => (this.saving = false))
       )
       .subscribe({
@@ -114,8 +192,9 @@ export class CustomerFormDialogComponent {
           this.dialogRef.close(true);
         },
         error: () => {
-          // ErrorInterceptor toasts it. The customer may already have been saved and
-          // only the tag call failed, so refresh the list either way on close.
+          // ErrorInterceptor toasts it. The customer, and possibly some tag changes, may
+          // already have been saved even though this call failed — refresh the list
+          // either way on close so the caller sees the real current state.
         },
       });
   }
