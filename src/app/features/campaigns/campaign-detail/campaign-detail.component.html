@@ -1,0 +1,225 @@
+<div class="page">
+  <a mat-button routerLink="/campaigns" class="back-link">
+    <mat-icon>arrow_back</mat-icon>
+    Back to campaigns
+  </a>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="empty-state" *ngIf="!loading && !campaign">
+    <mat-icon class="empty-icon">campaign</mat-icon>
+    <p>That campaign could not be loaded. It may have been deleted.</p>
+  </div>
+
+  <ng-container *ngIf="campaign as c">
+    <app-page-header [title]="c.name">
+      <span [class]="statusClass(c.status)">{{ c.status }}</span>
+      <span class="spacer"></span>
+
+      <button mat-stroked-button type="button" [disabled]="!canEdit" (click)="edit()">
+        <mat-icon>edit</mat-icon>
+        Edit
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        *ngIf="canStart"
+        [disabled]="actionInFlight"
+        (click)="start()"
+      >
+        <mat-icon>play_arrow</mat-icon>
+        Start
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        *ngIf="canResume"
+        [disabled]="actionInFlight"
+        (click)="resume()"
+      >
+        <mat-icon>play_arrow</mat-icon>
+        Resume
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        *ngIf="canPause"
+        [disabled]="actionInFlight"
+        (click)="pause()"
+      >
+        <mat-icon>pause</mat-icon>
+        Pause
+      </button>
+      <button
+        mat-stroked-button
+        color="warn"
+        type="button"
+        [disabled]="!canStop || actionInFlight"
+        (click)="stop()"
+      >
+        <mat-icon>stop</mat-icon>
+        Stop
+      </button>
+      <button mat-icon-button type="button" [matMenuTriggerFor]="menu" aria-label="More">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #menu="matMenu">
+        <button mat-menu-item type="button" [disabled]="!canDelete" (click)="delete()">
+          <mat-icon color="warn">delete</mat-icon>
+          <span>Delete campaign</span>
+        </button>
+      </mat-menu>
+    </app-page-header>
+
+    <div class="detail-grid">
+      <mat-card class="detail-card">
+        <h2>Overview</h2>
+        <dl>
+          <dt>Description</dt>
+          <dd>{{ c.description || '—' }}</dd>
+
+          <dt>Scheduled start</dt>
+          <dd>{{ (c.scheduledStartAt | date: 'medium') || 'Not scheduled — starts immediately' }}</dd>
+
+          <dt>Started</dt>
+          <dd>{{ (c.startedAt | date: 'medium') || '—' }}</dd>
+
+          <dt>Stopped</dt>
+          <dd>{{ (c.stoppedAt | date: 'medium') || '—' }}</dd>
+
+          <dt>Created</dt>
+          <dd>{{ c.createdAt | date: 'medium' }}</dd>
+        </dl>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <div class="card-header">
+          <h2>Audience</h2>
+          <button
+            mat-button
+            type="button"
+            [disabled]="!canSetAudienceNow"
+            (click)="setAudience()"
+          >
+            <mat-icon>group_add</mat-icon>
+            Add audience
+          </button>
+        </div>
+        <p class="audience-count">{{ c.audienceCount }}</p>
+        <p class="muted">
+          customer{{ c.audienceCount === 1 ? '' : 's' }} attached. There is no way to list or
+          remove individual customers once added — only to add more by tag or id.
+        </p>
+      </mat-card>
+    </div>
+
+    <mat-card class="steps-card">
+      <div class="card-header">
+        <h2>Steps</h2>
+        <button
+          mat-button
+          type="button"
+          [matMenuTriggerFor]="addStepMenu"
+          [disabled]="!canEditStepsNow || !missingStepTypes().length"
+        >
+          <mat-icon>add</mat-icon>
+          Add step
+        </button>
+        <mat-menu #addStepMenu="matMenu">
+          <button
+            mat-menu-item
+            type="button"
+            *ngFor="let type of missingStepTypes()"
+            (click)="addStep(type)"
+          >
+            {{ type }}
+          </button>
+        </mat-menu>
+      </div>
+
+      <p class="muted steps-note" *ngIf="!canEditStepsNow">
+        Steps can only be changed while the campaign is Draft or Paused.
+      </p>
+
+      <div class="table-scroll">
+        <table class="steps-table">
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>Delay</th>
+              <th>Template</th>
+              <th>Media</th>
+              <th>Active</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let type of stepTypesInOrder" [class.step-row--missing]="!stepFor(type)">
+              <ng-container *ngIf="stepFor(type) as step; else missingRow">
+                <td class="step-type">{{ step.stepType }}</td>
+                <td>{{ step.stepType === 'Initial' ? '—' : step.delayDaysAfterPrevious + ' day(s)' }}</td>
+                <td>
+                  <span *ngIf="step.messageTemplateName">{{ step.messageTemplateName }}</span>
+                  <span class="muted" *ngIf="!step.messageTemplateName">None assigned</span>
+                </td>
+                <td>{{ step.mediaAssetIds.length }}</td>
+                <td>
+                  <mat-icon *ngIf="step.isActive" color="primary" matTooltip="Active">check_circle</mat-icon>
+                  <mat-icon *ngIf="!step.isActive" class="muted" matTooltip="Inactive">radio_button_unchecked</mat-icon>
+                </td>
+                <td class="step-actions">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    matTooltip="Edit"
+                    [disabled]="!canEditStepsNow"
+                    (click)="editStep(step)"
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    matTooltip="Remove"
+                    [disabled]="!canEditStepsNow"
+                    (click)="removeStep(step)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+              <ng-template #missingRow>
+                <td class="step-type muted">{{ type }}</td>
+                <td colspan="5" class="muted">Not configured</td>
+              </ng-template>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </mat-card>
+
+    <mat-card class="progress-card">
+      <div class="card-header">
+        <h2>Progress</h2>
+        <button mat-icon-button type="button" matTooltip="Refresh" (click)="refreshProgress()">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingProgress"></mat-progress-bar>
+
+      <div class="progress-grid" *ngIf="progress">
+        <div class="progress-item">
+          <span class="progress-value">{{ progress.totalCustomers }}</span>
+          <span class="muted">total</span>
+        </div>
+        <div class="progress-item" *ngFor="let status of customerStatusOrder">
+          <span class="progress-value">{{ progressCount(status) }}</span>
+          <span class="muted">{{ status }}</span>
+        </div>
+      </div>
+    </mat-card>
+  </ng-container>
+</div>

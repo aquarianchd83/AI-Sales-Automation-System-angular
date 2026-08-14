@@ -1,0 +1,37 @@
+.run-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 8px 10px;
+    text-align: right;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  th:first-child,
+  td:first-child {
+    text-align: left;
+  }
+
+  th {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+}
+
+.row-label {
+  font-weight: 500;
+}
+
+.sent {
+  color: #1e7e34;
+}
+
+.failed {
+  color: #b3261e;
+}

@@ -1,0 +1,103 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit template' : 'New template' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <ng-container *ngIf="!isEdit">
+      <div class="form-grid">
+        <mat-form-field class="span-2">
+          <mat-label>Name</mat-label>
+          <input matInput formControlName="name" placeholder="Order confirmation" />
+          <mat-error *ngIf="form.controls.name.hasError('required')">Name is required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>WhatsApp template name</mat-label>
+          <input matInput formControlName="whatsAppTemplateName" placeholder="order_confirmation" />
+          <mat-hint>The name registered with Meta — exact match required.</mat-hint>
+          <mat-error *ngIf="form.controls.whatsAppTemplateName.hasError('required')">
+            Required.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Language</mat-label>
+          <input matInput formControlName="language" placeholder="en" />
+          <mat-error *ngIf="form.controls.language.hasError('required')">Required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="span-2">
+          <mat-label>Category</mat-label>
+          <mat-select formControlName="category">
+            <mat-option *ngFor="let category of categories" [value]="category">
+              {{ category }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <p class="muted create-note">
+        New templates always start <strong>Pending</strong> review, regardless of category.
+      </p>
+    </ng-container>
+
+    <ng-container *ngIf="isEdit && data.template as t">
+      <dl class="readonly-fields">
+        <dt>Name</dt>
+        <dd>{{ t.name }}</dd>
+        <dt>WhatsApp template name</dt>
+        <dd>{{ t.whatsAppTemplateName }}</dd>
+        <dt>Language / Category</dt>
+        <dd>{{ t.language }} · {{ t.category }}</dd>
+      </dl>
+    </ng-container>
+
+    <mat-form-field class="full-width body-field">
+      <mat-label>Body text</mat-label>
+      <textarea
+        matInput
+        formControlName="bodyText"
+        rows="4"
+        maxlength="2000"
+        [placeholder]="bodyTextPlaceholderExample"
+      ></textarea>
+      <mat-hint>{{ form.controls.bodyText.value.length }}/2000</mat-hint>
+      <mat-error *ngIf="form.controls.bodyText.hasError('required')">
+        Body text is required.
+      </mat-error>
+      <mat-error *ngIf="form.controls.bodyText.hasError('maxlength')">
+        Use at most 2000 characters.
+      </mat-error>
+      <mat-error *ngIf="form.controls.bodyText.hasError('unknownPlaceholder')">
+        Unknown placeholder: {{ form.controls.bodyText.getError('unknownPlaceholder') }}.
+        Only {{ knownTokens.join(', ') }} are recognized.
+      </mat-error>
+    </mat-form-field>
+
+    <div class="token-buttons">
+      <button
+        mat-stroked-button
+        type="button"
+        *ngFor="let token of knownTokens"
+        (click)="insertToken(token)"
+      >
+        {{ tokenLabel(token) }}
+      </button>
+    </div>
+
+    <mat-slide-toggle *ngIf="isEdit" formControlName="isActive" class="active-toggle">
+      Template is active
+    </mat-slide-toggle>
+
+    <p class="mat-error approval-warning" *ngIf="willResetApproval">
+      This template is Approved. Changing the body text will revert it to Pending — a fresh
+      review is required before it can be used to start a campaign again.
+    </p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create template' }}
+  </button>
+</mat-dialog-actions>

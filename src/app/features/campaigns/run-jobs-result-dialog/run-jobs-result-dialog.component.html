@@ -1,0 +1,33 @@
+<h2 mat-dialog-title>Send pipeline run</h2>
+
+<mat-dialog-content>
+  <p class="muted">
+    Ran immediately across every eligible campaign, rather than waiting for the next
+    scheduled tick.
+  </p>
+
+  <table class="run-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Considered</th>
+        <th>Sent</th>
+        <th>Failed</th>
+        <th>Skipped</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows">
+        <td class="row-label">{{ row.label }}</td>
+        <td>{{ row.result.considered }}</td>
+        <td class="sent">{{ row.result.sent }}</td>
+        <td class="failed">{{ row.result.failed }}</td>
+        <td>{{ row.result.skipped }}</td>
+      </tr>
+    </tbody>
+  </table>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" type="button" mat-dialog-close>Close</button>
+</mat-dialog-actions>

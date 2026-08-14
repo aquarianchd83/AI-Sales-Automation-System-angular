@@ -149,3 +149,34 @@ table.mat-mdc-table {
   background: #eceff1;
   color: #546e7a;
 }
+
+/* Campaign status chips — six states, so opt-in's three-way palette doesn't map cleanly. */
+.status-chip--draft {
+  background: #eceff1;
+  color: #546e7a;
+}
+
+.status-chip--scheduled {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-chip--running {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.status-chip--paused {
+  background: #fff4e5;
+  color: #a15c00;
+}
+
+.status-chip--stopped {
+  background: #fdecea;
+  color: #b3261e;
+}
+
+.status-chip--completed {
+  background: #ede7f6;
+  color: #5e35b1;
+}

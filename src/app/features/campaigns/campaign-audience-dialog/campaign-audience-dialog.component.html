@@ -1,0 +1,115 @@
+<h2 mat-dialog-title>Add audience — {{ data.campaign.name }}</h2>
+
+<mat-dialog-content>
+  <ng-container *ngIf="!result">
+    <p class="muted">
+      Adds every matching customer to this campaign. This only adds — there is no way to
+      remove a customer from a campaign's audience once attached. A customer who is not
+      opted in is matched but not added; they show up in the summary instead.
+    </p>
+
+    <div class="picker">
+      <label class="picker-label">By tag</label>
+      <div class="chips" *ngIf="selectedTags.length">
+        <span class="chip" *ngFor="let name of selectedTags">
+          {{ name }}
+          <button type="button" class="chip-remove" (click)="removeTag(name)" [attr.aria-label]="'Remove ' + name">
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </span>
+      </div>
+      <mat-form-field class="full-width">
+        <mat-label>Search tags</mat-label>
+        <input
+          matInput
+          [formControl]="tagSearchControl"
+          [matAutocomplete]="tagAuto"
+          placeholder="vip, newsletter…"
+        />
+        <mat-autocomplete #tagAuto="matAutocomplete" (optionSelected)="onTagSelected($event)">
+          <mat-option *ngIf="loadingTagOptions" disabled>Searching…</mat-option>
+          <mat-option *ngFor="let tag of tagOptions" [value]="tag">
+            {{ tag.name }} <span class="muted">· {{ tag.customerCount }}</span>
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+    </div>
+
+    <div class="picker">
+      <label class="picker-label">By customer</label>
+      <div class="chips" *ngIf="selectedCustomers.length">
+        <span class="chip" *ngFor="let customer of selectedCustomers">
+          {{ customer.label }}
+          <button
+            type="button"
+            class="chip-remove"
+            (click)="removeCustomer(customer.id)"
+            [attr.aria-label]="'Remove ' + customer.label"
+          >
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </span>
+      </div>
+      <mat-form-field class="full-width">
+        <mat-label>Search customers</mat-label>
+        <input
+          matInput
+          [formControl]="customerSearchControl"
+          [matAutocomplete]="customerAuto"
+          placeholder="Name or phone…"
+        />
+        <mat-autocomplete #customerAuto="matAutocomplete" (optionSelected)="onCustomerSelected($event)">
+          <mat-option *ngIf="loadingCustomerOptions" disabled>Searching…</mat-option>
+          <mat-option *ngFor="let customer of customerOptions" [value]="customer">
+            {{ customer.firstName }} {{ customer.lastName }}
+            <span class="muted">· {{ customer.phoneNumberE164 }}</span>
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="result as r">
+    <div class="summary">
+      <div class="summary-item">
+        <span class="summary-value">{{ r.totalMatched }}</span>
+        <span class="muted">matched</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-value added">{{ r.addedCount }}</span>
+        <span class="muted">added</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-value">{{ r.alreadyAttachedCount }}</span>
+        <span class="muted">already in audience</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-value failed">{{ r.notOptedInCount }}</span>
+        <span class="muted">not opted in</span>
+      </div>
+    </div>
+    <p class="muted" *ngIf="r.notOptedInCount > 0">
+      Customers who are not opted in were skipped. Record their opt-in first, then add them
+      here again.
+    </p>
+  </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [disabled]="submitting" (click)="close()">
+    {{ result ? 'Done' : 'Cancel' }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    *ngIf="!result"
+    [disabled]="!canSubmit || submitting"
+    (click)="submit()"
+  >
+    {{ submitting ? 'Adding…' : 'Add to campaign' }}
+  </button>
+  <button mat-stroked-button type="button" *ngIf="result" (click)="addMore()">
+    Add more
+  </button>
+</mat-dialog-actions>

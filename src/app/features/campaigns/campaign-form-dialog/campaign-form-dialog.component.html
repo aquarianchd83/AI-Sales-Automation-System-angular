@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit campaign' : 'New campaign' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" cdkFocusInitial />
+      <mat-error *ngIf="form.controls.name.hasError('required')">Name is required.</mat-error>
+      <mat-error *ngIf="form.controls.name.hasError('maxlength')">
+        Use at most 200 characters.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="3" maxlength="2000"></textarea>
+      <mat-error *ngIf="form.controls.description.hasError('maxlength')">
+        Use at most 2000 characters.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Scheduled start (optional)</mat-label>
+      <input matInput [matDatepicker]="picker" [min]="today" formControlName="scheduledStartAt" />
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+      <mat-hint>
+        Leave blank to start immediately on Start. If set, Start moves the campaign to
+        Scheduled instead of Running until that date.
+      </mat-hint>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create campaign' }}
+  </button>
+</mat-dialog-actions>

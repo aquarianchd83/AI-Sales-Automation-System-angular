@@ -1,0 +1,48 @@
+.span-2 {
+  grid-column: 1 / -1;
+}
+
+.create-note {
+  margin: 4px 0 12px;
+  font-size: 12px;
+}
+
+.readonly-fields {
+  display: grid;
+  grid-template-columns: minmax(140px, auto) 1fr;
+  gap: 6px 16px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #f5f6f8;
+  font-size: 13px;
+}
+
+.readonly-fields dt {
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.readonly-fields dd {
+  margin: 0;
+}
+
+.body-field {
+  margin-top: 4px;
+}
+
+.token-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -4px 0 14px;
+}
+
+.active-toggle {
+  display: block;
+  margin: 4px 0 8px;
+}
+
+.approval-warning {
+  margin: 8px 0 0;
+  font-size: 12px;
+}

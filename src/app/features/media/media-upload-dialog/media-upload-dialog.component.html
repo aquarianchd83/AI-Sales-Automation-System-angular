@@ -1,0 +1,64 @@
+<h2 mat-dialog-title>Upload media</h2>
+
+<mat-dialog-content>
+  <p class="muted">
+    JPEG, PNG, WebP, MP4 or 3GP, up to {{ maxSizeBytes / (1024 * 1024) }} MB. A file whose
+    content is identical to one already uploaded reuses the existing asset instead of
+    duplicating it.
+  </p>
+
+  <div
+    class="dropzone"
+    [class.dropzone--filled]="!!file"
+    (drop)="onDrop($event)"
+    (dragover)="onDragOver($event)"
+  >
+    <ng-container *ngIf="!file">
+      <mat-icon class="dropzone-icon">cloud_upload</mat-icon>
+      <p>Drag a file here, or</p>
+      <button mat-stroked-button type="button" (click)="fileInput.click()">Choose file</button>
+    </ng-container>
+
+    <ng-container *ngIf="file">
+      <mat-icon class="dropzone-icon" color="primary">description</mat-icon>
+      <p class="file-name">{{ file.name }}</p>
+      <p class="muted">{{ (file.size / 1024).toFixed(0) }} KB · {{ file.type }}</p>
+      <button mat-button type="button" [disabled]="uploading" (click)="reset()">
+        Choose a different file
+      </button>
+    </ng-container>
+
+    <input
+      #fileInput
+      type="file"
+      hidden
+      [accept]="accept"
+      (change)="onFileSelected($event)"
+    />
+  </div>
+
+  <p class="mat-error" *ngIf="fileError">{{ fileError }}</p>
+
+  <div class="progress" *ngIf="uploading">
+    <mat-progress-bar
+      [mode]="progress >= 100 ? 'indeterminate' : 'determinate'"
+      [value]="progress"
+    ></mat-progress-bar>
+    <p class="muted">
+      {{ progress >= 100 ? 'Processing…' : 'Uploading… ' + progress + '%' }}
+    </p>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [disabled]="uploading" (click)="cancel()">Cancel</button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    [disabled]="!file || uploading"
+    (click)="upload()"
+  >
+    {{ uploading ? 'Uploading…' : 'Upload' }}
+  </button>
+</mat-dialog-actions>

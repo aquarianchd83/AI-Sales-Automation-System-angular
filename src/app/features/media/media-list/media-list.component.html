@@ -1,0 +1,67 @@
+<div class="page">
+  <app-page-header
+    title="Media Library"
+    subtitle="Images and videos attached to campaign steps."
+  >
+    <button mat-flat-button color="primary" type="button" (click)="upload()">
+      <mat-icon>upload_file</mat-icon>
+      Upload
+    </button>
+  </app-page-header>
+
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="File name" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">
+        {{ page.totalCount }} file{{ page.totalCount === 1 ? '' : 's' }}
+      </span>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="media-grid" *ngIf="page.items.length">
+      <mat-card class="media-card" *ngFor="let asset of page.items">
+        <div class="thumb">
+          <img *ngIf="isImage(asset.contentType)" [src]="asset.url" [alt]="asset.fileName" />
+          <mat-icon *ngIf="!isImage(asset.contentType)" class="thumb-icon">movie</mat-icon>
+        </div>
+        <div class="media-info">
+          <div class="media-name" [matTooltip]="asset.fileName">{{ asset.fileName }}</div>
+          <div class="muted media-meta">
+            {{ formatSize(asset.sizeBytes) }} · {{ asset.contentType }}
+          </div>
+          <div class="muted media-meta">{{ asset.createdAt | date: 'mediumDate' }}</div>
+        </div>
+        <button
+          mat-icon-button
+          type="button"
+          class="delete-button"
+          matTooltip="Delete"
+          (click)="delete(asset)"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </mat-card>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">perm_media</mat-icon>
+      <p *ngIf="searchControl.value">No files match that search.</p>
+      <p *ngIf="!searchControl.value">No media uploaded yet.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

@@ -1,0 +1,124 @@
+.back-link {
+  margin-bottom: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.detail-card,
+.steps-card,
+.progress-card {
+  padding: 20px;
+
+  h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+  }
+}
+
+.steps-card {
+  margin-bottom: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+dt {
+  color: rgba(0, 0, 0, 0.54);
+}
+
+dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.audience-count {
+  margin: 4px 0 2px;
+  font-size: 28px;
+  font-weight: 500;
+}
+
+.steps-note {
+  margin: -4px 0 12px;
+  font-size: 12px;
+}
+
+.steps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  th {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+}
+
+.step-type {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.step-row--missing td {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.step-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 12px;
+}
+
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  border-radius: 6px;
+  background: #f5f6f8;
+  text-align: center;
+  font-size: 12px;
+}
+
+.progress-value {
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

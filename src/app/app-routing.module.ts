@@ -35,6 +35,23 @@ const routes: Routes = [
           import('./features/tags/tags.module').then((m) => m.TagsModule),
       },
       {
+        path: 'campaigns',
+        loadChildren: () =>
+          import('./features/campaigns/campaigns.module').then((m) => m.CampaignsModule),
+      },
+      {
+        path: 'media',
+        loadChildren: () =>
+          import('./features/media/media.module').then((m) => m.MediaModule),
+      },
+      {
+        path: 'message-templates',
+        loadChildren: () =>
+          import('./features/message-templates/message-templates.module').then(
+            (m) => m.MessageTemplatesModule
+          ),
+      },
+      {
         path: 'users',
         canActivate: [roleGuard],
         data: { roles: USER_ADMIN_ROLES },

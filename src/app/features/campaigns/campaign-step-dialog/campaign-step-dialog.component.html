@@ -1,0 +1,120 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit step' : 'Add step' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <div class="form-grid">
+      <mat-form-field>
+        <mat-label>Step</mat-label>
+        <mat-select formControlName="stepType">
+          <mat-option *ngFor="let type of availableStepTypes" [value]="type">
+            {{ type }}
+          </mat-option>
+        </mat-select>
+        <mat-hint *ngIf="isEdit">A step's type cannot be changed — remove and re-add instead.</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Delay after previous step (days)</mat-label>
+        <input matInput type="number" min="0" formControlName="delayDaysAfterPrevious" />
+        <mat-hint *ngIf="form.controls.stepType.value === 'Initial'">
+          The Initial step has no delay — it sends when the campaign starts.
+        </mat-hint>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field class="full-width">
+      <mat-label>Message text</mat-label>
+      <textarea matInput formControlName="messageText" rows="3" maxlength="2000"></textarea>
+      <mat-hint>{{ form.controls.messageText.value.length }}/2000</mat-hint>
+      <mat-error *ngIf="form.controls.messageText.hasError('required')">
+        Message text is required.
+      </mat-error>
+      <mat-error *ngIf="form.controls.messageText.hasError('unknownPlaceholder')">
+        Unknown placeholder: {{ form.controls.messageText.getError('unknownPlaceholder') }}.
+      </mat-error>
+    </mat-form-field>
+
+    <div class="token-buttons">
+      <button
+        mat-stroked-button
+        type="button"
+        *ngFor="let token of knownTokens"
+        (click)="insertToken(token)"
+      >
+        {{ '{{' }}{{ token }}{{ '}}' }}
+      </button>
+    </div>
+
+    <mat-form-field class="full-width">
+      <mat-label>Template</mat-label>
+      <mat-select formControlName="messageTemplateId">
+        <mat-option [value]="null">No template</mat-option>
+        <mat-option *ngFor="let t of templates" [value]="t.id">
+          {{ t.name }} — {{ t.whatsAppTemplateStatus }}
+        </mat-option>
+      </mat-select>
+      <mat-hint *ngIf="loadingTemplates">Loading templates…</mat-hint>
+      <mat-hint *ngIf="!loadingTemplates">
+        Starting the campaign requires an Approved, active template on every active step.
+      </mat-hint>
+    </mat-form-field>
+
+    <div class="media-section">
+      <label class="media-label">
+        Media ({{ minMedia }}–{{ maxMedia }} required)
+      </label>
+
+      <div class="media-chips" *ngIf="selectedMedia.length">
+        <span class="media-chip" *ngFor="let asset of selectedMedia">
+          {{ asset.fileName }}
+          <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
+          <button
+            type="button"
+            class="chip-remove"
+            [attr.aria-label]="'Remove ' + asset.fileName"
+            (click)="removeMedia(asset)"
+          >
+            <mat-icon>cancel</mat-icon>
+          </button>
+        </span>
+      </div>
+
+      <p class="muted" *ngIf="resolvingExistingMedia">Loading attached media…</p>
+
+      <mat-form-field class="full-width">
+        <mat-label>Add media</mat-label>
+        <input
+          matInput
+          [formControl]="mediaSearchControl"
+          [matAutocomplete]="mediaAuto"
+          placeholder="Search the media library…"
+        />
+        <mat-autocomplete #mediaAuto="matAutocomplete" (optionSelected)="onMediaSelected($event)">
+          <mat-option *ngIf="loadingMediaOptions" disabled>Searching…</mat-option>
+          <mat-option *ngFor="let asset of mediaOptions" [value]="asset">
+            {{ asset.fileName }} <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+
+      <p class="mat-error" *ngIf="form.controls.mediaAssetIds.touched && form.controls.mediaAssetIds.hasError('mediaCount')">
+        Needs between {{ minMedia }} and {{ maxMedia }} media items;
+        {{ form.controls.mediaAssetIds.getError('mediaCount').actual }} selected.
+      </p>
+    </div>
+
+    <mat-slide-toggle formControlName="isActive" class="active-toggle">
+      Step is active
+    </mat-slide-toggle>
+    <p class="muted active-note">
+      An inactive step is skipped by the send pipeline and by the start-time check.
+    </p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add step' }}
+  </button>
+</mat-dialog-actions>

@@ -1,12 +1,12 @@
 # WhatsApp Sales Automation — Admin Panel (Angular)
 
 Angular 15 admin panel for the WhatsApp Marketing + AI Sales Automation platform. This
-repo covers the **Phase 2** frontend: authentication, users & roles, and customer
-management — the UI counterpart to the endpoints in
-[docs/PHASE2-BACKEND-SETUP.md](docs/PHASE2-BACKEND-SETUP.md).
+repo covers **Phases 2 and 3** of the backend: authentication, users & roles, customer
+management (Phase 2, see [docs/PHASE2-BACKEND-SETUP.md](docs/PHASE2-BACKEND-SETUP.md)),
+plus campaigns, the media library and message templates (Phase 3).
 
-Phases 3–6 (campaigns, media library, agent inbox, knowledge base, leads/CRM, reports)
-are deliberately absent: their APIs do not exist yet.
+Phases 4–6 (agent inbox, knowledge base, leads/CRM, reports) are deliberately absent:
+their APIs do not exist yet.
 
 ---
 
@@ -16,23 +16,26 @@ Verified working:
 
 - `npm install` — clean
 - `npm run build` — succeeds in both development and production configurations
-- `npm test` — 12 specs, all passing (ChromeHeadless)
+- `npm test` — 52 specs, all passing (ChromeHeadless)
 - `npm start` — serves at `http://localhost:4200`, login screen renders, and
-  `/api/v1/*` proxies to the backend (an unauthenticated call returns 401 from the API,
-  same as calling it directly)
+  `/api/v1/*` proxies to the backend (an unauthenticated call to every endpoint group,
+  including the Phase 3 ones, returns 401 from the API, same as calling it directly)
 - API contract — every request and response shape checked against
-  `/swagger/v1/swagger.json` on the running backend (see §6)
+  `/swagger/v1/swagger.json` on the running backend (see §6), including the Phase 3
+  additions, by reading the corresponding controller/service/validator source
 
 Not verified: **the authenticated screens have never been exercised against real data.**
-Customers, users/roles and the CSV import have only been checked for compile-correctness
-and contract match, not by signing in and clicking through. Sign in and try them.
+Nothing beyond compile-correctness, contract match, and unit tests — sign in and click
+through. This is especially true for Phase 3: the campaign step builder, the media
+picker, and the lifecycle actions (start/pause/resume/stop) have a lot of client-side
+state and have never been run against a real campaign.
 
 ## 2. Prerequisites
 
 - Node.js `^14.20 || ^16.13 || ^18.10` (Angular 15's supported range; 18.x LTS is the
   safe pick)
 - npm 8+
-- The Phase 2 .NET API running locally
+- The .NET API running locally (Phase 2 + Phase 3)
 
 ## 3. Getting started
 
@@ -49,18 +52,27 @@ Point the dev proxy at your API. `dotnet run` prints the HTTPS port it bound; pu
     "target": "https://localhost:59205",
     "secure": false,
     "changeOrigin": true
+  },
+  "/media": {
+    "target": "https://localhost:59205",
+    "secure": false,
+    "changeOrigin": true
   }
 }
 ```
 
-`"secure": false` accepts the ASP.NET Core dev certificate. Then:
+`"secure": false` accepts the ASP.NET Core dev certificate. **Both entries are required** —
+`/media` proxies the uploaded-file URLs `MediaAssetDto.url` returns (see §6, Phase 3 note
+10); missing it is the one config mistake that looks like a bug (uploads "work" but the
+image never renders) rather than a config error. `proxy.conf.json` only loads at startup,
+so change the target and restart `npm start` — it will not pick up edits live. Then:
 
 ```bash
 npm start
 ```
 
-The app serves at `http://localhost:4200` and proxies `/api/*` to the backend, so there
-is no CORS configuration to do in development.
+The app serves at `http://localhost:4200` and proxies `/api/*` and `/media/*` to the
+backend, so there is no CORS configuration to do in development.
 
 Sign in with the seeded Super Admin from the backend's `appsettings.Development.json`
 (`admin@example.com` / `ChangeMe123!` by default).
@@ -85,6 +97,9 @@ npm test
 | Customers | Paged/searchable list, detail, create/edit dialog, tagging, opt-in/opt-out, multi-select bulk delete, CSV/Excel import with progress and a per-row error report | `GET/POST /customers`, `GET/PUT/DELETE /customers/{id}`, `POST /customers/{id}/tags`, `POST /customers/{id}/opt-in`, `POST /customers/{id}/opt-out`, `POST /customers/bulk-delete`, `POST /customers/import` |
 | Tags | Paged/searchable list, create, rename, delete (with a force-delete path when a tag is still applied to customers) | `GET/POST /tags`, `GET/PUT/DELETE /tags/{id}` |
 | Users & roles | Paged list, create/edit dialog, role assignment dialog | `GET/POST /users`, `GET/PUT/DELETE /users/{id}`, `PUT /users/{id}/roles`, `GET /roles` |
+| Campaigns | Paged/searchable list, detail page (overview, step builder, audience, lifecycle actions, progress breakdown), create/edit, delete (Draft only), a global "Run jobs now" trigger for SuperAdmin | `GET/POST /campaigns`, `GET/PUT/DELETE /campaigns/{id}`, `POST /campaigns/{id}/steps`, `DELETE /campaigns/{id}/steps/{stepType}`, `POST /campaigns/{id}/audience`, `POST /campaigns/{id}/start\|pause\|resume\|stop`, `GET /campaigns/{id}/progress`, `POST /campaigns/ops/run-jobs` |
+| Media Library | Searchable grid, drag-drop upload with progress, delete (with a force-delete path when an asset is still attached to a campaign step) | `GET/POST /media`, `POST /media/upload`, `GET/DELETE /media/{id}` |
+| Message Templates | Paged/searchable list, create/edit, review (Approve/Reject/Reset — SuperAdmin/Admin only), delete | `GET/POST /message-templates`, `GET/PUT/DELETE /message-templates/{id}`, `POST /message-templates/{id}/review` |
 
 ### Auth behaviour
 
@@ -110,10 +125,12 @@ src/app/
     guards/      authGuard, roleGuard, guestGuard (functional guards)
     interceptors/auth.interceptor.ts, error.interceptor.ts
     models/      API contract types
-    services/    auth, token storage, customer, user, notification
+    services/    auth, token storage, customer, user, tag, campaign, media, message-template, notification
+    utils/       validators mirroring backend rules: phone-number, tag-name, placeholder-tokens
   shared/        SharedModule — Material re-exports, confirm dialog, page header, hasRole directive
   layout/        app shell (sidenav + toolbar)
-  features/      lazy-loaded route modules: auth, account, dashboard, customers, users
+  features/      lazy-loaded route modules: auth, account, dashboard, customers, tags,
+                 users, campaigns, media, message-templates
 ```
 
 Every feature is lazy-loaded from [app-routing.module.ts](src/app/app-routing.module.ts).
@@ -179,6 +196,77 @@ One thing swagger does not state: whether `Page` is 1-based. The code assumes it
 converts for Material's 0-based paginator). If the first page comes back empty, that
 assumption is where to look.
 
+### Phase 3: campaigns, media, message templates
+
+Swagger doesn't carry business rules — state machines, config-driven limits, or which
+fields are immutable — so these were read from the backend source
+(`CampaignService`, `CampaignValidators`, `MediaService`, `MessageTemplateService`, the
+domain enums) rather than guessed:
+
+1. **Campaign status is a state machine, and every action is gated client-side to match
+   it exactly** — see the `can*` functions in
+   [`campaign.model.ts`](src/app/core/models/campaign.model.ts). Edit and Delete: Draft
+   only. Steps: Draft or Paused. Audience: anything except Stopped/Completed. Start:
+   Draft only (Resume is the equivalent action from Paused — same server-side check, but
+   a distinct endpoint). Pause: Running or Scheduled. Stop: anything except
+   Stopped/Completed. These mirror `CampaignService.RequireStatus` — if the backend's
+   allowed-status lists change, this is the one place to update.
+2. **Starting a campaign validates more than the UI can pre-check.** The API requires an
+   active Initial step, and every active step needs its media count within the
+   configured range (default 2–5, from `CampaignOptions` — configurable server-side, so
+   the client's `DEFAULT_MIN_STEP_MEDIA`/`MAX` are a fast-fail hint, not the authority)
+   **and** an assigned template that is both `Approved` and active. The step dialog lets
+   you save a step missing a template or with a Pending template (useful while building a
+   campaign before templates are approved) — Start's 409 is what actually enforces this,
+   surfaced via `ErrorInterceptor`.
+3. **There is no endpoint to list or remove a campaign's audience** — only
+   `POST .../audience` to add more by tag name or customer id. The detail page can show
+   `audienceCount` but never a roster. `SetAudienceRequestValidator` requires at least one
+   tag or id; a matched-but-not-opted-in customer is silently excluded and counted in
+   `notOptedInCount` rather than rejecting the whole call.
+4. **`POST /campaigns/ops/run-jobs` is global, not per-campaign** — it has no id in its
+   route and runs the send pipeline (initial sends, follow-ups, retries) across every
+   eligible campaign at once. **SuperAdmin only**; the button is hidden via `*appHasRole`
+   for everyone else, same UI-only-gate caveat as elsewhere.
+5. **Message templates: only `bodyText` and `isActive` are editable after creation** —
+   name, language, category and the Meta-registered `whatsAppTemplateName` are fixed.
+   Editing the body of an `Approved` template **silently reverts it to Pending**
+   server-side; [`TemplateFormDialogComponent`](src/app/features/message-templates/template-form-dialog/template-form-dialog.component.ts)
+   detects this client-side and warns before you save, but the backend enforces it
+   regardless.
+6. **The `review` action is SuperAdmin/Admin only**; every other template/campaign/media
+   endpoint accepts any authenticated user. Deleting a template referenced by any campaign
+   step 409s with **no force option** — unlike tags and media, you must remove it from
+   the step first.
+7. **Media has no in-use counter** the way `TagDto.customerCount` does, so
+   [`MediaListComponent.delete`](src/app/features/media/media-list/media-list.component.ts)
+   can't decide up front whether to force. It always attempts a plain delete first; a 409
+   triggers a second confirm offering `force=true`. Uploads are deduplicated by content
+   checksum server-side — uploading identical bytes twice returns the existing asset.
+8. **`{{Token}}` placeholders are restricted to `FirstName`, `LastName`, `PhoneNumber`**,
+   in both campaign step message text and template body text, enforced by the same
+   `TemplatePlaceholderResolver` pattern on the backend and mirrored in
+   [`placeholder-tokens.ts`](src/app/core/utils/placeholder-tokens.ts). The regex requires
+   no whitespace inside the braces — `{{First Name}}` isn't flagged as invalid, it's
+   simply never recognized as a placeholder at all (and so is sent to WhatsApp verbatim,
+   unsubstituted). This is a real trap the UI does not fully protect against; the token
+   quick-insert buttons exist specifically to avoid typing braces by hand.
+9. **A campaign step's type can't be changed once created** — the step dialog disables
+   the type selector in edit mode; changing it means removing the step and adding a new
+   one of the desired type via the "Add step" menu, which only offers step types the
+   campaign doesn't already have.
+10. **`MediaAssetDto.url` is host-relative, not absolute.** In local dev,
+    `MediaStorage:PublicBaseUrl` is empty (`appsettings.json`), so the API returns e.g.
+    `/media/2026/08/<guid>.jpg` — a path with no scheme or host. `<img [src]="asset.url">`
+    resolves a relative URL against the *current page's* origin, so without a proxy entry
+    an uploaded image tries to load from the Angular dev server (`:4200`) instead of the
+    API (`:59205`) and 404s — the browser never even asks the right server. `/media` is
+    proxied in [proxy.conf.json](proxy.conf.json) for exactly this reason, mirroring
+    `/api`. **This means production needs the same fix**: whatever serves the built
+    static files must also route `/media` (or your configured `PublicBasePath`) to the
+    API — the same requirement `/api` already has, just easy to miss because it's a
+    second, differently-shaped path.
+
 ## 7. Known gaps
 
 - **No forgot/reset password.** The Phase 2 API has no such endpoint; the login screen
@@ -186,9 +274,16 @@ assumption is where to look.
 - **No admin password reset.** Editing a user cannot change their password.
 - **Tokens in `localStorage`** are XSS-exposed. The alternative — an HttpOnly refresh
   cookie — needs backend support the current API does not provide.
-- **No test coverage beyond two service specs** (`TokenStorageService`,
-  `CustomerService`). Component tests are thin, matching the backend's own deferral of
-  test projects to Phase 6.
+- **Test coverage is services and pure validators, not components.** No component
+  (dialog, list, detail page) has a spec — matching the backend's own deferral of test
+  projects to Phase 6. The 52 specs check HTTP request shapes and the client-side rules
+  mirrored from the backend (phone/tag/placeholder validation, campaign status gating
+  logic), not rendering or user interaction.
+- **Media picker and template select load a single page.** The campaign step dialog's
+  media autocomplete searches server-side (fine at any scale), but the template dropdown
+  fetches one page of 100 — same admin-panel-scale assumption as the roles list in
+  `UserRolesDialog`. A deployment with more than ~100 templates would need that changed
+  to a searchable picker.
 - **No column sorting**, because the list endpoints accept no sort parameter. Sortable
   headers that silently did nothing would be worse than none.
 - **Fonts are self-hosted** (`@fontsource/roboto`, `@fontsource/material-icons`) rather

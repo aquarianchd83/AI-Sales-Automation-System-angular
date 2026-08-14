@@ -23,6 +23,9 @@ export class ShellComponent {
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: [] },
     { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
     { label: 'Tags', icon: 'sell', route: '/tags', roles: [] },
+    { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [] },
+    { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },
+    { label: 'Message Templates', icon: 'forum', route: '/message-templates', roles: [] },
     {
       label: 'Users & Roles',
       icon: 'admin_panel_settings',
