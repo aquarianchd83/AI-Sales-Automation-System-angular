@@ -5,12 +5,7 @@ import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { Observable, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 
-import {
-  CAMPAIGN_STEP_TYPES_IN_ORDER,
-  Campaign,
-  CampaignStep,
-  CampaignStepType,
-} from '../../../core/models/campaign.model';
+import { Campaign, CampaignStep, formatStepTypeName, nextStepNumber } from '../../../core/models/campaign.model';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { KNOWN_PLACEHOLDER_TOKENS, placeholderTokenValidator } from '../../../core/utils/placeholder-tokens';
 import { MediaAsset, formatFileSize } from '../../../core/models/media.model';
@@ -21,10 +16,8 @@ import { NotificationService } from '../../../core/services/notification.service
 
 export interface CampaignStepDialogData {
   campaignId: string;
-  existingStepTypes: string[];
+  existingSteps: CampaignStep[];
   step?: CampaignStep;
-  /** Pre-selects this type in create mode, e.g. when opened from an "Add FollowUp1" menu item. */
-  preferredStepType?: string;
 }
 
 @Component({
@@ -37,23 +30,16 @@ export class CampaignStepDialogComponent implements OnInit {
   readonly knownTokens = KNOWN_PLACEHOLDER_TOKENS;
   readonly WhatsAppTemplateStatus = WhatsAppTemplateStatus;
 
-  /** In create mode, only step types the campaign doesn't already have. */
-  readonly availableStepTypes = CAMPAIGN_STEP_TYPES_IN_ORDER.filter(
-    (type) => this.isEdit || !this.data.existingStepTypes.includes(type)
-  );
+  /**
+   * The type this dialog attaches — never a real choice: editing keeps the step's own
+   * type, and creating always targets the next number in sequence (Initial, then
+   * FollowUp1, FollowUp2, …, with no upper bound), since CampaignService.UpsertStepAsync
+   * 400s on anything else.
+   */
+  readonly fixedStepType: string = this.data.step?.stepType ?? formatStepTypeName(nextStepNumber(this.data.existingSteps));
 
   readonly form = this.fb.nonNullable.group({
-    stepType: [
-      {
-        value:
-          this.data.step?.stepType ??
-          (this.data.preferredStepType && this.availableStepTypes.includes(this.data.preferredStepType as CampaignStepType)
-            ? this.data.preferredStepType
-            : this.availableStepTypes[0] ?? ''),
-        disabled: this.isEdit,
-      },
-      [Validators.required],
-    ],
+    stepType: [{ value: this.fixedStepType, disabled: true }, [Validators.required]],
     delayDaysAfterPrevious: [this.data.step?.delayDaysAfterPrevious ?? 0, [Validators.required]],
     messageText: [
       this.data.step?.messageText ?? '',
@@ -91,8 +77,9 @@ export class CampaignStepDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.applyDelayRuleFor(this.form.controls.stepType.value);
-    this.form.controls.stepType.valueChanges.subscribe((type) => this.applyDelayRuleFor(type));
+    // stepType is fixed (see fixedStepType) and never changes after init, so this only
+    // needs to run once — no valueChanges subscription to keep it in sync.
+    this.applyDelayRuleFor(this.fixedStepType);
 
     this.mediaSearchControl.valueChanges
       .pipe(
@@ -184,7 +171,7 @@ export class CampaignStepDialogComponent implements OnInit {
 
   private applyDelayRuleFor(stepType: string): void {
     const control = this.form.controls.delayDaysAfterPrevious;
-    if (stepType === CampaignStepType.Initial) {
+    if (stepType === 'Initial') {
       control.setValue(0);
       control.disable();
     } else {

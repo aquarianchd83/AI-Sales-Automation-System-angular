@@ -283,10 +283,30 @@ domain enums) rather than guessed:
    named placeholder (e.g. `{{CompanyName}}`) without a real customer field for the
    resolver to read from, since an unmapped token silently resolves to an empty string
    at send time rather than erroring. See §7 for what a real fix would need.
-10. **A campaign step's type can't be changed once created** — the step dialog disables
-    the type selector in edit mode; changing it means removing the step and adding a new
-    one of the desired type via the "Add step" menu, which only offers step types the
-    campaign doesn't already have.
+10. **There is no cap on the number of follow-ups, and steps must be attached and
+    removed strictly in sequence.** This replaced what was originally a closed
+    `CampaignStepType` enum (Initial + FollowUp1-4, five slots only) — the backend now
+    derives a step's name from its position instead
+    (`CampaignStepTypeName.ForNumber`/`TryParse`: 0 is "Initial", every number above 0 is
+    "FollowUp{N}", unbounded), and the DB column widened from `nvarchar(20)` to
+    `nvarchar(50)` to match. `CampaignStep.StepType` is a plain string, not an enum,
+    for the same reason a fixed C# enum can't represent an open-ended set of names.
+    Steps still can't skip positions: `UpsertStepAsync` 400s if an earlier one is
+    missing, and `RemoveStepAsync` 409s if a later one still exists — the send pipeline
+    walks the sequence one position at a time, and a true gap (no step there at all, as
+    opposed to one merely deactivated) makes it give up and mark the customer Completed,
+    silently dropping every follow-up after it.
+    [`campaign.model.ts`](src/app/core/models/campaign.model.ts) mirrors this exactly:
+    `formatStepTypeName`/`parseStepTypeName` for the name↔number mapping, `nextStepNumber`
+    for "the one position addable right now" (always exactly one past the highest
+    existing step — never null, since there's no ceiling to hit), and `isLastStep` for
+    the removal rule. "Add step" on the detail page is a single button
+    (`Add {{ nextStepLabel }}`) reflecting that there's only ever one valid choice, and a
+    step's Remove button is disabled unless it's the last one. A step's type still can't
+    be changed once created — changing it means removing from the end and re-adding.
+    Deactivating a step in place (`isActive`) is unaffected by any of this — the send
+    pipeline is deliberately gap-*tolerant* for that case, only not for a step that was
+    never attached or was removed.
 11. **`MediaAssetDto.url` is host-relative, not absolute.** In local dev,
     `MediaStorage:PublicBaseUrl` is empty (`appsettings.json`), so the API returns e.g.
     `/media/2026/08/<guid>.jpg` — a path with no scheme or host. `<img [src]="asset.url">`

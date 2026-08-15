@@ -175,29 +175,23 @@
         <button
           mat-button
           type="button"
-          [matMenuTriggerFor]="addStepMenu"
-          [disabled]="!canEditStepsNow || !missingStepTypes().length"
+          [disabled]="!canEditStepsNow"
+          (click)="addStep()"
         >
           <mat-icon>add</mat-icon>
-          Add step
+          Add {{ nextStepLabel }}
         </button>
-        <mat-menu #addStepMenu="matMenu">
-          <button
-            mat-menu-item
-            type="button"
-            *ngFor="let type of missingStepTypes()"
-            (click)="addStep(type)"
-          >
-            {{ type }}
-          </button>
-        </mat-menu>
       </div>
 
       <p class="muted steps-note" *ngIf="!canEditStepsNow">
         Steps can only be changed while the campaign is Draft or Paused.
       </p>
+      <p class="muted steps-note" *ngIf="canEditStepsNow">
+        Steps attach in order — Initial, then FollowUp1, FollowUp2, and so on, with no
+        limit — and can only be removed from the end of that sequence.
+      </p>
 
-      <div class="table-scroll">
+      <div class="table-scroll" *ngIf="stepsInOrder.length">
         <table class="steps-table">
           <thead>
             <tr>
@@ -210,47 +204,46 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let type of stepTypesInOrder" [class.step-row--missing]="!stepFor(type)">
-              <ng-container *ngIf="stepFor(type) as step; else missingRow">
-                <td class="step-type">{{ step.stepType }}</td>
-                <td>{{ step.stepType === 'Initial' ? '—' : step.delayDaysAfterPrevious + ' day(s)' }}</td>
-                <td>
-                  <span *ngIf="step.messageTemplateName">{{ step.messageTemplateName }}</span>
-                  <span class="muted" *ngIf="!step.messageTemplateName">None assigned</span>
-                </td>
-                <td>{{ step.mediaAssetIds.length }}</td>
-                <td>
-                  <mat-icon *ngIf="step.isActive" color="primary" matTooltip="Active">check_circle</mat-icon>
-                  <mat-icon *ngIf="!step.isActive" class="muted" matTooltip="Inactive">radio_button_unchecked</mat-icon>
-                </td>
-                <td class="step-actions">
-                  <button
-                    mat-icon-button
-                    type="button"
-                    matTooltip="Edit"
-                    [disabled]="!canEditStepsNow"
-                    (click)="editStep(step)"
-                  >
-                    <mat-icon>edit</mat-icon>
-                  </button>
-                  <button
-                    mat-icon-button
-                    type="button"
-                    matTooltip="Remove"
-                    [disabled]="!canEditStepsNow"
-                    (click)="removeStep(step)"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </td>
-              </ng-container>
-              <ng-template #missingRow>
-                <td class="step-type muted">{{ type }}</td>
-                <td colspan="5" class="muted">Not configured</td>
-              </ng-template>
+            <tr *ngFor="let step of stepsInOrder">
+              <td class="step-type">{{ step.stepType }}</td>
+              <td>{{ step.stepType === 'Initial' ? '—' : step.delayDaysAfterPrevious + ' day(s)' }}</td>
+              <td>
+                <span *ngIf="step.messageTemplateName">{{ step.messageTemplateName }}</span>
+                <span class="muted" *ngIf="!step.messageTemplateName">None assigned</span>
+              </td>
+              <td>{{ step.mediaAssetIds.length }}</td>
+              <td>
+                <mat-icon *ngIf="step.isActive" color="primary" matTooltip="Active">check_circle</mat-icon>
+                <mat-icon *ngIf="!step.isActive" class="muted" matTooltip="Inactive">radio_button_unchecked</mat-icon>
+              </td>
+              <td class="step-actions">
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Edit"
+                  [disabled]="!canEditStepsNow"
+                  (click)="editStep(step)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  [matTooltip]="canRemoveStep(step) ? 'Remove' : 'Remove the later steps first'"
+                  [disabled]="!canEditStepsNow || !canRemoveStep(step)"
+                  (click)="removeStep(step)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!stepsInOrder.length">
+        <mat-icon class="empty-icon">list_alt</mat-icon>
+        <p>No steps yet — add the Initial step to get started.</p>
       </div>
     </mat-card>
 

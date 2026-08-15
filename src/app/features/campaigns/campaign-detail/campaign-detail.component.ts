@@ -8,12 +8,10 @@ import { catchError, debounceTime, distinctUntilChanged, finalize, switchMap, ta
 
 import {
   CAMPAIGN_CUSTOMER_STATUS_ORDER,
-  CAMPAIGN_STEP_TYPES_IN_ORDER,
   Campaign,
   CampaignAudienceMember,
   CampaignProgress,
   CampaignStep,
-  CampaignStepType,
   campaignStatusChipClass,
   canDeleteCampaign,
   canEditCampaign,
@@ -23,6 +21,9 @@ import {
   canSetAudience,
   canStartCampaign,
   canStopCampaign,
+  formatStepTypeName,
+  isLastStep,
+  nextStepNumber,
 } from '../../../core/models/campaign.model';
 import { CampaignAudienceDialogComponent } from '../campaign-audience-dialog/campaign-audience-dialog.component';
 import { CampaignFormDialogComponent } from '../campaign-form-dialog/campaign-form-dialog.component';
@@ -40,7 +41,6 @@ import { NotificationService } from '../../../core/services/notification.service
 export class CampaignDetailComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) audiencePaginator?: MatPaginator;
 
-  readonly stepTypesInOrder = CAMPAIGN_STEP_TYPES_IN_ORDER;
   readonly customerStatusOrder = CAMPAIGN_CUSTOMER_STATUS_ORDER;
   readonly statusClass = campaignStatusChipClass;
   readonly audiencePageSizeOptions = PAGE_SIZE_OPTIONS;
@@ -154,16 +154,28 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
     return !!this.campaign && canStopCampaign(this.campaign.status);
   }
 
-  missingStepTypes(): CampaignStepType[] {
-    if (!this.campaign) {
-      return [];
-    }
-    const present = new Set(this.campaign.steps.map((s) => s.stepType));
-    return this.stepTypesInOrder.filter((type) => !present.has(type));
+  /** Steps in send order — the API already returns them sorted, this just guards against
+   * relying on that implicitly if it ever doesn't. */
+  get stepsInOrder(): CampaignStep[] {
+    return [...(this.campaign?.steps ?? [])].sort((a, b) => a.stepNumber - b.stepNumber);
   }
 
-  stepFor(type: string): CampaignStep | undefined {
-    return this.campaign?.steps.find((s) => s.stepType === type);
+  /**
+   * The label for the one step addable right now — there is no upper bound on follow-ups,
+   * so unlike a fixed set of slots this is never unavailable, only ever the next number in
+   * sequence (Initial, then FollowUp1, FollowUp2, …). Steps must be attached in order — the
+   * API 400s otherwise — so there is never more than one valid choice.
+   */
+  get nextStepLabel(): string {
+    return formatStepTypeName(nextStepNumber(this.campaign?.steps ?? []));
+  }
+
+  /** A step can only be removed from the end of the sequence — the API 409s otherwise. */
+  canRemoveStep(step: CampaignStep): boolean {
+    if (!this.campaign) {
+      return false;
+    }
+    return isLastStep(step.stepNumber, this.campaign.steps.map((s) => s.stepNumber));
   }
 
   progressCount(status: string): number {
@@ -213,24 +225,22 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
       });
   }
 
-  addStep(preferredStepType: string): void {
-    this.openStepDialog({
-      campaignId: this.campaign!.id,
-      existingStepTypes: this.campaign!.steps.map((s) => s.stepType),
-      preferredStepType,
-    });
+  addStep(): void {
+    if (!this.campaign || !this.canEditStepsNow) {
+      return;
+    }
+    this.openStepDialog({ campaignId: this.campaign.id, existingSteps: this.campaign.steps });
   }
 
   editStep(step: CampaignStep): void {
-    this.openStepDialog({
-      campaignId: this.campaign!.id,
-      existingStepTypes: this.campaign!.steps.map((s) => s.stepType),
-      step,
-    });
+    if (!this.campaign) {
+      return;
+    }
+    this.openStepDialog({ campaignId: this.campaign.id, existingSteps: this.campaign.steps, step });
   }
 
   removeStep(step: CampaignStep): void {
-    if (!this.campaign) {
+    if (!this.campaign || !this.canRemoveStep(step)) {
       return;
     }
     const data: ConfirmDialogData = {

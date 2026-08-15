@@ -8,23 +8,55 @@ export enum CampaignStatus {
   Completed = 'Completed',
 }
 
-/** CampaignStepType — numeric value doubles as send order (0 = Initial, 1-4 = follow-ups). */
-export enum CampaignStepType {
-  Initial = 'Initial',
-  FollowUp1 = 'FollowUp1',
-  FollowUp2 = 'FollowUp2',
-  FollowUp3 = 'FollowUp3',
-  FollowUp4 = 'FollowUp4',
+/**
+ * A campaign step's display name is derived from its position, not a fixed set of
+ * members — CampaignStepTypeName on the backend replaced what used to be a closed
+ * CampaignStepType enum (Initial + FollowUp1-4 only) specifically so a campaign can
+ * carry any number of follow-ups. 0 is always "Initial"; every StepNumber above 0 is
+ * "FollowUp{N}". Mirror these two functions exactly, or the two sides part ways on what
+ * a given step is called.
+ */
+export function formatStepTypeName(stepNumber: number): string {
+  return stepNumber <= 0 ? 'Initial' : `FollowUp${stepNumber}`;
 }
 
-/** In send order — used to drive the "add step" menu and to sort a campaign's steps. */
-export const CAMPAIGN_STEP_TYPES_IN_ORDER: CampaignStepType[] = [
-  CampaignStepType.Initial,
-  CampaignStepType.FollowUp1,
-  CampaignStepType.FollowUp2,
-  CampaignStepType.FollowUp3,
-  CampaignStepType.FollowUp4,
-];
+const FOLLOW_UP_PATTERN = /^FollowUp(\d+)$/i;
+
+/** Inverse of formatStepTypeName. Returns null for anything that isn't "Initial" or
+ * "FollowUp" followed by a positive integer. */
+export function parseStepTypeName(value: string): number | null {
+  if (value.trim().toLowerCase() === 'initial') {
+    return 0;
+  }
+  const match = FOLLOW_UP_PATTERN.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+  const n = Number(match[1]);
+  return n > 0 ? n : null;
+}
+
+/**
+ * CampaignService.UpsertStepAsync requires every earlier position (Initial included) to
+ * already exist before a step can be attached — the send pipeline walks the sequence one
+ * position at a time and a true gap (no step there at all, not just an inactive one)
+ * makes it give up and mark the customer Completed, silently dropping every follow-up
+ * after the gap. So there is always exactly one addable position: one past whatever is
+ * highest right now (0 — Initial — if the campaign has no steps yet). There is no upper
+ * bound, unlike the fixed FollowUp1-4 set this replaced.
+ */
+export function nextStepNumber(steps: { stepNumber: number }[]): number {
+  return steps.length === 0 ? 0 : Math.max(...steps.map((s) => s.stepNumber)) + 1;
+}
+
+/**
+ * Mirrors RemoveStepAsync's matching rule: a step can only be removed if it is the last
+ * one in the sequence — removing one out from under a later step would open the same
+ * unfillable gap nextStepNumber exists to prevent on the way in.
+ */
+export function isLastStep(stepNumber: number, allStepNumbers: number[]): boolean {
+  return !allStepNumbers.some((n) => n > stepNumber);
+}
 
 /**
  * CampaignCustomerStatus — the keys of CampaignProgressDto.byStatus. Which step a customer is
@@ -61,7 +93,8 @@ export const DEFAULT_MAX_STEP_MEDIA = 5;
 
 export interface CampaignStep {
   id: string;
-  stepType: CampaignStepType | string;
+  /** "Initial" or "FollowUp{N}" — see formatStepTypeName/parseStepTypeName. */
+  stepType: string;
   stepNumber: number;
   delayDaysAfterPrevious: number;
   messageText: string | null;
