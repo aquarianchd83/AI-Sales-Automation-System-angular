@@ -23,16 +23,23 @@
       </mat-error>
     </mat-form-field>
 
-    <mat-form-field class="full-width">
-      <mat-label>Scheduled start (optional)</mat-label>
-      <input matInput [matDatepicker]="picker" [min]="today" formControlName="scheduledStartAt" />
-      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-      <mat-datepicker #picker></mat-datepicker>
-      <mat-hint>
-        Leave blank to start immediately on Start. If set, Start moves the campaign to
-        Scheduled instead of Running until that date.
-      </mat-hint>
-    </mat-form-field>
+    <div class="schedule-row">
+      <mat-form-field class="date-field">
+        <mat-label>Scheduled start date (optional)</mat-label>
+        <input matInput [matDatepicker]="picker" [min]="today" formControlName="scheduledStartAt" />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field class="time-field">
+        <mat-label>Time (IST)</mat-label>
+        <input matInput type="time" formControlName="scheduledStartTime" />
+      </mat-form-field>
+    </div>
+    <p class="schedule-hint muted">
+      Leave the date blank to start immediately on Start. If set, Start moves the campaign
+      to Scheduled instead of Running until that date and time.
+    </p>
   </form>
 </mat-dialog-content>
 

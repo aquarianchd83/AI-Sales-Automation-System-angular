@@ -4,7 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
-import { Campaign } from '../../../core/models/campaign.model';
+import { Campaign, toScheduledStartAtRequest, toTimeInputValue } from '../../../core/models/campaign.model';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -16,18 +16,25 @@ export interface CampaignFormDialogData {
 @Component({
   selector: 'app-campaign-form-dialog',
   templateUrl: './campaign-form-dialog.component.html',
+  styleUrls: ['./campaign-form-dialog.component.scss'],
 })
 export class CampaignFormDialogComponent {
   readonly isEdit = this.data.mode === 'edit';
   /** The API rejects a scheduled start in the past — only enforced on create. */
   readonly today = new Date();
 
+  private readonly existingScheduledStartAt = this.data.campaign?.scheduledStartAt
+    ? new Date(this.data.campaign.scheduledStartAt)
+    : null;
+
   readonly form = this.fb.nonNullable.group({
     name: [this.data.campaign?.name ?? '', [Validators.required, Validators.maxLength(200)]],
     description: [this.data.campaign?.description ?? '', [Validators.maxLength(2000)]],
-    scheduledStartAt: [
-      this.data.campaign?.scheduledStartAt ? new Date(this.data.campaign.scheduledStartAt) : (null as Date | null),
-    ],
+    scheduledStartAt: [this.existingScheduledStartAt as Date | null],
+    /** "HH:mm" — see toTimeInputValue/toScheduledStartAtRequest. Defaults to midnight so a
+     * date picked with the time left untouched still schedules exactly as it did before
+     * this field existed. */
+    scheduledStartTime: [this.existingScheduledStartAt ? toTimeInputValue(this.existingScheduledStartAt) : '00:00'],
   });
 
   saving = false;
@@ -50,7 +57,9 @@ export class CampaignFormDialogComponent {
     const request = {
       name: raw.name.trim(),
       description: raw.description.trim() || null,
-      scheduledStartAt: raw.scheduledStartAt ? raw.scheduledStartAt.toISOString() : null,
+      scheduledStartAt: raw.scheduledStartAt
+        ? toScheduledStartAtRequest(raw.scheduledStartAt, raw.scheduledStartTime)
+        : null,
     };
 
     const saved$: Observable<Campaign> =

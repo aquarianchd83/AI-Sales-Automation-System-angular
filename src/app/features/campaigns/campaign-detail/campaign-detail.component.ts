@@ -12,6 +12,7 @@ import {
   CampaignAudienceMember,
   CampaignProgress,
   CampaignStep,
+  campaignEndDate,
   campaignStatusChipClass,
   canDeleteCampaign,
   canEditCampaign,
@@ -154,6 +155,11 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
     return !!this.campaign && canStopCampaign(this.campaign.status);
   }
 
+  /** See campaignEndDate — null (renders as "—") until there's a start date to project from. */
+  get endDate(): ReturnType<typeof campaignEndDate> {
+    return this.campaign ? campaignEndDate(this.campaign) : null;
+  }
+
   /** Steps in send order — the API already returns them sorted, this just guards against
    * relying on that implicitly if it ever doesn't. */
   get stepsInOrder(): CampaignStep[] {
@@ -208,7 +214,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
     }
     const data: ConfirmDialogData = {
       title: `Delete "${this.campaign.name}"?`,
-      message: 'This cannot be undone.',
+      message:
+        'This cannot be undone. Deleting a Stopped campaign also permanently deletes its message history.',
       confirmLabel: 'Delete',
       destructive: true,
     };
@@ -298,7 +305,7 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
     const data: ConfirmDialogData = {
       title: 'Stop this campaign?',
       message:
-        'Every customer currently awaiting a follow-up is marked complete for this campaign. A stopped campaign cannot be resumed.',
+        'Every customer currently awaiting a follow-up is marked complete for this campaign. The campaign itself can be resumed afterwards, but those customers will not pick back up automatically.',
       confirmLabel: 'Stop',
       destructive: true,
     };

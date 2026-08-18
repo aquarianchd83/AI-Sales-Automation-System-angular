@@ -8,6 +8,26 @@ export enum CampaignStatus {
   Completed = 'Completed',
 }
 
+/** Display order for the campaign status legend — lifecycle order, not alphabetical. */
+export const CAMPAIGN_STATUS_ORDER: CampaignStatus[] = [
+  CampaignStatus.Draft,
+  CampaignStatus.Scheduled,
+  CampaignStatus.Running,
+  CampaignStatus.Paused,
+  CampaignStatus.Stopped,
+  CampaignStatus.Completed,
+];
+
+/** One-line description for each status, shown as the legend chip's tooltip. */
+export const CAMPAIGN_STATUS_DESCRIPTIONS: Record<CampaignStatus, string> = {
+  [CampaignStatus.Draft]: 'Not started yet. Name, description, steps and audience can all still be edited freely, and it can be deleted.',
+  [CampaignStatus.Scheduled]: 'Has a future scheduled start date/time and will begin sending automatically once that time arrives.',
+  [CampaignStatus.Running]: 'Actively sending Initial messages and follow-ups to its audience right now.',
+  [CampaignStatus.Paused]: 'Temporarily halted — sending stops, but steps stay editable and it can be resumed from where it left off.',
+  [CampaignStatus.Stopped]: 'Manually stopped. Everyone still awaiting a follow-up was force-completed. Can be resumed or deleted (deleting also erases its message history).',
+  [CampaignStatus.Completed]: 'Every step in the sequence has finished for the whole audience.',
+};
+
 /**
  * A campaign step's display name is derived from its position, not a fixed set of
  * members — CampaignStepTypeName on the backend replaced what used to be a closed
@@ -204,8 +224,15 @@ export function canEditCampaign(status: string): boolean {
   );
 }
 
+/**
+ * CampaignService.DeleteAsync: Draft or Stopped only, hard delete. A Draft campaign never
+ * has Messages (nothing sends before Start), so there's nothing to lose; a Stopped one
+ * usually does, and DeleteAsync removes those right along with it — there is no way to
+ * keep a record of what was sent once the campaign itself is gone. Anything still live
+ * (Scheduled/Running/Paused) must be Stopped first.
+ */
 export function canDeleteCampaign(status: string): boolean {
-  return status === CampaignStatus.Draft;
+  return status === CampaignStatus.Draft || status === CampaignStatus.Stopped;
 }
 
 export function canEditSteps(status: string): boolean {
@@ -221,7 +248,7 @@ export function canStartCampaign(status: string): boolean {
 }
 
 export function canResumeCampaign(status: string): boolean {
-  return status === CampaignStatus.Paused;
+  return status === CampaignStatus.Paused || status === CampaignStatus.Stopped;
 }
 
 export function canPauseCampaign(status: string): boolean {
@@ -230,6 +257,97 @@ export function canPauseCampaign(status: string): boolean {
 
 export function canStopCampaign(status: string): boolean {
   return status !== CampaignStatus.Stopped && status !== CampaignStatus.Completed;
+}
+
+/**
+ * Not a field the API returns — CampaignDto has no end-date concept server-side (see
+ * CampaignDtos.cs). This projects one client-side:
+ *  - A Stopped campaign's real end is StoppedAt — it actually stopped there, so this is
+ *    exact, not an estimate.
+ *  - Otherwise it's an estimate: the start date (StartedAt once running, else
+ *    ScheduledStartAt) plus the total delay across every currently active step. This
+ *    mirrors CampaignSendService.ProcessOneAsync, which schedules each active step's
+ *    NextFollowUpDueAt as `now.AddDays(step.DelayDaysAfterPrevious)` off of whenever the
+ *    previous one actually sent — summing every active step's own delay gives the same
+ *    total regardless of send order, since it's a plain sum.
+ *  - null when there isn't a start date yet at all (Draft with nothing scheduled), or when
+ *    there isn't at least one active step yet — with no steps configured there is nothing
+ *    to project a finish from, and start-date-plus-zero would silently read as "finishes
+ *    the same day it starts" instead of "not calculable yet". Recomputes automatically as
+ *    steps are added, since this reads straight off campaign.steps every time it's called.
+ * Inactive steps contribute nothing: the send pipeline skips them entirely rather than
+ * pausing on them (see isLastStep's remarks on gap-tolerance).
+ */
+export interface CampaignEndDate {
+  date: Date;
+  /** false only for a Stopped campaign's actual StoppedAt. */
+  isEstimate: boolean;
+}
+
+export function campaignEndDate(campaign: {
+  status: string;
+  startedAt?: string | null;
+  scheduledStartAt?: string | null;
+  stoppedAt?: string | null;
+  steps: { isActive: boolean; delayDaysAfterPrevious: number }[];
+}): CampaignEndDate | null {
+  if (campaign.status === CampaignStatus.Stopped && campaign.stoppedAt) {
+    return { date: new Date(campaign.stoppedAt), isEstimate: false };
+  }
+
+  const startAt = campaign.startedAt ?? campaign.scheduledStartAt;
+  if (!startAt) {
+    return null;
+  }
+
+  const activeSteps = campaign.steps.filter((s) => s.isActive);
+  if (activeSteps.length === 0) {
+    return null;
+  }
+
+  const totalDelayDays = activeSteps.reduce((sum, s) => sum + s.delayDaysAfterPrevious, 0);
+
+  const date = new Date(startAt);
+  date.setDate(date.getDate() + totalDelayDays);
+  return { date, isEstimate: true };
+}
+
+/**
+ * Campaign.ScheduledStartAt is compared against IST, and the backend reads a request's
+ * literal digits as IST — ignoring any 'Z'/offset suffix entirely (see
+ * CreateCampaignRequest / Campaign.ScheduledStartAt's doc comments). `Date.toISOString()`
+ * converts through UTC first, so for any timezone ahead of UTC (IST included) it silently
+ * rolls a locally-picked midnight back onto the previous calendar day before the backend
+ * ever sees it — the exact "picking the previous day" bug this exists to avoid. This
+ * writes the Date's own local year/month/day/time fields (what the datepicker actually
+ * set) out as literal digits instead, with no timezone conversion at all.
+ *
+ * `time`, if given, is an "HH:mm" string (a native `<input type="time">`'s value) that
+ * overrides the date's own hour/minute — the datepicker's calendar UI only ever carries a
+ * date, so the time-of-day has to come from a second, separate control.
+ */
+export function toScheduledStartAtRequest(date: Date, time?: string): string {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  let hours = date.getHours();
+  let minutes = date.getMinutes();
+  const seconds = time ? 0 : date.getSeconds();
+  if (time) {
+    const [h, m] = time.split(':').map(Number);
+    hours = Number.isFinite(h) ? h : 0;
+    minutes = Number.isFinite(m) ? m : 0;
+  }
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+  );
+}
+
+/** "HH:mm" for a native `<input type="time">`, from the same Date the time is later
+ * combined back onto via toScheduledStartAtRequest — round-trips a campaign's existing
+ * ScheduledStartAt into the time field when opening the form to edit it. */
+export function toTimeInputValue(date: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export function campaignStatusChipClass(status: string): string {

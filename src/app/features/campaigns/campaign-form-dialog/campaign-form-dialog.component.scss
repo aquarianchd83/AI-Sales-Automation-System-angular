@@ -1,0 +1,18 @@
+.schedule-row {
+  display: flex;
+  gap: 16px;
+
+  .date-field {
+    flex: 2;
+  }
+
+  .time-field {
+    flex: 1;
+    min-width: 96px;
+  }
+}
+
+.schedule-hint {
+  margin: -12px 0 16px;
+  font-size: 12px;
+}

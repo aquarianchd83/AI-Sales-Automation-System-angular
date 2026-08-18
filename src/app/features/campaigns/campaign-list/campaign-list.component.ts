@@ -14,7 +14,14 @@ import {
   takeUntil,
 } from 'rxjs/operators';
 
-import { Campaign, campaignStatusChipClass, canDeleteCampaign } from '../../../core/models/campaign.model';
+import {
+  CAMPAIGN_STATUS_DESCRIPTIONS,
+  CAMPAIGN_STATUS_ORDER,
+  Campaign,
+  campaignEndDate,
+  campaignStatusChipClass,
+  canDeleteCampaign,
+} from '../../../core/models/campaign.model';
 import { CampaignFormDialogComponent, CampaignFormDialogData } from '../campaign-form-dialog/campaign-form-dialog.component';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -30,10 +37,22 @@ import { RunJobsResultDialogComponent } from '../run-jobs-result-dialog/run-jobs
 export class CampaignListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['name', 'status', 'audienceCount', 'scheduledStartAt', 'createdAt', 'actions'];
+  readonly displayedColumns = [
+    'name',
+    'status',
+    'audienceCount',
+    'scheduledStartAt',
+    'startedAt',
+    'endDate',
+    'createdAt',
+    'actions',
+  ];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusClass = campaignStatusChipClass;
   readonly canDelete = canDeleteCampaign;
+  readonly endDate = campaignEndDate;
+  readonly statusLegend = CAMPAIGN_STATUS_ORDER;
+  readonly statusDescription = CAMPAIGN_STATUS_DESCRIPTIONS;
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
 
@@ -99,7 +118,8 @@ export class CampaignListComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     const data: ConfirmDialogData = {
       title: `Delete "${campaign.name}"?`,
-      message: 'This cannot be undone. Only Draft campaigns can be deleted.',
+      message:
+        'This cannot be undone. Only Draft and Stopped campaigns can be deleted — deleting a Stopped campaign also permanently deletes its message history.',
       confirmLabel: 'Delete',
       destructive: true,
     };

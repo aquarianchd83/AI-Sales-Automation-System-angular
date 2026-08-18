@@ -80,16 +80,24 @@
         <dd>{{ c.description || '—' }}</dd>
 
         <dt>Scheduled start</dt>
-        <dd>{{ (c.scheduledStartAt | date: 'medium') || 'Not scheduled — starts immediately' }}</dd>
+        <dd>{{ (c.scheduledStartAt | date: 'full') || 'Not scheduled — starts immediately' }}</dd>
 
         <dt>Started</dt>
-        <dd>{{ (c.startedAt | date: 'medium') || '—' }}</dd>
+        <dd>{{ (c.startedAt | date: 'full') || '—' }}</dd>
 
         <dt>Stopped</dt>
-        <dd>{{ (c.stoppedAt | date: 'medium') || '—' }}</dd>
+        <dd>{{ (c.stoppedAt | date: 'full') || '—' }}</dd>
+
+        <dt>End date</dt>
+        <dd>
+          <ng-container *ngIf="endDate as e; else noEndDate">
+            {{ e.date | date: 'full' }}<span *ngIf="e.isEstimate" class="muted"> (estimated)</span>
+          </ng-container>
+          <ng-template #noEndDate>—</ng-template>
+        </dd>
 
         <dt>Created</dt>
-        <dd>{{ c.createdAt | date: 'medium' }}</dd>
+        <dd>{{ c.createdAt | date: 'full' }}</dd>
       </dl>
     </mat-card>
 
