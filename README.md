@@ -249,10 +249,16 @@ domain enums) rather than guessed:
    requires at least one tag or id on the add call; a matched-but-not-opted-in customer
    is silently excluded and counted in `notOptedInCount` rather than rejecting the whole
    call.
-5. **`POST /campaigns/ops/run-jobs` is global, not per-campaign** — it has no id in its
-   route and runs the send pipeline (initial sends, follow-ups, retries) across every
-   eligible campaign at once. **SuperAdmin only**; the button is hidden via `*appHasRole`
-   for everyone else, same UI-only-gate caveat as elsewhere.
+5. **Two ways to force the send pipeline early, instead of waiting for the next scheduled
+   tick.** `POST /campaigns/ops/run-jobs` has no id in its route and runs across every
+   eligible campaign at once — **SuperAdmin only**, the button on the campaign list is
+   hidden via `*appHasRole` for everyone else, same UI-only-gate caveat as elsewhere.
+   `POST /campaigns/{id}/run-jobs` is the same pipeline (initial sends, then follow-ups,
+   then retries) scoped to one campaign — a narrower, per-campaign version, so it carries
+   no extra role restriction beyond the base `[Authorize]` every other campaign endpoint
+   has (see point 7 below). It's a guaranteed no-op unless that campaign is Scheduled (due
+   to promote) or Running — `canRunCampaignJobs` in `campaign.model.ts` hides the detail
+   page's "Run job now" button otherwise rather than offering a dead click.
 6. **Message templates: only `bodyText` and `isActive` are editable after creation** —
    name, language, category and the Meta-registered `whatsAppTemplateName` are fixed.
    Editing the body of an `Approved` template **silently reverts it to Pending**

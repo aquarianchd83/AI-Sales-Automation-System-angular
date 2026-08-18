@@ -260,6 +260,17 @@ export function canStopCampaign(status: string): boolean {
 }
 
 /**
+ * Mirrors what the send pipeline can actually do for a campaign right now:
+ * CampaignSendService promotes a due Scheduled campaign and sends its Initial step, or
+ * sends follow-ups/retries for a Running one — nothing else (Draft, Paused, Stopped,
+ * Completed) has anything eligible, so running the per-campaign job there is a
+ * guaranteed no-op. Hidden rather than offered as a dead click.
+ */
+export function canRunCampaignJobs(status: string): boolean {
+  return status === CampaignStatus.Scheduled || status === CampaignStatus.Running;
+}
+
+/**
  * Not a field the API returns — CampaignDto has no end-date concept server-side (see
  * CampaignDtos.cs). This projects one client-side:
  *  - A Stopped campaign's real end is StoppedAt — it actually stopped there, so this is

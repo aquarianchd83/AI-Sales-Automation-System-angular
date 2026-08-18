@@ -102,6 +102,16 @@
             <button
               mat-icon-button
               type="button"
+              *ngIf="canRunJobsFor(c.status)"
+              matTooltip="Run job now — runs the send pipeline immediately for this campaign"
+              [disabled]="isRunningJob(c.id)"
+              (click)="runJobForCampaign(c, $event)"
+            >
+              <mat-icon>bolt</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
               matTooltip="Delete"
               [disabled]="!canDelete(c.status)"
               (click)="delete(c, $event)"

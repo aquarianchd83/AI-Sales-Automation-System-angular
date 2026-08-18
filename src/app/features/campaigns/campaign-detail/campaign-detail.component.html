@@ -62,6 +62,17 @@
         <mat-icon>stop</mat-icon>
         Stop
       </button>
+      <button
+        mat-stroked-button
+        type="button"
+        *ngIf="canRunJobsNow"
+        [disabled]="runningJob"
+        matTooltip="Runs the send pipeline immediately for this campaign, instead of waiting for the next scheduled tick"
+        (click)="runJobNow()"
+      >
+        <mat-icon>bolt</mat-icon>
+        {{ runningJob ? 'Running…' : 'Run job now' }}
+      </button>
       <button mat-icon-button type="button" [matMenuTriggerFor]="menu" aria-label="More">
         <mat-icon>more_vert</mat-icon>
       </button>

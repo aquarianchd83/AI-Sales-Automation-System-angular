@@ -121,4 +121,10 @@ export class CampaignService {
   runJobsNow(): Observable<RunJobsResult> {
     return this.http.post<RunJobsResult>(`${this.baseUrl}/ops/run-jobs`, null);
   }
+
+  /** Same send pipeline as runJobsNow, scoped to one campaign. Open to any authenticated user —
+   * unlike the global trigger, this can't touch anyone else's campaign. */
+  runJobsForCampaign(id: string): Observable<RunJobsResult> {
+    return this.http.post<RunJobsResult>(`${this.baseUrl}/${id}/run-jobs`, null);
+  }
 }

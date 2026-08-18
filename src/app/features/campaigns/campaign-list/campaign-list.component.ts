@@ -21,6 +21,7 @@ import {
   campaignEndDate,
   campaignStatusChipClass,
   canDeleteCampaign,
+  canRunCampaignJobs,
 } from '../../../core/models/campaign.model';
 import { CampaignFormDialogComponent, CampaignFormDialogData } from '../campaign-form-dialog/campaign-form-dialog.component';
 import { CampaignService } from '../../../core/services/campaign.service';
@@ -50,6 +51,7 @@ export class CampaignListComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusClass = campaignStatusChipClass;
   readonly canDelete = canDeleteCampaign;
+  readonly canRunJobsFor = canRunCampaignJobs;
   readonly endDate = campaignEndDate;
   readonly statusLegend = CAMPAIGN_STATUS_ORDER;
   readonly statusDescription = CAMPAIGN_STATUS_DESCRIPTIONS;
@@ -59,6 +61,9 @@ export class CampaignListComponent implements OnInit, OnDestroy {
   page: PagedResult<Campaign> = emptyPage<Campaign>();
   loading = true;
   runningJobs = false;
+  /** Campaign ids with a per-row job currently in flight — tracked per-row rather than one
+   * flag so running one campaign's job doesn't disable every other row's button too. */
+  private readonly runningJobIds = new Set<string>();
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
@@ -134,6 +139,29 @@ export class CampaignListComponent implements OnInit, OnDestroy {
           this.notify.success('Campaign deleted.');
           this.reload$.next();
         });
+      });
+  }
+
+  isRunningJob(campaignId: string): boolean {
+    return this.runningJobIds.has(campaignId);
+  }
+
+  /** Same send pipeline as runJobsNow, scoped to just this row's campaign — open to any
+   * authenticated user, unlike the global trigger, since it can't touch anyone else's campaign. */
+  runJobForCampaign(campaign: Campaign, event: Event): void {
+    event.stopPropagation();
+    this.runningJobIds.add(campaign.id);
+    this.campaigns
+      .runJobsForCampaign(campaign.id)
+      .pipe(finalize(() => this.runningJobIds.delete(campaign.id)))
+      .subscribe({
+        next: (result) => {
+          this.dialog.open(RunJobsResultDialogComponent, { data: { result }, width: '480px' });
+          this.reload$.next();
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
       });
   }
 
