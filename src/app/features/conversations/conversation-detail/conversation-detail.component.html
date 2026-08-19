@@ -1,0 +1,107 @@
+<div class="page">
+  <a mat-button routerLink="/conversations" class="back-link">
+    <mat-icon>arrow_back</mat-icon>
+    Back to inbox
+  </a>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="empty-state" *ngIf="!loading && !conversation">
+    <mat-icon class="empty-icon">forum</mat-icon>
+    <p>That conversation could not be loaded.</p>
+  </div>
+
+  <ng-container *ngIf="conversation as c">
+    <mat-card class="header-card">
+      <div class="header-row">
+        <div>
+          <h1>{{ c.customerName || c.customerPhoneNumberE164 }}</h1>
+          <p class="muted">{{ c.customerPhoneNumberE164 }}</p>
+        </div>
+        <span [class]="statusClass(c.status)">{{ c.status }}</span>
+        <span class="spacer"></span>
+
+        <mat-form-field subscriptSizing="dynamic" class="mode-field">
+          <mat-label>Mode</mat-label>
+          <mat-select [value]="c.mode" [disabled]="!canAct || actionInFlight" (selectionChange)="changeMode($event.value)">
+            <mat-option *ngFor="let m of modes" [value]="m">{{ m }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field subscriptSizing="dynamic" class="assign-field">
+          <mat-label>Assigned to</mat-label>
+          <mat-select [value]="c.assignedAgentId" [disabled]="!canAct || actionInFlight" (selectionChange)="assign($event.value)">
+            <mat-option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-stroked-button color="warn" type="button" [disabled]="!canAct || actionInFlight" (click)="close()">
+          <mat-icon>close</mat-icon>
+          Close
+        </button>
+      </div>
+    </mat-card>
+
+    <mat-card class="transcript-card">
+      <div class="load-older" *ngIf="hasMoreOlder">
+        <button mat-button type="button" [disabled]="loadingOlder" (click)="loadOlder()">
+          {{ loadingOlder ? 'Loading…' : 'Load older messages' }}
+        </button>
+      </div>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingMessages"></mat-progress-bar>
+
+      <div class="transcript">
+        <div class="empty-state" *ngIf="!loadingMessages && !messages.length">
+          <p class="muted">No messages yet.</p>
+        </div>
+
+        <div *ngFor="let m of messages" class="msg-row" [class.outbound]="m.direction === MessageDirection.Outbound">
+          <div class="msg-bubble" [class.outbound]="m.direction === MessageDirection.Outbound" [class.failed]="m.status === MessageStatus.Failed">
+            <div class="msg-meta muted" *ngIf="m.templateName">Template: {{ m.templateName }}</div>
+            <div class="msg-text">{{ m.text || '—' }}</div>
+            <div class="msg-footer muted">
+              {{ (m.sentAt || m.createdAt) | date: 'short' }}
+              <span *ngIf="m.direction === MessageDirection.Outbound"> · {{ m.status }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="compose-card">
+      <form [formGroup]="composeForm" (ngSubmit)="send()">
+        <mat-button-toggle-group formControlName="mode" class="compose-mode">
+          <mat-button-toggle value="text" [disabled]="!canSendText">Text</mat-button-toggle>
+          <mat-button-toggle value="template">Template</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <p class="window-hint muted" *ngIf="composeForm.controls.mode.value === 'text' && !canSendText">
+          The customer service window is closed — free text can't be sent right now. Use a template instead.
+        </p>
+
+        <mat-form-field class="full-width" *ngIf="composeForm.controls.mode.value === 'text'">
+          <mat-label>Message</mat-label>
+          <textarea matInput formControlName="text" rows="2" maxlength="4000" [disabled]="!canSendText || !canAct"></textarea>
+        </mat-form-field>
+
+        <mat-form-field class="full-width" *ngIf="composeForm.controls.mode.value === 'template'">
+          <mat-label>Template</mat-label>
+          <mat-select formControlName="messageTemplateId" [disabled]="!canAct">
+            <mat-option *ngFor="let t of approvedTemplates" [value]="t.id">{{ t.name }}</mat-option>
+          </mat-select>
+          <mat-hint *ngIf="!approvedTemplates.length">No Approved, active templates available.</mat-hint>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          [disabled]="!canAct || sending || (composeForm.controls.mode.value === 'text' ? (!canSendText || !composeForm.controls.text.value.trim()) : !composeForm.controls.messageTemplateId.value)"
+        >
+          <mat-icon>send</mat-icon>
+          {{ sending ? 'Sending…' : 'Send' }}
+        </button>
+      </form>
+    </mat-card>
+  </ng-container>
+</div>

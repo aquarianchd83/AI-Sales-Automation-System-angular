@@ -22,6 +22,8 @@ export class ShellComponent {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: [] },
     { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
+    { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
+    { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
     { label: 'Tags', icon: 'sell', route: '/tags', roles: [] },
     { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [] },
     { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },

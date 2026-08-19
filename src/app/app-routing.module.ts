@@ -30,6 +30,16 @@ const routes: Routes = [
           import('./features/customers/customers.module').then((m) => m.CustomersModule),
       },
       {
+        path: 'conversations',
+        loadChildren: () =>
+          import('./features/conversations/conversations.module').then((m) => m.ConversationsModule),
+      },
+      {
+        path: 'handoffs',
+        loadChildren: () =>
+          import('./features/handoffs/handoffs.module').then((m) => m.HandoffsModule),
+      },
+      {
         path: 'tags',
         loadChildren: () =>
           import('./features/tags/tags.module').then((m) => m.TagsModule),
