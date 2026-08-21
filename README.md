@@ -324,6 +324,29 @@ domain enums) rather than guessed:
     static files must also route `/media` (or your configured `PublicBasePath`) to the
     API — the same requirement `/api` already has, just easy to miss because it's a
     second, differently-shaped path.
+12. **Phase 5 (AI/Leads/Knowledge Base) needed two small backend gaps closed before the
+    frontend could show anything real.** `Conversation` gained
+    `AiConfidenceLast`/`LastDetectedIntent`/`LastLeadScore`/`Summary` columns, but
+    `ConversationDto` was never updated to expose them — fixed here by extending the DTO
+    and `ConversationMappings.ToDto`, so the inbox can show the AI's read on a
+    conversation instead of those fields existing in the database and nowhere else.
+    Separately, `ILeadService`/`LeadsController` had `AddActivityAsync`
+    (`POST /leads/{id}/activities`) but no way to read the timeline back —
+    `GetActivitiesAsync`/`GET /leads/{id}/activities` (paged, newest first) was added so
+    the lead detail page's activity log has something to call. Both are additive,
+    non-breaking changes to files Phase 5 already touched.
+13. **`KnowledgeBaseArticleStatus.Archived` is unreachable.** It exists in the enum and
+    the frontend renders it (a status filter option, a chip class) for when it becomes
+    real, but no backend code path ever sets it — there is no archive action on
+    `IKnowledgeBaseService`/`KnowledgeBaseController`. An article's only lifecycle today
+    is Draft → Published (`canPublishArticle` in `knowledge-base.model.ts` reflects
+    this: true for Draft and Published, false for Archived) → soft-deleted.
+14. **No endpoint exposes `AiInteraction`/`AiInteractionSource`** — the per-turn record of
+    what the AI said, its confidence, and which Knowledge Base chunks it cited. The
+    conversation detail page shows the *latest* confidence/intent/summary (denormalized
+    onto `Conversation`), but there is no way to see the full history of AI turns or
+    inspect a citation from the UI. A `GET /conversations/{id}/ai-interactions`-shaped
+    endpoint would be the natural next gap to close if that audit trail is needed.
 
 ## 7. Known gaps
 

@@ -24,6 +24,8 @@ export class ShellComponent {
     { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
     { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
     { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
+    { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
+    { label: 'Knowledge Base', icon: 'menu_book', route: '/knowledge-base', roles: [] },
     { label: 'Tags', icon: 'sell', route: '/tags', roles: [] },
     { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [] },
     { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },

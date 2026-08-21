@@ -1,0 +1,13 @@
+.row {
+  display: flex;
+  gap: 16px;
+
+  .category-field {
+    flex: 2;
+  }
+
+  .source-field {
+    flex: 1;
+    min-width: 140px;
+  }
+}

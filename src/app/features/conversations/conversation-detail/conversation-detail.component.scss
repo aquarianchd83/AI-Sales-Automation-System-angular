@@ -32,6 +32,29 @@
   width: 160px;
 }
 
+.ai-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+}
+
+.ai-label {
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ai-summary {
+  margin: 4px 0 0;
+  width: 100%;
+  font-style: italic;
+}
+
 .load-older {
   text-align: center;
 }

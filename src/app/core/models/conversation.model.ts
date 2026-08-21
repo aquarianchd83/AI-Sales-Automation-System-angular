@@ -46,6 +46,19 @@ export interface Conversation {
   lastInboundMessageAt: string | null;
   createdAt: string;
   closedAt: string | null;
+
+  // ---- Phase 5 (ConversationOrchestrator) — null until the AI has taken at least one turn on
+  // this conversation (Mode stayed Human throughout, or it predates Phase 5). Not a substitute
+  // for the underlying AiInteraction rows — there is no endpoint exposing those yet. ----------
+
+  /** 0.0–1.0, from the most recent AI turn — a quick-glance signal, not a full audit trail. */
+  aiConfidenceLast: number | null;
+  lastDetectedIntent: string | null;
+  /** Denormalized copy of this conversation's Lead.Score (a LeadScoreBand value) — see
+   * lead.model.ts's leadScoreChipClass for the matching chip styling. */
+  lastLeadScore: string | null;
+  /** AI-maintained running summary, regenerated (not appended) after each AI turn. */
+  summary: string | null;
 }
 
 /** ConversationMessageDto — one row of a conversation's transcript. */

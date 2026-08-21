@@ -40,6 +40,16 @@
           Close
         </button>
       </div>
+
+      <div class="ai-row" *ngIf="c.aiConfidenceLast != null || c.lastDetectedIntent || c.lastLeadScore || c.summary">
+        <span class="ai-label muted">AI:</span>
+        <span *ngIf="c.aiConfidenceLast != null" class="muted">
+          Confidence {{ c.aiConfidenceLast | percent: '1.0-0' }}
+        </span>
+        <span *ngIf="c.lastDetectedIntent" class="muted">· Intent: {{ c.lastDetectedIntent }}</span>
+        <span *ngIf="c.lastLeadScore" [class]="scoreClass(c.lastLeadScore)">{{ c.lastLeadScore }}</span>
+        <p class="ai-summary muted" *ngIf="c.summary">{{ c.summary }}</p>
+      </div>
     </mat-card>
 
     <mat-card class="transcript-card">

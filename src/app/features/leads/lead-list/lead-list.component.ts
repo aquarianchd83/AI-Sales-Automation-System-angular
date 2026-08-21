@@ -13,43 +13,38 @@ import {
   takeUntil,
 } from 'rxjs/operators';
 
-import { Conversation, ConversationStatus, conversationStatusChipClass } from '../../../core/models/conversation.model';
-import { leadScoreChipClass } from '../../../core/models/lead.model';
-import { ConversationService } from '../../../core/services/conversation.service';
+import { Lead, LeadScoreBand, LeadStage, leadScoreChipClass, leadStageChipClass } from '../../../core/models/lead.model';
+import { LeadService } from '../../../core/services/lead.service';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 
 @Component({
-  selector: 'app-conversation-list',
-  templateUrl: './conversation-list.component.html',
-  styleUrls: ['./conversation-list.component.scss'],
+  selector: 'app-lead-list',
+  templateUrl: './lead-list.component.html',
+  styleUrls: ['./lead-list.component.scss'],
 })
-export class ConversationListComponent implements OnInit, OnDestroy {
+export class LeadListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['customer', 'status', 'mode', 'leadScore', 'lastMessageAt', 'lastInboundMessageAt'];
+  readonly displayedColumns = ['customer', 'stage', 'score', 'attributes', 'lastActivityAt'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
-  readonly statusClass = conversationStatusChipClass;
+  readonly stageClass = leadStageChipClass;
   readonly scoreClass = leadScoreChipClass;
-  /** null = All. Every non-terminal-by-default view an agent actually works from. */
-  readonly statusFilters: { label: string; value: string | null }[] = [
-    { label: 'Open', value: ConversationStatus.Open },
-    { label: 'Escalated', value: ConversationStatus.Escalated },
-    { label: 'Closed', value: ConversationStatus.Closed },
-    { label: 'All', value: null },
-  ];
+  readonly stages = Object.values(LeadStage);
+  readonly scores = Object.values(LeadScoreBand);
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
+  readonly stageControl = new FormControl<string | null>(null);
+  readonly scoreControl = new FormControl<string | null>(null);
 
-  page: PagedResult<Conversation> = emptyPage<Conversation>();
+  page: PagedResult<Lead> = emptyPage<Lead>();
   loading = true;
-  statusFilter: string | null = ConversationStatus.Open;
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
 
   constructor(
-    private readonly conversations: ConversationService,
+    private readonly leads: LeadService,
     private readonly router: Router,
     private readonly route: ActivatedRoute
   ) {}
@@ -63,13 +58,25 @@ export class ConversationListComponent implements OnInit, OnDestroy {
         this.reload$.next();
       });
 
+    this.stageControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.query = { ...this.query, page: 1 };
+      this.paginator?.firstPage();
+      this.reload$.next();
+    });
+
+    this.scoreControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.query = { ...this.query, page: 1 };
+      this.paginator?.firstPage();
+      this.reload$.next();
+    });
+
     this.reload$
       .pipe(
         startWith(undefined),
         switchMap(() => {
           this.loading = true;
-          return this.conversations.getPaged(this.query, this.statusFilter ?? undefined).pipe(
-            catchError(() => of(emptyPage<Conversation>(this.query.pageSize))),
+          return this.leads.getPaged(this.query, this.stageControl.value ?? undefined, this.scoreControl.value ?? undefined).pipe(
+            catchError(() => of(emptyPage<Lead>(this.query.pageSize))),
             finalize(() => (this.loading = false))
           );
         }),
@@ -88,17 +95,11 @@ export class ConversationListComponent implements OnInit, OnDestroy {
     this.reload$.next();
   }
 
-  setStatusFilter(value: string | null): void {
-    if (this.statusFilter === value) {
-      return;
-    }
-    this.statusFilter = value;
-    this.query = { ...this.query, page: 1 };
-    this.paginator?.firstPage();
-    this.reload$.next();
+  attributesSummary(lead: Lead): string {
+    return [lead.budget, lead.interest, lead.purchaseTimeline].filter(Boolean).join(' · ') || '—';
   }
 
-  view(conversation: Conversation): void {
-    void this.router.navigate([conversation.id], { relativeTo: this.route });
+  view(lead: Lead): void {
+    void this.router.navigate([lead.id], { relativeTo: this.route });
   }
 }

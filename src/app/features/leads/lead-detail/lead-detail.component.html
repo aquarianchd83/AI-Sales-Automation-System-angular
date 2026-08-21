@@ -1,0 +1,110 @@
+<div class="page">
+  <a mat-button routerLink="/leads" class="back-link">
+    <mat-icon>arrow_back</mat-icon>
+    Back to leads
+  </a>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="empty-state" *ngIf="!loading && !lead">
+    <mat-icon class="empty-icon">insights</mat-icon>
+    <p>That lead could not be loaded.</p>
+  </div>
+
+  <ng-container *ngIf="lead as l">
+    <mat-card class="header-card">
+      <div class="header-row">
+        <div>
+          <h1>{{ l.customerName || l.customerPhoneNumberE164 }}</h1>
+          <p class="muted">{{ l.customerPhoneNumberE164 }}</p>
+        </div>
+        <span [class]="stageClass(l.stage)">{{ l.stage }}</span>
+        <span [class]="scoreClass(l.score)">{{ l.score }} · {{ l.scoreNumeric }}</span>
+        <span class="spacer"></span>
+
+        <mat-form-field subscriptSizing="dynamic" class="assign-field">
+          <mat-label>Assigned to</mat-label>
+          <mat-select [value]="l.assignedTo" [disabled]="!canEdit" (selectionChange)="assign($event.value)">
+            <mat-option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </mat-card>
+
+    <mat-card class="attributes-card">
+      <h2>Qualification</h2>
+      <p class="muted hint">
+        Budget/Interest/Timeline are also written automatically as the AI extracts them from the
+        conversation — editing here is a manual correction, not the only way they get filled in.
+      </p>
+      <form [formGroup]="attributesForm" (ngSubmit)="saveAttributes()">
+        <div class="attributes-row">
+          <mat-form-field subscriptSizing="dynamic" class="stage-field">
+            <mat-label>Stage</mat-label>
+            <mat-select formControlName="stage">
+              <mat-option *ngFor="let s of stages" [value]="s">{{ s }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Budget</mat-label>
+            <input matInput formControlName="budget" maxlength="200" />
+          </mat-form-field>
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Interest</mat-label>
+            <input matInput formControlName="interest" maxlength="200" />
+          </mat-form-field>
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Purchase timeline</mat-label>
+            <input matInput formControlName="purchaseTimeline" maxlength="200" />
+          </mat-form-field>
+        </div>
+
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving || !canEdit">
+          {{ saving ? 'Saving…' : 'Save changes' }}
+        </button>
+      </form>
+    </mat-card>
+
+    <mat-card class="activity-card">
+      <h2>Activity</h2>
+
+      <form [formGroup]="noteForm" (ngSubmit)="addNote()" class="note-form">
+        <mat-form-field class="full-width" subscriptSizing="dynamic">
+          <mat-label>Add a note</mat-label>
+          <textarea matInput formControlName="note" rows="2" maxlength="2000"></textarea>
+        </mat-form-field>
+        <button mat-stroked-button type="submit" [disabled]="addingNote || noteForm.invalid">
+          {{ addingNote ? 'Adding…' : 'Add note' }}
+        </button>
+      </form>
+
+      <div class="timeline">
+        <div class="empty-state" *ngIf="!loadingActivities && !activities.length">
+          <p class="muted">No activity yet.</p>
+        </div>
+
+        <div *ngFor="let a of activities" class="timeline-row">
+          <div class="timeline-actor muted">{{ activityActor(a) }} · {{ a.createdAt | date: 'medium' }}</div>
+          <div class="timeline-body">
+            <ng-container [ngSwitch]="a.activityType">
+              <span *ngSwitchCase="'Note'">{{ a.note }}</span>
+              <span *ngSwitchDefault>
+                {{ a.activityType }}: {{ a.oldValue || '—' }} → {{ a.newValue || '—' }}
+                <span *ngIf="a.note"> ({{ a.note }})</span>
+              </span>
+            </ng-container>
+          </div>
+        </div>
+
+        <div class="load-more" *ngIf="hasMoreActivities">
+          <button mat-button type="button" [disabled]="loadingActivities" (click)="loadMoreActivities()">
+            {{ loadingActivities ? 'Loading…' : 'Load more' }}
+          </button>
+        </div>
+      </div>
+    </mat-card>
+  </ng-container>
+</div>

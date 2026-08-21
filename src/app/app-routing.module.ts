@@ -40,6 +40,16 @@ const routes: Routes = [
           import('./features/handoffs/handoffs.module').then((m) => m.HandoffsModule),
       },
       {
+        path: 'leads',
+        loadChildren: () =>
+          import('./features/leads/leads.module').then((m) => m.LeadsModule),
+      },
+      {
+        path: 'knowledge-base',
+        loadChildren: () =>
+          import('./features/knowledge-base/knowledge-base.module').then((m) => m.KnowledgeBaseModule),
+      },
+      {
         path: 'tags',
         loadChildren: () =>
           import('./features/tags/tags.module').then((m) => m.TagsModule),

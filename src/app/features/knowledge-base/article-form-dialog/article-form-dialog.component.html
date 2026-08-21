@@ -1,0 +1,42 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit article' : 'New article' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>Title</mat-label>
+      <input matInput formControlName="title" />
+      <mat-error *ngIf="form.controls.title.hasError('required')">Title is required.</mat-error>
+      <mat-error *ngIf="form.controls.title.hasError('maxlength')">Use at most 200 characters.</mat-error>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field class="category-field">
+        <mat-label>Category (optional)</mat-label>
+        <input matInput formControlName="category" maxlength="100" />
+      </mat-form-field>
+
+      <mat-form-field class="source-field" *ngIf="!isEdit">
+        <mat-label>Source</mat-label>
+        <mat-select formControlName="sourceType">
+          <mat-option *ngFor="let s of sourceTypes" [value]="s">{{ s }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field class="full-width">
+      <mat-label>Content</mat-label>
+      <textarea matInput formControlName="content" rows="10" maxlength="20000"></textarea>
+      <mat-hint *ngIf="isEdit">
+        Saving only bumps the article's version — Publish (or Reindex) picks up this edit for AI retrieval.
+      </mat-hint>
+      <mat-error *ngIf="form.controls.content.hasError('required')">Content is required.</mat-error>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create article' }}
+  </button>
+</mat-dialog-actions>

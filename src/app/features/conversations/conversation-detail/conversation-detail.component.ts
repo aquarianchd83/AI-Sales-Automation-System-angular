@@ -18,6 +18,7 @@ import {
 } from '../../../core/models/conversation.model';
 import { ConversationService } from '../../../core/services/conversation.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { leadScoreChipClass } from '../../../core/models/lead.model';
 import { MessageTemplate, WhatsAppTemplateStatus } from '../../../core/models/message-template.model';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -31,6 +32,7 @@ import { UserService } from '../../../core/services/user.service';
 })
 export class ConversationDetailComponent implements OnInit, OnDestroy {
   readonly statusClass = conversationStatusChipClass;
+  readonly scoreClass = leadScoreChipClass;
   readonly modes = Object.values(ConversationMode);
   readonly MessageDirection = MessageDirection;
   readonly MessageStatus = MessageStatus;

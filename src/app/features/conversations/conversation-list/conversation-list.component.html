@@ -42,6 +42,14 @@
           <td mat-cell *matCellDef="let c">{{ c.mode }}</td>
         </ng-container>
 
+        <ng-container matColumnDef="leadScore">
+          <th mat-header-cell *matHeaderCellDef>Lead</th>
+          <td mat-cell *matCellDef="let c">
+            <span *ngIf="c.lastLeadScore; else noScore" [class]="scoreClass(c.lastLeadScore)">{{ c.lastLeadScore }}</span>
+            <ng-template #noScore>—</ng-template>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="lastMessageAt">
           <th mat-header-cell *matHeaderCellDef>Last message</th>
           <td mat-cell *matCellDef="let c">{{ (c.lastMessageAt | date: 'medium') || '—' }}</td>
