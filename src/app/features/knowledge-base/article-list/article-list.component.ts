@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { SelectionModel } from '@angular/cdk/collections';
 import { Subject, of } from 'rxjs';
 import {
   catchError,
@@ -33,7 +34,7 @@ import { NotificationService } from '../../../core/services/notification.service
 export class ArticleListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['title', 'category', 'status', 'version', 'chunkCount', 'updatedAt', 'actions'];
+  readonly displayedColumns = ['select', 'title', 'category', 'status', 'version', 'chunkCount', 'updatedAt', 'actions'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusClass = knowledgeBaseStatusChipClass;
   readonly canPublish = canPublishArticle;
@@ -46,9 +47,17 @@ export class ArticleListComponent implements OnInit, OnDestroy {
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
 
+  /**
+   * Scoped to the current page, same reasoning as CustomerListComponent's selection: the API
+   * pages server-side with no "select everything matching this filter", so a selection that
+   * survived paging would let someone publish rows they never actually saw.
+   */
+  readonly selection = new SelectionModel<KnowledgeBaseArticle>(true, []);
+
   page: PagedResult<KnowledgeBaseArticle> = emptyPage<KnowledgeBaseArticle>();
   loading = true;
   reindexing = false;
+  bulkPublishing = false;
   statusFilter: string | null = null;
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
@@ -82,7 +91,12 @@ export class ArticleListComponent implements OnInit, OnDestroy {
         }),
         takeUntil(this.destroy$)
       )
-      .subscribe((page) => (this.page = page));
+      .subscribe((page) => {
+        this.page = page;
+        // Rows are new object references after every fetch, so a stale selection could never
+        // match them anyway — clear it rather than leave it dangling.
+        this.selection.clear();
+      });
   }
 
   ngOnDestroy(): void {
@@ -103,6 +117,63 @@ export class ArticleListComponent implements OnInit, OnDestroy {
     this.query = { ...this.query, page: 1 };
     this.paginator?.firstPage();
     this.reload$.next();
+  }
+
+  // ---- selection ----------------------------------------------------------
+
+  /** Archived rows are excluded — nothing can publish one, so "select all" should not offer
+   * to try, same reasoning as the per-row Publish button being disabled for them. */
+  get publishableOnPage(): KnowledgeBaseArticle[] {
+    return this.page.items.filter((a) => this.canPublish(a.status));
+  }
+
+  get allPublishableOnPageSelected(): boolean {
+    return this.publishableOnPage.length > 0 && this.publishableOnPage.every((a) => this.selection.isSelected(a));
+  }
+
+  get somePublishableOnPageSelected(): boolean {
+    return this.selection.hasValue() && !this.allPublishableOnPageSelected;
+  }
+
+  toggleAllOnPage(): void {
+    if (this.allPublishableOnPageSelected) {
+      this.selection.clear();
+    } else {
+      this.selection.select(...this.publishableOnPage);
+    }
+  }
+
+  /** Publishes every selected article in one request — see BulkPublishArticlesResult for why
+   * this can partially succeed instead of all-or-nothing. */
+  publishSelected(): void {
+    const selected = this.selection.selected;
+    if (!selected.length || this.bulkPublishing) {
+      return;
+    }
+
+    this.bulkPublishing = true;
+    this.articles
+      .bulkPublish(selected.map((a) => a.id))
+      .pipe(finalize(() => (this.bulkPublishing = false)))
+      .subscribe({
+        next: (result) => {
+          const missed = result.requestedCount - result.publishedCount;
+          if (missed > 0) {
+            const reasons = [
+              result.failedIds.length > 0 ? `${result.failedIds.length} failed to embed` : null,
+              result.notFoundIds.length > 0 ? `${result.notFoundIds.length} no longer exist` : null,
+            ].filter(Boolean);
+            this.notify.info(`Published ${result.publishedCount} of ${result.requestedCount} (${reasons.join(', ')}).`);
+          } else {
+            this.notify.success(`Published ${result.publishedCount} article${result.publishedCount === 1 ? '' : 's'}.`);
+          }
+          this.selection.clear();
+          this.reload$.next();
+        },
+        error: () => {
+          // ErrorInterceptor toasts it; keep the selection so it can be retried.
+        },
+      });
   }
 
   create(): void {

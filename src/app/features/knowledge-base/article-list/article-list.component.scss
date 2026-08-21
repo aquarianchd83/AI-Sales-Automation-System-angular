@@ -11,6 +11,25 @@
   flex: 1 1 220px;
 }
 
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #e0f2f1;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.bulk-count {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.select-cell {
+  width: 48px;
+  padding-right: 0;
+}
+
 .primary-cell {
   font-weight: 500;
 }

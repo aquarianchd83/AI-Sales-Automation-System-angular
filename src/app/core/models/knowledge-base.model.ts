@@ -46,6 +46,20 @@ export interface UpdateKnowledgeBaseArticleRequest {
   content: string;
 }
 
+export interface BulkPublishArticlesRequest {
+  ids: string[];
+}
+
+/** BulkPublishArticlesResultDto. Ids that matched nothing or failed to re-embed (e.g. a transient
+ * provider error) are reported rather than failing the whole call — the same partial-success shape
+ * as BulkDeleteCustomersResultDto. */
+export interface BulkPublishArticlesResult {
+  requestedCount: number;
+  publishedCount: number;
+  notFoundIds: string[];
+  failedIds: string[];
+}
+
 export function knowledgeBaseStatusChipClass(status: string): string {
   switch (status) {
     case KnowledgeBaseArticleStatus.Published:

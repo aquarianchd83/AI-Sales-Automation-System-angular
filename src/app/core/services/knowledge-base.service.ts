@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  BulkPublishArticlesResult,
   CreateKnowledgeBaseArticleRequest,
   KnowledgeBaseArticle,
   UpdateKnowledgeBaseArticleRequest,
@@ -51,5 +52,11 @@ export class KnowledgeBaseService {
    * Version — the bulk counterpart to publishing one article by hand. */
   reindex(): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/reindex`, null);
+  }
+
+  /** Publishes several selected articles in one request — each still re-chunks/re-embeds
+   * individually server-side, so this can partially succeed; see BulkPublishArticlesResult. */
+  bulkPublish(ids: string[]): Observable<BulkPublishArticlesResult> {
+    return this.http.post<BulkPublishArticlesResult>(`${this.baseUrl}/articles/bulk-publish`, { ids });
   }
 }
