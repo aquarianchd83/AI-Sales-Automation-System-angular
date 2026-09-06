@@ -1,0 +1,112 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.date-field {
+  width: 180px;
+}
+
+.level-field {
+  width: 140px;
+}
+
+.module-field {
+  width: 200px;
+}
+
+.filter-search {
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+// The app's Material theme density is 0 (comfortable) globally by design — a log viewer is the
+// one screen where that's actively counterproductive: many short rows, and the default ~24px
+// cell padding + 48px row height eats vertical space that could show more entries at once. Scoped
+// here rather than touching the global theme, which every other table in the app relies on.
+.table-scroll ::ng-deep {
+  .mat-header-cell,
+  .mat-cell {
+    padding: 4px 12px;
+  }
+
+  .mat-header-row {
+    min-height: 40px;
+  }
+
+  .mat-row {
+    min-height: 32px;
+  }
+
+  // table-layout: fixed is what makes percentage widths on cdk-column-* actually stick — an
+  // auto-layout table treats <th> width as a hint the widest cell's content can still override.
+  // CDK Table stamps every header/data cell with cdk-column-<name> itself, so these don't need a
+  // dedicated class added to each <th>/<td> in the template.
+  table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .cdk-column-timestamp {
+    width: 10%;
+  }
+
+  .cdk-column-level {
+    width: 10%;
+  }
+
+  .cdk-column-module {
+    width: 20%;
+  }
+
+  .cdk-column-message {
+    width: 60%;
+  }
+}
+
+.timestamp-cell {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.module-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.method-text {
+  font-size: 11px;
+}
+
+.message-text {
+  margin: 0;
+  font-family: inherit;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.expanded {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+}
+
+.expand-toggle {
+  font-size: 11px;
+  min-width: 0;
+  padding: 0;
+  line-height: 20px;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

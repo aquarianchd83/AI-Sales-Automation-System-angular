@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import {
   CreateMessageTemplateRequest,
   MessageTemplate,
+  MessageTemplateSyncOneResult,
   ReviewMessageTemplateRequest,
   UpdateMessageTemplateRequest,
 } from '../models/message-template.model';
@@ -44,5 +45,11 @@ export class MessageTemplateService {
   /** 409s if any campaign step still references this template — no force option. */
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /** Pushes this one template to Meta (create if never synced, else edit if its body changed) and
+   *  pulls back its resulting review status — the per-row Sync button. SuperAdmin/Admin only. */
+  syncOne(id: string): Observable<MessageTemplateSyncOneResult> {
+    return this.http.post<MessageTemplateSyncOneResult>(`${this.baseUrl}/${id}/sync`, {});
   }
 }

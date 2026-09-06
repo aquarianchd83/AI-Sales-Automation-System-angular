@@ -2,9 +2,10 @@ import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, of } from 'rxjs';
-import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
+import { catchError, debounceTime, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
 import { Handoff, HandoffStatus, canClaimHandoff, canResolveHandoff, handoffStatusChipClass } from '../../../core/models/handoff.model';
+import { ConversationHubService } from '../../../core/services/conversation-hub.service';
 import { HandoffService } from '../../../core/services/handoff.service';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -45,6 +46,7 @@ export class HandoffListComponent implements OnInit, OnDestroy {
   constructor(
     private readonly handoffs: HandoffService,
     private readonly users: UserService,
+    private readonly conversationHub: ConversationHubService,
     private readonly dialog: MatDialog,
     private readonly notify: NotificationService
   ) {}
@@ -65,6 +67,12 @@ export class HandoffListComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe((page) => (this.page = page));
+
+    // Live update: refreshes the currently-viewed page/filter in place whenever a new handoff is
+    // raised anywhere, so a Pending queue an agent is watching fills in without a manual refresh.
+    this.conversationHub.newHandoff$
+      .pipe(debounceTime(300), takeUntil(this.destroy$))
+      .subscribe(() => this.reload$.next());
   }
 
   ngOnDestroy(): void {

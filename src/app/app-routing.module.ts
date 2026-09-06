@@ -79,6 +79,13 @@ const routes: Routes = [
           import('./features/users/users.module').then((m) => m.UsersModule),
       },
       {
+        path: 'logs',
+        canActivate: [roleGuard],
+        data: { roles: USER_ADMIN_ROLES },
+        loadChildren: () =>
+          import('./features/logs/logs.module').then((m) => m.LogsModule),
+      },
+      {
         path: 'change-password',
         loadChildren: () =>
           import('./features/account/account.module').then((m) => m.AccountModule),

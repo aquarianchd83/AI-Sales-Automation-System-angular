@@ -1,0 +1,108 @@
+<div class="page">
+  <app-page-header title="Logs" subtitle="The API's own log output — SuperAdmin/Admin only.">
+    <button mat-stroked-button type="button" [disabled]="loading" (click)="refresh()">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </app-page-header>
+
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field subscriptSizing="dynamic" class="date-field">
+        <mat-label>Date</mat-label>
+        <mat-select [formControl]="dateControl" [disabled]="loadingDates || !availableDates.length">
+          <mat-option *ngFor="let d of availableDates" [value]="d">{{ d | date: 'mediumDate' }}</mat-option>
+        </mat-select>
+        <mat-hint *ngIf="!loadingDates && !availableDates.length">No log files found.</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic" class="level-field">
+        <mat-label>Level</mat-label>
+        <mat-select [formControl]="levelControl">
+          <mat-option [value]="null">All</mat-option>
+          <mat-option *ngFor="let l of levels" [value]="l">{{ l }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="module-field" subscriptSizing="dynamic">
+        <mat-label>Module</mat-label>
+        <mat-select [formControl]="moduleControl" [disabled]="loadingModules || !availableModules.length">
+          <mat-option [value]="null">All</mat-option>
+          <mat-option *ngFor="let m of availableModules" [value]="m" [title]="m">{{ moduleName(m) }}</mat-option>
+        </mat-select>
+        <mat-hint *ngIf="!loadingModules && !availableModules.length">No modules logged on this date.</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Message contains…" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">{{ page.totalCount }} entr{{ page.totalCount === 1 ? 'y' : 'ies' }}</span>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading || loadingDates || loadingModules"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="page.items">
+        <ng-container matColumnDef="timestamp">
+          <th mat-header-cell *matHeaderCellDef>Time</th>
+          <td mat-cell *matCellDef="let e" class="timestamp-cell">{{ e.timestamp | date: 'HH:mm:ss' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="level">
+          <th mat-header-cell *matHeaderCellDef>Level</th>
+          <td mat-cell *matCellDef="let e">
+            <span [class]="levelClass(e.level)">{{ e.level }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="module">
+          <th mat-header-cell *matHeaderCellDef>Module</th>
+          <td mat-cell *matCellDef="let e" class="module-cell">
+            <span [title]="e.module">{{ moduleName(e.module) }}</span>
+            <div class="muted method-text" *ngIf="e.method">{{ e.method }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="message">
+          <th mat-header-cell *matHeaderCellDef>Message</th>
+          <td mat-cell *matCellDef="let e; let i = index" class="message-cell">
+            <pre class="message-text" [class.expanded]="isExpanded(i)">{{
+              isExpanded(i) ? e.message : firstLine(e.message)
+            }}</pre>
+            <button
+              *ngIf="isMultiline(e.message)"
+              mat-button
+              type="button"
+              class="expand-toggle"
+              (click)="toggleExpanded(i)"
+            >
+              {{ isExpanded(i) ? 'Show less' : 'Show full message' }}
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let e; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">description</mat-icon>
+      <p *ngIf="!availableDates.length">No log files exist yet.</p>
+      <p *ngIf="availableDates.length">No entries match these filters for this date.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

@@ -1,10 +1,11 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
 import { AppRole, User } from '../../core/models/user.model';
+import { ConversationHubService } from '../../core/services/conversation-hub.service';
 
 interface NavItem {
   label: string;
@@ -18,7 +19,7 @@ interface NavItem {
   templateUrl: './shell.component.html',
   styleUrls: ['./shell.component.scss'],
 })
-export class ShellComponent {
+export class ShellComponent implements OnInit, OnDestroy {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: [] },
     { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
@@ -36,6 +37,12 @@ export class ShellComponent {
       route: '/users',
       roles: [AppRole.SuperAdmin, AppRole.Admin],
     },
+    {
+      label: 'Logs',
+      icon: 'description',
+      route: '/logs',
+      roles: [AppRole.SuperAdmin, AppRole.Admin],
+    },
   ];
 
   readonly currentUser$: Observable<User | null> = this.auth.currentUser$;
@@ -49,8 +56,20 @@ export class ShellComponent {
 
   constructor(
     private readonly auth: AuthService,
-    private readonly breakpoints: BreakpointObserver
+    private readonly breakpoints: BreakpointObserver,
+    private readonly conversationHub: ConversationHubService
   ) {}
+
+  /** Ties the real-time connection's lifetime to the authenticated shell, not any one page —
+   * live inbox/handoff updates keep working across navigation and tear down on logout (the
+   * router unmounts ShellComponent once authGuard no longer matches). */
+  ngOnInit(): void {
+    this.conversationHub.connect();
+  }
+
+  ngOnDestroy(): void {
+    this.conversationHub.disconnect();
+  }
 
   initials(user: User | null): string {
     if (!user?.fullName) {

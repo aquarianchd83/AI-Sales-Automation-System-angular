@@ -8,6 +8,9 @@
 export const environment = {
   production: false,
   apiBaseUrl: '/api/v1',
+  /** Relative so it routes through proxy.conf.json's "/hubs" entry the same way apiBaseUrl does
+   * through "/api" — ConversationHub is mapped at /hubs/conversations, not under /api/v1. */
+  hubBaseUrl: '/hubs',
   /** Refresh the access token this many seconds before it expires. */
   tokenRefreshLeewaySeconds: 60,
 };

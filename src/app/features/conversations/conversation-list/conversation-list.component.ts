@@ -15,6 +15,7 @@ import {
 
 import { Conversation, ConversationStatus, conversationStatusChipClass } from '../../../core/models/conversation.model';
 import { leadScoreChipClass } from '../../../core/models/lead.model';
+import { ConversationHubService } from '../../../core/services/conversation-hub.service';
 import { ConversationService } from '../../../core/services/conversation.service';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 
@@ -50,6 +51,7 @@ export class ConversationListComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly conversations: ConversationService,
+    private readonly conversationHub: ConversationHubService,
     private readonly router: Router,
     private readonly route: ActivatedRoute
   ) {}
@@ -76,6 +78,13 @@ export class ConversationListComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe((page) => (this.page = page));
+
+    // Live update: refreshes the currently-viewed page/filter in place (never jumps the user
+    // back to page 1) whenever any conversation gets a new inbound message. Debounced so a burst
+    // of messages across several conversations triggers one refetch, not one per message.
+    this.conversationHub.newInboundMessage$
+      .pipe(debounceTime(300), takeUntil(this.destroy$))
+      .subscribe(() => this.reload$.next());
   }
 
   ngOnDestroy(): void {

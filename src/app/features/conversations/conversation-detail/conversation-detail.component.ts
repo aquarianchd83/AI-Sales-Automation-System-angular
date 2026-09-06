@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Subject, forkJoin } from 'rxjs';
-import { finalize, switchMap, takeUntil } from 'rxjs/operators';
+import { filter, finalize, switchMap, takeUntil } from 'rxjs/operators';
 
 import {
   DEFAULT_CUSTOMER_SERVICE_WINDOW_HOURS,
@@ -16,6 +16,7 @@ import {
   canSendFreeText,
   conversationStatusChipClass,
 } from '../../../core/models/conversation.model';
+import { ConversationHubService } from '../../../core/services/conversation-hub.service';
 import { ConversationService } from '../../../core/services/conversation.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { leadScoreChipClass } from '../../../core/models/lead.model';
@@ -65,6 +66,7 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
     private readonly conversations: ConversationService,
     private readonly templateService: MessageTemplateService,
     private readonly users: UserService,
+    private readonly conversationHub: ConversationHubService,
     private readonly dialog: MatDialog,
     private readonly notify: NotificationService,
     private readonly fb: FormBuilder
@@ -111,6 +113,21 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
           (t) => t.isActive && t.whatsAppTemplateStatus === WhatsAppTemplateStatus.Approved
         );
       });
+
+    // Live update: the hub broadcasts every inbound message to every connected client (see
+    // ConversationHubService), so filter to this conversation before doing anything. By the time
+    // this event fires, InboundWebhookProcessor has already run the AI orchestrator and saved
+    // whatever it decided — refetching the conversation here picks up its updated
+    // confidence/intent/summary/lead-score alongside the new message, not just the message itself.
+    this.conversationHub.newInboundMessage$
+      .pipe(
+        filter((event) => event.conversationId === this.conversation?.id),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.refreshLatestMessages();
+        this.refreshConversation();
+      });
   }
 
   ngOnDestroy(): void {
@@ -150,6 +167,28 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
         // and prepending keeps the overall list oldest-first top to bottom as older pages load in.
         this.messages = [...page.items].reverse().concat(this.messages);
       });
+  }
+
+  /** Pulls in whatever's new without disturbing already-loaded older pages — refetches just the
+   * most recent batch and appends any message not already in the transcript (deduped by id). */
+  private refreshLatestMessages(): void {
+    if (!this.conversation) {
+      return;
+    }
+    this.conversations.getMessages(this.conversation.id, { page: 1, pageSize: 30 }).subscribe((page) => {
+      const existingIds = new Set(this.messages.map((m) => m.id));
+      const newOnes = [...page.items].reverse().filter((m) => !existingIds.has(m.id));
+      if (newOnes.length) {
+        this.messages = [...this.messages, ...newOnes];
+      }
+    });
+  }
+
+  private refreshConversation(): void {
+    if (!this.conversation) {
+      return;
+    }
+    this.conversations.getById(this.conversation.id).subscribe((conversation) => (this.conversation = conversation));
   }
 
   changeMode(mode: string): void {

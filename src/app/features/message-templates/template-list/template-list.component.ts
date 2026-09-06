@@ -18,6 +18,8 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPag
 import {
   MessageTemplate,
   WhatsAppTemplateStatus,
+  metaStatusChipClass,
+  metaStatusLabel,
   templateStatusChipClass,
 } from '../../../core/models/message-template.model';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
@@ -37,17 +39,22 @@ export class TemplateListComponent implements OnInit, OnDestroy {
     'whatsAppTemplateName',
     'category',
     'status',
+    'metaStatus',
     'isActive',
     'actions',
   ];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusClass = templateStatusChipClass;
+  readonly metaStatusClass = metaStatusChipClass;
+  readonly metaStatusLabel = metaStatusLabel;
   readonly WhatsAppTemplateStatus = WhatsAppTemplateStatus;
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
 
   page: PagedResult<MessageTemplate> = emptyPage<MessageTemplate>();
   loading = true;
+  /** Ids currently mid-sync — drives the per-row spinner/disabled state on the Sync button. */
+  syncingIds = new Set<string>();
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
@@ -130,6 +137,23 @@ export class TemplateListComponent implements OnInit, OnDestroy {
       this.notify.success('Template reset to Pending.');
       this.reload$.next();
     });
+  }
+
+  /** Per-row Sync button: pushes this one template to Meta (create/edit) then pulls back its
+   *  resulting status, without waiting for the hourly MessageTemplateSyncJob. */
+  syncOne(template: MessageTemplate): void {
+    this.syncingIds.add(template.id);
+    this.templates
+      .syncOne(template.id)
+      .pipe(finalize(() => this.syncingIds.delete(template.id)))
+      .subscribe((result) => {
+        if (result.pushError) {
+          this.notify.error(`Synced, but Meta rejected the push: ${result.pushError}`);
+        } else {
+          this.notify.success(`"${template.name}" synced with Meta.`);
+        }
+        this.reload$.next();
+      });
   }
 
   delete(template: MessageTemplate): void {
