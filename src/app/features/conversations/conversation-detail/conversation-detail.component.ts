@@ -16,7 +16,7 @@ import {
   canSendFreeText,
   conversationStatusChipClass,
 } from '../../../core/models/conversation.model';
-import { ConversationHubService } from '../../../core/services/conversation-hub.service';
+import { ConversationHubService, MessageStatusUpdatedEvent } from '../../../core/services/conversation-hub.service';
 import { ConversationService } from '../../../core/services/conversation.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { leadScoreChipClass } from '../../../core/models/lead.model';
@@ -128,6 +128,24 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
         this.refreshLatestMessages();
         this.refreshConversation();
       });
+
+    // Live update: an outbound message's delivery status advanced (e.g. the customer read it on
+    // WhatsApp). Patched in place rather than refetching the page — the hub payload already has
+    // everything the transcript needs to reflect it.
+    this.conversationHub.messageStatusUpdated$
+      .pipe(
+        filter((event) => event.conversationId === this.conversation?.id),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((event) => this.applyMessageStatusUpdate(event));
+
+    // The hub broadcasts to whoever's connected at the moment, nothing more — a status update (or
+    // inbound message) that lands while this client is disconnected/reconnecting is otherwise lost
+    // for good, not just delayed. Resync on every reconnect to close that gap.
+    this.conversationHub.reconnected$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.refreshLatestMessages();
+      this.refreshConversation();
+    });
   }
 
   ngOnDestroy(): void {
@@ -170,17 +188,40 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
   }
 
   /** Pulls in whatever's new without disturbing already-loaded older pages — refetches just the
-   * most recent batch and appends any message not already in the transcript (deduped by id). */
+   * most recent batch, appends any message not already in the transcript (deduped by id), and
+   * overwrites the rest in place with the server's copy. That last part matters as much as the
+   * append: this is also what a hub reconnect uses to resync (see the `reconnected$` subscription
+   * in ngOnInit), and a status update the client missed while disconnected would otherwise stay
+   * silently stale forever on an already-loaded message — refetching alone wouldn't fix it if this
+   * only ever added messages it had never seen before. */
   private refreshLatestMessages(): void {
     if (!this.conversation) {
       return;
     }
     this.conversations.getMessages(this.conversation.id, { page: 1, pageSize: 30 }).subscribe((page) => {
+      const latestById = new Map(page.items.map((m) => [m.id, m]));
+      const merged = this.messages.map((m) => latestById.get(m.id) ?? m);
       const existingIds = new Set(this.messages.map((m) => m.id));
       const newOnes = [...page.items].reverse().filter((m) => !existingIds.has(m.id));
-      if (newOnes.length) {
-        this.messages = [...this.messages, ...newOnes];
+      this.messages = [...merged, ...newOnes];
+    });
+  }
+
+  /** Patches one message's status (and delivered/read timestamp) in place from a hub event —
+   * mirrors ApplyStatusUpdateAsync's `??=` semantics on the backend: only fill a timestamp the
+   * server hasn't already sent us via a normal fetch. */
+  private applyMessageStatusUpdate(event: MessageStatusUpdatedEvent): void {
+    const now = new Date().toISOString();
+    this.messages = this.messages.map((m) => {
+      if (m.id !== event.messageId) {
+        return m;
       }
+      return {
+        ...m,
+        status: event.status,
+        deliveredAt: m.deliveredAt ?? (event.status === MessageStatus.Delivered || event.status === MessageStatus.Read ? now : m.deliveredAt),
+        readAt: m.readAt ?? (event.status === MessageStatus.Read ? now : m.readAt),
+      };
     });
   }
 
