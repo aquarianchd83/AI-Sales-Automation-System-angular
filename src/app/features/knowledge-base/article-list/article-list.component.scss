@@ -34,6 +34,33 @@
   font-weight: 500;
 }
 
+.models-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Reuses the .status-chip / .status-chip--running / .status-chip--draft color tokens from
+ * src/styles.scss (published = green, not published = neutral gray) so per-model eligibility
+ * reads the same way the general Status chip does. The badges are <button>s, not <span>s (each
+ * one toggles publish/unpublish), so this just resets default button chrome on top. */
+.model-badge {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &:not(:disabled):hover {
+    filter: brightness(0.95);
+  }
+}
+
 .actions-cell {
   white-space: nowrap;
   text-align: right;

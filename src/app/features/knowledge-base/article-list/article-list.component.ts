@@ -15,8 +15,13 @@ import {
 } from 'rxjs/operators';
 
 import {
+  AI_MODEL_PROVIDERS,
+  AiModelProvider,
+  EMBEDDING_PROVIDERS,
+  EmbeddingProviderName,
   KnowledgeBaseArticle,
   KnowledgeBaseArticleStatus,
+  aiModelDisplayName,
   canPublishArticle,
   knowledgeBaseStatusChipClass,
 } from '../../../core/models/knowledge-base.model';
@@ -34,10 +39,29 @@ import { NotificationService } from '../../../core/services/notification.service
 export class ArticleListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['select', 'title', 'category', 'status', 'version', 'chunkCount', 'updatedAt', 'actions'];
+  readonly displayedColumns = [
+    'select',
+    'title',
+    'category',
+    'status',
+    'models',
+    'embeddings',
+    'version',
+    'chunkCount',
+    'updatedAt',
+    'actions',
+  ];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusClass = knowledgeBaseStatusChipClass;
   readonly canPublish = canPublishArticle;
+  readonly modelLabel = aiModelDisplayName;
+
+  /** Filtered down to what GetAvailableProviders reports has an API key configured — default to
+   * the full lists until that call returns, so badges don't flash empty on a slow connection; a
+   * deployment with nothing configured (all Simulated) will briefly show every badge, then narrow
+   * to just "Simulated" once the response arrives. */
+  availableModels: AiModelProvider[] = AI_MODEL_PROVIDERS;
+  availableEmbeddingProviders: EmbeddingProviderName[] = EMBEDDING_PROVIDERS;
   readonly statusFilters: { label: string; value: string | null }[] = [
     { label: 'All', value: null },
     { label: 'Draft', value: KnowledgeBaseArticleStatus.Draft },
@@ -60,6 +84,13 @@ export class ArticleListComponent implements OnInit, OnDestroy {
   bulkPublishing = false;
   statusFilter: string | null = null;
 
+  /** Keyed by `${articleId}:${provider}` — tracks which single model badge is mid-toggle so only
+   * that badge disables/spins, not the whole row. */
+  private readonly modelToggling = new Set<string>();
+
+  /** Same keying as modelToggling, for the separate embedding-provider badge row. */
+  private readonly embeddingToggling = new Set<string>();
+
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
@@ -71,6 +102,19 @@ export class ArticleListComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.articles
+      .getAvailableProviders()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (available) => {
+          this.availableModels = AI_MODEL_PROVIDERS.filter((m) => available.chatModels.includes(m));
+          this.availableEmbeddingProviders = EMBEDDING_PROVIDERS.filter((p) => available.embeddingProviders.includes(p));
+        },
+        // Leave the full default lists in place — see their own doc comment — rather than hiding
+        // every badge just because this one auxiliary call failed.
+        error: () => {},
+      });
+
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((search) => {
@@ -189,13 +233,100 @@ export class ArticleListComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.articles.publish(article.id).subscribe({
       next: () => {
-        this.notify.success(`"${article.title}" published — chunked and embedded for AI retrieval.`);
+        this.notify.success(`"${article.title}" published — chunked and embedded via every available provider.`);
         this.reload$.next();
       },
       error: () => {
         // ErrorInterceptor toasts it.
       },
     });
+  }
+
+  isPublishedTo(article: KnowledgeBaseArticle, provider: AiModelProvider): boolean {
+    return article.publishedModels.some((m) => m.provider === provider);
+  }
+
+  isModelToggling(article: KnowledgeBaseArticle, provider: AiModelProvider): boolean {
+    return this.modelToggling.has(this.modelKey(article, provider));
+  }
+
+  /** Toggles one article's eligibility for one AI model — no confirm dialog, unlike delete: this
+   * is trivially reversible by toggling again. */
+  toggleModel(article: KnowledgeBaseArticle, provider: AiModelProvider, event: Event): void {
+    event.stopPropagation();
+    const key = this.modelKey(article, provider);
+    if (this.modelToggling.has(key)) {
+      return;
+    }
+
+    const wasPublished = this.isPublishedTo(article, provider);
+    const request = wasPublished
+      ? this.articles.unpublishFromModel(article.id, provider)
+      : this.articles.publishToModel(article.id, provider);
+
+    this.modelToggling.add(key);
+    request.pipe(finalize(() => this.modelToggling.delete(key))).subscribe({
+      next: (updated) => {
+        article.publishedModels = updated.publishedModels;
+        article.status = updated.status;
+        article.chunkCount = updated.chunkCount;
+        this.notify.success(
+          wasPublished
+            ? `"${article.title}" unpublished from ${this.modelLabel(provider)}.`
+            : `"${article.title}" published to ${this.modelLabel(provider)}.`
+        );
+      },
+      error: () => {
+        // ErrorInterceptor toasts it.
+      },
+    });
+  }
+
+  private modelKey(article: KnowledgeBaseArticle, provider: string): string {
+    return `${article.id}:${provider}`;
+  }
+
+  embeddedVia(article: KnowledgeBaseArticle, provider: EmbeddingProviderName): { model: string; embeddedAt: string } | undefined {
+    return article.embeddedProviders.find((e) => e.provider === provider);
+  }
+
+  isEmbeddingToggling(article: KnowledgeBaseArticle, provider: EmbeddingProviderName): boolean {
+    return this.embeddingToggling.has(this.modelKey(article, provider));
+  }
+
+  /** Unlike toggleModel, there's no "un-embed" — clicking always (re)embeds via that provider,
+   * targeted so every other provider's existing embeddings are left untouched (see
+   * KnowledgeBaseService.PublishAsync's provider-given branch). Safe to click again on an
+   * already-embedded badge to refresh it after an edit. */
+  embedVia(article: KnowledgeBaseArticle, provider: EmbeddingProviderName, event: Event): void {
+    event.stopPropagation();
+    const key = this.modelKey(article, provider);
+    if (this.embeddingToggling.has(key) || !this.canPublish(article.status)) {
+      return;
+    }
+
+    const wasEmbedded = !!this.embeddedVia(article, provider);
+    this.embeddingToggling.add(key);
+    this.articles
+      .publish(article.id, provider)
+      .pipe(finalize(() => this.embeddingToggling.delete(key)))
+      .subscribe({
+        next: (updated) => {
+          article.status = updated.status;
+          article.chunkCount = updated.chunkCount;
+          article.embeddingProvider = updated.embeddingProvider;
+          article.embeddingModel = updated.embeddingModel;
+          article.embeddedProviders = updated.embeddedProviders;
+          this.notify.success(
+            wasEmbedded
+              ? `"${article.title}" re-embedded via ${provider}.`
+              : `"${article.title}" embedded via ${provider}.`
+          );
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
   }
 
   delete(article: KnowledgeBaseArticle, event: Event): void {
