@@ -85,6 +85,38 @@
           </td>
         </ng-container>
 
+        <ng-container matColumnDef="models">
+          <th mat-header-cell *matHeaderCellDef>Published to</th>
+          <td mat-cell *matCellDef="let a" class="models-cell">
+            <button
+              *ngFor="let m of availableModels"
+              type="button"
+              [class]="isPublishedTo(a, m) ? 'status-chip status-chip--running model-badge' : 'status-chip status-chip--draft model-badge'"
+              [disabled]="!canPublish(a.status) || isModelToggling(a, m)"
+              [matTooltip]="isPublishedTo(a, m) ? 'Published to ' + modelLabel(m) + ' — click to unpublish' : 'Not published to ' + modelLabel(m) + ' — click to publish'"
+              (click)="toggleModel(a, m, $event)"
+            >
+              {{ modelLabel(m) }}
+            </button>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="embeddings">
+          <th mat-header-cell *matHeaderCellDef>Embedded via</th>
+          <td mat-cell *matCellDef="let a" class="models-cell">
+            <button
+              *ngFor="let p of availableEmbeddingProviders"
+              type="button"
+              [class]="embeddedVia(a, p) ? 'status-chip status-chip--running model-badge' : 'status-chip status-chip--draft model-badge'"
+              [disabled]="!canPublish(a.status) || isEmbeddingToggling(a, p)"
+              [matTooltip]="embeddedVia(a, p) ? 'Embedded via ' + p + ' — click to re-embed' : 'Not yet embedded via ' + p + ' — click to embed'"
+              (click)="embedVia(a, p, $event)"
+            >
+              {{ p }}
+            </button>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="version">
           <th mat-header-cell *matHeaderCellDef>Version</th>
           <td mat-cell *matCellDef="let a">{{ a.version }}</td>
