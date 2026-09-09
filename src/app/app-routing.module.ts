@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { authGuard, guestGuard, roleGuard } from './core/guards/auth.guard';
+import { SETTINGS_ADMIN_ROLES } from './core/models/settings.model';
 import { USER_ADMIN_ROLES } from './core/models/user.model';
 import { ShellComponent } from './layout/shell/shell.component';
 
@@ -77,6 +78,13 @@ const routes: Routes = [
         data: { roles: USER_ADMIN_ROLES },
         loadChildren: () =>
           import('./features/users/users.module').then((m) => m.UsersModule),
+      },
+      {
+        path: 'settings',
+        canActivate: [roleGuard],
+        data: { roles: SETTINGS_ADMIN_ROLES },
+        loadChildren: () =>
+          import('./features/settings/settings.module').then((m) => m.SettingsModule),
       },
       {
         path: 'change-password',

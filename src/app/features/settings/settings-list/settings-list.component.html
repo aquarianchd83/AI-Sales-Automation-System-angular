@@ -1,0 +1,74 @@
+<div class="page">
+  <app-page-header
+    title="Configuration"
+    subtitle="System settings, grouped by category. Changes take effect after the API reloads them."
+  >
+    <button
+      mat-stroked-button
+      type="button"
+      [disabled]="loading || reloading"
+      (click)="reload()"
+    >
+      <mat-icon>{{ reloading ? 'hourglass_empty' : 'refresh' }}</mat-icon>
+      Reload configuration
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="empty-state" *ngIf="!loading && !panels.length">
+    <mat-icon class="empty-icon">settings</mat-icon>
+    <p>No configuration categories are registered yet.</p>
+  </div>
+
+  <mat-card class="settings-card" *ngIf="!loading && panels.length">
+    <mat-tab-group animationDuration="0ms">
+      <mat-tab *ngFor="let panel of panels" [label]="panel.category.category">
+        <form class="category-form" [formGroup]="panel.form" (ngSubmit)="save(panel)">
+          <div class="setting-row" *ngFor="let item of panel.category.items">
+            <div class="setting-meta">
+              <span class="setting-key">{{ item.key }}</span>
+              <span class="muted setting-description" *ngIf="item.description">
+                {{ item.description }}
+              </span>
+              <span class="setting-hint" *ngIf="item.isSecret">
+                <mat-icon inline="true">lock</mat-icon>
+                {{ item.hasValue ? (item.valueHint || 'Currently set') : 'Not set' }}
+              </span>
+            </div>
+
+            <mat-form-field class="setting-input" subscriptSizing="dynamic">
+              <mat-label>{{ item.isList ? 'Comma-separated values' : 'Value' }}</mat-label>
+              <textarea
+                *ngIf="item.isList; else singleValue"
+                matInput
+                rows="2"
+                [formControlName]="item.key"
+              ></textarea>
+              <ng-template #singleValue>
+                <input
+                  matInput
+                  [type]="item.isSecret ? 'password' : 'text'"
+                  [placeholder]="item.isSecret ? (item.hasValue ? 'Leave blank to keep current value' : 'Not set') : ''"
+                  [formControlName]="item.key"
+                  autocomplete="off"
+                />
+              </ng-template>
+            </mat-form-field>
+          </div>
+
+          <div class="category-actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              [disabled]="panel.form.pristine || saving[panel.category.category]"
+            >
+              {{ saving[panel.category.category] ? 'Saving…' : 'Save changes' }}
+            </button>
+          </div>
+        </form>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card>
+</div>

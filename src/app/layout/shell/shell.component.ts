@@ -36,6 +36,12 @@ export class ShellComponent {
       route: '/users',
       roles: [AppRole.SuperAdmin, AppRole.Admin],
     },
+    {
+      label: 'Configuration',
+      icon: 'settings',
+      route: '/settings',
+      roles: [AppRole.SuperAdmin],
+    },
   ];
 
   readonly currentUser$: Observable<User | null> = this.auth.currentUser$;
