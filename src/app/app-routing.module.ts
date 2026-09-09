@@ -3,7 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { authGuard, guestGuard, roleGuard } from './core/guards/auth.guard';
 import { SETTINGS_ADMIN_ROLES } from './core/models/settings.model';
-import { USER_ADMIN_ROLES } from './core/models/user.model';
+import { TENANT_ADMIN_ROLES, USER_ADMIN_ROLES } from './core/models/user.model';
 import { ShellComponent } from './layout/shell/shell.component';
 
 const routes: Routes = [
@@ -85,6 +85,22 @@ const routes: Routes = [
         data: { roles: SETTINGS_ADMIN_ROLES },
         loadChildren: () =>
           import('./features/settings/settings.module').then((m) => m.SettingsModule),
+      },
+      {
+        path: 'tenant-settings',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () =>
+          import('./features/tenant-settings/tenant-settings.module').then(
+            (m) => m.TenantSettingsModule
+          ),
+      },
+      {
+        path: 'billing',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () =>
+          import('./features/billing/billing.module').then((m) => m.BillingModule),
       },
       {
         path: 'change-password',

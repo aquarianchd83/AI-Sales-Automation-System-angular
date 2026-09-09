@@ -1,0 +1,80 @@
+<div class="page">
+  <app-page-header
+    title="Billing"
+    subtitle="Choose a plan or manage your existing subscription. Payments are handled by Stripe."
+  ></app-page-header>
+
+  <mat-card class="subscription-card" *ngIf="!loadingSubscription">
+    <ng-container *ngIf="subscription; else noSubscription">
+      <div class="subscription-summary">
+        <div>
+          <span class="muted">Current plan</span>
+          <h3>{{ subscription.planName || 'No plan selected' }}</h3>
+          <mat-chip-listbox [selectable]="false">
+            <mat-chip [color]="subscription.status === 'Active' ? 'primary' : undefined" [highlighted]="true">
+              {{ subscription.status }}
+            </mat-chip>
+          </mat-chip-listbox>
+          <span class="muted period" *ngIf="subscription.currentPeriodEndUtc">
+            Renews {{ subscription.currentPeriodEndUtc | date: 'mediumDate' }}
+          </span>
+        </div>
+        <button mat-stroked-button type="button" [disabled]="openingPortal" (click)="openBillingPortal()">
+          <mat-icon>{{ openingPortal ? 'hourglass_empty' : 'credit_card' }}</mat-icon>
+          {{ openingPortal ? 'Opening…' : 'Manage billing' }}
+        </button>
+      </div>
+    </ng-container>
+    <ng-template #noSubscription>
+      <div class="subscription-summary">
+        <div>
+          <span class="muted">Current plan</span>
+          <h3>Free trial</h3>
+          <span class="muted">Choose a plan below to subscribe — no card required until you do.</span>
+        </div>
+      </div>
+    </ng-template>
+  </mat-card>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
+
+  <div class="plan-grid" *ngIf="!loadingPlans">
+    <mat-card class="plan-card" *ngFor="let plan of plans" [class.current]="isCurrentPlan(plan)">
+      <mat-chip class="current-badge" color="primary" [highlighted]="true" *ngIf="isCurrentPlan(plan)">
+        Current plan
+      </mat-chip>
+
+      <h3>{{ plan.name }}</h3>
+      <div class="plan-price">{{ formatPrice(plan.priceMonthlyCents) }}</div>
+
+      <ul class="plan-features">
+        <li>{{ plan.maxUsers }} users</li>
+        <li>{{ plan.maxMessagesPerMonth | number }} messages / month</li>
+        <li>{{ plan.maxCampaigns }} campaigns</li>
+        <li>{{ plan.maxKnowledgeBaseArticles }} knowledge base articles</li>
+      </ul>
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="full-width"
+        type="button"
+        [disabled]="isCurrentPlan(plan) || !!startingCheckoutForPlanId"
+        (click)="choosePlan(plan)"
+      >
+        {{
+          isCurrentPlan(plan)
+            ? 'Current plan'
+            : startingCheckoutForPlanId === plan.id
+            ? 'Redirecting…'
+            : 'Choose plan'
+        }}
+      </button>
+    </mat-card>
+  </div>
+
+  <div class="empty-state" *ngIf="!loadingPlans && !plans.length">
+    <mat-icon class="empty-icon">payments</mat-icon>
+    <p>No plans are available yet.</p>
+  </div>
+</div>

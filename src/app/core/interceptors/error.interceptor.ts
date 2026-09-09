@@ -64,6 +64,11 @@ export class ErrorInterceptor implements HttpInterceptor {
     }
 
     switch (error.status) {
+      case 402:
+        // PlanLimitExceededException (SaaS conversion Phase D) - problem.title already carries the
+        // specific "X allows up to N ..." message when present (see the check above this switch),
+        // so this generic fallback is only reached if that shape is somehow missing.
+        return 'Your plan does not allow this. Upgrade your plan to continue.';
       case 403:
         return 'You do not have permission to perform this action.';
       case 404:

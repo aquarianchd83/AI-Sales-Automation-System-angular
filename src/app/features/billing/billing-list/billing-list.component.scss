@@ -1,0 +1,80 @@
+.subscription-card {
+  margin-bottom: 24px;
+  padding: 20px 24px;
+}
+
+.subscription-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  h3 {
+    margin: 4px 0 8px;
+  }
+}
+
+.period {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+
+  &.current {
+    border: 2px solid var(--mdc-theme-primary, #00695c);
+  }
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.current-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.plan-price {
+  font-size: 28px;
+  font-weight: 500;
+  margin: 8px 0 16px;
+}
+
+.plan-features {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  flex: 1 1 auto;
+
+  li {
+    padding: 4px 0;
+    font-size: 13px;
+
+    &::before {
+      content: '✓ ';
+      color: #00695c;
+      font-weight: 700;
+    }
+  }
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

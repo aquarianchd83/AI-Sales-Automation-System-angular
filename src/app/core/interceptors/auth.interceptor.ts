@@ -14,7 +14,7 @@ import { AuthService } from '../services/auth.service';
 import { TokenStorageService } from '../services/token-storage.service';
 
 /** Endpoints that must never carry a bearer token or trigger a refresh loop. */
-const ANONYMOUS_PATHS = ['/auth/login', '/auth/refresh-token'];
+const ANONYMOUS_PATHS = ['/auth/login', '/auth/signup', '/auth/refresh-token'];
 
 /**
  * Attaches the access token and, on a 401, transparently rotates the token pair

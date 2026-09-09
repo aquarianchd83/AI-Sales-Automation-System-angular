@@ -37,6 +37,18 @@ export class ShellComponent {
       roles: [AppRole.SuperAdmin, AppRole.Admin],
     },
     {
+      label: 'WhatsApp & AI Setup',
+      icon: 'cloud_sync',
+      route: '/tenant-settings',
+      roles: [AppRole.SuperAdmin, AppRole.Admin],
+    },
+    {
+      label: 'Billing',
+      icon: 'payments',
+      route: '/billing',
+      roles: [AppRole.SuperAdmin, AppRole.Admin],
+    },
+    {
       label: 'Configuration',
       icon: 'settings',
       route: '/settings',

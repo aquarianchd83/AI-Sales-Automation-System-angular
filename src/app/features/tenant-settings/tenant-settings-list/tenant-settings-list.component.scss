@@ -1,0 +1,95 @@
+// Same tab/row layout as settings-list.component.scss, plus a couple of tenant-settings-only rules.
+.settings-card {
+  padding: 0;
+}
+
+.category-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+}
+
+.setting-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 260px;
+  min-width: 220px;
+  padding-top: 8px;
+}
+
+.setting-key {
+  font-weight: 500;
+  font-size: 13px;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.setting-description {
+  font-size: 12px;
+}
+
+.setting-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  opacity: 0.65;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.setting-input {
+  flex: 2 1 320px;
+  min-width: 260px;
+}
+
+.category-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin-right: 2px;
+  }
+
+  .muted {
+    font-size: 12px;
+    max-width: 480px;
+  }
+}
+
+.tab-intro {
+  display: block;
+  font-size: 12px;
+  padding-bottom: 12px;
+}

@@ -10,6 +10,7 @@ import {
   ChangePasswordRequest,
   LoginRequest,
   RefreshTokenRequest,
+  SignUpRequest,
 } from '../models/auth.model';
 import { User } from '../models/user.model';
 import { TokenStorageService } from './token-storage.service';
@@ -52,6 +53,15 @@ export class AuthService {
 
   login(request: LoginRequest): Observable<User> {
     return this.http.post<AuthResult>(`${this.baseUrl}/login`, request).pipe(
+      tap((result) => this.acceptAuthResult(result)),
+      map((result) => result.user)
+    );
+  }
+
+  /** The only self-serve account-creation path: creates a new Tenant (on a 14-day trial) and its
+   * first Admin user in one call, then logs that user in exactly like login() would. */
+  signUp(request: SignUpRequest): Observable<User> {
+    return this.http.post<AuthResult>(`${this.baseUrl}/signup`, request).pipe(
       tap((result) => this.acceptAuthResult(result)),
       map((result) => result.user)
     );
