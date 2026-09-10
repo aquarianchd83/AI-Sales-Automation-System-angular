@@ -31,15 +31,17 @@
     </mat-nav-list>
 
     <mat-nav-list *ngIf="isPlatformSuperAdmin">
-      <a
-        mat-list-item
-        routerLink="/platform"
-        routerLinkActive="nav-active"
-        (click)="drawer.mode === 'over' ? drawer.close() : null"
-      >
-        <mat-icon matListItemIcon>shield</mat-icon>
-        <span matListItemTitle>Platform Admin</span>
-      </a>
+      <ng-container *ngFor="let item of platformNavItems">
+        <a
+          mat-list-item
+          [routerLink]="item.route"
+          routerLinkActive="nav-active"
+          (click)="drawer.mode === 'over' ? drawer.close() : null"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.label }}</span>
+        </a>
+      </ng-container>
     </mat-nav-list>
   </mat-sidenav>
 

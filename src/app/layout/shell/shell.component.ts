@@ -72,6 +72,29 @@ export class ShellComponent implements OnInit {
     },
   ];
 
+  /**
+   * The Platform Admin Console's 8 screens, laid out as the same vertical sidenav list the tenant
+   * nav uses — not the horizontal tab strip PlatformShellComponent used to render internally. One
+   * consistent nav shape for both roles; only the destinations differ. Tenant detail
+   * (`tenants/:id`) is deliberately not one of these entries — it's reached from the Tenants list,
+   * not navigated to directly.
+   */
+  readonly platformNavItems: NavItem[] = [
+    { label: 'Dashboard', icon: 'dashboard', route: '/platform/dashboard', roles: [] },
+    { label: 'Tenants', icon: 'business', route: '/platform/tenants', roles: [] },
+    { label: 'Billing', icon: 'payments', route: '/platform/billing', roles: [] },
+    { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
+    {
+      label: 'WhatsApp Connections',
+      icon: 'cloud_sync',
+      route: '/platform/whatsapp-connections',
+      roles: [],
+    },
+    { label: 'Users', icon: 'manage_accounts', route: '/platform/users', roles: [] },
+    { label: 'Audit Log', icon: 'history', route: '/platform/audit-log', roles: [] },
+    { label: 'Announcements', icon: 'campaign', route: '/platform/announcements', roles: [] },
+  ];
+
   /** True for the platform operator account — read once, not as an Observable, same reasoning as
    * isImpersonating below (the role on a signed-in session never changes mid-session). Drives which
    * of the two nav lists the template renders. */
