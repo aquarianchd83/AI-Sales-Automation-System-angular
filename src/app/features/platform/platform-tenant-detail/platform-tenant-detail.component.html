@@ -100,8 +100,41 @@
               {{ tenant.whatsAppConnected ? 'Connected' : 'Not connected' }}
             </span>
           </dd>
+          <dt *ngIf="whatsAppConfig?.phoneNumberId">Phone number ID</dt>
+          <dd *ngIf="whatsAppConfig?.phoneNumberId">{{ whatsAppConfig?.phoneNumberId }}</dd>
         </dl>
-        <p class="muted hint">Full connection detail (webhook health, phone number) is on the WhatsApp Connections screen.</p>
+        <div class="card-actions">
+          <button mat-stroked-button type="button" [disabled]="loadingConfig" (click)="editWhatsAppConfig()">
+            {{ whatsAppConfig ? 'Edit' : 'Configure' }}
+          </button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="whatsAppConfig" (click)="deleteWhatsAppConfig()">
+            Delete
+          </button>
+        </div>
+        <p class="muted hint">
+          Only a PlatformSuperAdmin can set or change this — the tenant's own admin sees status only.
+        </p>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>AI provider</h3>
+        <dl>
+          <dt>Chat provider</dt>
+          <dd>{{ aiConfig?.provider ?? 'Simulated' }}</dd>
+          <dt>Embedding provider</dt>
+          <dd>{{ aiConfig?.embeddingProvider ?? 'Simulated' }}</dd>
+        </dl>
+        <div class="card-actions">
+          <button mat-stroked-button type="button" [disabled]="loadingConfig" (click)="editAiConfig()">
+            {{ aiConfig ? 'Edit' : 'Configure' }}
+          </button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="aiConfig" (click)="deleteAiConfig()">
+            Delete
+          </button>
+        </div>
+        <p class="muted hint">
+          Only a PlatformSuperAdmin can set or change this — the tenant's own admin sees status only.
+        </p>
       </mat-card>
     </div>
   </ng-container>

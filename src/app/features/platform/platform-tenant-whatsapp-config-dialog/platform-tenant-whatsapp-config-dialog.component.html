@@ -1,0 +1,63 @@
+<h2 mat-dialog-title>WhatsApp configuration — {{ data.tenantName }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>Phone number ID</mat-label>
+      <input matInput formControlName="phoneNumberId" autocomplete="off" />
+      <mat-error *ngIf="form.controls.phoneNumberId.hasError('required')">Required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>WhatsApp Business Account ID</mat-label>
+      <input matInput formControlName="whatsAppBusinessAccountId" autocomplete="off" />
+      <mat-error *ngIf="form.controls.whatsAppBusinessAccountId.hasError('required')">Required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Access token</mat-label>
+      <input
+        matInput
+        type="password"
+        formControlName="accessToken"
+        autocomplete="off"
+        [placeholder]="data.config?.hasAccessToken ? 'Leave blank to keep current value' : 'Not set'"
+      />
+      <mat-hint>{{ data.config?.hasAccessToken ? 'Currently set' : 'Not set' }}</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>App secret</mat-label>
+      <input
+        matInput
+        type="password"
+        formControlName="appSecret"
+        autocomplete="off"
+        [placeholder]="data.config?.hasAppSecret ? 'Leave blank to keep current value' : 'Not set'"
+      />
+      <mat-hint>{{ data.config?.hasAppSecret ? 'Currently set' : 'Not set' }}</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>API version</mat-label>
+      <input matInput formControlName="apiVersion" autocomplete="off" placeholder="v19.0" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>API base URL</mat-label>
+      <input matInput formControlName="apiBaseUrl" autocomplete="off" />
+    </mat-form-field>
+
+    <p class="muted note">
+      A blank token/secret leaves the stored value unchanged. Use Delete on the tenant page to clear
+      the config entirely.
+    </p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Save' }}
+  </button>
+</mat-dialog-actions>

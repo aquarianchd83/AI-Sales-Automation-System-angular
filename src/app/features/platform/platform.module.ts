@@ -8,9 +8,11 @@ import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-l
 import { PlatformBillingComponent } from './platform-billing/platform-billing.component';
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
+import { PlatformTenantAiConfigDialogComponent } from './platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
 import { PlatformTenantFormDialogComponent } from './platform-tenant-form-dialog/platform-tenant-form-dialog.component';
 import { PlatformTenantListComponent } from './platform-tenant-list/platform-tenant-list.component';
+import { PlatformTenantWhatsAppConfigDialogComponent } from './platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
 import { PlatformUsageComponent } from './platform-usage/platform-usage.component';
 import { PlatformUserSearchComponent } from './platform-user-search/platform-user-search.component';
 import { PlatformWhatsAppConnectionsComponent } from './platform-whatsapp-connections/platform-whatsapp-connections.component';
@@ -41,6 +43,8 @@ const routes: Routes = [
     PlatformTenantListComponent,
     PlatformTenantDetailComponent,
     PlatformTenantFormDialogComponent,
+    PlatformTenantWhatsAppConfigDialogComponent,
+    PlatformTenantAiConfigDialogComponent,
     PlatformBillingComponent,
     PlatformUsageComponent,
     PlatformWhatsAppConnectionsComponent,
