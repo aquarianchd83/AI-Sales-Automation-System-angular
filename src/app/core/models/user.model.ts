@@ -15,6 +15,18 @@ export enum AppRole {
   PlatformSuperAdmin = 'PlatformSuperAdmin',
 }
 
+/** Every tenant-scoped role — i.e. everyone except PlatformSuperAdmin. Gates the base tenant
+ * screens (Dashboard, Customers, Inbox, ...) that used to have no role restriction at all: without
+ * this, a PlatformSuperAdmin (who belongs to no tenant) could still reach them by typing the URL
+ * directly, even though the shell nav never links to them for that role — see ShellComponent's own
+ * split between tenantNavItems and the Platform Admin entry.  */
+export const TENANT_ROLES: string[] = [
+  AppRole.SuperAdmin,
+  AppRole.Admin,
+  AppRole.SalesManager,
+  AppRole.SalesAgent,
+];
+
 /** Roles allowed to manage users and roles (Phase 2 §2). */
 export const USER_ADMIN_ROLES: string[] = [AppRole.SuperAdmin, AppRole.Admin];
 

@@ -27,7 +27,15 @@ const DISMISSED_ANNOUNCEMENTS_KEY = 'wsa.dismissedAnnouncementIds';
   styleUrls: ['./shell.component.scss'],
 })
 export class ShellComponent implements OnInit {
-  readonly navItems: NavItem[] = [
+  /**
+   * The ordinary tenant-scoped nav — shown only to a tenant user (Admin/SalesManager/SalesAgent/
+   * tenant SuperAdmin), never to a PlatformSuperAdmin. A PlatformSuperAdmin belongs to no tenant,
+   * so every one of these screens (built for one tenant's own admin/agents to manage their own
+   * data) would be empty or meaningless for that role — see isPlatformSuperAdmin below and
+   * AppRole.PlatformSuperAdmin's own doc comment. The two nav experiences are deliberately kept
+   * separate rather than merged into one role-filtered list.
+   */
+  readonly tenantNavItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: [] },
     { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
     { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
@@ -62,13 +70,12 @@ export class ShellComponent implements OnInit {
       route: '/settings',
       roles: [AppRole.SuperAdmin],
     },
-    {
-      label: 'Platform Admin',
-      icon: 'shield',
-      route: '/platform',
-      roles: PLATFORM_ADMIN_ROLES,
-    },
   ];
+
+  /** True for the platform operator account — read once, not as an Observable, same reasoning as
+   * isImpersonating below (the role on a signed-in session never changes mid-session). Drives which
+   * of the two nav lists the template renders. */
+  readonly isPlatformSuperAdmin = this.auth.hasAnyRole(PLATFORM_ADMIN_ROLES);
 
   readonly currentUser$: Observable<User | null> = this.auth.currentUser$;
 

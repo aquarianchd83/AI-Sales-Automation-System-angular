@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { PLATFORM_ADMIN_ROLES } from '../../../core/models/platform.model';
 import { NotificationService } from '../../../core/services/notification.service';
 
 /** Cross-field check: confirmation must match the new password. */
@@ -55,7 +56,11 @@ export class ChangePasswordComponent {
         next: () => {
           this.notify.success('Password changed.');
           this.form.reset();
-          void this.router.navigate(['/dashboard']);
+          // Change-password has no role gate — a PlatformSuperAdmin can land here too (see
+          // app-routing.module.ts's own comment on that route), and '/dashboard' would just
+          // bounce them straight back out via roleGuard.
+          const isPlatformSuperAdmin = this.auth.hasAnyRole(PLATFORM_ADMIN_ROLES);
+          void this.router.navigate([isPlatformSuperAdmin ? '/platform' : '/dashboard']);
         },
         error: () => {
           /* ErrorInterceptor already surfaced it */

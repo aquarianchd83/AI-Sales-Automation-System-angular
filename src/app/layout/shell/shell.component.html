@@ -15,8 +15,8 @@
       </div>
     </div>
 
-    <mat-nav-list>
-      <ng-container *ngFor="let item of navItems">
+    <mat-nav-list *ngIf="!isPlatformSuperAdmin">
+      <ng-container *ngFor="let item of tenantNavItems">
         <a
           mat-list-item
           *appHasRole="item.roles"
@@ -28,6 +28,18 @@
           <span matListItemTitle>{{ item.label }}</span>
         </a>
       </ng-container>
+    </mat-nav-list>
+
+    <mat-nav-list *ngIf="isPlatformSuperAdmin">
+      <a
+        mat-list-item
+        routerLink="/platform"
+        routerLinkActive="nav-active"
+        (click)="drawer.mode === 'over' ? drawer.close() : null"
+      >
+        <mat-icon matListItemIcon>shield</mat-icon>
+        <span matListItemTitle>Platform Admin</span>
+      </a>
     </mat-nav-list>
   </mat-sidenav>
 
