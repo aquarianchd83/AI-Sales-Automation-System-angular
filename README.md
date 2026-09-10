@@ -74,19 +74,14 @@ npm start
 The app serves at `http://localhost:4200` and proxies `/api/*` and `/media/*` to the
 backend, so there is no CORS configuration to do in development.
 
-Sign in with one of the backend's seeded dev users (from `appsettings.Development.json`
-— see [docs/PHASE2-BACKEND-SETUP.md](docs/PHASE2-BACKEND-SETUP.md#dev-seed-users) for
-the full list and how to change them). One is seeded per role, all sharing the same
-dev-only password:
+Sign in with the seeded Super Admin from the backend's `appsettings.Development.json`
+(`admin@example.com` / `ChangeMe123!` by default) — this is the one dev account the
+backend actually creates today.
 
-| Role | Email | Password |
-|---|---|---|
-| SuperAdmin | `superadmin@example.com` | `ChangeMe123!` |
-| Admin | `admin@example.com` | `ChangeMe123!` |
-| SalesManager | `sales.manager@example.com` | `ChangeMe123!` |
-| SalesAgent | `sales.agent@example.com` | `ChangeMe123!` |
-
-**Local/dev only** — change or remove every one of these before any non-local deployment.
+The backend does not yet seed a distinct dev account for `Admin`, `SalesManager`, or
+`SalesAgent` — see [docs/PHASE2-BACKEND-SETUP.md](docs/PHASE2-BACKEND-SETUP.md#dev-seed-users)
+for proposed credentials and what the backend's seeder needs to add before those logins
+will work.
 
 ### Other commands
 
