@@ -39,6 +39,18 @@
     </mat-form-field>
 
     <mat-form-field class="full-width">
+      <mat-label>Webhook verify token</mat-label>
+      <input
+        matInput
+        type="password"
+        formControlName="webhookVerifyToken"
+        autocomplete="off"
+        [placeholder]="data.config?.hasWebhookVerifyToken ? 'Leave blank to keep current value' : 'Not set'"
+      />
+      <mat-hint>{{ data.config?.hasWebhookVerifyToken ? 'Currently set' : 'Not set' }} — stored for a future per-tenant webhook handshake, not yet checked by webhook verification.</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
       <mat-label>API version</mat-label>
       <input matInput formControlName="apiVersion" autocomplete="off" placeholder="v19.0" />
     </mat-form-field>
@@ -50,7 +62,8 @@
 
     <p class="muted note">
       A blank token/secret leaves the stored value unchanged. Use Delete on the tenant page to clear
-      the config entirely.
+      the config entirely. There's no per-tenant App ID — the Meta App itself is platform-global
+      (Configuration → WhatsApp), not something each tenant has its own copy of.
     </p>
   </form>
 </mat-dialog-content>

@@ -34,6 +34,7 @@ export class PlatformTenantWhatsAppConfigDialogComponent {
     whatsAppBusinessAccountId: [this.data.config?.whatsAppBusinessAccountId ?? '', Validators.required],
     accessToken: [''],
     appSecret: [''],
+    webhookVerifyToken: [''],
     apiVersion: [this.data.config?.apiVersion ?? 'v19.0'],
     apiBaseUrl: [this.data.config?.apiBaseUrl ?? 'https://graph.facebook.com/'],
   });
@@ -68,6 +69,9 @@ export class PlatformTenantWhatsAppConfigDialogComponent {
     }
     if (this.form.controls.appSecret.dirty && raw.appSecret) {
       request.appSecret = raw.appSecret;
+    }
+    if (this.form.controls.webhookVerifyToken.dirty && raw.webhookVerifyToken) {
+      request.webhookVerifyToken = raw.webhookVerifyToken;
     }
 
     this.saving = true;

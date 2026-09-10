@@ -1,6 +1,14 @@
 /**
- * TenantWhatsAppConfigDto. Same masking convention as SettingItem: secrets (accessToken, appSecret)
- * never round-trip — `hasAccessToken`/`hasAppSecret` are the only signal of what's stored.
+ * TenantWhatsAppConfigDto. Same masking convention as SettingItem: secrets (accessToken, appSecret,
+ * webhookVerifyToken) never round-trip — `hasAccessToken`/`hasAppSecret`/`hasWebhookVerifyToken` are
+ * the only signal of what's stored.
+ *
+ * `hasWebhookVerifyToken` is stored for schema completeness/a future per-tenant handshake — it is
+ * NOT what the backend's webhook verification handshake actually checks today (Meta subscribes per-
+ * App, one shared platform Meta App under BYO-WABA, not per-WABA, so that still uses one platform-
+ * global verify token regardless of what's saved here). There's no per-tenant `appId` field at all:
+ * the Meta App itself is platform-global too (Configuration → WhatsApp), not something each tenant
+ * has its own copy of.
  */
 export interface TenantWhatsAppConfig {
   phoneNumberId: string | null;
@@ -10,10 +18,11 @@ export interface TenantWhatsAppConfig {
   apiVersion: string | null;
   apiBaseUrl: string | null;
   isConnected: boolean;
+  hasWebhookVerifyToken: boolean;
 }
 
-/** UpdateTenantWhatsAppConfigRequest — accessToken/appSecret null (omitted) leaves the stored
- * value unchanged; empty string explicitly clears it. */
+/** UpdateTenantWhatsAppConfigRequest — accessToken/appSecret/webhookVerifyToken null (omitted)
+ * leaves the stored value unchanged; empty string explicitly clears it. */
 export interface UpdateTenantWhatsAppConfigRequest {
   phoneNumberId: string;
   whatsAppBusinessAccountId: string;
@@ -21,6 +30,7 @@ export interface UpdateTenantWhatsAppConfigRequest {
   appSecret?: string | null;
   apiVersion?: string | null;
   apiBaseUrl?: string | null;
+  webhookVerifyToken?: string | null;
 }
 
 /** TenantAiProviderConfigDto. Same masking convention as TenantWhatsAppConfig, one flag per
