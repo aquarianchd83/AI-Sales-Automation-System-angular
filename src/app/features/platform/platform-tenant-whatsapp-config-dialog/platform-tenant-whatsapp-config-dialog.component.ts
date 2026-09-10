@@ -35,6 +35,7 @@ export class PlatformTenantWhatsAppConfigDialogComponent {
     accessToken: [''],
     appSecret: [''],
     webhookVerifyToken: [''],
+    appId: [this.data.config?.appId ?? ''],
     apiVersion: [this.data.config?.apiVersion ?? 'v19.0'],
     apiBaseUrl: [this.data.config?.apiBaseUrl ?? 'https://graph.facebook.com/'],
   });
@@ -61,6 +62,7 @@ export class PlatformTenantWhatsAppConfigDialogComponent {
       whatsAppBusinessAccountId: raw.whatsAppBusinessAccountId,
       apiVersion: raw.apiVersion || undefined,
       apiBaseUrl: raw.apiBaseUrl || undefined,
+      appId: raw.appId || undefined,
     };
     // Only ever sends a NEW secret, never an explicit clear — a blank, untouched secret field means
     // "leave the stored value alone." Use Delete on the tenant detail screen to actually clear it.
