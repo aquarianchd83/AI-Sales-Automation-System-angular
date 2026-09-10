@@ -1,0 +1,30 @@
+.platform-shell {
+  display: block;
+}
+
+.platform-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px 0;
+
+  h1 {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .muted {
+    margin: 2px 0 0;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 13px;
+  }
+}
+
+nav[mat-tab-nav-bar] {
+  margin: 12px 24px 0;
+}
+
+mat-tab-nav-panel {
+  display: block;
+  padding: 0;
+}

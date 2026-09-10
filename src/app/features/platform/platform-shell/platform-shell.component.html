@@ -1,0 +1,25 @@
+<div class="platform-shell">
+  <div class="platform-header">
+    <mat-icon color="primary">shield</mat-icon>
+    <div>
+      <h1>Platform Admin Console</h1>
+      <p class="muted">Cross-tenant tools for the platform operator. Every action here is audited.</p>
+    </div>
+  </div>
+
+  <nav mat-tab-nav-bar [tabPanel]="tabPanel">
+    <a
+      mat-tab-link
+      *ngFor="let tab of tabs"
+      [routerLink]="tab.route"
+      routerLinkActive
+      #rla="routerLinkActive"
+      [active]="rla.isActive"
+    >
+      {{ tab.label }}
+    </a>
+  </nav>
+  <mat-tab-nav-panel #tabPanel>
+    <router-outlet></router-outlet>
+  </mat-tab-nav-panel>
+</div>

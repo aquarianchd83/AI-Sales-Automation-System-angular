@@ -1,0 +1,108 @@
+<div class="page">
+  <app-page-header [title]="tenant?.name || 'Tenant'" [subtitle]="tenant?.slug || ''">
+    <a mat-button routerLink="/platform/tenants">
+      <mat-icon>arrow_back</mat-icon>
+      Back to tenants
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <ng-container *ngIf="tenant && !loading">
+    <div class="detail-grid">
+      <mat-card class="detail-card">
+        <h3>Overview</h3>
+        <dl>
+          <dt>Status</dt>
+          <dd>{{ statusLabels[tenant.status] }}</dd>
+          <dt>Owner</dt>
+          <dd>{{ tenant.ownerEmail || '—' }}</dd>
+          <dt>Users</dt>
+          <dd>{{ tenant.userCount }}</dd>
+          <dt>Signed up</dt>
+          <dd>{{ tenant.createdAt | date: 'medium' }}</dd>
+          <dt>Trial ends</dt>
+          <dd>{{ tenant.trialEndsAtUtc ? (tenant.trialEndsAtUtc | date: 'medium') : '—' }}</dd>
+        </dl>
+        <div class="card-actions">
+          <button mat-flat-button color="primary" type="button" [disabled]="impersonating" (click)="impersonate()">
+            <mat-icon>visibility</mat-icon>
+            Impersonate
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            *ngIf="tenant.status !== TenantStatus.Suspended"
+            (click)="suspend()"
+          >
+            Suspend
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            *ngIf="tenant.status === TenantStatus.Suspended || tenant.status === TenantStatus.Deleted"
+            (click)="reactivate()"
+          >
+            Reactivate
+          </button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="tenant.status !== TenantStatus.Deleted" (click)="delete()">
+            Delete
+          </button>
+        </div>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>Billing</h3>
+        <dl>
+          <dt>Plan</dt>
+          <dd>{{ tenant.planName || '—' }}</dd>
+          <dt>Subscription status</dt>
+          <dd>{{ tenant.subscriptionStatus !== null ? subscriptionStatusLabels[tenant.subscriptionStatus] : '—' }}</dd>
+          <dt>Current period ends</dt>
+          <dd>{{ tenant.currentPeriodEndUtc ? (tenant.currentPeriodEndUtc | date: 'medium') : '—' }}</dd>
+        </dl>
+        <div class="plan-override">
+          <mat-form-field subscriptSizing="dynamic" class="plan-select">
+            <mat-label>Override plan</mat-label>
+            <mat-select [formControl]="planControl">
+              <mat-option *ngFor="let plan of plans" [value]="plan.id">{{ plan.name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button type="button" [disabled]="!planControl.value || savingPlan" (click)="savePlanOverride()">
+            Apply
+          </button>
+        </div>
+        <p class="muted hint">Sets the plan directly, without Stripe Checkout — e.g. a negotiated deal or a support fix.</p>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>Usage this month</h3>
+        <dl>
+          <dt>Messages sent</dt>
+          <dd>{{ tenant.messagesSentThisMonth }} / {{ tenant.maxMessagesPerMonth ?? '∞' }}</dd>
+          <dt>AI interactions</dt>
+          <dd>{{ tenant.aiInteractionsThisMonth }}</dd>
+          <dt>Estimated AI spend</dt>
+          <dd>${{ tenant.estimatedAiSpendThisMonthUsd.toFixed(4) }}</dd>
+        </dl>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>WhatsApp</h3>
+        <dl>
+          <dt>Connection</dt>
+          <dd>
+            <span
+              class="status-chip"
+              [class.status-chip--opted-in]="tenant.whatsAppConnected"
+              [class.status-chip--inactive]="!tenant.whatsAppConnected"
+            >
+              {{ tenant.whatsAppConnected ? 'Connected' : 'Not connected' }}
+            </span>
+          </dd>
+        </dl>
+        <p class="muted hint">Full connection detail (webhook health, phone number) is on the WhatsApp Connections screen.</p>
+      </mat-card>
+    </div>
+  </ng-container>
+</div>

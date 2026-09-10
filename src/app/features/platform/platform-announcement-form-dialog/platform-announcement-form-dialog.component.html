@@ -1,0 +1,38 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit announcement' : 'New announcement' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>Title</mat-label>
+      <input matInput formControlName="title" maxlength="200" />
+      <mat-error *ngIf="form.controls.title.hasError('required')">Title is required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Body</mat-label>
+      <textarea matInput formControlName="body" rows="4" maxlength="4000"></textarea>
+      <mat-error *ngIf="form.controls.body.hasError('required')">Body is required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Severity</mat-label>
+      <mat-select formControlName="severity">
+        <mat-option *ngFor="let severity of severityOptions" [value]="severity">
+          {{ severityLabels[severity] }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-slide-toggle formControlName="isActive" *ngIf="isEdit" class="active-toggle">
+      Shown to tenant admins
+    </mat-slide-toggle>
+    <p class="muted note" *ngIf="!isEdit">Broadcasts immediately to every tenant admin's banner.</p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create' }}
+  </button>
+</mat-dialog-actions>

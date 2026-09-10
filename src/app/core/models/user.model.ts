@@ -7,9 +7,10 @@ export enum AppRole {
   /**
    * The SaaS platform operator role (SaaS conversion Phase A) — runs the platform itself, not any
    * one tenant's account. Excluded from USER_ADMIN_ROLES and every other tenant-scoped role list on
-   * purpose: a PlatformSuperAdmin has no single tenant, so this panel (built for one tenant's own
-   * admin/agents to manage their own data) has nothing for that role to do — platform-wide
-   * operations are separate, explicit, audited tooling this panel does not provide.
+   * purpose: a PlatformSuperAdmin has no single tenant, so none of this panel's ordinary tenant
+   * screens (built for one tenant's own admin/agents to manage their own data) have anything for
+   * that role to do. Platform-wide operations instead live behind their own explicit, audited
+   * screens — see PLATFORM_ADMIN_ROLES / the `platform` feature module (Platform Admin Console).
    */
   PlatformSuperAdmin = 'PlatformSuperAdmin',
 }

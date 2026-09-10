@@ -1,0 +1,66 @@
+.plans-card {
+  margin-bottom: 16px;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+
+  h2 {
+    margin: 0;
+    font-size: 16px;
+  }
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+
+.plan-tile {
+  padding: 16px;
+
+  &--inactive {
+    opacity: 0.6;
+  }
+}
+
+.plan-tile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h3 {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.plan-price {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 6px 0 10px;
+}
+
+ul {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.stripe-id {
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

@@ -1,0 +1,54 @@
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.detail-card {
+  padding: 20px;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+  }
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0 0 12px;
+}
+
+dt {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+}
+
+dd {
+  margin: 0;
+  font-size: 13px;
+  text-align: right;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.plan-override {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.plan-select {
+  flex: 1;
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 12px;
+}

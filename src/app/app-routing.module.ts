@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { authGuard, guestGuard, roleGuard } from './core/guards/auth.guard';
+import { PLATFORM_ADMIN_ROLES } from './core/models/platform.model';
 import { SETTINGS_ADMIN_ROLES } from './core/models/settings.model';
 import { TENANT_ADMIN_ROLES, USER_ADMIN_ROLES } from './core/models/user.model';
 import { ShellComponent } from './layout/shell/shell.component';
@@ -12,6 +13,15 @@ const routes: Routes = [
     canActivate: [guestGuard],
     loadChildren: () =>
       import('./features/auth/auth.module').then((m) => m.AuthModule),
+  },
+  {
+    // No authGuard/roleGuard — a brand-new tab with no session yet. See
+    // ImpersonateSessionComponent's own doc comment.
+    path: 'impersonate-session',
+    loadChildren: () =>
+      import('./features/impersonate-session/impersonate-session.module').then(
+        (m) => m.ImpersonateSessionModule
+      ),
   },
   {
     path: '',
@@ -106,6 +116,13 @@ const routes: Routes = [
         path: 'change-password',
         loadChildren: () =>
           import('./features/account/account.module').then((m) => m.AccountModule),
+      },
+      {
+        path: 'platform',
+        canActivate: [roleGuard],
+        data: { roles: PLATFORM_ADMIN_ROLES },
+        loadChildren: () =>
+          import('./features/platform/platform.module').then((m) => m.PlatformModule),
       },
     ],
   },

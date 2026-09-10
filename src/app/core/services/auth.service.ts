@@ -9,6 +9,7 @@ import {
   AuthResult,
   ChangePasswordRequest,
   LoginRequest,
+  readAccessTokenClaims,
   RefreshTokenRequest,
   SignUpRequest,
 } from '../models/auth.model';
@@ -41,6 +42,13 @@ export class AuthService {
 
   get isAuthenticated(): boolean {
     return !!this.tokens.accessToken && !!this.currentUser;
+  }
+
+  /** True while the current session is a Platform Admin Console impersonation (support) session
+   * rather than a normal login — read from the access token's own `impersonated_by` claim, not
+   * from any separate flag, so it can never drift out of sync with what the token actually is. */
+  get isImpersonating(): boolean {
+    return !!readAccessTokenClaims(this.tokens.decodeAccessToken() ?? {}).impersonatedByUserId;
   }
 
   hasAnyRole(roles: string[]): boolean {
@@ -115,6 +123,42 @@ export class AuthService {
     return this.http.post<void>(`${this.baseUrl}/change-password`, request);
   }
 
+  /**
+   * Loads an impersonation access token (Platform Admin Console) as the active session. Deliberately
+   * separate from acceptAuthResult: there is no refresh token to pair it with (see
+   * ImpersonationSession's own doc comment) and no UserDto in the response, so the display user is
+   * built entirely from the token's own claims — the same claim-derived path restoreSession falls
+   * back to, just always taken here since a support session is never the "first ever login" case.
+   *
+   * Callers must only do this in a fresh browser tab (see ImpersonationSessionService) — loading an
+   * impersonation token into the tab a PlatformSuperAdmin is already signed in on would silently
+   * replace their own session.
+   */
+  beginImpersonationSession(accessToken: string): void {
+    this.tokens.store(accessToken, '');
+    const claims = readAccessTokenClaims(this.tokens.decodeAccessToken() ?? {});
+    const user: User = {
+      id: claims.id,
+      fullName: claims.name,
+      email: claims.email,
+      phoneNumber: null,
+      isActive: true,
+      roles: claims.roles,
+      createdAt: '',
+      lastLoginAt: null,
+    };
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this.currentUserSubject.next(user);
+  }
+
+  /** Ends a support session — no server call (there is no refresh token to revoke; the access
+   * token simply expires on its own within its 30-minute lifetime regardless). Callers decide what
+   * happens to the tab (see ImpersonationBannerComponent, which closes it when it was opened via
+   * window.open and otherwise falls back to /login). */
+  endImpersonation(): void {
+    this.clearSession();
+  }
+
   /** Called by the error interceptor when a refresh attempt is unrecoverable. */
   forceLogout(returnUrl?: string): void {
     this.clearSession();
@@ -140,9 +184,16 @@ export class AuthService {
   /**
    * Rehydrates the session on app start. The cached user is a display convenience;
    * the API re-authorizes every request, so a stale cache cannot grant access.
+   *
+   * A missing refresh token is only tolerated when the access token is itself an impersonation
+   * token (carries `impersonated_by` — see beginImpersonationSession) — that is the one case where
+   * having no refresh token is by design, not a corrupt/tampered session.
    */
   private restoreSession(): void {
-    if (!this.tokens.accessToken || !this.tokens.refreshToken) {
+    const claims = this.tokens.decodeAccessToken();
+    const isImpersonation = !!claims && !!readAccessTokenClaims(claims).impersonatedByUserId;
+
+    if (!this.tokens.accessToken || (!this.tokens.refreshToken && !isImpersonation)) {
       this.clearSession();
       return;
     }
@@ -157,20 +208,19 @@ export class AuthService {
       }
     }
 
-    const claims = this.tokens.decodeAccessToken();
     if (!claims) {
       this.clearSession();
       return;
     }
 
-    const role = claims.role;
+    const derived = readAccessTokenClaims(claims);
     this.currentUserSubject.next({
-      id: claims.sub ?? '',
-      fullName: claims.name ?? claims.email ?? '',
-      email: claims.email ?? '',
+      id: derived.id,
+      fullName: derived.name,
+      email: derived.email,
       phoneNumber: null,
       isActive: true,
-      roles: Array.isArray(role) ? role : role ? [role] : [],
+      roles: derived.roles,
       createdAt: '',
       lastLoginAt: null,
     });

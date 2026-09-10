@@ -1,10 +1,12 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
 import { AppRole, User } from '../../core/models/user.model';
+import { Announcement, PLATFORM_ADMIN_ROLES } from '../../core/models/platform.model';
+import { AnnouncementService } from '../../core/services/announcement.service';
 
 interface NavItem {
   label: string;
@@ -13,12 +15,18 @@ interface NavItem {
   roles: string[];
 }
 
+/** localStorage key for the set of announcement ids this browser has dismissed — a per-viewer
+ * convenience (see TokenStorageService's own doc comment on why localStorage is already this
+ * app's storage of choice), not synced anywhere, so dismissing on one device/browser doesn't
+ * dismiss it on another. */
+const DISMISSED_ANNOUNCEMENTS_KEY = 'wsa.dismissedAnnouncementIds';
+
 @Component({
   selector: 'app-shell',
   templateUrl: './shell.component.html',
   styleUrls: ['./shell.component.scss'],
 })
-export class ShellComponent {
+export class ShellComponent implements OnInit {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: [] },
     { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
@@ -54,6 +62,12 @@ export class ShellComponent {
       route: '/settings',
       roles: [AppRole.SuperAdmin],
     },
+    {
+      label: 'Platform Admin',
+      icon: 'shield',
+      route: '/platform',
+      roles: PLATFORM_ADMIN_ROLES,
+    },
   ];
 
   readonly currentUser$: Observable<User | null> = this.auth.currentUser$;
@@ -65,10 +79,50 @@ export class ShellComponent {
       shareReplay({ bufferSize: 1, refCount: true })
     );
 
+  /** Read once, not as an Observable — it never changes mid-session (a fresh tab per
+   * ImpersonationSessionService is required to start one at all). */
+  readonly isImpersonating = this.auth.isImpersonating;
+
+  /** Active announcements not yet dismissed on this browser — every signed-in user, any tenant,
+   * per AnnouncementsController.GetActive's own doc comment. Skipped entirely during an
+   * impersonation session: a support session showing the impersonated tenant's own banners would
+   * be confusing noise for the PlatformSuperAdmin running it. */
+  announcements: Announcement[] = [];
+
   constructor(
     private readonly auth: AuthService,
-    private readonly breakpoints: BreakpointObserver
+    private readonly breakpoints: BreakpointObserver,
+    private readonly announcementService: AnnouncementService
   ) {}
+
+  ngOnInit(): void {
+    if (this.isImpersonating) {
+      return;
+    }
+    this.announcementService.getActive().subscribe({
+      next: (announcements) => {
+        const dismissed = this.dismissedIds();
+        this.announcements = announcements.filter((a) => !dismissed.has(a.id));
+      },
+      error: () => (this.announcements = []),
+    });
+  }
+
+  dismiss(announcement: Announcement): void {
+    this.announcements = this.announcements.filter((a) => a.id !== announcement.id);
+    const dismissed = this.dismissedIds();
+    dismissed.add(announcement.id);
+    localStorage.setItem(DISMISSED_ANNOUNCEMENTS_KEY, JSON.stringify([...dismissed]));
+  }
+
+  private dismissedIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem(DISMISSED_ANNOUNCEMENTS_KEY);
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch {
+      return new Set();
+    }
+  }
 
   initials(user: User | null): string {
     if (!user?.fullName) {
@@ -84,5 +138,18 @@ export class ShellComponent {
 
   logout(): void {
     this.auth.logout();
+  }
+
+  /** Ends a Platform Admin Console support session. Closes the tab when it was opened via
+   * window.open (the normal path — see ImpersonationSessionService), since window.close() is a
+   * no-op the browser silently ignores for a tab the script didn't open itself; falls back to
+   * /login for the rare case this tab was reached some other way (e.g. a bookmarked/shared URL). */
+  endImpersonation(): void {
+    this.auth.endImpersonation();
+    if (window.opener) {
+      window.close();
+    } else {
+      window.location.href = '/login';
+    }
   }
 }
