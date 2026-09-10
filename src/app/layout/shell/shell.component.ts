@@ -64,12 +64,6 @@ export class ShellComponent implements OnInit {
       route: '/billing',
       roles: [AppRole.SuperAdmin, AppRole.Admin],
     },
-    {
-      label: 'Configuration',
-      icon: 'settings',
-      route: '/settings',
-      roles: [AppRole.SuperAdmin],
-    },
   ];
 
   /**
@@ -93,6 +87,13 @@ export class ShellComponent implements OnInit {
     { label: 'Users', icon: 'manage_accounts', route: '/platform/users', roles: [] },
     { label: 'Audit Log', icon: 'history', route: '/platform/audit-log', roles: [] },
     { label: 'Announcements', icon: 'campaign', route: '/platform/announcements', roles: [] },
+    // Not one of the platform module's own /platform/* screens - this points at the pre-existing,
+    // separately-lazy-loaded SettingsModule at /settings. It moved here (off the tenant nav, where
+    // "Configuration" used to live pre-SaaS-conversion) because every category it edits - WhatsApp/
+    // AiProviders/Campaigns/Media/Messaging/Ai/MediaStorage/Stripe - is platform-global config, not
+    // any one tenant's; SettingsController has required PlatformSuperAdmin since the Platform Admin
+    // Console landed.
+    { label: 'Configuration', icon: 'settings', route: '/settings', roles: [] },
   ];
 
   /** True for the platform operator account — read once, not as an Observable, same reasoning as
