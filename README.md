@@ -75,7 +75,13 @@ The app serves at `http://localhost:4200` and proxies `/api/*` and `/media/*` to
 backend, so there is no CORS configuration to do in development.
 
 Sign in with the seeded Super Admin from the backend's `appsettings.Development.json`
-(`admin@example.com` / `ChangeMe123!` by default).
+(`admin@example.com` / `ChangeMe123!` by default) — this is the one dev account the
+backend actually creates today.
+
+The backend does not yet seed a distinct dev account for `Admin`, `SalesManager`, or
+`SalesAgent` — see [docs/PHASE2-BACKEND-SETUP.md](docs/PHASE2-BACKEND-SETUP.md#dev-seed-users)
+for proposed credentials and what the backend's seeder needs to add before those logins
+will work.
 
 ### Other commands
 

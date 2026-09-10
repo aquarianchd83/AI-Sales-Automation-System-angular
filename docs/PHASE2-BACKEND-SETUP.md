@@ -87,6 +87,31 @@ Open `https://localhost:{port}/swagger`. In Development, the seeded Super Admin 
 whatever's in `appsettings.Development.json` (`admin@example.com` / `ChangeMe123!` by
 default) - **change or remove this before any non-local deployment.**
 
+### Dev seed users
+
+Today the seeder only creates the one SuperAdmin account above. There is **no seeded
+account yet for `Admin`, `SalesManager`, or `SalesAgent`** — logging in as any of those
+roles for local testing currently means either assigning an extra role to the seeded
+SuperAdmin user via `PUT /api/v1/users/{id}/roles`, or creating a user through the
+`/api/v1/users` endpoint (or the Angular Users screen) once signed in as SuperAdmin.
+
+To have the backend seed a dedicated dev account per role instead, extend the seeder
+(`Program.cs`) to loop over a config section such as:
+
+```json
+"SeedUsers": {
+  "Admin": { "Email": "app-admin@example.com", "Password": "ChangeMe123!" },
+  "SalesManager": { "Email": "sales.manager@example.com", "Password": "ChangeMe123!" },
+  "SalesAgent": { "Email": "sales.agent@example.com", "Password": "ChangeMe123!" }
+}
+```
+
+creating each user (if absent) and assigning the matching role — mirroring however the
+existing Super Admin seed step already works. This is a proposal for the backend repo;
+nothing in this frontend repo can create those accounts.
+
+**Local/dev only** — change or remove every seeded account before any non-local deployment.
+
 ## 5. Quick smoke test
 
 ```bash
