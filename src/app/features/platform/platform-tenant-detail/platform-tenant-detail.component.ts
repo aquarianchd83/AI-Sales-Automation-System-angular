@@ -12,7 +12,7 @@ import {
   TENANT_STATUS_LABELS,
   TenantStatus,
 } from '../../../core/models/platform.model';
-import { TenantAiProviderConfig, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
+import { TenantAiProviderConfig, TenantSettingCategory, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { ImpersonationSessionService } from '../../../core/services/impersonation-session.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
@@ -20,6 +20,7 @@ import { PlatformTenantConfigService } from '../../../core/services/platform-ten
 import { PlatformTenantService } from '../../../core/services/platform-tenant.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PlatformTenantAiConfigDialogComponent } from '../platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
+import { PlatformTenantConfigOverridesDialogComponent } from '../platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
 import { PlatformTenantWhatsAppConfigDialogComponent } from '../platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
 
 @Component({
@@ -43,6 +44,9 @@ export class PlatformTenantDetailComponent implements OnInit {
   aiConfig: TenantAiProviderConfig | null = null;
   loadingConfig = true;
 
+  configOverrides: TenantSettingCategory[] = [];
+  loadingConfigOverrides = true;
+
   private tenantId!: string;
 
   constructor(
@@ -61,6 +65,17 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.billing.getPlans().subscribe({ next: (plans) => (this.plans = plans) });
     this.load();
     this.loadConfig();
+    this.loadConfigOverrides();
+  }
+
+  /** Count of tenant-overridable keys this tenant currently overrides, across all categories - what
+   * the "Advanced settings" card's summary line shows. */
+  get overrideCount(): number {
+    return this.configOverrides.flatMap((c) => c.items).filter((i) => i.overrideValue !== null).length;
+  }
+
+  get totalOverridableCount(): number {
+    return this.configOverrides.flatMap((c) => c.items).length;
   }
 
   suspend(): void {
@@ -191,6 +206,35 @@ export class PlatformTenantDetailComponent implements OnInit {
     );
   }
 
+  editConfigOverrides(): void {
+    this.dialog
+      .open(PlatformTenantConfigOverridesDialogComponent, {
+        data: { tenantId: this.tenantId, tenantName: this.tenant?.name ?? '', categories: this.configOverrides },
+        width: '640px',
+        disableClose: true,
+      })
+      .afterClosed()
+      .subscribe((saved) => {
+        if (saved) {
+          this.loadConfigOverrides();
+        }
+      });
+  }
+
+  resetConfigOverrides(): void {
+    this.confirmAndRun(
+      {
+        title: 'Reset advanced settings?',
+        message: `Every Campaigns/Media/Messaging/AI override for ${this.tenant?.name} will be cleared - back to the platform default for all of them.`,
+        confirmLabel: 'Reset',
+        destructive: true,
+      },
+      () => this.config.deleteConfigOverrides(this.tenantId),
+      'Advanced settings reset to platform defaults.',
+      () => this.loadConfigOverrides()
+    );
+  }
+
   private load(): void {
     this.loading = true;
     this.tenants.getById(this.tenantId).subscribe({
@@ -217,6 +261,16 @@ export class PlatformTenantDetailComponent implements OnInit {
       },
       error: () => (this.loadingConfig = false),
     });
+  }
+
+  private loadConfigOverrides(): void {
+    this.loadingConfigOverrides = true;
+    this.config
+      .getConfigOverrides(this.tenantId)
+      .pipe(finalize(() => (this.loadingConfigOverrides = false)))
+      .subscribe({
+        next: (categories) => (this.configOverrides = categories),
+      });
   }
 
   private confirmAndRun(

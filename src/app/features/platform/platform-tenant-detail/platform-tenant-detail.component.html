@@ -136,6 +136,26 @@
           Only a PlatformSuperAdmin can set or change this — the tenant's own admin sees status only.
         </p>
       </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>Advanced settings</h3>
+        <dl>
+          <dt>Overrides</dt>
+          <dd>{{ overrideCount }} of {{ totalOverridableCount }} value(s) overridden</dd>
+        </dl>
+        <div class="card-actions">
+          <button mat-stroked-button type="button" [disabled]="loadingConfigOverrides" (click)="editConfigOverrides()">
+            Edit
+          </button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="overrideCount" (click)="resetConfigOverrides()">
+            Reset
+          </button>
+        </div>
+        <p class="muted hint">
+          Campaigns, media, messaging and AI tuning for this tenant — falls back to the platform default
+          (Configuration → Settings) when not overridden. Only a PlatformSuperAdmin can set or change this.
+        </p>
+      </mat-card>
     </div>
   </ng-container>
 </div>

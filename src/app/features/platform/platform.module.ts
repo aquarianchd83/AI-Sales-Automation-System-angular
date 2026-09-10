@@ -9,6 +9,7 @@ import { PlatformBillingComponent } from './platform-billing/platform-billing.co
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
 import { PlatformTenantAiConfigDialogComponent } from './platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
+import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
 import { PlatformTenantFormDialogComponent } from './platform-tenant-form-dialog/platform-tenant-form-dialog.component';
 import { PlatformTenantListComponent } from './platform-tenant-list/platform-tenant-list.component';
@@ -45,6 +46,7 @@ const routes: Routes = [
     PlatformTenantFormDialogComponent,
     PlatformTenantWhatsAppConfigDialogComponent,
     PlatformTenantAiConfigDialogComponent,
+    PlatformTenantConfigOverridesDialogComponent,
     PlatformBillingComponent,
     PlatformUsageComponent,
     PlatformWhatsAppConnectionsComponent,

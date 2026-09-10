@@ -5,8 +5,10 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   TenantAiProviderConfig,
+  TenantSettingCategory,
   TenantWhatsAppConfig,
   UpdateTenantAiProviderConfigRequest,
+  UpdateTenantSettingsRequest,
   UpdateTenantWhatsAppConfigRequest,
 } from '../models/tenant-settings.model';
 
@@ -47,5 +49,17 @@ export class PlatformTenantConfigService {
 
   deleteAiConfig(tenantId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl(tenantId)}/ai-config`);
+  }
+
+  getConfigOverrides(tenantId: string): Observable<TenantSettingCategory[]> {
+    return this.http.get<TenantSettingCategory[]>(`${this.baseUrl(tenantId)}/config-overrides`);
+  }
+
+  saveConfigOverrides(tenantId: string, request: UpdateTenantSettingsRequest): Observable<TenantSettingCategory[]> {
+    return this.http.put<TenantSettingCategory[]>(`${this.baseUrl(tenantId)}/config-overrides`, request);
+  }
+
+  deleteConfigOverrides(tenantId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl(tenantId)}/config-overrides`);
   }
 }

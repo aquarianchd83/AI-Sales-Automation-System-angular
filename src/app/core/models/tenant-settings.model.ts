@@ -71,3 +71,30 @@ export const AI_CHAT_PROVIDERS: string[] = ['Simulated', 'Anthropic', 'OpenAI', 
 /** The embedding providers a tenant can pick for AiProviderConfig.embeddingProvider — Anthropic
  * has no embeddings endpoint, so it is not offered here. */
 export const AI_EMBEDDING_PROVIDERS: string[] = ['Simulated', 'OpenAI', 'Google'];
+
+/**
+ * TenantSettingItemDto — one tenant-overridable Campaigns/Media/Messaging/Ai tuning key (see the
+ * backend's AppSettingDefinition.IsTenantOverridable doc comment for exactly which keys and why).
+ * Nothing here is a secret, so every value round-trips in full — `effectiveValue` is what this tenant
+ * is actually running with (== `overrideValue` when set, else == `globalValue`).
+ */
+export interface TenantSettingItem {
+  key: string;
+  category: string;
+  isList: boolean;
+  description: string | null;
+  globalValue: string;
+  overrideValue: string | null;
+  effectiveValue: string;
+}
+
+export interface TenantSettingCategory {
+  category: string;
+  items: TenantSettingItem[];
+}
+
+/** UpdateTenantSettingsRequest — only the keys present are changed; a present key with a null/blank
+ * value clears that override, reverting the tenant to the platform default for it. */
+export interface UpdateTenantSettingsRequest {
+  values: Record<string, string | null>;
+}
