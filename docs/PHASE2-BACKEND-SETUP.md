@@ -79,21 +79,32 @@ dotnet ef migrations add InitialCreate \
   --project src/Infrastructure/WhatsAppSalesAutomation.Infrastructure \
   --startup-project src/Presentation/WhatsAppSalesAutomation.Api
 
-# run - Program.cs applies migrations and seeds roles + the dev Super Admin automatically
+# run - Program.cs applies migrations and seeds roles + one dev user per role automatically
 dotnet run --project src/Presentation/WhatsAppSalesAutomation.Api
 ```
 
-Open `https://localhost:{port}/swagger`. In Development, the seeded Super Admin login is
-whatever's in `appsettings.Development.json` (`admin@example.com` / `ChangeMe123!` by
-default) - **change or remove this before any non-local deployment.**
+### Dev seed users
+
+In Development, the seeder creates one login per seeded role (`SuperAdmin`, `Admin`,
+`SalesManager`, `SalesAgent`), driven by config in `appsettings.Development.json`. Defaults:
+
+| Role | Email | Password |
+|---|---|---|
+| SuperAdmin | `superadmin@example.com` | `ChangeMe123!` |
+| Admin | `admin@example.com` | `ChangeMe123!` |
+| SalesManager | `sales.manager@example.com` | `ChangeMe123!` |
+| SalesAgent | `sales.agent@example.com` | `ChangeMe123!` |
+
+**Local/dev only** — edit the config to change any of these, and **change or remove all
+of them before any non-local deployment.**
 
 ## 5. Quick smoke test
 
 ```bash
-# 1. Log in
+# 1. Log in (SuperAdmin has access to every endpoint below)
 curl -sk https://localhost:{port}/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"ChangeMe123!"}'
+  -d '{"email":"superadmin@example.com","password":"ChangeMe123!"}'
 # → { "accessToken": "...", "refreshToken": "...", "user": {...} }
 
 # 2. Create a customer (use the accessToken above)
