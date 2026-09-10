@@ -9,6 +9,7 @@ import { PlatformBillingComponent } from './platform-billing/platform-billing.co
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
+import { PlatformTenantFormDialogComponent } from './platform-tenant-form-dialog/platform-tenant-form-dialog.component';
 import { PlatformTenantListComponent } from './platform-tenant-list/platform-tenant-list.component';
 import { PlatformUsageComponent } from './platform-usage/platform-usage.component';
 import { PlatformUserSearchComponent } from './platform-user-search/platform-user-search.component';
@@ -39,6 +40,7 @@ const routes: Routes = [
     PlatformDashboardComponent,
     PlatformTenantListComponent,
     PlatformTenantDetailComponent,
+    PlatformTenantFormDialogComponent,
     PlatformBillingComponent,
     PlatformUsageComponent,
     PlatformWhatsAppConnectionsComponent,

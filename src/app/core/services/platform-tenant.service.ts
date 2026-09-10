@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PagedResult, toPagedParams } from '../models/paged-result.model';
 import {
+  CreatePlatformTenantRequest,
   ImpersonationSession,
   OverrideTenantPlanRequest,
   PlatformTenantDetail,
@@ -29,6 +30,13 @@ export class PlatformTenantService {
 
   getById(id: string): Observable<PlatformTenantDetail> {
     return this.http.get<PlatformTenantDetail>(`${this.baseUrl}/${id}`);
+  }
+
+  /** Operator-initiated tenant creation — same shape as self-serve signup, but the
+   * PlatformSuperAdmin sets a temporary admin password to hand off rather than the new admin
+   * choosing their own. */
+  create(request: CreatePlatformTenantRequest): Observable<PlatformTenantDetail> {
+    return this.http.post<PlatformTenantDetail>(this.baseUrl, request);
   }
 
   suspend(id: string): Observable<void> {

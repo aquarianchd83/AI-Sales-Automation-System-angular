@@ -1,0 +1,76 @@
+<h2 mat-dialog-title>New tenant</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>Company name</mat-label>
+      <input matInput formControlName="companyName" />
+      <mat-error *ngIf="form.controls.companyName.hasError('required')">
+        Company name is required.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Workspace URL (optional)</mat-label>
+      <input matInput formControlName="slug" placeholder="e.g. acme-corp" />
+      <mat-hint>Leave blank to derive one from the company name.</mat-hint>
+      <mat-error *ngIf="form.controls.slug.hasError('pattern')">
+        Lowercase letters, digits and hyphens only.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Admin full name</mat-label>
+      <input matInput formControlName="adminFullName" />
+      <mat-error *ngIf="form.controls.adminFullName.hasError('required')">
+        Admin full name is required.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Admin email</mat-label>
+      <input matInput type="email" formControlName="adminEmail" autocomplete="off" />
+      <mat-error *ngIf="form.controls.adminEmail.hasError('required')">
+        Email is required.
+      </mat-error>
+      <mat-error *ngIf="form.controls.adminEmail.hasError('email')">
+        Enter a valid email address.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Temporary password</mat-label>
+      <input
+        matInput
+        [type]="hidePassword ? 'password' : 'text'"
+        formControlName="adminPassword"
+        autocomplete="new-password"
+      />
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'"
+        (click)="hidePassword = !hidePassword"
+      >
+        <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+      <mat-hint>Share it securely; the new admin changes it from their own account.</mat-hint>
+      <mat-error *ngIf="form.controls.adminPassword.hasError('required')">
+        A password is required.
+      </mat-error>
+      <mat-error *ngIf="form.controls.adminPassword.hasError('minlength')">
+        Use at least 8 characters.
+      </mat-error>
+    </mat-form-field>
+
+    <p class="muted note">The tenant starts on a 14-day trial, same as self-serve signup.</p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Creating…' : 'Create tenant' }}
+  </button>
+</mat-dialog-actions>

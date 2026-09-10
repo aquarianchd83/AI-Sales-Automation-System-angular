@@ -133,6 +133,19 @@ export interface OverrideTenantPlanRequest {
   planId: string;
 }
 
+/** CreatePlatformTenantRequest — operator-initiated tenant creation, the Platform Admin Console's
+ * counterpart to self-serve signup: same shape (a new Tenant on trial plus its first Admin user),
+ * except the PlatformSuperAdmin sets adminPassword as a temporary password to hand off rather than
+ * the new admin choosing their own during signup. */
+export interface CreatePlatformTenantRequest {
+  companyName: string;
+  /** Optional — derived from companyName and de-duplicated automatically when omitted. */
+  slug?: string | null;
+  adminFullName: string;
+  adminEmail: string;
+  adminPassword: string;
+}
+
 // ---------------------------------------------------------------------------
 // Billing (GET /platform/billing/*)
 // ---------------------------------------------------------------------------

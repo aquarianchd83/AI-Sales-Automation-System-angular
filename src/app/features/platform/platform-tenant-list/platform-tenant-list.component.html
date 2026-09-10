@@ -1,4 +1,11 @@
 <div class="page">
+  <app-page-header title="Tenants" subtitle="Every organization on the platform.">
+    <button mat-flat-button color="primary" type="button" (click)="create()">
+      <mat-icon>add_business</mat-icon>
+      New tenant
+    </button>
+  </app-page-header>
+
   <mat-card class="table-card">
     <div class="filters">
       <mat-form-field class="filter-search" subscriptSizing="dynamic">

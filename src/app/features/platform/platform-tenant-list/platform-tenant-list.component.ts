@@ -24,6 +24,7 @@ import { ImpersonationSessionService } from '../../../core/services/impersonatio
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformTenantService } from '../../../core/services/platform-tenant.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { PlatformTenantFormDialogComponent } from '../platform-tenant-form-dialog/platform-tenant-form-dialog.component';
 
 @Component({
   selector: 'app-platform-tenant-list',
@@ -96,6 +97,17 @@ export class PlatformTenantListComponent implements OnInit, OnDestroy {
   onPage(event: PageEvent): void {
     this.query = { ...this.query, page: event.pageIndex + 1, pageSize: event.pageSize };
     this.reload$.next();
+  }
+
+  create(): void {
+    this.dialog
+      .open(PlatformTenantFormDialogComponent, { width: '520px', disableClose: true })
+      .afterClosed()
+      .subscribe((created) => {
+        if (created) {
+          this.reload$.next();
+        }
+      });
   }
 
   /** A method, not a template-level `statusLabels[tenant.status]` index — Angular's strict
