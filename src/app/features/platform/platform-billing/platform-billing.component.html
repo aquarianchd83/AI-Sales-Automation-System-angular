@@ -1,8 +1,14 @@
 <div class="page">
   <mat-card class="table-card plans-card">
     <div class="section-header">
-      <h2>Plan catalog</h2>
-      <span class="muted">Managed in the database — no editor here yet. Retired plans stay visible so existing subscribers keep their limits.</span>
+      <div class="section-header-row">
+        <h2>Plan catalog</h2>
+        <button mat-stroked-button type="button" (click)="addPlan()">
+          <mat-icon>add</mat-icon>
+          Add plan
+        </button>
+      </div>
+      <span class="muted">Retired plans stay visible so existing subscribers keep their limits.</span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
     <div class="plan-grid" *ngIf="!loadingPlans">
@@ -20,6 +26,12 @@
         </ul>
         <span class="muted stripe-id" *ngIf="plan.stripePriceId">{{ plan.stripePriceId }}</span>
         <span class="muted stripe-id" *ngIf="!plan.stripePriceId">Not yet on Stripe</span>
+        <div class="plan-tile-actions">
+          <button mat-stroked-button type="button" (click)="editPlan(plan)">Edit</button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="plan.isActive" (click)="deletePlan(plan)">
+            Delete
+          </button>
+        </div>
       </mat-card>
     </div>
   </mat-card>

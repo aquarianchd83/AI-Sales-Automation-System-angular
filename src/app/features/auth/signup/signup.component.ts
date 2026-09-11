@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
+import { RegionOption } from '../../../core/models/billing.model';
 import { AuthService } from '../../../core/services/auth.service';
+import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
 /**
@@ -16,23 +18,35 @@ import { NotificationService } from '../../../core/services/notification.service
   templateUrl: './signup.component.html',
   styleUrls: ['./signup.component.scss'],
 })
-export class SignupComponent {
+export class SignupComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     companyName: ['', [Validators.required, Validators.maxLength(200)]],
     fullName: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
+    country: [''],
   });
 
   hidePassword = true;
   submitting = false;
+  regions: RegionOption[] = [];
 
   constructor(
     private readonly fb: FormBuilder,
     private readonly auth: AuthService,
+    private readonly billing: BillingService,
     private readonly router: Router,
     private readonly notify: NotificationService
   ) {}
+
+  ngOnInit(): void {
+    // Best-effort only — an empty list just means the country select renders with no options,
+    // signup still works fine and falls back to USD pricing (see AuthService.SignUpAsync).
+    this.billing.getRegions().subscribe({
+      next: (regions) => (this.regions = regions),
+      error: () => (this.regions = []),
+    });
+  }
 
   submit(): void {
     if (this.form.invalid || this.submitting) {
@@ -41,10 +55,11 @@ export class SignupComponent {
     }
 
     this.submitting = true;
+    const { country, ...raw } = this.form.getRawValue();
     // slug is deliberately omitted — the backend derives and de-duplicates one from
     // companyName automatically; nothing in this UI collects a custom slug yet.
     this.auth
-      .signUp(this.form.getRawValue())
+      .signUp({ ...raw, countryCode: country || null })
       .pipe(finalize(() => (this.submitting = false)))
       .subscribe({
         next: (user) => {

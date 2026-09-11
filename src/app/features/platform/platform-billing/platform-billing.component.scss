@@ -14,6 +14,13 @@
   }
 }
 
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .plan-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -56,6 +63,12 @@ ul {
 .stripe-id {
   font-size: 11px;
   word-break: break-all;
+}
+
+.plan-tile-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .empty-icon {

@@ -7,6 +7,7 @@ import { PlatformAnnouncementListComponent } from './platform-announcement-list/
 import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-log.component';
 import { PlatformBillingComponent } from './platform-billing/platform-billing.component';
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
+import { PlatformPlanFormDialogComponent } from './platform-plan-form-dialog/platform-plan-form-dialog.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
 import { PlatformTenantAiConfigDialogComponent } from './platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
 import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
@@ -48,6 +49,7 @@ const routes: Routes = [
     PlatformTenantAiConfigDialogComponent,
     PlatformTenantConfigOverridesDialogComponent,
     PlatformBillingComponent,
+    PlatformPlanFormDialogComponent,
     PlatformUsageComponent,
     PlatformWhatsAppConnectionsComponent,
     PlatformUserSearchComponent,

@@ -165,6 +165,32 @@ export interface PlatformPlan {
   isActive: boolean;
 }
 
+/** Body of POST the plan catalog endpoint. code is immutable once a plan exists — there is no
+ * update path for it, only creation (see UpdatePlanRequest). */
+export interface CreatePlanRequest {
+  code: string;
+  name: string;
+  maxUsers: number;
+  maxMessagesPerMonth: number;
+  maxCampaigns: number;
+  maxKnowledgeBaseArticles: number;
+  priceMonthlyCents: number;
+  stripePriceId?: string | null;
+}
+
+/** Body of PUT one plan. isActive is how a plan is both retired (the Delete button sets it false)
+ * and un-retired — there is no separate reactivate endpoint. */
+export interface UpdatePlanRequest {
+  name: string;
+  maxUsers: number;
+  maxMessagesPerMonth: number;
+  maxCampaigns: number;
+  maxKnowledgeBaseArticles: number;
+  priceMonthlyCents: number;
+  stripePriceId?: string | null;
+  isActive: boolean;
+}
+
 export interface PlatformSubscriptionQuery {
   page?: number;
   pageSize?: number;

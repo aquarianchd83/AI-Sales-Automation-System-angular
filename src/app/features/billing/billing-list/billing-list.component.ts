@@ -48,8 +48,13 @@ export class BillingListComponent implements OnInit {
     return !!this.subscription && this.subscription.planId === plan.id;
   }
 
-  formatPrice(priceMonthlyCents: number): string {
-    return `$${(priceMonthlyCents / 100).toFixed(priceMonthlyCents % 100 === 0 ? 0 : 2)}/mo`;
+  /** Shows the plan's localized quote (currencySymbol/localPriceAmount, resolved server-side from
+   * this tenant's own country — see Plan's own doc comment) rather than the raw USD cents Stripe
+   * actually charges. */
+  formatPrice(plan: Plan): string {
+    const amount = plan.localPriceAmount;
+    const decimals = Number.isInteger(amount) ? 0 : 2;
+    return `${plan.currencySymbol}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}/mo`;
   }
 
   choosePlan(plan: Plan): void {

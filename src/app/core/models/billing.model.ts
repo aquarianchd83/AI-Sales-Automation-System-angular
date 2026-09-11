@@ -1,4 +1,8 @@
-/** PlanDto — one row of the public plan catalog (GET /billing/plans, no auth required). */
+/** PlanDto — one row of the public plan catalog (GET /billing/plans, no auth required).
+ * priceMonthlyCents stays the base USD price Stripe actually charges; currencyCode/currencySymbol/
+ * localPriceAmount are a display/quote figure resolved server-side from the caller's country (an
+ * authenticated tenant's own stored country, or an anonymous caller's ?country= query param) - not
+ * what Stripe bills. */
 export interface Plan {
   id: string;
   code: string;
@@ -8,6 +12,18 @@ export interface Plan {
   maxCampaigns: number;
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
+  currencyCode: string;
+  currencySymbol: string;
+  localPriceAmount: number;
+}
+
+/** RegionDto — one row of the public region catalog (GET /billing/regions, no auth required),
+ * what the signup page's country picker renders. */
+export interface RegionOption {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
 }
 
 /** SubscriptionDto — the calling tenant's current billing state. The whole object is null when

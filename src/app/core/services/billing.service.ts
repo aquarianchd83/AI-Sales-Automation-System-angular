@@ -8,6 +8,7 @@ import {
   CreateBillingPortalSessionRequest,
   CreateCheckoutSessionRequest,
   Plan,
+  RegionOption,
   Subscription,
 } from '../models/billing.model';
 
@@ -25,6 +26,12 @@ export class BillingService {
   /** The public plan catalog — safe to call unauthenticated. */
   getPlans(): Observable<Plan[]> {
     return this.http.get<Plan[]>(`${this.baseUrl}/plans`);
+  }
+
+  /** The public country/currency catalog — safe to call unauthenticated, backs the signup page's
+   * country picker. */
+  getRegions(): Observable<RegionOption[]> {
+    return this.http.get<RegionOption[]>(`${this.baseUrl}/regions`);
   }
 
   /** Null if the tenant has never completed Checkout (still on its signup trial). */

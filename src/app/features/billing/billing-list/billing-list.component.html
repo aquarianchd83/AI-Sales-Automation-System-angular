@@ -45,7 +45,7 @@
       </mat-chip>
 
       <h3>{{ plan.name }}</h3>
-      <div class="plan-price">{{ formatPrice(plan.priceMonthlyCents) }}</div>
+      <div class="plan-price">{{ formatPrice(plan) }}</div>
 
       <ul class="plan-features">
         <li>{{ plan.maxUsers }} users</li>
@@ -77,4 +77,8 @@
     <mat-icon class="empty-icon">payments</mat-icon>
     <p>No plans are available yet.</p>
   </div>
+
+  <p class="muted price-note" *ngIf="!loadingPlans && plans.length">
+    Prices are shown in your local currency; you're billed in USD via Stripe.
+  </p>
 </div>

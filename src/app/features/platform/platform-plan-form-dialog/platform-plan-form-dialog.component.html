@@ -1,0 +1,64 @@
+<h2 mat-dialog-title>{{ isEditMode ? 'Edit plan' : 'Add plan' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>Code</mat-label>
+      <input matInput formControlName="code" autocomplete="off" placeholder="starter" />
+      <mat-hint *ngIf="!isEditMode">Lowercase letters, digits and hyphens only — cannot be changed later.</mat-hint>
+      <mat-hint *ngIf="isEditMode">Set once, when the plan was created.</mat-hint>
+      <mat-error *ngIf="form.controls.code.hasError('required')">Required.</mat-error>
+      <mat-error *ngIf="form.controls.code.hasError('pattern')">Lowercase letters, digits and hyphens only.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" autocomplete="off" placeholder="Starter" />
+      <mat-error *ngIf="form.controls.name.hasError('required')">Required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Price (USD/month)</mat-label>
+      <input matInput type="number" min="0" step="0.01" formControlName="priceMonthlyDollars" />
+      <span matTextPrefix>$&nbsp;</span>
+      <mat-hint>What Stripe actually charges — regional prices shown to tenants are converted from this.</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Max users</mat-label>
+      <input matInput type="number" min="0" formControlName="maxUsers" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Max messages / month</mat-label>
+      <input matInput type="number" min="0" formControlName="maxMessagesPerMonth" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Max campaigns</mat-label>
+      <input matInput type="number" min="0" formControlName="maxCampaigns" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Max knowledge base articles</mat-label>
+      <input matInput type="number" min="0" formControlName="maxKnowledgeBaseArticles" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Stripe price ID</mat-label>
+      <input matInput formControlName="stripePriceId" autocomplete="off" placeholder="price_..." />
+      <mat-hint>Optional — leave blank until this plan has been created in the Stripe dashboard.</mat-hint>
+    </mat-form-field>
+
+    <mat-checkbox formControlName="isActive" *ngIf="isEditMode">
+      Active (unchecking retires the plan — existing subscribers keep their limits)
+    </mat-checkbox>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Save' }}
+  </button>
+</mat-dialog-actions>

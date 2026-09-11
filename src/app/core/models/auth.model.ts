@@ -22,6 +22,10 @@ export interface SignUpRequest {
   fullName: string;
   email: string;
   password: string;
+  /** ISO 3166-1 alpha-2 (e.g. "US", "IN"), optional — drives which currency this tenant's plan
+   * prices are later quoted in (see RegionOption/BillingService.getRegions). Omitted falls back to
+   * USD, never an error. */
+  countryCode?: string | null;
 }
 
 /** TokenPairDto — response of POST /auth/login and /auth/refresh-token. */
