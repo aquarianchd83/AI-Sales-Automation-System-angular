@@ -52,3 +52,28 @@ dd {
   margin-top: 10px;
   font-size: 12px;
 }
+
+.cron {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-size: 12px;
+}
+
+.job-state {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+.job-state-off {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.job-last {
+  font-size: 12px;
+}
+
+.job-failures {
+  font-size: 12px;
+  color: #b71c1c;
+}

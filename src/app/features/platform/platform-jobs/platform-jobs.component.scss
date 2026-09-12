@@ -1,0 +1,133 @@
+.platform-jobs-card {
+  padding: 16px;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0 0 4px;
+  }
+
+  > .muted {
+    margin: 0 0 12px;
+    font-size: 12px;
+    max-width: 78ch;
+  }
+}
+
+.platform-job {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+}
+
+.job-id {
+  font-weight: 600;
+  min-width: 220px;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  min-width: 240px;
+  flex: 1 1 240px;
+}
+
+.filter-select {
+  min-width: 170px;
+}
+
+.tenant-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px 12px;
+  font-size: 13px;
+}
+
+.cron,
+.job-id {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  /* A cron reads as one token - wrapping it across two lines makes it unreadable. */
+  white-space: nowrap;
+}
+
+.sub {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Long counter strings ("considered=0 sent=0 failed=0 skipped=0") and exception messages both land
+   here, so the cell is capped and the full text is in the tooltip rather than stretching the table. */
+.summary {
+  max-width: 26ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.state-on {
+  color: #1b5e20;
+}
+
+.state-off {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.state-blocked,
+.failure,
+.outcome-failed {
+  color: #b71c1c;
+}
+
+.outcome {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.outcome-skipped {
+  color: #ef6c00;
+  font-weight: 500;
+}
+
+.row-failing td {
+  background: rgba(183, 28, 28, 0.04);
+}
+
+.actions-header,
+.actions-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}
+
+/* Seven columns, two of which carry a cron and a counters summary. Without a floor the table squeezes
+   every tenant name onto three lines instead of letting .table-scroll do its job. */
+table.mat-mdc-table {
+  min-width: 980px;
+}
+
+.mat-column-tenant a,
+.mat-column-nextRun,
+.mat-column-lastRun .sub {
+  white-space: nowrap;
+}

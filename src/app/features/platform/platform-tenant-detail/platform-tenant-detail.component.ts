@@ -8,8 +8,11 @@ import { finalize } from 'rxjs/operators';
 import {
   PlatformPlan,
   PlatformTenantDetail,
+  PlatformTenantJobs,
   SUBSCRIPTION_STATUS_LABELS,
+  TENANT_JOB_RUN_OUTCOME_LABELS,
   TENANT_STATUS_LABELS,
+  TenantJobRunOutcome,
   TenantStatus,
 } from '../../../core/models/platform.model';
 import { RegionOption, TimeZoneOption } from '../../../core/models/billing.model';
@@ -18,6 +21,7 @@ import { BillingService } from '../../../core/services/billing.service';
 import { ImpersonationSessionService } from '../../../core/services/impersonation-session.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
+import { PlatformJobService } from '../../../core/services/platform-job.service';
 import { PlatformTenantConfigService } from '../../../core/services/platform-tenant-config.service';
 import { PlatformTenantService } from '../../../core/services/platform-tenant.service';
 import { TimeZoneService } from '../../../core/services/timezone.service';
@@ -56,6 +60,12 @@ export class PlatformTenantDetailComponent implements OnInit {
   configOverrides: TenantSettingCategory[] = [];
   loadingConfigOverrides = true;
 
+  /** Read-only summary of this tenant's background jobs. Scheduling, pausing and running them lives
+   * on the Background Jobs screen (deep-linked below with this tenant pre-selected) rather than being
+   * duplicated here - one place owns those actions and their audit entries. */
+  tenantJobs: PlatformTenantJobs | null = null;
+  loadingJobs = true;
+
   private tenantId!: string;
 
   constructor(
@@ -63,6 +73,7 @@ export class PlatformTenantDetailComponent implements OnInit {
     private readonly router: Router,
     private readonly tenants: PlatformTenantService,
     private readonly billing: PlatformBillingService,
+    private readonly jobService: PlatformJobService,
     private readonly config: PlatformTenantConfigService,
     private readonly timeZoneService: TimeZoneService,
     private readonly billingService: BillingService,
@@ -78,6 +89,7 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.billingService.getRegions().subscribe({ next: (regions) => (this.regions = regions) });
     this.load();
     this.loadConfig();
+    this.loadJobs();
     this.loadConfigOverrides();
   }
 
@@ -304,6 +316,21 @@ export class PlatformTenantDetailComponent implements OnInit {
       },
       error: () => (this.loadingConfig = false),
     });
+  }
+
+  /** See PlatformJobsComponent.outcomeLabel - same nullable-index reason. */
+  outcomeLabel(outcome: TenantJobRunOutcome | null): string {
+    return outcome == null ? '' : TENANT_JOB_RUN_OUTCOME_LABELS[outcome];
+  }
+
+  private loadJobs(): void {
+    this.loadingJobs = true;
+    this.jobService
+      .getForTenant(this.tenantId)
+      .pipe(finalize(() => (this.loadingJobs = false)))
+      .subscribe({
+        next: (jobs) => (this.tenantJobs = jobs),
+      });
   }
 
   private loadConfigOverrides(): void {

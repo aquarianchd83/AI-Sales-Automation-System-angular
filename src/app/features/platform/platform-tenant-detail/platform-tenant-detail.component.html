@@ -166,6 +166,48 @@
       </mat-card>
 
       <mat-card class="detail-card">
+        <h3>Background jobs</h3>
+        <p class="muted" *ngIf="loadingJobs">Loading…</p>
+        <ng-container *ngIf="tenantJobs && !loadingJobs">
+          <dl>
+            <ng-container *ngFor="let job of tenantJobs.jobs">
+              <dt>{{ job.displayName }}</dt>
+              <dd>
+                <code class="cron">{{ job.cronExpression }}</code>
+                <span class="job-state" [class.job-state-off]="!job.isEnabled || !job.isRegistered">
+                  {{ job.isEnabled ? (job.isRegistered ? 'running' : 'not running') : 'paused' }}
+                </span>
+                <span class="muted job-last" *ngIf="job.lastRunAtUtc">
+                  · last {{ outcomeLabel(job.lastRunOutcome) | lowercase }}
+                  {{ job.lastRunAtUtc | date: 'short' }}
+                </span>
+                <span
+                  class="job-failures"
+                  *ngIf="job.consecutiveFailureCount"
+                  [matTooltip]="job.lastRunSummary || ''"
+                >
+                  · {{ job.consecutiveFailureCount }} consecutive failure(s)
+                </span>
+              </dd>
+            </ng-container>
+          </dl>
+          <div class="card-actions">
+            <a mat-stroked-button [routerLink]="['/platform/jobs']" [queryParams]="{ tenantId: tenantJobs.tenantId }">
+              Manage
+            </a>
+          </div>
+          <p class="muted hint" *ngIf="!tenantJobs.runsBackgroundJobs">
+            This tenant is {{ statusLabels[tenantJobs.tenantStatus] }}, so none of its jobs are
+            registered — the schedules below are kept and restored if it is reactivated.
+          </p>
+          <p class="muted hint" *ngIf="tenantJobs.runsBackgroundJobs">
+            Each job runs on this tenant's own schedule. Only a PlatformSuperAdmin can change, pause or
+            run them.
+          </p>
+        </ng-container>
+      </mat-card>
+
+      <mat-card class="detail-card">
         <h3>Advanced settings</h3>
         <dl>
           <dt>Overrides</dt>

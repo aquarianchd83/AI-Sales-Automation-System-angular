@@ -92,6 +92,7 @@ export class ShellComponent implements OnInit {
       route: '/platform/whatsapp-connections',
       roles: [],
     },
+    { label: 'Background Jobs', icon: 'schedule', route: '/platform/jobs', roles: [] },
     { label: 'Users', icon: 'manage_accounts', route: '/platform/users', roles: [] },
     { label: 'Audit Log', icon: 'history', route: '/platform/audit-log', roles: [] },
     { label: 'Announcements', icon: 'campaign', route: '/platform/announcements', roles: [] },

@@ -324,3 +324,120 @@ export interface UpdateAnnouncementRequest {
   startsAtUtc: string | null;
   endsAtUtc: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Background jobs (GET/PUT/POST /platform/jobs)
+// ---------------------------------------------------------------------------
+
+/** TenantJobRunOutcome — plain int enum, like TenantStatus. How the tenant's own last run went,
+ * which is not the same thing as Hangfire's job state: the per-tenant runner catches a tenant's
+ * failure on purpose so one tenant cannot stall the others, so Hangfire records Succeeded either
+ * way. This is the tenant-level answer. */
+export enum TenantJobRunOutcome {
+  Succeeded = 0,
+  Failed = 1,
+  /** Ran but deliberately did nothing — the tenant stopped being eligible, or the job was disabled,
+   * between the schedule firing and the run starting. Not an error. */
+  Skipped = 2,
+}
+
+export const TENANT_JOB_RUN_OUTCOME_LABELS: Record<TenantJobRunOutcome, string> = {
+  [TenantJobRunOutcome.Succeeded]: 'Succeeded',
+  [TenantJobRunOutcome.Failed]: 'Failed',
+  [TenantJobRunOutcome.Skipped]: 'Skipped',
+};
+
+/** TenantJobDefinition — the server's catalog of what a per-tenant job is. Fetched rather than
+ * hard-coded here so the job-type filter and the "reset to default" cron come from one definition
+ * (TenantJobCatalog) instead of a second copy that drifts. */
+export interface TenantJobDefinition {
+  key: string;
+  displayName: string;
+  description: string;
+  defaultCron: string;
+}
+
+/**
+ * PlatformTenantJobDto — one tenant's copy of one recurring job.
+ *
+ * `isRegistered` false while `isEnabled` is true is the combination worth reading closely: it means
+ * the tenant's status makes it ineligible (suspended/cancelled/deleted), not that an operator paused
+ * the job.
+ */
+export interface PlatformTenantJob {
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  tenantStatus: TenantStatus;
+  jobType: string;
+  displayName: string;
+  description: string;
+  cronExpression: string;
+  defaultCron: string;
+  isEnabled: boolean;
+  isRegistered: boolean;
+  nextExecutionUtc: string | null;
+  lastExecutionUtc: string | null;
+  /** Hangfire's own state for the last triggered run ("Succeeded"/"Failed"/"Processing"). */
+  hangfireLastJobState: string | null;
+  lastRunAtUtc: string | null;
+  lastRunOutcome: TenantJobRunOutcome | null;
+  lastRunSummary: string | null;
+  lastRunDurationMs: number | null;
+  consecutiveFailureCount: number;
+}
+
+/** PlatformTenantJobsDto — every job for one tenant. `runsBackgroundJobs` is the tenant-level answer
+ * to "why is nothing registered": false for a suspended/cancelled/deleted tenant regardless of any
+ * individual job's own `isEnabled`. */
+export interface PlatformTenantJobs {
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  tenantStatus: TenantStatus;
+  runsBackgroundJobs: boolean;
+  jobs: PlatformTenantJob[];
+}
+
+export interface PlatformJobQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  tenantId?: string;
+  jobType?: string;
+  isEnabled?: boolean;
+  failingOnly?: boolean;
+}
+
+export interface UpdateTenantJobScheduleRequest {
+  cronExpression: string;
+  isEnabled: boolean;
+}
+
+/** PlatformJobTriggerResultDto. `backgroundJobId` is Hangfire's id for the one-off run, so an
+ * operator can follow that exact execution in the Hangfire dashboard. */
+export interface PlatformJobTriggerResult {
+  recurringJobId: string;
+  backgroundJobId: string;
+}
+
+/** PlatformGlobalJobDto — a recurring job that is platform-global rather than per-tenant (the
+ * WhatsApp token refresh and the reconcile pass itself). Read-only: there is no tenant to scope a
+ * schedule edit to. */
+export interface PlatformGlobalJob {
+  recurringJobId: string;
+  cronExpression: string | null;
+  nextExecutionUtc: string | null;
+  lastExecutionUtc: string | null;
+  lastJobState: string | null;
+  error: string | null;
+}
+
+/** TenantJobReconcileSummary — what one "Reconcile now" pass changed. */
+export interface TenantJobReconcileSummary {
+  tenantsExamined: number;
+  schedulesCreated: number;
+  jobsRegistered: number;
+  jobsRemoved: number;
+  orphanRegistrationsRemoved: number;
+}
