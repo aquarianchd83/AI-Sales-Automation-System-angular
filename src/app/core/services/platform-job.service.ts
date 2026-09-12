@@ -67,7 +67,8 @@ export class PlatformJobService {
   }
 
   /** Rebuilds every tenant's registrations from the schedule table — the same pass that runs at
-   * startup and hourly, on demand. */
+   * startup and once daily. This on-demand call is the way a reconcile is normally meant to happen;
+   * the scheduled pass is only a backstop for when nobody is looking. */
   reconcile(): Observable<TenantJobReconcileSummary> {
     return this.http.post<TenantJobReconcileSummary>(`${this.baseUrl}/reconcile`, {});
   }

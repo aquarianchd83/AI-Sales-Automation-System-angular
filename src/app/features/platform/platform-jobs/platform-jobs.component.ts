@@ -199,9 +199,10 @@ export class PlatformJobsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Rebuilds every tenant's Hangfire registrations from the schedule table. Same pass that runs at
-   * startup and hourly — this is the "it looks wrong, put it back" button, so no confirmation: it is
-   * idempotent and changes nothing when everything already matches. */
+  /** Rebuilds every tenant's Hangfire registrations from the schedule table. The same pass that runs
+   * at startup and once daily — and the intended way to run one, the scheduled pass being only a
+   * backstop. This is the "it looks wrong, put it back" button, so no confirmation: it is idempotent
+   * and changes nothing when everything already matches. */
   reconcile(): void {
     if (this.reconciling) {
       return;
