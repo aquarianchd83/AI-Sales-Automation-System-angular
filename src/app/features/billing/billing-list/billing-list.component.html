@@ -15,8 +15,14 @@
               {{ subscription.status }}
             </mat-chip>
           </mat-chip-listbox>
-          <span class="muted period" *ngIf="subscription.currentPeriodEndUtc">
-            Renews {{ subscription.currentPeriodEndUtc | date: 'mediumDate' }}
+          <span class="muted period" *ngIf="subscription.currentPeriodStartUtc || subscription.currentPeriodEndUtc">
+            <ng-container *ngIf="subscription.currentPeriodStartUtc">
+              Started {{ subscription.currentPeriodStartUtc | date: 'mediumDate' }}
+            </ng-container>
+            <ng-container *ngIf="subscription.currentPeriodStartUtc && subscription.currentPeriodEndUtc"> · </ng-container>
+            <ng-container *ngIf="subscription.currentPeriodEndUtc">
+              Renews {{ subscription.currentPeriodEndUtc | date: 'mediumDate' }}
+            </ng-container>
           </span>
         </div>
         <button mat-stroked-button type="button" [disabled]="openingPortal" (click)="openBillingPortal()">

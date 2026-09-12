@@ -36,11 +36,14 @@ export interface TimeZoneOption {
 }
 
 /** SubscriptionDto — the calling tenant's current billing state. The whole object is null when
- * the tenant has never completed Checkout (still on its signup trial). */
+ * the tenant has never completed Checkout (still on its signup trial). currentPeriodStartUtc/
+ * currentPeriodEndUtc are both null until Stripe's first customer.subscription.updated webhook
+ * lands — a beat after Checkout completes, not simultaneous with it. */
 export interface Subscription {
   planId: string | null;
   planName: string | null;
   status: string;
+  currentPeriodStartUtc: string | null;
   currentPeriodEndUtc: string | null;
 }
 
