@@ -59,3 +59,17 @@ dd {
   justify-content: flex-end;
   margin-top: 12px;
 }
+
+.usage {
+  h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  .usage-count {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+}

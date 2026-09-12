@@ -98,3 +98,11 @@ export interface TenantSettingCategory {
 export interface UpdateTenantSettingsRequest {
   values: Record<string, string | null>;
 }
+
+/** TenantMessageUsageDto — how much of this calendar month's WhatsApp message quota the tenant has
+ * used. maxMessagesPerMonth is null when the tenant has no plan yet (still on trial) and means
+ * unlimited, not zero. */
+export interface TenantMessageUsage {
+  messagesSentThisMonth: number;
+  maxMessagesPerMonth: number | null;
+}

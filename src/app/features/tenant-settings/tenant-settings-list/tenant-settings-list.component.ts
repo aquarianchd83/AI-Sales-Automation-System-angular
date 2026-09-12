@@ -3,7 +3,7 @@ import { FormControl } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
 import { RegionOption, TimeZoneOption } from '../../../core/models/billing.model';
-import { TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
+import { TenantMessageUsage, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantProfileService } from '../../../core/services/tenant-profile.service';
@@ -12,10 +12,12 @@ import { TimeZoneService } from '../../../core/services/timezone.service';
 
 /**
  * A tenant's own read-only view of its WhatsApp Business Account connection (SaaS conversion
- * Phase B) — status only. A PlatformSuperAdmin now owns creating, editing and deleting it (see the
- * backend's PlatformTenantConfigController doc comment for why): it holds a real, security-
- * sensitive credential whose correctness affects billing and platform-wide abuse exposure, not just
- * this one tenant.
+ * Phase B) — status and message usage only. A PlatformSuperAdmin now owns creating, editing and
+ * deleting the connection itself (see the backend's PlatformTenantConfigController doc comment for
+ * why): it holds a real, security-sensitive credential whose correctness affects billing and
+ * platform-wide abuse exposure, not just this one tenant. Message usage (this month's send count vs.
+ * the plan's quota) is a read-only derived figure, not a credential — TenantSettingsService.getUsage,
+ * backed by the same count IPlanLimitsService.EnsureCanSendMessageAsync already enforces sends against.
  *
  * AI provider status is deliberately not shown here (by request) - which model/provider is in use
  * behind the scenes is not something a tenant needs or should see; this component never even calls
@@ -39,12 +41,23 @@ export class TenantSettingsListComponent implements OnInit {
 
   loadingWhatsApp = true;
   loadingProfile = true;
+  loadingUsage = true;
   savingTimezone = false;
   savingCountry = false;
 
   whatsAppConfig: TenantWhatsAppConfig | null = null;
+  usage: TenantMessageUsage | null = null;
   timezones: TimeZoneOption[] = [];
   regions: RegionOption[] = [];
+
+  /** 0–100, clamped so a tenant that's gone over quota still shows a full (not overflowing) bar.
+   * Null when unlimited (no plan yet) — nothing to show a fraction of. */
+  get usagePercent(): number | null {
+    if (!this.usage?.maxMessagesPerMonth) {
+      return null;
+    }
+    return Math.min(100, Math.round((this.usage.messagesSentThisMonth / this.usage.maxMessagesPerMonth) * 100));
+  }
 
   constructor(
     private readonly tenantSettings: TenantSettingsService,
@@ -61,6 +74,14 @@ export class TenantSettingsListComponent implements OnInit {
         this.loadingWhatsApp = false;
       },
       error: () => (this.loadingWhatsApp = false),
+    });
+
+    this.tenantSettings.getUsage().subscribe({
+      next: (usage) => {
+        this.usage = usage;
+        this.loadingUsage = false;
+      },
+      error: () => (this.loadingUsage = false),
     });
 
     this.timeZoneService.getTimezones().subscribe({
