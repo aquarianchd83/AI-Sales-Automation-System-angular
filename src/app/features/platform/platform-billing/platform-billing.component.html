@@ -24,8 +24,6 @@
           <li>{{ plan.maxCampaigns }} campaigns</li>
           <li>{{ plan.maxKnowledgeBaseArticles }} KB articles</li>
         </ul>
-        <span class="muted stripe-id" *ngIf="plan.stripePriceId">{{ plan.stripePriceId }}</span>
-        <span class="muted stripe-id" *ngIf="!plan.stripePriceId">Not yet on Stripe</span>
         <div class="plan-tile-actions">
           <button mat-stroked-button type="button" (click)="editPlan(plan)">Edit</button>
           <button mat-stroked-button color="warn" type="button" *ngIf="plan.isActive" (click)="deletePlan(plan)">

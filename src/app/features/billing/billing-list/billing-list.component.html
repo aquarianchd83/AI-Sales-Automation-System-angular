@@ -1,8 +1,5 @@
 <div class="page">
-  <app-page-header
-    title="Billing"
-    subtitle="Choose a plan or manage your existing subscription. Payments are handled by Stripe."
-  ></app-page-header>
+  <app-page-header title="Billing" subtitle="Choose a plan or switch to another one."></app-page-header>
 
   <mat-card class="subscription-card" *ngIf="!loadingSubscription">
     <ng-container *ngIf="subscription; else noSubscription">
@@ -25,19 +22,6 @@
             </ng-container>
           </span>
         </div>
-        <button
-          mat-stroked-button
-          type="button"
-          *ngIf="hasBillingPortalAccess"
-          [disabled]="openingPortal"
-          (click)="openBillingPortal()"
-        >
-          <mat-icon>{{ openingPortal ? 'hourglass_empty' : 'credit_card' }}</mat-icon>
-          {{ openingPortal ? 'Opening…' : 'Manage billing' }}
-        </button>
-        <span class="muted" *ngIf="!hasBillingPortalAccess">
-          Set by your platform administrator — nothing to manage here yet.
-        </span>
       </div>
     </ng-container>
     <ng-template #noSubscription>
@@ -45,7 +29,7 @@
         <div>
           <span class="muted">Current plan</span>
           <h3>Free trial</h3>
-          <span class="muted">Choose a plan below to subscribe — no card required until you do.</span>
+          <span class="muted">Choose a plan below to get started.</span>
         </div>
       </div>
     </ng-template>
@@ -74,14 +58,14 @@
         color="primary"
         class="full-width"
         type="button"
-        [disabled]="isCurrentPlan(plan) || !!startingCheckoutForPlanId"
+        [disabled]="isCurrentPlan(plan) || !!switchingPlanId"
         (click)="choosePlan(plan)"
       >
         {{
           isCurrentPlan(plan)
             ? 'Current plan'
-            : startingCheckoutForPlanId === plan.id
-            ? 'Redirecting…'
+            : switchingPlanId === plan.id
+            ? 'Switching…'
             : 'Choose plan'
         }}
       </button>
@@ -93,7 +77,19 @@
     <p>No plans are available yet.</p>
   </div>
 
-  <p class="muted price-note" *ngIf="!loadingPlans && plans.length">
-    Prices are shown in your local currency; you're billed in USD via Stripe.
-  </p>
+  <p class="muted price-note" *ngIf="!loadingPlans && plans.length">Prices are shown in your local currency.</p>
+
+  <mat-card class="payment-history-card">
+    <h3>Payment history</h3>
+    <mat-progress-bar mode="indeterminate" *ngIf="loadingPayments"></mat-progress-bar>
+    <ng-container *ngIf="!loadingPayments">
+      <dl *ngIf="paymentHistory.length">
+        <ng-container *ngFor="let payment of paymentHistory">
+          <dt>{{ payment.paidAtUtc | date: 'mediumDate' }}</dt>
+          <dd>{{ payment.planName }} — {{ formatPayment(payment) }}</dd>
+        </ng-container>
+      </dl>
+      <p class="muted" *ngIf="!paymentHistory.length">No payments yet.</p>
+    </ng-container>
+  </mat-card>
 </div>

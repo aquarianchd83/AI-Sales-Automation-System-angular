@@ -21,7 +21,7 @@
       <mat-label>Price (USD/month)</mat-label>
       <input matInput type="number" min="0" step="0.01" formControlName="priceMonthlyDollars" />
       <span matTextPrefix>$&nbsp;</span>
-      <mat-hint>What Stripe actually charges — regional prices shown to tenants are converted from this.</mat-hint>
+      <mat-hint>The base list price — regional prices shown to tenants are converted from this.</mat-hint>
     </mat-form-field>
 
     <mat-form-field class="full-width">
@@ -42,12 +42,6 @@
     <mat-form-field class="full-width">
       <mat-label>Max knowledge base articles</mat-label>
       <input matInput type="number" min="0" formControlName="maxKnowledgeBaseArticles" />
-    </mat-form-field>
-
-    <mat-form-field class="full-width">
-      <mat-label>Stripe price ID</mat-label>
-      <input matInput formControlName="stripePriceId" autocomplete="off" placeholder="price_..." />
-      <mat-hint>Optional — leave blank until this plan has been created in the Stripe dashboard.</mat-hint>
     </mat-form-field>
 
     <mat-checkbox formControlName="isActive" *ngIf="isEditMode">

@@ -77,7 +77,7 @@ export class ShellComponent implements OnInit {
    * be listed here too - removed from the nav by request, since per-tenant Campaigns/Media/
    * Messaging/Ai tuning now lives on each tenant's own detail page (see
    * PlatformTenantConfigOverridesDialogComponent) and the remaining platform-global-only categories
-   * (WhatsApp/AiProviders infra knobs, MediaStorage, Stripe) are rarely touched day to day. The
+   * (WhatsApp/AiProviders infra knobs, MediaStorage) are rarely touched day to day. The
    * route itself is untouched - still reachable at /settings for whoever knows the URL - only the
    * sidebar shortcut is gone.
    */

@@ -156,13 +156,12 @@ export interface CreatePlatformTenantRequest {
 // Billing (GET /platform/billing/*)
 // ---------------------------------------------------------------------------
 
-/** PlatformPlanDto — the platform-only view of the catalog (includes inactive plans and the
- * Stripe price id, unlike the tenant-facing PlanDto used by /billing/plans). */
+/** PlatformPlanDto — the platform-only view of the catalog (includes inactive plans, unlike the
+ * tenant-facing PlanDto used by /billing/plans). */
 export interface PlatformPlan {
   id: string;
   code: string;
   name: string;
-  stripePriceId: string | null;
   maxUsers: number;
   maxMessagesPerMonth: number;
   maxCampaigns: number;
@@ -181,7 +180,6 @@ export interface CreatePlanRequest {
   maxCampaigns: number;
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
-  stripePriceId?: string | null;
 }
 
 /** Body of PUT one plan. isActive is how a plan is both retired (the Delete button sets it false)
@@ -193,7 +191,6 @@ export interface UpdatePlanRequest {
   maxCampaigns: number;
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
-  stripePriceId?: string | null;
   isActive: boolean;
 }
 

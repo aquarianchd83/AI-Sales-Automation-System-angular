@@ -39,7 +39,6 @@ export class PlatformPlanFormDialogComponent {
       this.data.plan ? this.data.plan.priceMonthlyCents / 100 : 0,
       [Validators.required, Validators.min(0)],
     ],
-    stripePriceId: [this.data.plan?.stripePriceId ?? ''],
     isActive: [this.data.plan?.isActive ?? true],
   });
 
@@ -61,7 +60,6 @@ export class PlatformPlanFormDialogComponent {
 
     const raw = this.form.getRawValue();
     const priceMonthlyCents = Math.round(raw.priceMonthlyDollars * 100);
-    const stripePriceId = raw.stripePriceId.trim() || null;
 
     this.saving = true;
     const request$ = this.isEditMode
@@ -72,7 +70,6 @@ export class PlatformPlanFormDialogComponent {
           maxCampaigns: raw.maxCampaigns,
           maxKnowledgeBaseArticles: raw.maxKnowledgeBaseArticles,
           priceMonthlyCents,
-          stripePriceId,
           isActive: raw.isActive,
         } as UpdatePlanRequest)
       : this.billing.createPlan({
@@ -83,7 +80,6 @@ export class PlatformPlanFormDialogComponent {
           maxCampaigns: raw.maxCampaigns,
           maxKnowledgeBaseArticles: raw.maxKnowledgeBaseArticles,
           priceMonthlyCents,
-          stripePriceId,
         } as CreatePlanRequest);
 
     request$.pipe(finalize(() => (this.saving = false))).subscribe({

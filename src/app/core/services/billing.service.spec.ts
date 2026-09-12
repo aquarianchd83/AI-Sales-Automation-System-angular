@@ -27,22 +27,23 @@ describe('BillingService', () => {
     http.expectOne({ url: `${baseUrl}/subscription`, method: 'GET' }).flush(null);
   });
 
-  it('starts a checkout session with the given plan and redirect urls', () => {
-    service
-      .createCheckoutSession({ planId: 'p1', successUrl: 'https://a', cancelUrl: 'https://b' })
-      .subscribe();
+  it('chooses (simulates paying for) a plan', () => {
+    service.choosePlan('p1').subscribe();
 
-    const request = http.expectOne(`${baseUrl}/checkout`);
+    const request = http.expectOne(`${baseUrl}/plans/p1/choose`);
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ planId: 'p1', successUrl: 'https://a', cancelUrl: 'https://b' });
-    request.flush({ url: 'https://checkout.stripe.com/session' });
+    expect(request.request.body).toEqual({});
+    request.flush({
+      planId: 'p1',
+      planName: 'Starter',
+      status: 'Active',
+      currentPeriodStartUtc: '2026-01-01T00:00:00Z',
+      currentPeriodEndUtc: '2026-02-01T00:00:00Z',
+    });
   });
 
-  it('starts a billing portal session with the given return url', () => {
-    service.createBillingPortalSession({ returnUrl: 'https://a' }).subscribe();
-
-    const request = http.expectOne(`${baseUrl}/portal`);
-    expect(request.request.body).toEqual({ returnUrl: 'https://a' });
-    request.flush({ url: 'https://billing.stripe.com/session' });
+  it('gets the payment history', () => {
+    service.getPaymentHistory().subscribe((payments) => expect(payments).toEqual([]));
+    http.expectOne({ url: `${baseUrl}/payments`, method: 'GET' }).flush([]);
   });
 });

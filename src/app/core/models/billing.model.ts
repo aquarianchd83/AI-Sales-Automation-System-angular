@@ -1,8 +1,7 @@
 /** PlanDto — one row of the public plan catalog (GET /billing/plans, no auth required).
- * priceMonthlyCents stays the base USD price Stripe actually charges; currencyCode/currencySymbol/
- * localPriceAmount are a display/quote figure resolved server-side from the caller's country (an
- * authenticated tenant's own stored country, or an anonymous caller's ?country= query param) - not
- * what Stripe bills. */
+ * priceMonthlyCents stays the base USD list price; currencyCode/currencySymbol/localPriceAmount are
+ * a display/quote figure resolved server-side from the caller's country (an authenticated tenant's
+ * own stored country, or an anonymous caller's ?country= query param). */
 export interface Plan {
   id: string;
   code: string;
@@ -36,32 +35,27 @@ export interface TimeZoneOption {
 }
 
 /** SubscriptionDto — the calling tenant's current billing state. The whole object is null when
- * the tenant has no Subscription row at all yet (still on its signup trial). A non-null object does
- * NOT by itself mean a real payment-provider customer exists — a PlatformSuperAdmin's plan override
- * sets this same row directly, with no provider involved — see hasStripeCustomer, the exact signal
- * the "Manage billing" button must gate on to avoid "no Stripe customer yet" errors. currentPeriodStartUtc/
- * currentPeriodEndUtc are both null until the provider's first subscription-updated webhook lands. */
+ * the tenant has no Subscription row at all yet (still on its signup trial). currentPeriodStartUtc/
+ * currentPeriodEndUtc are both set together by choosing a plan (see BillingService.choosePlan), or
+ * left null if the tenant's plan was only ever set by a PlatformSuperAdmin's plan override. */
 export interface Subscription {
   planId: string | null;
   planName: string | null;
   status: string;
   currentPeriodStartUtc: string | null;
   currentPeriodEndUtc: string | null;
-  hasStripeCustomer: boolean;
 }
 
-export interface CreateCheckoutSessionRequest {
-  planId: string;
-  successUrl: string;
-  cancelUrl: string;
-}
-
-export interface CreateBillingPortalSessionRequest {
-  returnUrl: string;
-}
-
-/** BillingSessionUrlDto — a Stripe-hosted URL to redirect the browser to (Checkout or the
- * Billing Portal); this panel never renders either page itself. */
-export interface BillingSessionUrl {
-  url: string;
+/** PaymentDto — one row of the calling tenant's payment history (GET /billing/payments), most
+ * recent first. provider is "Simulated" for every row today (see BillingService.choosePlan) — a
+ * real payment gateway's rows, once one is wired in, carry their own provider name here instead. */
+export interface Payment {
+  id: string;
+  planName: string;
+  amountCents: number;
+  currencyCode: string;
+  currencySymbol: string;
+  localAmount: number;
+  provider: string;
+  paidAtUtc: string;
 }

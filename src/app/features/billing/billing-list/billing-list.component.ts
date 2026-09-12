@@ -1,15 +1,18 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
 import { NotificationService } from '../../../core/services/notification.service';
 import { BillingService } from '../../../core/services/billing.service';
-import { Plan, Subscription } from '../../../core/models/billing.model';
+import { Payment, Plan, Subscription } from '../../../core/models/billing.model';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /**
  * Tenant-facing billing (SaaS conversion Phase D): the plan catalog, the tenant's current
- * subscription, and the two buttons that hand off to Stripe's own hosted pages (Checkout, the
- * Customer Portal) — this screen never collects card details itself.
+ * subscription and payment history, and the plan-picker that switches it. Payments are simulated
+ * for now — see BillingService's own doc comment (Stripe pulled out for this platform's
+ * India-first launch, Razorpay not wired in yet) — so choosing a plan takes effect immediately
+ * rather than redirecting anywhere; this screen never collects card details, real or otherwise.
  */
 @Component({
   selector: 'app-billing-list',
@@ -19,31 +22,23 @@ import { Plan, Subscription } from '../../../core/models/billing.model';
 export class BillingListComponent implements OnInit {
   loadingPlans = true;
   loadingSubscription = true;
-  startingCheckoutForPlanId: string | null = null;
-  openingPortal = false;
+  loadingPayments = true;
+  switchingPlanId: string | null = null;
 
   plans: Plan[] = [];
   subscription: Subscription | null = null;
+  paymentHistory: Payment[] = [];
 
   constructor(
     private readonly billing: BillingService,
     private readonly notify: NotificationService,
-    private readonly route: ActivatedRoute
+    private readonly dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
     this.loadPlans();
     this.loadSubscription();
-    this.announceCheckoutOutcome();
-  }
-
-  /** True only once a real Stripe Customer exists for this tenant — NOT just "has a Subscription
-   * row" (a PlatformSuperAdmin's plan override creates/updates that same row with no Stripe
-   * involved at all). Showing "Manage billing" without this check sent an admin-overridden tenant
-   * straight into CreateBillingPortalSessionAsync's "no Stripe customer yet - complete Checkout
-   * first" error. */
-  get hasBillingPortalAccess(): boolean {
-    return !!this.subscription?.hasStripeCustomer;
+    this.loadPaymentHistory();
   }
 
   isCurrentPlan(plan: Plan): boolean {
@@ -51,45 +46,46 @@ export class BillingListComponent implements OnInit {
   }
 
   /** Shows the plan's localized quote (currencySymbol/localPriceAmount, resolved server-side from
-   * this tenant's own country — see Plan's own doc comment) rather than the raw USD cents Stripe
-   * actually charges. */
+   * this tenant's own country — see Plan's own doc comment). */
   formatPrice(plan: Plan): string {
-    const amount = plan.localPriceAmount;
-    const decimals = Number.isInteger(amount) ? 0 : 2;
-    return `${plan.currencySymbol}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}/mo`;
+    return `${this.formatAmount(plan.currencySymbol, plan.localPriceAmount)}/mo`;
+  }
+
+  formatPayment(payment: Payment): string {
+    return this.formatAmount(payment.currencySymbol, payment.localAmount);
   }
 
   choosePlan(plan: Plan): void {
-    if (this.startingCheckoutForPlanId) {
+    if (this.switchingPlanId || this.isCurrentPlan(plan)) {
       return;
     }
 
-    this.startingCheckoutForPlanId = plan.id;
-    const returnUrl = this.currentUrlWithoutQuery();
-    this.billing
-      .createCheckoutSession({
-        planId: plan.id,
-        successUrl: `${returnUrl}?checkout=success`,
-        cancelUrl: `${returnUrl}?checkout=cancelled`,
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: `Switch to ${plan.name}?`,
+          message: `This takes effect immediately, at ${this.formatPrice(plan)}.`,
+          confirmLabel: 'Switch plan',
+        } as ConfirmDialogData,
+        width: '460px',
       })
-      .pipe(finalize(() => (this.startingCheckoutForPlanId = null)))
-      .subscribe({
-        // A full navigation, not routerLink — Stripe Checkout is a page this app does not own.
-        next: (session) => (window.location.href = session.url),
-      });
-  }
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
 
-  openBillingPortal(): void {
-    if (this.openingPortal) {
-      return;
-    }
-
-    this.openingPortal = true;
-    this.billing
-      .createBillingPortalSession({ returnUrl: this.currentUrlWithoutQuery() })
-      .pipe(finalize(() => (this.openingPortal = false)))
-      .subscribe({
-        next: (session) => (window.location.href = session.url),
+        this.switchingPlanId = plan.id;
+        this.billing
+          .choosePlan(plan.id)
+          .pipe(finalize(() => (this.switchingPlanId = null)))
+          .subscribe({
+            next: (subscription) => {
+              this.subscription = subscription;
+              this.notify.success(`Switched to ${plan.name}.`);
+              this.loadPaymentHistory();
+            },
+          });
       });
   }
 
@@ -115,21 +111,19 @@ export class BillingListComponent implements OnInit {
     });
   }
 
-  /**
-   * checkout=success/cancelled only means Checkout itself finished/was abandoned — activation is
-   * driven by Stripe's webhook (StripeWebhookHandler), which may land a beat after this redirect,
-   * so the message is deliberately hedged rather than claiming the plan is active yet.
-   */
-  private announceCheckoutOutcome(): void {
-    const checkout = this.route.snapshot.queryParamMap.get('checkout');
-    if (checkout === 'success') {
-      this.notify.success('Payment received — your plan will update shortly.');
-    } else if (checkout === 'cancelled') {
-      this.notify.info('Checkout was cancelled. No changes were made.');
-    }
+  private loadPaymentHistory(): void {
+    this.loadingPayments = true;
+    this.billing.getPaymentHistory().subscribe({
+      next: (payments) => {
+        this.paymentHistory = payments;
+        this.loadingPayments = false;
+      },
+      error: () => (this.loadingPayments = false),
+    });
   }
 
-  private currentUrlWithoutQuery(): string {
-    return `${window.location.origin}${window.location.pathname}`;
+  private formatAmount(symbol: string, amount: number): string {
+    const decimals = Number.isInteger(amount) ? 0 : 2;
+    return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
   }
 }
