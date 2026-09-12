@@ -25,10 +25,19 @@
             </ng-container>
           </span>
         </div>
-        <button mat-stroked-button type="button" [disabled]="openingPortal" (click)="openBillingPortal()">
+        <button
+          mat-stroked-button
+          type="button"
+          *ngIf="hasBillingPortalAccess"
+          [disabled]="openingPortal"
+          (click)="openBillingPortal()"
+        >
           <mat-icon>{{ openingPortal ? 'hourglass_empty' : 'credit_card' }}</mat-icon>
           {{ openingPortal ? 'Opening…' : 'Manage billing' }}
         </button>
+        <span class="muted" *ngIf="!hasBillingPortalAccess">
+          Set by your platform administrator — nothing to manage here yet.
+        </span>
       </div>
     </ng-container>
     <ng-template #noSubscription>

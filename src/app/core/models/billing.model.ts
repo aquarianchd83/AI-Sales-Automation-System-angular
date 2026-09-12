@@ -36,15 +36,18 @@ export interface TimeZoneOption {
 }
 
 /** SubscriptionDto — the calling tenant's current billing state. The whole object is null when
- * the tenant has never completed Checkout (still on its signup trial). currentPeriodStartUtc/
- * currentPeriodEndUtc are both null until Stripe's first customer.subscription.updated webhook
- * lands — a beat after Checkout completes, not simultaneous with it. */
+ * the tenant has no Subscription row at all yet (still on its signup trial). A non-null object does
+ * NOT by itself mean a real payment-provider customer exists — a PlatformSuperAdmin's plan override
+ * sets this same row directly, with no provider involved — see hasStripeCustomer, the exact signal
+ * the "Manage billing" button must gate on to avoid "no Stripe customer yet" errors. currentPeriodStartUtc/
+ * currentPeriodEndUtc are both null until the provider's first subscription-updated webhook lands. */
 export interface Subscription {
   planId: string | null;
   planName: string | null;
   status: string;
   currentPeriodStartUtc: string | null;
   currentPeriodEndUtc: string | null;
+  hasStripeCustomer: boolean;
 }
 
 export interface CreateCheckoutSessionRequest {

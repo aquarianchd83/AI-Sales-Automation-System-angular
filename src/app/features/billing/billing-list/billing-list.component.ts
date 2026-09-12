@@ -37,11 +37,13 @@ export class BillingListComponent implements OnInit {
     this.announceCheckoutOutcome();
   }
 
-  /** True once the tenant has a Subscription row at all — a Stripe Customer exists, so the
-   * Billing Portal button can be shown (see IBillingService.CreateBillingPortalSessionAsync's own
-   * "complete Checkout first" requirement). */
+  /** True only once a real Stripe Customer exists for this tenant — NOT just "has a Subscription
+   * row" (a PlatformSuperAdmin's plan override creates/updates that same row with no Stripe
+   * involved at all). Showing "Manage billing" without this check sent an admin-overridden tenant
+   * straight into CreateBillingPortalSessionAsync's "no Stripe customer yet - complete Checkout
+   * first" error. */
   get hasBillingPortalAccess(): boolean {
-    return this.subscription !== null;
+    return !!this.subscription?.hasStripeCustomer;
   }
 
   isCurrentPlan(plan: Plan): boolean {
