@@ -53,7 +53,7 @@ export class ShellComponent implements OnInit {
       roles: [AppRole.SuperAdmin, AppRole.Admin],
     },
     {
-      label: 'WhatsApp Setup',
+      label: 'Settings',
       icon: 'cloud_sync',
       route: '/tenant-settings',
       roles: [AppRole.SuperAdmin, AppRole.Admin],
