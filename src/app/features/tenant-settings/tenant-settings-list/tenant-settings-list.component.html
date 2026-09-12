@@ -1,10 +1,37 @@
 <div class="page">
   <app-page-header
-    title="WhatsApp &amp; AI setup"
+    title="WhatsApp setup"
     subtitle="Status only — your platform administrator manages these credentials on your behalf."
   ></app-page-header>
 
   <div class="detail-grid">
+    <mat-card class="detail-card">
+      <h3>Workspace</h3>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingProfile"></mat-progress-bar>
+      <ng-container *ngIf="!loadingProfile">
+        <mat-form-field subscriptSizing="dynamic" class="full-width">
+          <mat-label>Timezone</mat-label>
+          <mat-select [formControl]="timezoneControl">
+            <mat-option *ngFor="let tz of timezones" [value]="tz.id">
+              {{ tz.displayName }} (UTC{{ tz.utcOffset }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <div class="card-actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!timezoneControl.value || savingTimezone"
+            (click)="saveTimezone()"
+          >
+            {{ savingTimezone ? 'Saving…' : 'Apply' }}
+          </button>
+        </div>
+      </ng-container>
+      <p class="muted hint">Controls when your scheduled campaigns actually send.</p>
+    </mat-card>
+
     <mat-card class="detail-card">
       <h3>WhatsApp</h3>
       <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
@@ -28,20 +55,6 @@
           <dd>{{ whatsAppConfig.whatsAppBusinessAccountId || '—' }}</dd>
         </dl>
       </ng-container>
-      <p class="muted hint">
-        Contact your platform administrator to connect or change this — it's no longer editable here.
-      </p>
-    </mat-card>
-
-    <mat-card class="detail-card">
-      <h3>AI provider</h3>
-      <mat-progress-bar mode="indeterminate" *ngIf="loadingAi"></mat-progress-bar>
-      <dl *ngIf="!loadingAi">
-        <dt>Chat provider</dt>
-        <dd>{{ aiConfig?.provider ?? 'Simulated' }}</dd>
-        <dt>Embedding provider</dt>
-        <dd>{{ aiConfig?.embeddingProvider ?? 'Simulated' }}</dd>
-      </dl>
       <p class="muted hint">
         Contact your platform administrator to connect or change this — it's no longer editable here.
       </p>

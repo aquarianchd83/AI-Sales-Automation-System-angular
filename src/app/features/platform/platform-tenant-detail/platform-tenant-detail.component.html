@@ -23,7 +23,21 @@
           <dd>{{ tenant.createdAt | date: 'medium' }}</dd>
           <dt>Trial ends</dt>
           <dd>{{ tenant.trialEndsAtUtc ? (tenant.trialEndsAtUtc | date: 'medium') : '—' }}</dd>
+          <dt>Timezone</dt>
+          <dd>{{ tenant.timezone }}</dd>
         </dl>
+        <div class="inline-override">
+          <mat-form-field subscriptSizing="dynamic" class="inline-select">
+            <mat-label>Override timezone</mat-label>
+            <mat-select [formControl]="timezoneControl">
+              <mat-option *ngFor="let tz of timezones" [value]="tz.id">{{ tz.displayName }} (UTC{{ tz.utcOffset }})</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button type="button" [disabled]="!timezoneControl.value || savingTimezone" (click)="saveTimezoneOverride()">
+            Apply
+          </button>
+        </div>
+        <p class="muted hint">The tenant's own Admin can also change this from their Workspace settings.</p>
         <div class="card-actions">
           <button mat-flat-button color="primary" type="button" [disabled]="impersonating" (click)="impersonate()">
             <mat-icon>visibility</mat-icon>
@@ -61,8 +75,8 @@
           <dt>Current period ends</dt>
           <dd>{{ tenant.currentPeriodEndUtc ? (tenant.currentPeriodEndUtc | date: 'medium') : '—' }}</dd>
         </dl>
-        <div class="plan-override">
-          <mat-form-field subscriptSizing="dynamic" class="plan-select">
+        <div class="inline-override">
+          <mat-form-field subscriptSizing="dynamic" class="inline-select">
             <mat-label>Override plan</mat-label>
             <mat-select [formControl]="planControl">
               <mat-option *ngFor="let plan of plans" [value]="plan.id">{{ plan.name }}</mat-option>

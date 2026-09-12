@@ -59,6 +59,17 @@
       </mat-form-field>
 
       <mat-form-field class="full-width">
+        <mat-label>Timezone</mat-label>
+        <mat-select formControlName="timezone">
+          <mat-option value="">Use India Standard Time</mat-option>
+          <mat-option *ngFor="let tz of timezones" [value]="tz.id">
+            {{ tz.displayName }} (UTC{{ tz.utcOffset }})
+          </mat-option>
+        </mat-select>
+        <mat-hint>Controls when your scheduled campaigns actually send.</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field class="full-width">
         <mat-label>Password</mat-label>
         <input
           matInput

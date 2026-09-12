@@ -12,6 +12,7 @@ import {
   PlatformTenantListItem,
   PlatformTenantQuery,
 } from '../models/platform.model';
+import { TenantProfile, UpdateTenantTimezoneRequest } from '../models/tenant-profile.model';
 
 @Injectable({ providedIn: 'root' })
 export class PlatformTenantService {
@@ -63,5 +64,12 @@ export class PlatformTenantService {
 
   overridePlan(id: string, request: OverrideTenantPlanRequest): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/${id}/plan`, request);
+  }
+
+  /** Support-facing override of one tenant's timezone — same backend column the tenant's own
+   * Workspace settings editor writes to (TenantProfileService.updateTimezone), audited here. */
+  updateTimezone(id: string, timezone: string): Observable<TenantProfile> {
+    const request: UpdateTenantTimezoneRequest = { timezone };
+    return this.http.put<TenantProfile>(`${this.baseUrl}/${id}/timezone`, request);
   }
 }

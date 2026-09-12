@@ -3,10 +3,11 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
-import { RegionOption } from '../../../core/models/billing.model';
+import { RegionOption, TimeZoneOption } from '../../../core/models/billing.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { TimeZoneService } from '../../../core/services/timezone.service';
 
 /**
  * Self-serve signup (POST /auth/signup) — the only account-creation path for a brand-new tenant.
@@ -25,26 +26,34 @@ export class SignupComponent implements OnInit {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     country: [''],
+    timezone: [''],
   });
 
   hidePassword = true;
   submitting = false;
   regions: RegionOption[] = [];
+  timezones: TimeZoneOption[] = [];
 
   constructor(
     private readonly fb: FormBuilder,
     private readonly auth: AuthService,
     private readonly billing: BillingService,
+    private readonly timeZoneService: TimeZoneService,
     private readonly router: Router,
     private readonly notify: NotificationService
   ) {}
 
   ngOnInit(): void {
-    // Best-effort only — an empty list just means the country select renders with no options,
-    // signup still works fine and falls back to USD pricing (see AuthService.SignUpAsync).
+    // Best-effort only — an empty list just means the country/timezone selects render with no
+    // options, signup still works fine and falls back to USD pricing / IST (see
+    // AuthService.SignUpAsync).
     this.billing.getRegions().subscribe({
       next: (regions) => (this.regions = regions),
       error: () => (this.regions = []),
+    });
+    this.timeZoneService.getTimezones().subscribe({
+      next: (timezones) => (this.timezones = timezones),
+      error: () => (this.timezones = []),
     });
   }
 
@@ -55,11 +64,11 @@ export class SignupComponent implements OnInit {
     }
 
     this.submitting = true;
-    const { country, ...raw } = this.form.getRawValue();
+    const { country, timezone, ...raw } = this.form.getRawValue();
     // slug is deliberately omitted — the backend derives and de-duplicates one from
     // companyName automatically; nothing in this UI collects a custom slug yet.
     this.auth
-      .signUp({ ...raw, countryCode: country || null })
+      .signUp({ ...raw, countryCode: country || null, timezone: timezone || null })
       .pipe(finalize(() => (this.submitting = false)))
       .subscribe({
         next: (user) => {

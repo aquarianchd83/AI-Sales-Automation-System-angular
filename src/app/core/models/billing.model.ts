@@ -26,6 +26,15 @@ export interface RegionOption {
   currencySymbol: string;
 }
 
+/** TimeZoneOption (GET /timezones, no auth required) — the same curated IANA timezone list backs
+ * the signup page's picker, the tenant's own Workspace settings editor, and the Platform Admin
+ * Console's tenant detail override. */
+export interface TimeZoneOption {
+  id: string;
+  displayName: string;
+  utcOffset: string;
+}
+
 /** SubscriptionDto — the calling tenant's current billing state. The whole object is null when
  * the tenant has never completed Checkout (still on its signup trial). */
 export interface Subscription {

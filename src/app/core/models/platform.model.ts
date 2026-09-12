@@ -115,6 +115,9 @@ export interface PlatformTenantDetail {
   maxMessagesPerMonth: number | null;
   aiInteractionsThisMonth: number;
   estimatedAiSpendThisMonthUsd: number;
+  /** Always the effective value (defaults to "Asia/Kolkata" when the tenant hasn't set one) - see
+   * the backend's TenantProfileDto's own doc comment. */
+  timezone: string;
 }
 
 /** ImpersonationSessionDto — deliberately carries no refresh token (see the backend's
