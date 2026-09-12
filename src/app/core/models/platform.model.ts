@@ -118,6 +118,9 @@ export interface PlatformTenantDetail {
   /** Always the effective value (defaults to "Asia/Kolkata" when the tenant hasn't set one) - see
    * the backend's TenantProfileDto's own doc comment. */
   timezone: string;
+  /** Null when never set - plan pricing quotes in USD until it is (RegionalPricingCatalog.Resolve
+   * on the backend). Unlike timezone, has no universal default. */
+  countryCode: string | null;
 }
 
 /** ImpersonationSessionDto — deliberately carries no refresh token (see the backend's

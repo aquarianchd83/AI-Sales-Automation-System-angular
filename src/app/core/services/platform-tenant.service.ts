@@ -12,7 +12,11 @@ import {
   PlatformTenantListItem,
   PlatformTenantQuery,
 } from '../models/platform.model';
-import { TenantProfile, UpdateTenantTimezoneRequest } from '../models/tenant-profile.model';
+import {
+  TenantProfile,
+  UpdateTenantCountryRequest,
+  UpdateTenantTimezoneRequest,
+} from '../models/tenant-profile.model';
 
 @Injectable({ providedIn: 'root' })
 export class PlatformTenantService {
@@ -71,5 +75,13 @@ export class PlatformTenantService {
   updateTimezone(id: string, timezone: string): Observable<TenantProfile> {
     const request: UpdateTenantTimezoneRequest = { timezone };
     return this.http.put<TenantProfile>(`${this.baseUrl}/${id}/timezone`, request);
+  }
+
+  /** Support-facing override of one tenant's country (and therefore plan pricing currency) — same
+   * backend column the tenant's own Workspace settings editor writes to
+   * (TenantProfileService.updateCountry), audited here. */
+  updateCountry(id: string, countryCode: string): Observable<TenantProfile> {
+    const request: UpdateTenantCountryRequest = { countryCode };
+    return this.http.put<TenantProfile>(`${this.baseUrl}/${id}/country`, request);
   }
 }

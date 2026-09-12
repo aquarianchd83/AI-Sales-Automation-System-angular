@@ -25,6 +25,8 @@
           <dd>{{ tenant.trialEndsAtUtc ? (tenant.trialEndsAtUtc | date: 'medium') : '—' }}</dd>
           <dt>Timezone</dt>
           <dd>{{ tenant.timezone }}</dd>
+          <dt>Country</dt>
+          <dd>{{ tenant.countryCode || '— (plan pricing shows in USD)' }}</dd>
         </dl>
         <div class="inline-override">
           <mat-form-field subscriptSizing="dynamic" class="inline-select">
@@ -38,6 +40,18 @@
           </button>
         </div>
         <p class="muted hint">The tenant's own Admin can also change this from their Workspace settings.</p>
+        <div class="inline-override">
+          <mat-form-field subscriptSizing="dynamic" class="inline-select">
+            <mat-label>Override country</mat-label>
+            <mat-select [formControl]="countryControl">
+              <mat-option *ngFor="let region of regions" [value]="region.countryCode">{{ region.countryName }} ({{ region.currencyCode }})</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button type="button" [disabled]="!countryControl.value || savingCountry" (click)="saveCountryOverride()">
+            Apply
+          </button>
+        </div>
+        <p class="muted hint">Fixes which currency this tenant's plan price shows in.</p>
         <div class="card-actions">
           <button mat-flat-button color="primary" type="button" [disabled]="impersonating" (click)="impersonate()">
             <mat-icon>visibility</mat-icon>

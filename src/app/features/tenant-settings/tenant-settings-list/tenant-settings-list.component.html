@@ -1,7 +1,7 @@
 <div class="page">
   <app-page-header
     title="Settings"
-    subtitle="Your workspace timezone, plus WhatsApp connection status managed by your platform administrator."
+    subtitle="Your workspace timezone and country, plus WhatsApp connection status managed by your platform administrator."
   ></app-page-header>
 
   <div class="detail-grid">
@@ -28,8 +28,29 @@
             {{ savingTimezone ? 'Saving…' : 'Apply' }}
           </button>
         </div>
+        <p class="muted hint">Controls when your scheduled campaigns actually send.</p>
+
+        <mat-form-field subscriptSizing="dynamic" class="full-width field-spaced">
+          <mat-label>Country</mat-label>
+          <mat-select [formControl]="countryControl">
+            <mat-option *ngFor="let region of regions" [value]="region.countryCode">
+              {{ region.countryName }} ({{ region.currencyCode }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <div class="card-actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!countryControl.value || savingCountry"
+            (click)="saveCountry()"
+          >
+            {{ savingCountry ? 'Saving…' : 'Apply' }}
+          </button>
+        </div>
+        <p class="muted hint">Controls which currency your plan price shows in.</p>
       </ng-container>
-      <p class="muted hint">Controls when your scheduled campaigns actually send.</p>
     </mat-card>
 
     <mat-card class="detail-card">

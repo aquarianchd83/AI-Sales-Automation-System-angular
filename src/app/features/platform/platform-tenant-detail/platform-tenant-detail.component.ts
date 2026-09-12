@@ -12,8 +12,9 @@ import {
   TENANT_STATUS_LABELS,
   TenantStatus,
 } from '../../../core/models/platform.model';
-import { TimeZoneOption } from '../../../core/models/billing.model';
+import { RegionOption, TimeZoneOption } from '../../../core/models/billing.model';
 import { TenantAiProviderConfig, TenantSettingCategory, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
+import { BillingService } from '../../../core/services/billing.service';
 import { ImpersonationSessionService } from '../../../core/services/impersonation-session.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
@@ -36,14 +37,17 @@ export class PlatformTenantDetailComponent implements OnInit {
   readonly TenantStatus = TenantStatus;
   readonly planControl = new FormControl<string | null>(null);
   readonly timezoneControl = new FormControl<string | null>(null);
+  readonly countryControl = new FormControl<string | null>(null);
 
   tenant: PlatformTenantDetail | null = null;
   plans: PlatformPlan[] = [];
   timezones: TimeZoneOption[] = [];
+  regions: RegionOption[] = [];
   loading = true;
   impersonating = false;
   savingPlan = false;
   savingTimezone = false;
+  savingCountry = false;
 
   whatsAppConfig: TenantWhatsAppConfig | null = null;
   aiConfig: TenantAiProviderConfig | null = null;
@@ -61,6 +65,7 @@ export class PlatformTenantDetailComponent implements OnInit {
     private readonly billing: PlatformBillingService,
     private readonly config: PlatformTenantConfigService,
     private readonly timeZoneService: TimeZoneService,
+    private readonly billingService: BillingService,
     private readonly impersonation: ImpersonationSessionService,
     private readonly dialog: MatDialog,
     private readonly notify: NotificationService
@@ -70,6 +75,7 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.tenantId = this.route.snapshot.paramMap.get('id') ?? '';
     this.billing.getPlans().subscribe({ next: (plans) => (this.plans = plans) });
     this.timeZoneService.getTimezones().subscribe({ next: (timezones) => (this.timezones = timezones) });
+    this.billingService.getRegions().subscribe({ next: (regions) => (this.regions = regions) });
     this.load();
     this.loadConfig();
     this.loadConfigOverrides();
@@ -165,6 +171,21 @@ export class PlatformTenantDetailComponent implements OnInit {
       .pipe(finalize(() => (this.savingTimezone = false)))
       .subscribe(() => {
         this.notify.success('Timezone updated.');
+        this.load();
+      });
+  }
+
+  saveCountryOverride(): void {
+    const countryCode = this.countryControl.value;
+    if (!countryCode || this.savingCountry) {
+      return;
+    }
+    this.savingCountry = true;
+    this.tenants
+      .updateCountry(this.tenantId, countryCode)
+      .pipe(finalize(() => (this.savingCountry = false)))
+      .subscribe(() => {
+        this.notify.success('Country updated — plan pricing now shows in the matching currency.');
         this.load();
       });
   }
