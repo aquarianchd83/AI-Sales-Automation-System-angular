@@ -82,7 +82,13 @@ export class PlatformTenantWhatsAppConfigDialogComponent {
       .pipe(finalize(() => (this.saving = false)))
       .subscribe({
         next: () => {
-          this.notify.success('WhatsApp configuration saved.');
+          // A new token or App Secret makes the API start the tenant's token refresh straight away —
+          // a short-lived Meta token can only be exchanged for a 60-day one while it is still valid.
+          this.notify.success(
+            request.accessToken || request.appSecret
+              ? 'WhatsApp configuration saved. Token refresh started — see Background Jobs for the result.'
+              : 'WhatsApp configuration saved.'
+          );
           this.dialogRef.close(true);
         },
         error: () => {
