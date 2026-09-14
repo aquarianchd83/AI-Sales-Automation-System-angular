@@ -95,6 +95,7 @@ export class ShellComponent implements OnInit {
     { label: 'Background Jobs', icon: 'schedule', route: '/platform/jobs', roles: [] },
     { label: 'Users', icon: 'manage_accounts', route: '/platform/users', roles: [] },
     { label: 'Audit Log', icon: 'history', route: '/platform/audit-log', roles: [] },
+    { label: 'Logs', icon: 'receipt_long', route: '/platform/logs', roles: [] },
     { label: 'Announcements', icon: 'campaign', route: '/platform/announcements', roles: [] },
   ];
 

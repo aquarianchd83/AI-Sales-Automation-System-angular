@@ -9,6 +9,7 @@ import { PlatformBillingComponent } from './platform-billing/platform-billing.co
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
 import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dialog/platform-job-schedule-dialog.component';
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
+import { PlatformLogsComponent } from './platform-logs/platform-logs.component';
 import { PlatformPlanFormDialogComponent } from './platform-plan-form-dialog/platform-plan-form-dialog.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
 import { PlatformTenantAiConfigDialogComponent } from './platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
@@ -36,6 +37,7 @@ const routes: Routes = [
       { path: 'jobs', component: PlatformJobsComponent },
       { path: 'users', component: PlatformUserSearchComponent },
       { path: 'audit-log', component: PlatformAuditLogComponent },
+      { path: 'logs', component: PlatformLogsComponent },
       { path: 'announcements', component: PlatformAnnouncementListComponent },
     ],
   },
@@ -59,6 +61,7 @@ const routes: Routes = [
     PlatformJobScheduleDialogComponent,
     PlatformUserSearchComponent,
     PlatformAuditLogComponent,
+    PlatformLogsComponent,
     PlatformAnnouncementListComponent,
     PlatformAnnouncementFormDialogComponent,
   ],

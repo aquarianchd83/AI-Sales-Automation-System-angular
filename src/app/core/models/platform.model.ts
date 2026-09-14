@@ -293,6 +293,38 @@ export interface PlatformAuditLogEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Logs (GET /logs, /logs/dates, /logs/modules)
+// ---------------------------------------------------------------------------
+
+/** Serilog's level names, most severe first. The API also accepts the 3-letter codes. */
+export const LOG_LEVELS = ['Fatal', 'Error', 'Warning', 'Information', 'Debug', 'Verbose'];
+
+/** LogQueryRequest. `date` is `YYYY-MM-DD`; the API defaults to today (IST) when it is omitted.
+ * `levels` matches any of them (empty/omitted means every level). `module` is a substring match on
+ * the logging class. */
+export interface PlatformLogQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  date?: string;
+  levels?: string[];
+  module?: string;
+  tenantId?: string;
+}
+
+/** LogEntryDto. `tenantId` is null for platform-level lines with no tenant, and for every line
+ * written before the API started tagging lines with their tenant. */
+export interface PlatformLogEntry {
+  timestamp: string;
+  level: string;
+  module: string | null;
+  method: string | null;
+  message: string;
+  tenantId: string | null;
+  tenantName: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Announcements (GET/POST/PUT/DELETE /announcements)
 // ---------------------------------------------------------------------------
 

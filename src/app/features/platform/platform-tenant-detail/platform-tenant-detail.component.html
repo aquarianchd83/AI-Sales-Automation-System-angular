@@ -1,5 +1,14 @@
 <div class="page">
   <app-page-header [title]="tenant?.name || 'Tenant'" [subtitle]="tenant?.slug || ''">
+    <a
+      *ngIf="tenant"
+      mat-stroked-button
+      [routerLink]="['/platform/logs']"
+      [queryParams]="{ tenantId: tenant.id }"
+    >
+      <mat-icon>receipt_long</mat-icon>
+      View logs
+    </a>
     <a mat-button routerLink="/platform/tenants">
       <mat-icon>arrow_back</mat-icon>
       Back to tenants
