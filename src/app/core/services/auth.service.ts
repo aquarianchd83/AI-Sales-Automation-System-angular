@@ -130,12 +130,17 @@ export class AuthService {
    * built entirely from the token's own claims — the same claim-derived path restoreSession falls
    * back to, just always taken here since a support session is never the "first ever login" case.
    *
-   * Callers must only do this in a fresh browser tab (see ImpersonationSessionService) — loading an
-   * impersonation token into the tab a PlatformSuperAdmin is already signed in on would silently
-   * replace their own session.
+   * Callers must only do this in a fresh browser tab (see ImpersonationSessionService). Both the
+   * token (via TokenStorageService.storeImpersonation) and the display user built from it here stay
+   * in memory rather than localStorage — the tab this runs in shares localStorage with the
+   * PlatformSuperAdmin's own Platform Admin Console tab that opened it, so writing either there
+   * would silently replace the operator's own session on their original tab, not just this one. A
+   * side effect: a manual page refresh ends the support session (nothing persists it) — an
+   * acceptable trade-off for a short-lived, security-sensitive session that's meant to be reopened
+   * from the console, not relied on to survive a reload.
    */
   beginImpersonationSession(accessToken: string): void {
-    this.tokens.store(accessToken, '');
+    this.tokens.storeImpersonation(accessToken);
     const claims = readAccessTokenClaims(this.tokens.decodeAccessToken() ?? {});
     const user: User = {
       id: claims.id,
@@ -147,7 +152,6 @@ export class AuthService {
       createdAt: '',
       lastLoginAt: null,
     };
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
 
@@ -176,8 +180,17 @@ export class AuthService {
   }
 
   private clearSession(): void {
+    // Read before clearing — isImpersonating decodes the current access token, which
+    // tokens.clear() below is about to erase. An impersonation session's display user was never
+    // written to localStorage in the first place (see beginImpersonationSession), so there's
+    // nothing of this tab's own to remove there; more importantly, removing USER_KEY
+    // unconditionally would also wipe it from the PlatformSuperAdmin's own tab, since
+    // localStorage is shared across same-origin tabs.
+    const wasImpersonating = this.isImpersonating;
     this.tokens.clear();
-    localStorage.removeItem(USER_KEY);
+    if (!wasImpersonating) {
+      localStorage.removeItem(USER_KEY);
+    }
     this.currentUserSubject.next(null);
   }
 
