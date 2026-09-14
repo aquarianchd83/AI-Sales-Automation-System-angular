@@ -1,9 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
+import { PLATFORM_ADMIN_ROLES } from '../models/platform.model';
 import {
   AssignRolesRequest,
   CreateUserRequest,
@@ -47,8 +49,13 @@ export class UserService {
     } as AssignRolesRequest);
   }
 
-  /** Returns role names as plain strings. */
+  /** Returns role names as plain strings — only the ones a tenant admin can assign. GET /roles also
+   * lists PlatformSuperAdmin, which belongs to no tenant and must never be offered on a tenant's own
+   * Users screen (see AppRole.PlatformSuperAdmin). Filtered by exclusion rather than against
+   * TENANT_ROLES so a new tenant role the backend seeds later still shows up without a frontend change. */
   getRoles(): Observable<Role[]> {
-    return this.http.get<Role[]>(this.rolesUrl);
+    return this.http
+      .get<Role[]>(this.rolesUrl)
+      .pipe(map((roles) => roles.filter((role) => !PLATFORM_ADMIN_ROLES.includes(role))));
   }
 }
