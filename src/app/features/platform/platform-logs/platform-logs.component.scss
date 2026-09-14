@@ -1,0 +1,95 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-tenant {
+  min-width: 240px;
+  flex: 1 1 240px;
+}
+
+.filter-search {
+  min-width: 200px;
+  flex: 1 1 200px;
+}
+
+.filter-select {
+  min-width: 150px;
+}
+
+.tenant-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px 12px;
+  font-size: 12px;
+}
+
+.mono,
+.message {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-size: 12px;
+}
+
+.mono {
+  white-space: nowrap;
+}
+
+.level {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #eceff1;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.level--warning {
+  background: rgba(239, 108, 0, 0.12);
+  color: #e65100;
+}
+
+.level--error {
+  background: rgba(183, 28, 28, 0.1);
+  color: #b71c1c;
+}
+
+/* Stack traces and raw Meta response bodies keep their line breaks, but long tokens still wrap
+   rather than stretching the table. */
+.message {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.expand {
+  margin-left: -8px;
+}
+
+td.mat-mdc-cell {
+  vertical-align: top;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.row-error td {
+  background: rgba(183, 28, 28, 0.03);
+}
+
+.mat-column-message {
+  min-width: 420px;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}
+
+table.mat-mdc-table {
+  min-width: 1000px;
+}

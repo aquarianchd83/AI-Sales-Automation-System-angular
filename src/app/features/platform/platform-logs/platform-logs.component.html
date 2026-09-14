@@ -1,0 +1,166 @@
+<div class="page">
+  <app-page-header
+    title="Logs"
+    subtitle="The API's own log output — pick a tenant to see only what happened on its behalf."
+  >
+    <button mat-stroked-button type="button" [disabled]="loading" (click)="refresh()">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </app-page-header>
+
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field class="filter-tenant" subscriptSizing="dynamic">
+        <mat-label>Tenant</mat-label>
+        <mat-icon matPrefix>business</mat-icon>
+        <input
+          matInput
+          [formControl]="tenantSearchControl"
+          [matAutocomplete]="tenantAuto"
+          placeholder="All tenants"
+        />
+        <button
+          *ngIf="selectedTenant"
+          mat-icon-button
+          matSuffix
+          type="button"
+          aria-label="Show all tenants"
+          (click)="clearTenant()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+        <mat-autocomplete
+          #tenantAuto="matAutocomplete"
+          [displayWith]="tenantDisplay"
+          (optionSelected)="onTenantSelected($event)"
+        >
+          <mat-option *ngFor="let tenant of tenantOptions$ | async" [value]="tenant">
+            {{ tenant.name }} <span class="muted">· {{ tenant.slug }}</span>
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+
+      <mat-form-field class="filter-select" subscriptSizing="dynamic">
+        <mat-label>Date</mat-label>
+        <mat-select [formControl]="dateControl">
+          <mat-option *ngIf="!dates.length" value="">Today</mat-option>
+          <mat-option *ngFor="let date of dates" [value]="date">
+            {{ date | date: 'EEE, MMM d' }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="filter-select" subscriptSizing="dynamic">
+        <mat-label>Levels</mat-label>
+        <mat-select [formControl]="levelControl" multiple>
+          <mat-option [value]="allLevels">All</mat-option>
+          <mat-option *ngFor="let level of levels" [value]="level">{{ level }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="filter-select" subscriptSizing="dynamic">
+        <mat-label>Module</mat-label>
+        <mat-select [formControl]="moduleControl">
+          <mat-option value="">All modules</mat-option>
+          <mat-option *ngFor="let module of modules" [value]="module" [matTooltip]="module">
+            {{ shortModule(module) }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Text in the message" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">{{ page.totalCount }} line{{ page.totalCount === 1 ? '' : 's' }}</span>
+    </div>
+
+    <div class="tenant-hint muted" *ngIf="selectedTenant">
+      <mat-icon inline>filter_alt</mat-icon>
+      Showing lines logged for {{ selectedTenant.name }} only. Platform-level lines with no tenant, and
+      anything logged before tenant tagging was turned on, are not included.
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="page.items">
+        <ng-container matColumnDef="timestamp">
+          <th mat-header-cell *matHeaderCellDef>Time</th>
+          <td mat-cell *matCellDef="let entry">
+            <span class="mono">{{ entry.timestamp | date: 'HH:mm:ss.SSS' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="level">
+          <th mat-header-cell *matHeaderCellDef>Level</th>
+          <td mat-cell *matCellDef="let entry">
+            <span [class]="levelClass(entry.level)">{{ entry.level }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="tenant">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let entry">
+            <a *ngIf="entry.tenantId" [routerLink]="['/platform/tenants', entry.tenantId]">
+              {{ entry.tenantName || entry.tenantId }}
+            </a>
+            <span class="muted" *ngIf="!entry.tenantId">—</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="source">
+          <th mat-header-cell *matHeaderCellDef>Source</th>
+          <td mat-cell *matCellDef="let entry">
+            <span class="mono" *ngIf="entry.module" [matTooltip]="entry.module">
+              {{ shortModule(entry.module) }}<ng-container *ngIf="entry.method">::{{ entry.method }}</ng-container>
+            </span>
+            <span class="muted" *ngIf="!entry.module">—</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="message">
+          <th mat-header-cell *matHeaderCellDef>Message</th>
+          <td mat-cell *matCellDef="let entry">
+            <pre class="message">{{ expanded.has(entry) ? entry.message : preview(entry) }}</pre>
+            <button
+              *ngIf="isLong(entry)"
+              mat-button
+              color="primary"
+              type="button"
+              class="expand"
+              (click)="toggle(entry)"
+            >
+              {{ expanded.has(entry) ? 'Show less' : 'Show more' }}
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let entry; columns: displayedColumns"
+          [class.row-error]="entry.level === 'Error' || entry.level === 'Fatal'"
+        ></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">receipt_long</mat-icon>
+      <p>No log lines match these filters.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

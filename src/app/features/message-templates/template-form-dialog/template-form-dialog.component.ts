@@ -5,7 +5,13 @@ import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import { KNOWN_PLACEHOLDER_TOKENS, placeholderTokenValidator } from '../../../core/utils/placeholder-tokens';
-import { MessageTemplate, TEMPLATE_CATEGORIES, WhatsAppTemplateStatus } from '../../../core/models/message-template.model';
+import {
+  MessageTemplate,
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_LANGUAGES,
+  templateLanguageLabel,
+  WhatsAppTemplateStatus,
+} from '../../../core/models/message-template.model';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -22,13 +28,21 @@ export interface TemplateFormDialogData {
 export class TemplateFormDialogComponent {
   readonly isEdit = this.data.mode === 'edit';
   readonly categories = TEMPLATE_CATEGORIES;
+  readonly languages = TEMPLATE_LANGUAGES;
+  readonly languageLabel = templateLanguageLabel;
   readonly knownTokens = KNOWN_PLACEHOLDER_TOKENS;
   readonly bodyTextPlaceholderExample = 'Hi {{FirstName}}, your order is on its way.';
 
+  /**
+   * Language and category stay editable until the template has been created on Meta — Meta does
+   * not allow changing either afterward, and the API rejects it too.
+   */
+  readonly canEditLanguageAndCategory = !this.isEdit || !this.data.template?.metaTemplateId;
+
   readonly form = this.fb.nonNullable.group({
-    // Name/language/category/WhatsApp template name are immutable after creation, so these
-    // three controls exist only in create mode — the template shows them as read-only text
-    // when editing.
+    // Name and WhatsApp template name are immutable after creation, so those controls are only
+    // shown in create mode. Language and category are also shown when editing a template that
+    // has not been created on Meta yet — see canEditLanguageAndCategory.
     name: [this.data.template?.name ?? '', [Validators.required, Validators.maxLength(200)]],
     language: [this.data.template?.language ?? 'en', [Validators.required, Validators.maxLength(10)]],
     category: [this.data.template?.category ?? this.categories[0], [Validators.required]],
@@ -65,10 +79,14 @@ export class TemplateFormDialogComponent {
 
   /** True when saving would silently drop this template back to Pending. */
   get willResetApproval(): boolean {
+    const t = this.data.template;
+    if (!this.isEdit || t?.whatsAppTemplateStatus !== WhatsAppTemplateStatus.Approved) {
+      return false;
+    }
+    const { bodyText, language, category } = this.form.controls;
     return (
-      this.isEdit &&
-      this.data.template?.whatsAppTemplateStatus === WhatsAppTemplateStatus.Approved &&
-      this.form.controls.bodyText.value !== this.data.template.bodyText
+      bodyText.value !== t.bodyText ||
+      (this.canEditLanguageAndCategory && (language.value !== t.language || category.value !== t.category))
     );
   }
 
@@ -84,6 +102,9 @@ export class TemplateFormDialogComponent {
         ? this.templates.update(this.data.template.id, {
             bodyText: raw.bodyText.trim(),
             isActive: raw.isActive,
+            ...(this.canEditLanguageAndCategory
+              ? { language: raw.language, category: raw.category }
+              : {}),
           })
         : this.templates.create({
             name: raw.name.trim(),
