@@ -8,41 +8,33 @@
     [opened]="(isHandset$ | async) === false"
   >
     <div class="brand">
-      <mat-icon color="primary">forum</mat-icon>
+      <span class="brand-logo"><mat-icon>forum</mat-icon></span>
       <div class="brand-text">
         <span class="brand-title">Sales Automation</span>
         <span class="brand-subtitle">Admin Panel</span>
       </div>
     </div>
 
-    <mat-nav-list *ngIf="!isPlatformSuperAdmin">
-      <ng-container *ngFor="let item of tenantNavItems">
-        <a
-          mat-list-item
-          *appHasRole="item.roles"
-          [routerLink]="item.route"
-          routerLinkActive="nav-active"
-          (click)="drawer.mode === 'over' ? drawer.close() : null"
-        >
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.label }}</span>
-        </a>
+    <nav class="nav">
+      <ng-container *ngFor="let section of navSections">
+        <div class="nav-section" *ngIf="isSectionVisible(section)">
+          <div class="nav-section-label" *ngIf="section.label">{{ section.label }}</div>
+          <ng-container *ngFor="let item of section.items">
+            <a
+              class="nav-item"
+              matRipple
+              *appHasRole="item.roles"
+              [routerLink]="item.route"
+              routerLinkActive="nav-active"
+              (click)="drawer.mode === 'over' ? drawer.close() : null"
+            >
+              <mat-icon>{{ item.icon }}</mat-icon>
+              <span>{{ item.label }}</span>
+            </a>
+          </ng-container>
+        </div>
       </ng-container>
-    </mat-nav-list>
-
-    <mat-nav-list *ngIf="isPlatformSuperAdmin">
-      <ng-container *ngFor="let item of platformNavItems">
-        <a
-          mat-list-item
-          [routerLink]="item.route"
-          routerLinkActive="nav-active"
-          (click)="drawer.mode === 'over' ? drawer.close() : null"
-        >
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.label }}</span>
-        </a>
-      </ng-container>
-    </mat-nav-list>
+    </nav>
   </mat-sidenav>
 
   <mat-sidenav-content>

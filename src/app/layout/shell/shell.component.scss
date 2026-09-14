@@ -4,17 +4,33 @@
 }
 
 .shell-sidenav {
-  width: 248px;
+  width: 240px;
   background: #ffffff;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 18px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 10px;
+  padding: 18px 20px 14px;
+}
+
+.brand-logo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #00796b, #3949ab);
+  color: #fff;
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
 }
 
 .brand-text {
@@ -24,21 +40,91 @@
 }
 
 .brand-title {
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .brand-subtitle {
-  font-size: 12px;
-  color: rgba(0, 0, 0, 0.54);
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.5);
 }
 
-// routerLinkActive marks the current section; MatListItem's own `activated` input
-// is avoided so this does not depend on Material's list internals.
-.nav-active {
-  background: rgba(0, 105, 92, 0.1);
-  color: #00695c;
+/* Plain links rather than mat-nav-list: MDC list items carry fixed 48px heights and padding
+   that fight a compact, grouped layout. */
+.nav {
+  padding: 4px 12px 20px;
+}
+
+.nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  & + & {
+    margin-top: 18px;
+  }
+}
+
+.nav-section-label {
+  padding: 0 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.72);
+  text-decoration: none;
+  transition: background 120ms ease, color 120ms ease;
 
   mat-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    color: rgba(0, 0, 0, 0.45);
+  }
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+// routerLinkActive marks the current section.
+.nav-active {
+  background: rgba(0, 121, 107, 0.1);
+  color: #00695c;
+  font-weight: 500;
+
+  mat-icon {
+    color: #00796b;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 9px;
+    bottom: 9px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: #00796b;
+  }
+
+  &:hover {
+    background: rgba(0, 121, 107, 0.14);
     color: #00695c;
   }
 }
