@@ -12,9 +12,9 @@
   <mat-card class="platform-jobs-card" *ngIf="platformJobs.length">
     <h3>Platform-wide jobs</h3>
     <p class="muted">
-      Not per-tenant, so there is nothing to schedule per tenant here — the token refresh acts on the
-      platform's own Meta app, and the reconcile pass is what keeps every tenant's registrations in
-      step with their schedules.
+      Not per-tenant. The reconcile pass keeps every tenant's job registrations in step with their
+      schedules — it runs once a day, or on demand with Reconcile now. Everything else, including each
+      tenant's WhatsApp token refresh, is listed per tenant below.
     </p>
     <div class="platform-job" *ngFor="let job of platformJobs">
       <code class="job-id">{{ job.recurringJobId }}</code>

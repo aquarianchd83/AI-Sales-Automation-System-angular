@@ -421,9 +421,9 @@ export interface PlatformJobTriggerResult {
   backgroundJobId: string;
 }
 
-/** PlatformGlobalJobDto — a recurring job that is platform-global rather than per-tenant (the
- * WhatsApp token refresh and the reconcile pass itself). Read-only: there is no tenant to scope a
- * schedule edit to. */
+/** PlatformGlobalJobDto — a recurring job that is platform-global rather than per-tenant (currently
+ * just the tenant-job reconcile pass; the WhatsApp token refresh is per tenant). Read-only: there is no
+ * tenant to scope a schedule edit to. */
 export interface PlatformGlobalJob {
   recurringJobId: string;
   cronExpression: string | null;
