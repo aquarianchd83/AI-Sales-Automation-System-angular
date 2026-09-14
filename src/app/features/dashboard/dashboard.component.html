@@ -1,42 +1,308 @@
 <div class="page">
-  <app-page-header
-    [title]="'Dashboard'"
-    subtitle="Phase 2 scope: authentication, users & roles, and customer management."
-  >
-    <a mat-flat-button color="primary" routerLink="/customers">
-      <mat-icon>groups</mat-icon>
-      Manage customers
-    </a>
-  </app-page-header>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-text">
+      <div class="hero-date">{{ today | date: 'EEEE, d MMMM' }}</div>
+      <h1>{{ greeting }}, {{ firstName(currentUser$ | async) }} 👋</h1>
+      <p>Here's what's happening across your WhatsApp sales today.</p>
+    </div>
+    <div class="hero-actions">
+      <a mat-flat-button class="hero-btn hero-btn--primary" routerLink="/conversations">
+        <mat-icon>inbox</mat-icon>
+        Open inbox
+      </a>
+      <a mat-stroked-button class="hero-btn" routerLink="/campaigns">
+        <mat-icon>campaign</mat-icon>
+        Campaigns
+      </a>
+      <a mat-stroked-button class="hero-btn" routerLink="/customers">
+        <mat-icon>person_add</mat-icon>
+        Customers
+      </a>
+    </div>
+    <mat-icon class="hero-art" aria-hidden="true">chat</mat-icon>
+  </section>
 
-  <div class="greeting" *ngIf="currentUser$ | async as user">
-    Signed in as <strong>{{ user.fullName || user.email }}</strong>
-    <span class="muted" *ngIf="user.roles.length"> — {{ user.roles.join(', ') }}</span>
+  <!-- Needs attention -->
+  <div class="alerts" *ngIf="alerts.length">
+    <div class="alert" *ngFor="let alert of alerts" [class]="'alert alert--' + alert.tone">
+      <mat-icon>{{ alert.icon }}</mat-icon>
+      <span class="alert-text">{{ alert.text }}</span>
+      <a mat-button [routerLink]="alert.route">{{ alert.action }}</a>
+    </div>
   </div>
 
-  <div class="stat-grid">
-    <a class="stat-card-link" *ngFor="let stat of stats" [routerLink]="stat.route">
-      <mat-card class="stat-card">
-        <mat-icon class="stat-icon">{{ stat.icon }}</mat-icon>
-        <div class="stat-body">
-          <div class="stat-value">
-            <mat-spinner *ngIf="stat.value === null && loading" diameter="20"></mat-spinner>
-            <ng-container *ngIf="stat.value !== null">{{ stat.value }}</ng-container>
-            <span class="unavailable" *ngIf="stat.value === null && !loading">—</span>
-          </div>
-          <div class="stat-label">{{ stat.label }}</div>
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <a class="kpi" *ngFor="let kpi of kpis" [routerLink]="kpi.route" [class]="'kpi tone-' + kpi.tone">
+      <div class="kpi-icon"><mat-icon>{{ kpi.icon }}</mat-icon></div>
+      <div class="kpi-body">
+        <div class="kpi-value">
+          <ng-container *ngIf="kpi.value !== null; else kpiPending">{{ kpi.value | number }}</ng-container>
+          <ng-template #kpiPending>
+            <span class="skeleton skeleton--value" *ngIf="loadingOverview || loadingPipeline; else unavailable"></span>
+            <ng-template #unavailable><span class="unavailable">—</span></ng-template>
+          </ng-template>
         </div>
-      </mat-card>
+        <div class="kpi-label">{{ kpi.label }}</div>
+        <div class="kpi-hint" *ngIf="kpi.hint">{{ kpi.hint }}</div>
+      </div>
     </a>
   </div>
 
-  <mat-card class="roadmap">
-    <h2>Not built yet</h2>
-    <p class="muted">
-      Campaigns, Media Library, Agent Inbox, Knowledge Base, Leads/CRM and Reports arrive
-      in Phases 3–6 of the architecture plan. Their API endpoints do not exist yet, so no
-      navigation is offered for them. A breakdown of customers by opt-in status is also
-      pending — the customer list endpoint accepts no status filter.
-    </p>
+  <!-- Getting started -->
+  <mat-card class="widget checklist" *ngIf="checklist.length">
+    <div class="widget-head">
+      <div>
+        <h2>Get your workspace ready</h2>
+        <p class="muted">{{ checklistDone }} of {{ checklist.length }} steps complete</p>
+      </div>
+    </div>
+    <mat-progress-bar mode="determinate" [value]="(checklistDone / checklist.length) * 100"></mat-progress-bar>
+    <div class="checklist-grid">
+      <a class="step" *ngFor="let step of checklist" [routerLink]="step.route" [class.step--done]="step.done">
+        <mat-icon class="step-check">{{ step.done ? 'check_circle' : step.icon }}</mat-icon>
+        <div>
+          <div class="step-label">{{ step.label }}</div>
+          <div class="step-hint">{{ step.hint }}</div>
+        </div>
+      </a>
+    </div>
   </mat-card>
+
+  <div class="widget-grid">
+    <!-- Lead pipeline -->
+    <mat-card class="widget">
+      <div class="widget-head">
+        <div>
+          <h2>Lead pipeline</h2>
+          <p class="muted">Leads by stage</p>
+        </div>
+        <a mat-button color="primary" routerLink="/leads">View leads</a>
+      </div>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingPipeline"></mat-progress-bar>
+      <div class="bars" *ngIf="!loadingPipeline">
+        <div class="bar-row" *ngFor="let bar of stageBars">
+          <span class="bar-label">{{ bar.label }}</span>
+          <div class="bar-track">
+            <div class="bar-fill" [class]="'bar-fill fill-' + bar.tone" [style.width.%]="bar.percent"></div>
+          </div>
+          <span class="bar-count">{{ bar.count | number }}</span>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Lead temperature -->
+    <mat-card class="widget">
+      <div class="widget-head">
+        <div>
+          <h2>Lead temperature</h2>
+          <p class="muted">AI-scored buying intent</p>
+        </div>
+      </div>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingPipeline"></mat-progress-bar>
+      <ng-container *ngIf="!loadingPipeline">
+        <div class="empty" *ngIf="!bandTotal">
+          <mat-icon>thermostat</mat-icon>
+          <span>No scored leads yet. Leads appear once customers start replying.</span>
+        </div>
+        <ng-container *ngIf="bandTotal">
+          <div class="temp-total">
+            <span class="temp-number">{{ bandTotal | number }}</span>
+            <span class="muted">scored leads</span>
+          </div>
+          <div class="stacked">
+            <div
+              *ngFor="let bar of bandBars"
+              [class]="'stacked-seg fill-' + bar.tone"
+              [style.width.%]="bar.percent"
+              [matTooltip]="bar.label + ': ' + bar.count"
+            ></div>
+          </div>
+          <div class="legend">
+            <div class="legend-item" *ngFor="let bar of bandBars">
+              <span [class]="'dot fill-' + bar.tone"></span>
+              <span class="legend-label">{{ bar.label }}</span>
+              <span class="legend-value">{{ bar.count | number }}</span>
+              <span class="muted legend-pct">{{ bar.percent | number: '1.0-0' }}%</span>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </mat-card>
+
+    <!-- Recent conversations -->
+    <mat-card class="widget">
+      <div class="widget-head">
+        <div>
+          <h2>Recent conversations</h2>
+          <p class="muted">Latest activity in your inbox</p>
+        </div>
+        <a mat-button color="primary" routerLink="/conversations">Inbox</a>
+      </div>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingOverview"></mat-progress-bar>
+      <ng-container *ngIf="!loadingOverview">
+        <div class="empty" *ngIf="!recentConversations.length">
+          <mat-icon>forum</mat-icon>
+          <span>No conversations yet.</span>
+        </div>
+        <a class="row" *ngFor="let c of recentConversations" [routerLink]="['/conversations', c.id]">
+          <span class="avatar tone-indigo">{{ initials(c.customerName) }}</span>
+          <div class="row-main">
+            <div class="row-title">{{ c.customerName || c.customerPhoneNumberE164 }}</div>
+            <div class="row-sub">{{ c.summary || c.customerPhoneNumberE164 }}</div>
+          </div>
+          <div class="row-meta">
+            <span [class]="conversationStatusChipClass(c.status)">{{ c.status }}</span>
+            <span class="row-time">{{ timeAgo(c.lastMessageAt || c.createdAt) }}</span>
+          </div>
+        </a>
+      </ng-container>
+    </mat-card>
+
+    <!-- Pending handoffs -->
+    <mat-card class="widget">
+      <div class="widget-head">
+        <div>
+          <h2>Waiting for an agent</h2>
+          <p class="muted">Conversations the AI handed to a human</p>
+        </div>
+        <a mat-button color="primary" routerLink="/handoffs">Handoffs</a>
+      </div>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingOverview"></mat-progress-bar>
+      <ng-container *ngIf="!loadingOverview">
+        <div class="empty empty--good" *ngIf="!pendingHandoffs.length">
+          <mat-icon>task_alt</mat-icon>
+          <span>All caught up — nobody is waiting.</span>
+        </div>
+        <a class="row" *ngFor="let h of pendingHandoffs" [routerLink]="['/conversations', h.conversationId]">
+          <span class="avatar tone-amber">{{ initials(h.customerName) }}</span>
+          <div class="row-main">
+            <div class="row-title">{{ h.customerName || h.customerPhoneNumberE164 }}</div>
+            <div class="row-sub">{{ h.triggerReason }}</div>
+          </div>
+          <div class="row-meta">
+            <span class="status-chip status-chip--paused">Pending</span>
+            <span class="row-time">{{ timeAgo(h.createdAt) }}</span>
+          </div>
+        </a>
+      </ng-container>
+    </mat-card>
+
+    <!-- Top leads -->
+    <mat-card class="widget">
+      <div class="widget-head">
+        <div>
+          <h2>Hottest leads</h2>
+          <p class="muted">Highest AI score first</p>
+        </div>
+        <a mat-button color="primary" routerLink="/leads">All leads</a>
+      </div>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingPipeline"></mat-progress-bar>
+      <ng-container *ngIf="!loadingPipeline">
+        <div class="empty" *ngIf="!topLeads.length">
+          <mat-icon>insights</mat-icon>
+          <span>No leads yet.</span>
+        </div>
+        <a class="row" *ngFor="let l of topLeads" [routerLink]="['/leads', l.id]">
+          <div class="score-ring" [style.--score]="l.scoreNumeric" [class]="'score-ring tone-' + (l.score === 'Hot' ? 'rose' : l.score === 'Warm' ? 'amber' : 'blue')">
+            <span>{{ l.scoreNumeric }}</span>
+          </div>
+          <div class="row-main">
+            <div class="row-title">{{ l.customerName || l.customerPhoneNumberE164 }}</div>
+            <div class="row-sub">{{ l.interest || 'Interest not captured yet' }}</div>
+          </div>
+          <div class="row-meta">
+            <span [class]="leadStageChipClass(l.stage)">{{ l.stage }}</span>
+            <span [class]="leadScoreChipClass(l.score)">{{ l.score }}</span>
+          </div>
+        </a>
+      </ng-container>
+    </mat-card>
+
+    <!-- Campaigns -->
+    <mat-card class="widget">
+      <div class="widget-head">
+        <div>
+          <h2>Campaigns</h2>
+          <p class="muted">Most recently created</p>
+        </div>
+        <a mat-button color="primary" routerLink="/campaigns">All campaigns</a>
+      </div>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingOverview"></mat-progress-bar>
+      <ng-container *ngIf="!loadingOverview">
+        <div class="empty" *ngIf="!recentCampaigns.length">
+          <mat-icon>campaign</mat-icon>
+          <span>No campaigns yet.</span>
+          <a mat-stroked-button color="primary" routerLink="/campaigns">Create one</a>
+        </div>
+        <a class="row" *ngFor="let c of recentCampaigns" [routerLink]="['/campaigns', c.id]">
+          <span class="avatar tone-rose"><mat-icon>campaign</mat-icon></span>
+          <div class="row-main">
+            <div class="row-title">{{ c.name }}</div>
+            <div class="row-sub">
+              {{ c.audienceCount | number }} {{ c.audienceCount === 1 ? 'recipient' : 'recipients' }} ·
+              {{ c.steps.length }} {{ c.steps.length === 1 ? 'step' : 'steps' }}
+            </div>
+          </div>
+          <div class="row-meta">
+            <span [class]="campaignStatusChipClass(c.status)">{{ c.status }}</span>
+            <span class="row-time">{{ timeAgo(c.createdAt) }}</span>
+          </div>
+        </a>
+      </ng-container>
+    </mat-card>
+
+    <!-- Plan & usage (tenant admins) -->
+    <mat-card class="widget widget--wide" *ngIf="isTenantAdmin">
+      <div class="widget-head">
+        <div>
+          <h2>Plan &amp; usage</h2>
+          <p class="muted">This calendar month</p>
+        </div>
+        <a mat-button color="primary" routerLink="/billing">Billing</a>
+      </div>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingAccount"></mat-progress-bar>
+      <div class="account" *ngIf="!loadingAccount && account">
+        <div class="account-cell">
+          <div class="account-label">Current plan</div>
+          <div class="account-value">{{ account.subscription?.planName || 'Free trial' }}</div>
+          <div class="account-sub muted" *ngIf="account.subscription as sub">
+            {{ sub.status }}
+            <ng-container *ngIf="sub.currentPeriodEndUtc"> · renews {{ sub.currentPeriodEndUtc | date: 'mediumDate' }}</ng-container>
+          </div>
+        </div>
+
+        <div class="account-cell account-cell--grow">
+          <div class="account-label">Messages sent</div>
+          <ng-container *ngIf="account.usage as usage; else usageUnavailable">
+            <div class="account-value">
+              {{ usage.messagesSentThisMonth | number }}
+              <span class="muted account-of">
+                / {{ usage.maxMessagesPerMonth ? (usage.maxMessagesPerMonth | number) : 'unlimited' }}
+              </span>
+            </div>
+            <mat-progress-bar
+              *ngIf="quotaPercent !== null"
+              mode="determinate"
+              [value]="quotaPercent"
+              [color]="quotaPercent >= 80 ? 'warn' : 'primary'"
+            ></mat-progress-bar>
+          </ng-container>
+          <ng-template #usageUnavailable><div class="account-value unavailable">—</div></ng-template>
+        </div>
+
+        <div class="account-cell">
+          <div class="account-label">WhatsApp</div>
+          <div class="connection" [class.connection--on]="account.whatsApp?.isConnected">
+            <span class="pulse"></span>
+            {{ account.whatsApp?.isConnected ? 'Connected' : 'Not connected' }}
+          </div>
+          <div class="account-sub muted" *ngIf="account.whatsApp?.phoneNumberId as phoneId">
+            Number ID {{ phoneId }}
+          </div>
+        </div>
+      </div>
+    </mat-card>
+  </div>
 </div>

@@ -19,7 +19,7 @@ export enum AppRole {
  * screens (Dashboard, Customers, Inbox, ...) that used to have no role restriction at all: without
  * this, a PlatformSuperAdmin (who belongs to no tenant) could still reach them by typing the URL
  * directly, even though the shell nav never links to them for that role — see ShellComponent's own
- * split between tenantNavItems and the Platform Admin entry.  */
+ * split between tenantNavSections and the Platform Admin entry.  */
 export const TENANT_ROLES: string[] = [
   AppRole.SuperAdmin,
   AppRole.Admin,
