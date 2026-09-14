@@ -1,0 +1,65 @@
+<div class="page">
+  <mat-card class="table-card">
+    <div class="section-header">
+      <span class="muted">
+        Token health/expiry isn't shown — BYO-WABA tenant credentials are a long-lived token this
+        platform does not track or auto-refresh (that only ever applied to the old pre-multi-tenancy
+        platform account). "Connected" means the tenant finished saving a complete config, not a
+        live check against Meta.
+      </span>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="connections">
+        <ng-container matColumnDef="tenant">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let row">
+            <a [routerLink]="['/platform/tenants', row.tenantId]">{{ row.tenantName }}</a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="phoneNumberId">
+          <th mat-header-cell *matHeaderCellDef>Phone number ID</th>
+          <td mat-cell *matCellDef="let row">{{ row.phoneNumberId || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span
+              class="status-chip"
+              [class.status-chip--opted-in]="row.isConnected"
+              [class.status-chip--inactive]="!row.isConnected"
+            >
+              {{ row.isConnected ? 'Connected' : 'Not connected' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="webhooks">
+          <th mat-header-cell *matHeaderCellDef>Webhooks (24h)</th>
+          <td mat-cell *matCellDef="let row">
+            <span [class.quota-breached]="row.webhookFailuresLast24h > 0">
+              {{ row.webhookEventsLast24h }} received, {{ row.webhookFailuresLast24h }} failed
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="updatedAt">
+          <th mat-header-cell *matHeaderCellDef>Config updated</th>
+          <td mat-cell *matCellDef="let row">{{ row.configUpdatedAtUtc ? (row.configUpdatedAtUtc | date: 'medium') : '—' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !connections.length">
+      <mat-icon class="empty-icon">cloud_off</mat-icon>
+      <p>No tenant has connected a WhatsApp Business Account yet.</p>
+    </div>
+  </mat-card>
+</div>

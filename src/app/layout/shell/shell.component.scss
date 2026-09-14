@@ -98,3 +98,31 @@
   display: block;
   min-height: calc(100vh - 64px);
 }
+
+.impersonation-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: #fff3e0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  color: #7a4a00;
+
+  span {
+    flex: 1;
+  }
+}
+
+.announcement-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: #e3f2fd;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  color: #0d47a1;
+
+  span {
+    flex: 1;
+  }
+}

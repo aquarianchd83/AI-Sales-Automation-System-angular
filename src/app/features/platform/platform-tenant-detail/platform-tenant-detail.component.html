@@ -1,0 +1,231 @@
+<div class="page">
+  <app-page-header [title]="tenant?.name || 'Tenant'" [subtitle]="tenant?.slug || ''">
+    <a mat-button routerLink="/platform/tenants">
+      <mat-icon>arrow_back</mat-icon>
+      Back to tenants
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <ng-container *ngIf="tenant && !loading">
+    <div class="detail-grid">
+      <mat-card class="detail-card">
+        <h3>Overview</h3>
+        <dl>
+          <dt>Status</dt>
+          <dd>{{ statusLabels[tenant.status] }}</dd>
+          <dt>Owner</dt>
+          <dd>{{ tenant.ownerEmail || '—' }}</dd>
+          <dt>Users</dt>
+          <dd>{{ tenant.userCount }}</dd>
+          <dt>Signed up</dt>
+          <dd>{{ tenant.createdAt | date: 'medium' }}</dd>
+          <dt>Trial ends</dt>
+          <dd>{{ tenant.trialEndsAtUtc ? (tenant.trialEndsAtUtc | date: 'medium') : '—' }}</dd>
+          <dt>Timezone</dt>
+          <dd>{{ tenant.timezone }}</dd>
+          <dt>Country</dt>
+          <dd>{{ tenant.countryCode || '— (plan pricing shows in USD)' }}</dd>
+        </dl>
+        <div class="inline-override">
+          <mat-form-field subscriptSizing="dynamic" class="inline-select">
+            <mat-label>Override timezone</mat-label>
+            <mat-select [formControl]="timezoneControl">
+              <mat-option *ngFor="let tz of timezones" [value]="tz.id">{{ tz.displayName }} (UTC{{ tz.utcOffset }})</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button type="button" [disabled]="!timezoneControl.value || savingTimezone" (click)="saveTimezoneOverride()">
+            Apply
+          </button>
+        </div>
+        <p class="muted hint">The tenant's own Admin can also change this from their Workspace settings.</p>
+        <div class="inline-override">
+          <mat-form-field subscriptSizing="dynamic" class="inline-select">
+            <mat-label>Override country</mat-label>
+            <mat-select [formControl]="countryControl">
+              <mat-option *ngFor="let region of regions" [value]="region.countryCode">{{ region.countryName }} ({{ region.currencyCode }})</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button type="button" [disabled]="!countryControl.value || savingCountry" (click)="saveCountryOverride()">
+            Apply
+          </button>
+        </div>
+        <p class="muted hint">Fixes which currency this tenant's plan price shows in.</p>
+        <div class="card-actions">
+          <button mat-flat-button color="primary" type="button" [disabled]="impersonating" (click)="impersonate()">
+            <mat-icon>visibility</mat-icon>
+            Impersonate
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            *ngIf="tenant.status !== TenantStatus.Suspended"
+            (click)="suspend()"
+          >
+            Suspend
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            *ngIf="tenant.status === TenantStatus.Suspended || tenant.status === TenantStatus.Deleted"
+            (click)="reactivate()"
+          >
+            Reactivate
+          </button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="tenant.status !== TenantStatus.Deleted" (click)="delete()">
+            Delete
+          </button>
+        </div>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>Billing</h3>
+        <dl>
+          <dt>Plan</dt>
+          <dd>{{ tenant.planName || '—' }}</dd>
+          <dt>Subscription status</dt>
+          <dd>{{ tenant.subscriptionStatus !== null ? subscriptionStatusLabels[tenant.subscriptionStatus] : '—' }}</dd>
+          <dt>Current period ends</dt>
+          <dd>{{ tenant.currentPeriodEndUtc ? (tenant.currentPeriodEndUtc | date: 'medium') : '—' }}</dd>
+        </dl>
+        <div class="inline-override">
+          <mat-form-field subscriptSizing="dynamic" class="inline-select">
+            <mat-label>Override plan</mat-label>
+            <mat-select [formControl]="planControl">
+              <mat-option *ngFor="let plan of plans" [value]="plan.id">{{ plan.name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button type="button" [disabled]="!planControl.value || savingPlan" (click)="savePlanOverride()">
+            Apply
+          </button>
+        </div>
+        <p class="muted hint">Sets the plan directly — e.g. a negotiated deal or a support fix.</p>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>Usage this month</h3>
+        <dl>
+          <dt>Messages sent</dt>
+          <dd>{{ tenant.messagesSentThisMonth }} / {{ tenant.maxMessagesPerMonth ?? '∞' }}</dd>
+          <dt>AI interactions</dt>
+          <dd>{{ tenant.aiInteractionsThisMonth }}</dd>
+          <dt>Estimated AI spend</dt>
+          <dd>${{ tenant.estimatedAiSpendThisMonthUsd.toFixed(4) }}</dd>
+        </dl>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>WhatsApp</h3>
+        <dl>
+          <dt>Connection</dt>
+          <dd>
+            <span
+              class="status-chip"
+              [class.status-chip--opted-in]="tenant.whatsAppConnected"
+              [class.status-chip--inactive]="!tenant.whatsAppConnected"
+            >
+              {{ tenant.whatsAppConnected ? 'Connected' : 'Not connected' }}
+            </span>
+          </dd>
+          <dt *ngIf="whatsAppConfig?.phoneNumberId">Phone number ID</dt>
+          <dd *ngIf="whatsAppConfig?.phoneNumberId">{{ whatsAppConfig?.phoneNumberId }}</dd>
+        </dl>
+        <div class="card-actions">
+          <button mat-stroked-button type="button" [disabled]="loadingConfig" (click)="editWhatsAppConfig()">
+            {{ whatsAppConfig ? 'Edit' : 'Configure' }}
+          </button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="whatsAppConfig" (click)="deleteWhatsAppConfig()">
+            Delete
+          </button>
+        </div>
+        <p class="muted hint">
+          Only a PlatformSuperAdmin can set or change this — the tenant's own admin sees status only.
+        </p>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>AI provider</h3>
+        <dl>
+          <dt>Chat provider</dt>
+          <dd>{{ aiConfig?.provider ?? 'Simulated' }}</dd>
+          <dt>Embedding provider</dt>
+          <dd>{{ aiConfig?.embeddingProvider ?? 'Simulated' }}</dd>
+        </dl>
+        <div class="card-actions">
+          <button mat-stroked-button type="button" [disabled]="loadingConfig" (click)="editAiConfig()">
+            {{ aiConfig ? 'Edit' : 'Configure' }}
+          </button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="aiConfig" (click)="deleteAiConfig()">
+            Delete
+          </button>
+        </div>
+        <p class="muted hint">
+          Only a PlatformSuperAdmin can set or change this — the tenant's own admin sees status only.
+        </p>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>Background jobs</h3>
+        <p class="muted" *ngIf="loadingJobs">Loading…</p>
+        <ng-container *ngIf="tenantJobs && !loadingJobs">
+          <dl>
+            <ng-container *ngFor="let job of tenantJobs.jobs">
+              <dt>{{ job.displayName }}</dt>
+              <dd>
+                <code class="cron">{{ job.cronExpression }}</code>
+                <span class="job-state" [class.job-state-off]="!job.isEnabled || !job.isRegistered">
+                  {{ job.isEnabled ? (job.isRegistered ? 'running' : 'not running') : 'paused' }}
+                </span>
+                <span class="muted job-last" *ngIf="job.lastRunAtUtc">
+                  · last {{ outcomeLabel(job.lastRunOutcome) | lowercase }}
+                  {{ job.lastRunAtUtc | date: 'short' }}
+                </span>
+                <span
+                  class="job-failures"
+                  *ngIf="job.consecutiveFailureCount"
+                  [matTooltip]="job.lastRunSummary || ''"
+                >
+                  · {{ job.consecutiveFailureCount }} consecutive failure(s)
+                </span>
+              </dd>
+            </ng-container>
+          </dl>
+          <div class="card-actions">
+            <a mat-stroked-button [routerLink]="['/platform/jobs']" [queryParams]="{ tenantId: tenantJobs.tenantId }">
+              Manage
+            </a>
+          </div>
+          <p class="muted hint" *ngIf="!tenantJobs.runsBackgroundJobs">
+            This tenant is {{ statusLabels[tenantJobs.tenantStatus] }}, so none of its jobs are
+            registered — the schedules below are kept and restored if it is reactivated.
+          </p>
+          <p class="muted hint" *ngIf="tenantJobs.runsBackgroundJobs">
+            Each job runs on this tenant's own schedule. Only a PlatformSuperAdmin can change, pause or
+            run them.
+          </p>
+        </ng-container>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>Advanced settings</h3>
+        <dl>
+          <dt>Overrides</dt>
+          <dd>{{ overrideCount }} of {{ totalOverridableCount }} value(s) overridden</dd>
+        </dl>
+        <div class="card-actions">
+          <button mat-stroked-button type="button" [disabled]="loadingConfigOverrides" (click)="editConfigOverrides()">
+            Edit
+          </button>
+          <button mat-stroked-button color="warn" type="button" *ngIf="overrideCount" (click)="resetConfigOverrides()">
+            Reset
+          </button>
+        </div>
+        <p class="muted hint">
+          Campaigns, media, messaging and AI tuning for this tenant — falls back to the platform default
+          (Configuration → Settings) when not overridden. Only a PlatformSuperAdmin can set or change this.
+        </p>
+      </mat-card>
+    </div>
+  </ng-container>
+</div>

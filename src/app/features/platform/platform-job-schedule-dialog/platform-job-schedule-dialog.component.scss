@@ -1,0 +1,36 @@
+.description {
+  margin: 0 0 16px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.hint {
+  margin: 8px 0 16px;
+  font-size: 12px;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.preset {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-size: 12px;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 20px 0 0;
+  font-size: 12px;
+}
+
+code {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+}

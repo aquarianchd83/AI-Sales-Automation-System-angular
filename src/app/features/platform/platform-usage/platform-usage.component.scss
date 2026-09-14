@@ -1,0 +1,24 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  min-width: 260px;
+  flex: 1 1 260px;
+}
+
+.quota-breached {
+  color: #b71c1c;
+  font-weight: 600;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

@@ -1,0 +1,37 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  min-width: 260px;
+  flex: 1 1 260px;
+}
+
+.filter-status {
+  min-width: 160px;
+}
+
+.primary-cell {
+  font-weight: 500;
+  display: block;
+}
+
+.slug {
+  font-size: 12px;
+}
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

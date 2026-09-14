@@ -15,11 +15,25 @@
       </div>
     </div>
 
-    <mat-nav-list>
-      <ng-container *ngFor="let item of navItems">
+    <mat-nav-list *ngIf="!isPlatformSuperAdmin">
+      <ng-container *ngFor="let item of tenantNavItems">
         <a
           mat-list-item
           *appHasRole="item.roles"
+          [routerLink]="item.route"
+          routerLinkActive="nav-active"
+          (click)="drawer.mode === 'over' ? drawer.close() : null"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.label }}</span>
+        </a>
+      </ng-container>
+    </mat-nav-list>
+
+    <mat-nav-list *ngIf="isPlatformSuperAdmin">
+      <ng-container *ngFor="let item of platformNavItems">
+        <a
+          mat-list-item
           [routerLink]="item.route"
           routerLinkActive="nav-active"
           (click)="drawer.mode === 'over' ? drawer.close() : null"
@@ -75,6 +89,34 @@
         </mat-menu>
       </ng-container>
     </mat-toolbar>
+
+    <div class="impersonation-banner" *ngIf="isImpersonating">
+      <mat-icon>visibility</mat-icon>
+      <span>
+        Support session — you are viewing this workspace as
+        <strong>{{ (currentUser$ | async)?.email }}</strong>. It ends automatically in a few
+        minutes.
+      </span>
+      <button mat-flat-button color="warn" type="button" (click)="endImpersonation()">
+        End session
+      </button>
+    </div>
+
+    <div class="announcement-banner" *ngFor="let announcement of announcements">
+      <mat-icon>campaign</mat-icon>
+      <span>
+        <strong>{{ announcement.title }}</strong> — {{ announcement.body }}
+      </span>
+      <button
+        mat-icon-button
+        type="button"
+        aria-label="Dismiss"
+        matTooltip="Dismiss"
+        (click)="dismiss(announcement)"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
 
     <main class="shell-content">
       <router-outlet></router-outlet>

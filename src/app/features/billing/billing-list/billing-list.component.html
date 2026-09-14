@@ -1,0 +1,95 @@
+<div class="page">
+  <app-page-header title="Billing" subtitle="Choose a plan or switch to another one."></app-page-header>
+
+  <mat-card class="subscription-card" *ngIf="!loadingSubscription">
+    <ng-container *ngIf="subscription; else noSubscription">
+      <div class="subscription-summary">
+        <div>
+          <span class="muted">Current plan</span>
+          <h3>{{ subscription.planName || 'No plan selected' }}</h3>
+          <mat-chip-listbox [selectable]="false">
+            <mat-chip [color]="subscription.status === 'Active' ? 'primary' : undefined" [highlighted]="true">
+              {{ subscription.status }}
+            </mat-chip>
+          </mat-chip-listbox>
+          <span class="muted period" *ngIf="subscription.currentPeriodStartUtc || subscription.currentPeriodEndUtc">
+            <ng-container *ngIf="subscription.currentPeriodStartUtc">
+              Started {{ subscription.currentPeriodStartUtc | date: 'mediumDate' }}
+            </ng-container>
+            <ng-container *ngIf="subscription.currentPeriodStartUtc && subscription.currentPeriodEndUtc"> · </ng-container>
+            <ng-container *ngIf="subscription.currentPeriodEndUtc">
+              Renews {{ subscription.currentPeriodEndUtc | date: 'mediumDate' }}
+            </ng-container>
+          </span>
+        </div>
+      </div>
+    </ng-container>
+    <ng-template #noSubscription>
+      <div class="subscription-summary">
+        <div>
+          <span class="muted">Current plan</span>
+          <h3>Free trial</h3>
+          <span class="muted">Choose a plan below to get started.</span>
+        </div>
+      </div>
+    </ng-template>
+  </mat-card>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
+
+  <div class="plan-grid" *ngIf="!loadingPlans">
+    <mat-card class="plan-card" *ngFor="let plan of plans" [class.current]="isCurrentPlan(plan)">
+      <mat-chip class="current-badge" color="primary" [highlighted]="true" *ngIf="isCurrentPlan(plan)">
+        Current plan
+      </mat-chip>
+
+      <h3>{{ plan.name }}</h3>
+      <div class="plan-price">{{ formatPrice(plan) }}</div>
+
+      <ul class="plan-features">
+        <li>{{ plan.maxUsers }} users</li>
+        <li>{{ plan.maxMessagesPerMonth | number }} messages / month</li>
+        <li>{{ plan.maxCampaigns }} campaigns</li>
+        <li>{{ plan.maxKnowledgeBaseArticles }} knowledge base articles</li>
+      </ul>
+
+      <button
+        mat-flat-button
+        color="primary"
+        class="full-width"
+        type="button"
+        [disabled]="isCurrentPlan(plan) || !!switchingPlanId"
+        (click)="choosePlan(plan)"
+      >
+        {{
+          isCurrentPlan(plan)
+            ? 'Current plan'
+            : switchingPlanId === plan.id
+            ? 'Switching…'
+            : 'Choose plan'
+        }}
+      </button>
+    </mat-card>
+  </div>
+
+  <div class="empty-state" *ngIf="!loadingPlans && !plans.length">
+    <mat-icon class="empty-icon">payments</mat-icon>
+    <p>No plans are available yet.</p>
+  </div>
+
+  <p class="muted price-note" *ngIf="!loadingPlans && plans.length">Prices are shown in your local currency.</p>
+
+  <mat-card class="payment-history-card">
+    <h3>Payment history</h3>
+    <mat-progress-bar mode="indeterminate" *ngIf="loadingPayments"></mat-progress-bar>
+    <ng-container *ngIf="!loadingPayments">
+      <dl *ngIf="paymentHistory.length">
+        <ng-container *ngFor="let payment of paymentHistory">
+          <dt>{{ payment.paidAtUtc | date: 'mediumDate' }}</dt>
+          <dd>{{ payment.planName }} — {{ formatPayment(payment) }}</dd>
+        </ng-container>
+      </dl>
+      <p class="muted" *ngIf="!paymentHistory.length">No payments yet.</p>
+    </ng-container>
+  </mat-card>
+</div>

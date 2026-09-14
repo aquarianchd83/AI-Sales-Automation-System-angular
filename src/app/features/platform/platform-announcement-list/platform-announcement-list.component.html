@@ -1,0 +1,40 @@
+<div class="page">
+  <app-page-header title="Announcements" subtitle="Broadcast a banner to every tenant admin.">
+    <button mat-flat-button color="primary" type="button" (click)="create()">
+      <mat-icon>campaign</mat-icon>
+      New announcement
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="announcement-list" *ngIf="!loading">
+    <mat-card class="announcement-card" *ngFor="let announcement of announcements" [class.announcement-card--inactive]="!announcement.isActive">
+      <div class="announcement-header">
+        <span
+          class="severity-chip"
+          [class.severity-chip--warning]="announcement.severity === 1"
+          [class.severity-chip--critical]="announcement.severity === 2"
+        >
+          {{ severityLabels[announcement.severity] }}
+        </span>
+        <h3>{{ announcement.title }}</h3>
+        <span class="spacer"></span>
+        <span class="muted" *ngIf="!announcement.isActive">Hidden</span>
+        <button mat-icon-button type="button" matTooltip="Edit" (click)="edit(announcement)">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button type="button" matTooltip="Delete" (click)="delete(announcement)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+      <p>{{ announcement.body }}</p>
+      <span class="muted timestamp">Created {{ announcement.createdAt | date: 'medium' }}</span>
+    </mat-card>
+
+    <div class="empty-state" *ngIf="!announcements.length">
+      <mat-icon class="empty-icon">campaign</mat-icon>
+      <p>No announcements yet.</p>
+    </div>
+  </div>
+</div>

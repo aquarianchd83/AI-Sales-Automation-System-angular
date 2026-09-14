@@ -1,0 +1,70 @@
+<div class="page">
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search by email or name</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="e.g. bob@" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+      <span class="muted">"Which org is this email in?" — a support lookup, not a full user list.</span>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll" *ngIf="results.length">
+      <table mat-table [dataSource]="results">
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef>Email</th>
+          <td mat-cell *matCellDef="let user">{{ user.email }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="fullName">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let user">{{ user.fullName }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tenant">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let user">
+            <a *ngIf="user.tenantId" [routerLink]="['/platform/tenants', user.tenantId]">{{ user.tenantName }}</a>
+            <span class="muted" *ngIf="!user.tenantId">Platform operator</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="roles">
+          <th mat-header-cell *matHeaderCellDef>Roles</th>
+          <td mat-cell *matCellDef="let user">
+            <span class="tag" *ngFor="let role of user.roles">{{ role }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="isActive">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let user">
+            <span class="status-chip" [class.status-chip--opted-in]="user.isActive" [class.status-chip--inactive]="!user.isActive">
+              {{ user.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="lastLoginAt">
+          <th mat-header-cell *matHeaderCellDef>Last sign-in</th>
+          <td mat-cell *matCellDef="let user">{{ (user.lastLoginAt | date: 'medium') || 'Never' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let user; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && searched && !results.length">
+      <mat-icon class="empty-icon">person_search</mat-icon>
+      <p>No accounts match that search.</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !searched">
+      <mat-icon class="empty-icon">search</mat-icon>
+      <p>Start typing an email or name to search across every tenant.</p>
+    </div>
+  </mat-card>
+</div>

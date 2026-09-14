@@ -66,4 +66,49 @@ describe('TokenStorageService', () => {
   it('reports expired when there is no token at all', () => {
     expect(service.isAccessTokenExpired()).toBeTrue();
   });
+
+  describe('storeImpersonation (per-tab isolation)', () => {
+    it('is readable via accessToken and has no refresh token', () => {
+      service.storeImpersonation('impersonation-token');
+
+      expect(service.accessToken).toBe('impersonation-token');
+      expect(service.refreshToken).toBeNull();
+    });
+
+    it('never writes to localStorage, so it cannot leak into another tab sharing it', () => {
+      service.storeImpersonation('impersonation-token');
+
+      expect(localStorage.getItem('wsa.accessToken')).toBeNull();
+      expect(localStorage.getItem('wsa.refreshToken')).toBeNull();
+    });
+
+    it('does not overwrite an existing localStorage session (the operator tab this was opened from)', () => {
+      service.store('operator-access', 'operator-refresh');
+
+      service.storeImpersonation('impersonation-token');
+
+      expect(localStorage.getItem('wsa.accessToken')).toBe('operator-access');
+      expect(localStorage.getItem('wsa.refreshToken')).toBe('operator-refresh');
+      // This service instance now reports the impersonation token (this tab's own state) —
+      // a separate TokenStorageService instance in the operator's own tab would still see its
+      // own localStorage-backed tokens untouched, as asserted above.
+      expect(service.accessToken).toBe('impersonation-token');
+    });
+
+    it('clear() drops only the in-memory impersonation token, leaving localStorage untouched', () => {
+      // Simulates the operator's own tab's already-persisted session sitting in the same
+      // localStorage this test's service instance also reads from — set directly rather than
+      // via store() on this instance, since a real tab is only ever one or the other, never both.
+      localStorage.setItem('wsa.accessToken', 'operator-access');
+      localStorage.setItem('wsa.refreshToken', 'operator-refresh');
+
+      service.storeImpersonation('impersonation-token');
+      expect(service.accessToken).toBe('impersonation-token');
+
+      service.clear();
+
+      expect(localStorage.getItem('wsa.accessToken')).toBe('operator-access');
+      expect(localStorage.getItem('wsa.refreshToken')).toBe('operator-refresh');
+    });
+  });
 });

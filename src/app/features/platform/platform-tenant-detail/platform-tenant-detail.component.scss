@@ -1,0 +1,79 @@
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.detail-card {
+  padding: 20px;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+  }
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0 0 12px;
+}
+
+dt {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+}
+
+dd {
+  margin: 0;
+  font-size: 13px;
+  text-align: right;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.inline-override {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.inline-select {
+  flex: 1;
+}
+
+.hint {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.cron {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-size: 12px;
+}
+
+.job-state {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+.job-state-off {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.job-last {
+  font-size: 12px;
+}
+
+.job-failures {
+  font-size: 12px;
+  color: #b71c1c;
+}

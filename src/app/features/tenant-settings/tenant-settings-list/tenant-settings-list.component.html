@@ -1,0 +1,102 @@
+<div class="page">
+  <app-page-header
+    title="Settings"
+    subtitle="Your workspace timezone and country, plus WhatsApp connection status managed by your platform administrator."
+  ></app-page-header>
+
+  <div class="detail-grid">
+    <mat-card class="detail-card">
+      <h3>Workspace</h3>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingProfile"></mat-progress-bar>
+      <ng-container *ngIf="!loadingProfile">
+        <mat-form-field subscriptSizing="dynamic" class="full-width">
+          <mat-label>Timezone</mat-label>
+          <mat-select [formControl]="timezoneControl">
+            <mat-option *ngFor="let tz of timezones" [value]="tz.id">
+              {{ tz.displayName }} (UTC{{ tz.utcOffset }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <div class="card-actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!timezoneControl.value || savingTimezone"
+            (click)="saveTimezone()"
+          >
+            {{ savingTimezone ? 'Saving…' : 'Apply' }}
+          </button>
+        </div>
+        <p class="muted hint">Controls when your scheduled campaigns actually send.</p>
+
+        <mat-form-field subscriptSizing="dynamic" class="full-width field-spaced">
+          <mat-label>Country</mat-label>
+          <mat-select [formControl]="countryControl">
+            <mat-option *ngFor="let region of regions" [value]="region.countryCode">
+              {{ region.countryName }} ({{ region.currencyCode }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <div class="card-actions">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!countryControl.value || savingCountry"
+            (click)="saveCountry()"
+          >
+            {{ savingCountry ? 'Saving…' : 'Apply' }}
+          </button>
+        </div>
+        <p class="muted hint">Controls which currency your plan price shows in.</p>
+      </ng-container>
+    </mat-card>
+
+    <mat-card class="detail-card">
+      <h3>WhatsApp</h3>
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
+      <ng-container *ngIf="!loadingWhatsApp">
+        <div class="connection-status">
+          <mat-chip-listbox [selectable]="false">
+            <mat-chip color="primary" [highlighted]="true" *ngIf="whatsAppConfig?.isConnected">
+              <mat-icon inline="true">check_circle</mat-icon>
+              Connected
+            </mat-chip>
+            <mat-chip *ngIf="!whatsAppConfig?.isConnected">
+              <mat-icon inline="true">radio_button_unchecked</mat-icon>
+              Not connected
+            </mat-chip>
+          </mat-chip-listbox>
+        </div>
+        <dl *ngIf="whatsAppConfig">
+          <dt>Phone number ID</dt>
+          <dd>{{ whatsAppConfig.phoneNumberId || '—' }}</dd>
+          <dt>WhatsApp Business Account ID</dt>
+          <dd>{{ whatsAppConfig.whatsAppBusinessAccountId || '—' }}</dd>
+        </dl>
+      </ng-container>
+      <p class="muted hint">
+        Contact your platform administrator to connect or change this — it's no longer editable here.
+      </p>
+
+      <div class="usage field-spaced">
+        <h4>Usage this month</h4>
+        <mat-progress-bar mode="indeterminate" *ngIf="loadingUsage"></mat-progress-bar>
+        <ng-container *ngIf="!loadingUsage && usage">
+          <div class="usage-count">
+            {{ usage.messagesSentThisMonth | number }} / {{ usage.maxMessagesPerMonth ? (usage.maxMessagesPerMonth | number) : 'Unlimited' }}
+            messages
+          </div>
+          <mat-progress-bar
+            *ngIf="usagePercent !== null"
+            mode="determinate"
+            [value]="usagePercent"
+            [color]="usagePercent >= 100 ? 'warn' : 'primary'"
+          ></mat-progress-bar>
+          <p class="muted hint" *ngIf="!usage.maxMessagesPerMonth">No plan yet — sends aren't capped during your trial.</p>
+        </ng-container>
+      </div>
+    </mat-card>
+  </div>
+</div>

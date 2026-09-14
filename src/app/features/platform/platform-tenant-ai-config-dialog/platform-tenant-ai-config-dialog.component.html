@@ -1,0 +1,94 @@
+<h2 mat-dialog-title>AI provider configuration — {{ data.tenantName }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <span class="muted tab-intro">
+      "Simulated" needs no API key and answers with keyword matching — useful for a trial tenant
+      before a real provider is connected.
+    </span>
+
+    <mat-form-field class="full-width">
+      <mat-label>Chat provider</mat-label>
+      <mat-select formControlName="provider">
+        <mat-option *ngFor="let provider of chatProviders" [value]="provider">{{ provider }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Embedding provider</mat-label>
+      <mat-select formControlName="embeddingProvider">
+        <mat-option *ngFor="let provider of embeddingProviders" [value]="provider">{{ provider }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-divider></mat-divider>
+
+    <mat-form-field class="full-width">
+      <mat-label>Anthropic API key</mat-label>
+      <input
+        matInput
+        type="password"
+        formControlName="anthropicApiKey"
+        autocomplete="off"
+        [placeholder]="data.config?.hasAnthropicApiKey ? 'Leave blank to keep current value' : 'Not set'"
+      />
+      <mat-hint>{{ data.config?.hasAnthropicApiKey ? 'Currently set' : 'Not set' }}</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Anthropic model</mat-label>
+      <input matInput formControlName="anthropicModel" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>OpenAI API key</mat-label>
+      <input
+        matInput
+        type="password"
+        formControlName="openAiApiKey"
+        autocomplete="off"
+        [placeholder]="data.config?.hasOpenAiApiKey ? 'Leave blank to keep current value' : 'Not set'"
+      />
+      <mat-hint>{{ data.config?.hasOpenAiApiKey ? 'Currently set' : 'Not set' }}</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>OpenAI chat model</mat-label>
+      <input matInput formControlName="openAiChatModel" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>OpenAI embedding model</mat-label>
+      <input matInput formControlName="openAiEmbeddingModel" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Google API key</mat-label>
+      <input
+        matInput
+        type="password"
+        formControlName="googleApiKey"
+        autocomplete="off"
+        [placeholder]="data.config?.hasGoogleApiKey ? 'Leave blank to keep current value' : 'Not set'"
+      />
+      <mat-hint>{{ data.config?.hasGoogleApiKey ? 'Currently set' : 'Not set' }}</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Google chat model</mat-label>
+      <input matInput formControlName="googleChatModel" autocomplete="off" />
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Google embedding model</mat-label>
+      <input matInput formControlName="googleEmbeddingModel" autocomplete="off" />
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Save' }}
+  </button>
+</mat-dialog-actions>
