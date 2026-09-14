@@ -26,6 +26,16 @@ describe('MessageTemplateService', () => {
     req.flush({});
   });
 
+  it('sends language and category on update when given', () => {
+    service
+      .update('t1', { bodyText: 'Hi', isActive: true, language: 'hi', category: 'Utility' })
+      .subscribe();
+
+    const req = http.expectOne(`${baseUrl}/t1`);
+    expect(req.request.body).toEqual({ bodyText: 'Hi', isActive: true, language: 'hi', category: 'Utility' });
+    req.flush({});
+  });
+
   it('posts the new status to review', () => {
     service.review('t1', { status: 'Approved' }).subscribe();
 

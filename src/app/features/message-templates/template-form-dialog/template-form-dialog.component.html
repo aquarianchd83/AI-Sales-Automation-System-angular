@@ -19,20 +19,7 @@
           </mat-error>
         </mat-form-field>
 
-        <mat-form-field>
-          <mat-label>Language</mat-label>
-          <input matInput formControlName="language" placeholder="en" />
-          <mat-error *ngIf="form.controls.language.hasError('required')">Required.</mat-error>
-        </mat-form-field>
-
-        <mat-form-field class="span-2">
-          <mat-label>Category</mat-label>
-          <mat-select formControlName="category">
-            <mat-option *ngFor="let category of categories" [value]="category">
-              {{ category }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+        <ng-container *ngTemplateOutlet="languageAndCategory"></ng-container>
       </div>
 
       <p class="muted create-note">
@@ -46,10 +33,42 @@
         <dd>{{ t.name }}</dd>
         <dt>WhatsApp template name</dt>
         <dd>{{ t.whatsAppTemplateName }}</dd>
-        <dt>Language / Category</dt>
-        <dd>{{ t.language }} · {{ t.category }}</dd>
+        <ng-container *ngIf="!canEditLanguageAndCategory">
+          <dt>Language / Category</dt>
+          <dd>{{ languageLabel(t.language) }} ({{ t.language }}) · {{ t.category }}</dd>
+        </ng-container>
       </dl>
+
+      <div class="form-grid" *ngIf="canEditLanguageAndCategory">
+        <ng-container *ngTemplateOutlet="languageAndCategory"></ng-container>
+      </div>
+      <p class="muted create-note" *ngIf="!canEditLanguageAndCategory">
+        This template has already been created on Meta, so its language and category can no longer
+        be changed. Create a new template instead.
+      </p>
     </ng-container>
+
+    <ng-template #languageAndCategory>
+      <mat-form-field>
+        <mat-label>Language</mat-label>
+        <mat-select formControlName="language">
+          <mat-option *ngFor="let lang of languages" [value]="lang.code">
+            {{ lang.label }} <span class="muted">· {{ lang.code }}</span>
+          </mat-option>
+        </mat-select>
+        <mat-hint>Must match the language registered with Meta.</mat-hint>
+        <mat-error *ngIf="form.controls.language.hasError('required')">Required.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Category</mat-label>
+        <mat-select formControlName="category">
+          <mat-option *ngFor="let category of categories" [value]="category">
+            {{ category }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </ng-template>
 
     <mat-form-field class="full-width body-field">
       <mat-label>Body text</mat-label>
