@@ -9,7 +9,7 @@
 
 .readonly-fields {
   display: grid;
-  grid-template-columns: minmax(140px, auto) 1fr;
+  grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
   gap: 6px 16px;
   margin: 0 0 16px;
   padding: 12px 14px;
@@ -24,6 +24,7 @@
 
 .readonly-fields dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .body-field {

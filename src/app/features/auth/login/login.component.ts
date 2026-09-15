@@ -7,6 +7,12 @@ import { AuthService } from '../../../core/services/auth.service';
 import { PLATFORM_ADMIN_ROLES } from '../../../core/models/platform.model';
 import { NotificationService } from '../../../core/services/notification.service';
 
+/** localStorage key for the email "Remember me" pre-fills on the next visit. Only the email is
+ * kept — never the password; the session itself already survives a reload via
+ * TokenStorageService, so this only saves retyping the address after a sign-out. Its presence
+ * doubles as the checkbox's remembered state, so there is no separate flag to drift out of sync. */
+export const REMEMBERED_EMAIL_KEY = 'wsa.rememberedEmail';
+
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
@@ -15,7 +21,8 @@ import { NotificationService } from '../../../core/services/notification.service
 export class LoginComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required]]
+    password: ['', [Validators.required]],
+    rememberMe: [false],
   });
 
   hidePassword = true;
@@ -37,6 +44,11 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
     this.returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+
+    const rememberedEmail = this.readRememberedEmail();
+    if (rememberedEmail) {
+      this.form.patchValue({ email: rememberedEmail, rememberMe: true });
+    }
   }
 
   submit(): void {
@@ -45,12 +57,15 @@ export class LoginComponent implements OnInit {
       return;
     }
 
+    const { email, password, rememberMe } = this.form.getRawValue();
     this.submitting = true;
     this.auth
-      .login(this.form.getRawValue())
+      .login({ email, password })
       .pipe(finalize(() => (this.submitting = false)))
       .subscribe({
         next: (user) => {
+          // Saved only after a successful login, so a mistyped address is never remembered.
+          this.updateRememberedEmail(rememberMe ? email.trim() : null);
           this.notify.success(`Welcome back, ${user.fullName || user.email}.`);
           const isPlatformSuperAdmin = user.roles.some((role) => PLATFORM_ADMIN_ROLES.includes(role));
           void this.router.navigateByUrl(this.returnUrl ?? (isPlatformSuperAdmin ? '/platform' : '/dashboard'));
@@ -63,5 +78,27 @@ export class LoginComponent implements OnInit {
           }
         },
       });
+  }
+
+  // localStorage can throw (private windows, blocked site data) — remembering the email is a
+  // convenience, so a storage failure must never block signing in.
+  private readRememberedEmail(): string | null {
+    try {
+      return localStorage.getItem(REMEMBERED_EMAIL_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  private updateRememberedEmail(email: string | null): void {
+    try {
+      if (email) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
+    } catch {
+      // ignore — see readRememberedEmail
+    }
   }
 }

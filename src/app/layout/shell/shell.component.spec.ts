@@ -51,6 +51,7 @@ describe('ShellComponent sidenav', () => {
       'text_snippetMessage Templates',
       'perm_mediaMedia Library',
       'menu_bookKnowledge Base',
+      'storefrontBusiness Profile',
       'manage_accountsUsers & Roles',
       'settingsSettings',
       'paymentsBilling',

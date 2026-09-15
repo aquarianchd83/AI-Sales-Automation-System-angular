@@ -1,0 +1,21 @@
+<h2 mat-dialog-title>How it works</h2>
+
+<mat-dialog-content class="module-flows">
+  <mat-button-toggle-group
+    class="module-flows__nav"
+    aria-label="Flow document"
+    [value]="active"
+    (change)="show($event.value)"
+  >
+    <mat-button-toggle *ngFor="let doc of docs" [value]="doc.key">{{ doc.label }}</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+  <p *ngIf="error" class="module-flows__error">{{ error }}</p>
+
+  <div #content class="module-flows__doc" [hidden]="loading || !!error" (click)="onContentClick($event)"></div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" type="button" mat-dialog-close>Close</button>
+</mat-dialog-actions>

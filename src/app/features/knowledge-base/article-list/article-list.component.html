@@ -1,5 +1,6 @@
 <div class="page">
   <app-page-header title="Knowledge Base" subtitle="Articles the AI grounds its replies on — only Published ones are retrievable.">
+    <app-module-flows-button module="knowledge-base"></app-module-flows-button>
     <button mat-stroked-button type="button" [disabled]="reindexing" (click)="reindexAll()">
       <mat-icon>sync</mat-icon>
       {{ reindexing ? 'Reindexing…' : 'Reindex all' }}

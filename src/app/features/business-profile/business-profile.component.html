@@ -1,0 +1,211 @@
+<div class="page">
+  <app-page-header
+    title="Business profile"
+    subtitle="How your business is described across your workspace."
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="load-failed" *ngIf="!loading && loadFailed">
+    <mat-icon>cloud_off</mat-icon>
+    <p>We couldn't load your business profile.</p>
+    <button mat-stroked-button color="primary" type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <form class="layout" *ngIf="!loading && !loadFailed" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="main">
+      <!-- Company -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-teal"><mat-icon>storefront</mat-icon></span>
+          <div>
+            <h2>Company</h2>
+            <p>The names customers know you by.</p>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Company name</mat-label>
+            <input matInput formControlName="companyName" [maxlength]="limits.companyName" required />
+            <mat-error>Company name is required.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Product or brand name</mat-label>
+            <input matInput formControlName="productName" [maxlength]="limits.productName" placeholder="e.g. SunVolt Home Solar" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Industry</mat-label>
+            <input
+              matInput
+              formControlName="industry"
+              [maxlength]="limits.industry"
+              [matAutocomplete]="industryAuto"
+              placeholder="Pick a suggestion or type your own"
+            />
+            <mat-autocomplete #industryAuto="matAutocomplete">
+              <mat-option *ngFor="let option of filteredIndustries" [value]="option">{{ option }}</mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Business description</mat-label>
+            <textarea
+              matInput
+              formControlName="businessDescription"
+              rows="4"
+              [maxlength]="limits.businessDescription"
+              placeholder="What you sell, who you sell to, and what makes you different."
+            ></textarea>
+            <mat-hint align="end">
+              {{ form.controls.businessDescription.value.length | number }} / {{ limits.businessDescription | number }}
+            </mat-hint>
+          </mat-form-field>
+        </div>
+      </mat-card>
+
+      <!-- Contact -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-indigo"><mat-icon>contact_mail</mat-icon></span>
+          <div>
+            <h2>Contact details</h2>
+            <p>Where customers can reach your team.</p>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Website</mat-label>
+            <mat-icon matPrefix>language</mat-icon>
+            <input matInput formControlName="websiteUrl" type="url" [maxlength]="limits.websiteUrl" placeholder="https://www.example.com" />
+            <mat-error>Enter a full address starting with http:// or https://.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Support email</mat-label>
+            <mat-icon matPrefix>mail</mat-icon>
+            <input matInput formControlName="supportEmail" type="email" [maxlength]="limits.supportEmail" placeholder="support@example.com" />
+            <mat-error>Enter a valid email address.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Support phone</mat-label>
+            <mat-icon matPrefix>call</mat-icon>
+            <input matInput formControlName="supportPhone" type="tel" [maxlength]="limits.supportPhone" placeholder="+91 98765 43210" />
+            <mat-error>Use digits, spaces, brackets, dashes and an optional leading +.</mat-error>
+          </mat-form-field>
+        </div>
+      </mat-card>
+
+      <!-- Domain keywords -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-violet"><mat-icon>sell</mat-icon></span>
+          <div>
+            <h2>Domain keywords</h2>
+            <p>Products, services and topics your business deals in.</p>
+          </div>
+          <span class="spacer"></span>
+          <span class="count" [class.count--full]="keywords.length >= limits.maxKeywords">
+            {{ keywords.length }} / {{ limits.maxKeywords }}
+          </span>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Add keywords</mat-label>
+          <mat-chip-grid #keywordGrid aria-label="Domain keywords">
+            <mat-chip-row *ngFor="let keyword of keywords" (removed)="removeKeyword(keyword)">
+              {{ keyword }}
+              <button matChipRemove type="button" [attr.aria-label]="'Remove ' + keyword">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+            <input
+              [formControl]="keywordInput"
+              placeholder="Type a keyword and press Enter"
+              [maxlength]="limits.keyword * 10"
+              [matChipInputFor]="keywordGrid"
+              [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+              [matChipInputAddOnBlur]="true"
+              (matChipInputTokenEnd)="addKeyword($event)"
+            />
+          </mat-chip-grid>
+          <mat-hint>Press Enter or comma after each one. Pasting a comma-separated list works too.</mat-hint>
+        </mat-form-field>
+        <p class="keyword-error" *ngIf="keywordError" role="alert">
+          <mat-icon>error_outline</mat-icon>{{ keywordError }}
+        </p>
+        <p class="empty-keywords" *ngIf="!keywords.length && !keywordError">
+          <mat-icon>lightbulb</mat-icon>
+          For example: <em>solar panels</em>, <em>rooftop installation</em>, <em>net metering</em>.
+        </p>
+      </mat-card>
+    </div>
+
+    <aside class="side">
+      <!-- Summary -->
+      <mat-card class="summary">
+        <div class="summary-banner"></div>
+        <div class="summary-body">
+          <span class="summary-avatar">{{ initials(form.controls.companyName.value) }}</span>
+          <h3>{{ form.controls.companyName.value || 'Your company' }}</h3>
+          <p class="summary-product">{{ form.controls.productName.value || 'Add a product or brand name' }}</p>
+          <span class="industry-chip" *ngIf="form.controls.industry.value">{{ form.controls.industry.value }}</span>
+
+          <div class="completeness">
+            <div class="completeness-row">
+              <span>Profile completeness</span>
+              <strong>{{ completeness.percent }}%</strong>
+            </div>
+            <mat-progress-bar mode="determinate" [value]="completeness.percent"></mat-progress-bar>
+            <span class="completeness-note">{{ completeness.done }} of {{ completeness.total }} details added</span>
+          </div>
+        </div>
+      </mat-card>
+
+      <!-- Workspace -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-blue"><mat-icon>public</mat-icon></span>
+          <div>
+            <h2>Workspace</h2>
+            <p>Scheduling and pricing region.</p>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Timezone</mat-label>
+          <mat-select formControlName="timezone">
+            <mat-option *ngFor="let tz of timezones" [value]="tz.id">
+              {{ tz.displayName }} (UTC{{ tz.utcOffset }})
+            </mat-option>
+          </mat-select>
+          <mat-hint>Controls when scheduled campaigns send.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width field-gap">
+          <mat-label>Country</mat-label>
+          <mat-select formControlName="countryCode">
+            <mat-option *ngFor="let region of regions" [value]="region.countryCode">
+              {{ region.countryName }} ({{ region.currencyCode }})
+            </mat-option>
+          </mat-select>
+          <mat-hint>Controls which currency your plan price shows in.</mat-hint>
+        </mat-form-field>
+      </mat-card>
+    </aside>
+  </form>
+
+  <div class="save-bar" *ngIf="!loading && !loadFailed && hasChanges">
+    <mat-icon>edit_note</mat-icon>
+    <span>You have unsaved changes</span>
+    <span class="spacer"></span>
+    <button mat-button type="button" (click)="discard()" [disabled]="saving">Discard</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
+      {{ saving ? 'Saving…' : 'Save changes' }}
+    </button>
+  </div>
+</div>

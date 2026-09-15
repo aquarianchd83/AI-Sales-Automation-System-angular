@@ -5,12 +5,13 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   TenantProfile,
+  UpdateTenantBusinessProfileRequest,
   UpdateTenantCountryRequest,
   UpdateTenantTimezoneRequest,
 } from '../models/tenant-profile.model';
 
-/** A tenant's own editable profile — Timezone and Country. Self-service counterpart to the
- * Platform Admin Console's tenant detail overrides (PlatformTenantService.updateTimezone/
+/** A tenant's own editable profile — business details, Timezone and Country. Timezone and Country are
+ * also overridable from the Platform Admin Console's tenant detail (PlatformTenantService.updateTimezone/
  * updateCountry) — both write the same backend columns, neither is the sole owner of either. */
 @Injectable({ providedIn: 'root' })
 export class TenantProfileService {
@@ -20,6 +21,10 @@ export class TenantProfileService {
 
   getProfile(): Observable<TenantProfile> {
     return this.http.get<TenantProfile>(this.baseUrl);
+  }
+
+  updateBusinessProfile(request: UpdateTenantBusinessProfileRequest): Observable<TenantProfile> {
+    return this.http.put<TenantProfile>(this.baseUrl, request);
   }
 
   updateTimezone(timezone: string): Observable<TenantProfile> {

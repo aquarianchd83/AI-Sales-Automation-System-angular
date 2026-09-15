@@ -22,8 +22,10 @@
   gap: 4px;
   padding: 4px 6px 4px 10px;
   border-radius: 14px;
+  max-width: 100%;
   background: #eceff1;
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .chip-remove {

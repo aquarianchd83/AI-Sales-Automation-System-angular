@@ -1,58 +1,10 @@
 <div class="page">
   <app-page-header
     title="Settings"
-    subtitle="Your workspace timezone and country, plus WhatsApp connection status managed by your platform administrator."
+    subtitle="WhatsApp connection status and message usage, managed by your platform administrator."
   ></app-page-header>
 
   <div class="detail-grid">
-    <mat-card class="detail-card">
-      <h3>Workspace</h3>
-      <mat-progress-bar mode="indeterminate" *ngIf="loadingProfile"></mat-progress-bar>
-      <ng-container *ngIf="!loadingProfile">
-        <mat-form-field subscriptSizing="dynamic" class="full-width">
-          <mat-label>Timezone</mat-label>
-          <mat-select [formControl]="timezoneControl">
-            <mat-option *ngFor="let tz of timezones" [value]="tz.id">
-              {{ tz.displayName }} (UTC{{ tz.utcOffset }})
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-        <div class="card-actions">
-          <button
-            mat-flat-button
-            color="primary"
-            type="button"
-            [disabled]="!timezoneControl.value || savingTimezone"
-            (click)="saveTimezone()"
-          >
-            {{ savingTimezone ? 'Saving…' : 'Apply' }}
-          </button>
-        </div>
-        <p class="muted hint">Controls when your scheduled campaigns actually send.</p>
-
-        <mat-form-field subscriptSizing="dynamic" class="full-width field-spaced">
-          <mat-label>Country</mat-label>
-          <mat-select [formControl]="countryControl">
-            <mat-option *ngFor="let region of regions" [value]="region.countryCode">
-              {{ region.countryName }} ({{ region.currencyCode }})
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-        <div class="card-actions">
-          <button
-            mat-flat-button
-            color="primary"
-            type="button"
-            [disabled]="!countryControl.value || savingCountry"
-            (click)="saveCountry()"
-          >
-            {{ savingCountry ? 'Saving…' : 'Apply' }}
-          </button>
-        </div>
-        <p class="muted hint">Controls which currency your plan price shows in.</p>
-      </ng-container>
-    </mat-card>
-
     <mat-card class="detail-card">
       <h3>WhatsApp</h3>
       <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
@@ -96,6 +48,19 @@
           ></mat-progress-bar>
           <p class="muted hint" *ngIf="!usage.maxMessagesPerMonth">No plan yet — sends aren't capped during your trial.</p>
         </ng-container>
+      </div>
+    </mat-card>
+
+    <mat-card class="detail-card">
+      <h3>Workspace</h3>
+      <p class="muted hint">
+        Company details, domain keywords, timezone and country now live on your Business profile.
+      </p>
+      <div class="card-actions">
+        <a mat-stroked-button color="primary" routerLink="/profile">
+          <mat-icon>storefront</mat-icon>
+          Open business profile
+        </a>
       </div>
     </mat-card>
   </div>

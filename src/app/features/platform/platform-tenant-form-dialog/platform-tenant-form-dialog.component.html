@@ -4,7 +4,7 @@
   <form [formGroup]="form" novalidate>
     <mat-form-field class="full-width">
       <mat-label>Company name</mat-label>
-      <input matInput formControlName="companyName" />
+      <input matInput formControlName="companyName" [maxlength]="limits.companyName" />
       <mat-error *ngIf="form.controls.companyName.hasError('required')">
         Company name is required.
       </mat-error>
@@ -63,6 +63,113 @@
         Use at least 8 characters.
       </mat-error>
     </mat-form-field>
+
+    <mat-accordion class="details">
+      <mat-expansion-panel
+        [expanded]="detailsExpanded"
+        (opened)="detailsExpanded = true"
+        (closed)="detailsExpanded = false"
+      >
+        <mat-expansion-panel-header>
+          <mat-panel-title><mat-icon>storefront</mat-icon> Business details</mat-panel-title>
+          <mat-panel-description>
+            {{ detailsFilled ? detailsFilled + ' added' : 'Optional — the tenant can add these later' }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="detail-grid">
+          <mat-form-field>
+            <mat-label>Country</mat-label>
+            <mat-select formControlName="countryCode">
+              <mat-option value="">Prefer USD pricing</mat-option>
+              <mat-option *ngFor="let region of regions" [value]="region.countryCode">
+                {{ region.countryName }} ({{ region.currencyCode }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>Timezone</mat-label>
+            <mat-select formControlName="timezone">
+              <mat-option value="">Use India Standard Time</mat-option>
+              <mat-option *ngFor="let tz of timezones" [value]="tz.id">
+                {{ tz.displayName }} (UTC{{ tz.utcOffset }})
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>Product or brand name</mat-label>
+            <input matInput formControlName="productName" [maxlength]="limits.productName" />
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>Industry</mat-label>
+            <input
+              matInput
+              formControlName="industry"
+              [maxlength]="limits.industry"
+              [matAutocomplete]="industryAuto"
+            />
+            <mat-autocomplete #industryAuto="matAutocomplete">
+              <mat-option *ngFor="let option of filteredIndustries" [value]="option">{{ option }}</mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <mat-form-field class="span-2">
+            <mat-label>Business description</mat-label>
+            <textarea
+              matInput
+              formControlName="businessDescription"
+              rows="3"
+              [maxlength]="limits.businessDescription"
+            ></textarea>
+          </mat-form-field>
+
+          <mat-form-field class="span-2">
+            <mat-label>Website</mat-label>
+            <input matInput type="url" formControlName="websiteUrl" [maxlength]="limits.websiteUrl" placeholder="https://www.example.com" />
+            <mat-error>Enter a full address starting with http:// or https://.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>Support email</mat-label>
+            <input matInput type="email" formControlName="supportEmail" [maxlength]="limits.supportEmail" autocomplete="off" />
+            <mat-error>Enter a valid email address.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>Support phone</mat-label>
+            <input matInput type="tel" formControlName="supportPhone" [maxlength]="limits.supportPhone" />
+            <mat-error>Digits, spaces, brackets, dashes and an optional leading +.</mat-error>
+          </mat-form-field>
+
+          <div class="span-2">
+            <mat-form-field class="full-width">
+              <mat-label>Domain keywords</mat-label>
+              <mat-chip-grid #keywordGrid aria-label="Domain keywords">
+                <mat-chip-row *ngFor="let keyword of keywords" (removed)="removeKeyword(keyword)">
+                  {{ keyword }}
+                  <button matChipRemove type="button" [attr.aria-label]="'Remove ' + keyword">
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </mat-chip-row>
+                <input
+                  [formControl]="keywordInput"
+                  placeholder="Type and press Enter"
+                  [matChipInputFor]="keywordGrid"
+                  [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+                  [matChipInputAddOnBlur]="true"
+                  (matChipInputTokenEnd)="addKeyword($event)"
+                />
+              </mat-chip-grid>
+              <mat-hint>{{ keywords.length }} / {{ limits.maxKeywords }} — commas work too.</mat-hint>
+            </mat-form-field>
+            <p class="keyword-error" *ngIf="keywordError" role="alert">{{ keywordError }}</p>
+          </div>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
 
     <p class="muted note">The tenant starts on a 14-day trial, same as self-serve signup.</p>
   </form>

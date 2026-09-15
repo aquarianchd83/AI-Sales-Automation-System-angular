@@ -1,0 +1,95 @@
+.module-flows {
+  .module-flows__nav {
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .module-flows__error {
+    color: #b3261e;
+  }
+
+  .module-flows__doc {
+    font-size: 14px;
+    line-height: 1.5;
+
+    h1 {
+      margin: 8px 0;
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    h2 {
+      margin: 24px 0 8px;
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    h3 {
+      margin: 16px 0 8px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    hr {
+      margin: 16px 0;
+      border: 0;
+      border-top: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    table {
+      display: block;
+      overflow-x: auto;
+      margin: 8px 0 16px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 6px 10px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(0, 0, 0, 0.04);
+      font-weight: 500;
+    }
+
+    code {
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.05);
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    blockquote {
+      margin: 12px 0;
+      padding: 8px 12px;
+      border-left: 3px solid #f9a825;
+      background: rgba(249, 168, 37, 0.08);
+
+      p {
+        margin: 0;
+      }
+    }
+
+    a[data-flow-doc] {
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .flow-chart {
+      overflow-x: auto;
+      margin: 8px 0 16px;
+      padding: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+    }
+
+    .flow-chart--error {
+      color: #b3261e;
+    }
+  }
+}

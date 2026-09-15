@@ -30,6 +30,9 @@ export interface SignUpRequest {
    * local time this tenant's Campaign.ScheduledStartAt is compared against. Omitted falls back to
    * India Standard Time, never an error. */
   timezone?: string | null;
+  /** Optional product or brand name — the only business detail signup collects; the rest are
+   * filled in later on the Business Profile page. */
+  productName?: string | null;
 }
 
 /** TokenPairDto — response of POST /auth/login and /auth/refresh-token. */

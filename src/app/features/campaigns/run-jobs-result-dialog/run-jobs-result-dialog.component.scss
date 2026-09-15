@@ -24,6 +24,15 @@
   }
 }
 
+@media (max-width: 600px) {
+  .run-table {
+    th,
+    td {
+      padding: 8px 4px;
+    }
+  }
+}
+
 .row-label {
   font-weight: 500;
 }

@@ -150,6 +150,18 @@ export interface CreatePlatformTenantRequest {
   adminFullName: string;
   adminEmail: string;
   adminPassword: string;
+  /** Optional business details — validated and normalized exactly like the tenant's own Business
+   * Profile (see TenantProfile). countryCode/timezone must be supported values when given; timezone
+   * defaults to India Standard Time like signup. */
+  countryCode?: string | null;
+  timezone?: string | null;
+  productName?: string | null;
+  industry?: string | null;
+  businessDescription?: string | null;
+  websiteUrl?: string | null;
+  supportEmail?: string | null;
+  supportPhone?: string | null;
+  domainKeywords?: string[];
 }
 
 // ---------------------------------------------------------------------------

@@ -128,6 +128,15 @@ const routes: Routes = [
           ),
       },
       {
+        path: 'profile',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () =>
+          import('./features/business-profile/business-profile.module').then(
+            (m) => m.BusinessProfileModule
+          ),
+      },
+      {
         path: 'billing',
         canActivate: [roleGuard],
         data: { roles: TENANT_ADMIN_ROLES },

@@ -22,6 +22,8 @@ import { TimeZoneService } from '../../../core/services/timezone.service';
 export class SignupComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     companyName: ['', [Validators.required, Validators.maxLength(200)]],
+    // The one business detail signup asks for — the rest go on the Business Profile page later.
+    productName: ['', Validators.maxLength(200)],
     fullName: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
@@ -64,11 +66,16 @@ export class SignupComponent implements OnInit {
     }
 
     this.submitting = true;
-    const { country, timezone, ...raw } = this.form.getRawValue();
+    const { country, timezone, productName, ...raw } = this.form.getRawValue();
     // slug is deliberately omitted — the backend derives and de-duplicates one from
     // companyName automatically; nothing in this UI collects a custom slug yet.
     this.auth
-      .signUp({ ...raw, countryCode: country || null, timezone: timezone || null })
+      .signUp({
+        ...raw,
+        productName: productName.trim() || null,
+        countryCode: country || null,
+        timezone: timezone || null,
+      })
       .pipe(finalize(() => (this.submitting = false)))
       .subscribe({
         next: (user) => {

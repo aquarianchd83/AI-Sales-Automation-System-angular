@@ -5,10 +5,18 @@ import { RouterModule } from '@angular/router';
 
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from './components/page-header/page-header.component';
+import { ModuleFlowsButtonComponent } from './components/module-flows/module-flows-button.component';
+import { ModuleFlowsDialogComponent } from './components/module-flows/module-flows-dialog.component';
 import { HasRoleDirective } from './directives/has-role.directive';
 import { MaterialModule } from './material.module';
 
-const DECLARATIONS = [ConfirmDialogComponent, PageHeaderComponent, HasRoleDirective];
+const DECLARATIONS = [
+  ConfirmDialogComponent,
+  PageHeaderComponent,
+  HasRoleDirective,
+  ModuleFlowsButtonComponent,
+  ModuleFlowsDialogComponent,
+];
 
 /** Re-exported building blocks for feature modules. Holds no providers. */
 @NgModule({
