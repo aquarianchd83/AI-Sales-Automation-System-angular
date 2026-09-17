@@ -120,7 +120,10 @@
           <dt>AI interactions</dt>
           <dd>{{ tenant.aiInteractionsThisMonth }}</dd>
           <dt>Estimated AI spend</dt>
-          <dd>${{ tenant.estimatedAiSpendThisMonthUsd.toFixed(4) }}</dd>
+          <dd [matTooltip]="formatCharge(tenant.estimatedAiSpendThisMonthUsd) + ' USD'">
+            {{ formatCharge(tenant.estimatedAiSpendThisMonthLocal, tenant.currencySymbol) }}
+            <span class="muted">{{ tenant.currencyCode }}</span>
+          </dd>
         </dl>
       </mat-card>
 

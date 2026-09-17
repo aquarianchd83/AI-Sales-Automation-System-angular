@@ -8,7 +8,10 @@
           Add plan
         </button>
       </div>
-      <span class="muted">Retired plans stay visible so existing subscribers keep their limits.</span>
+      <span class="muted">
+        Retired plans stay visible so existing subscribers keep their limits. Prices are the base USD list
+        price this catalog is authored in — each tenant is quoted their own currency.
+      </span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
     <div class="plan-grid" *ngIf="!loadingPlans">

@@ -59,6 +59,9 @@ export const ANNOUNCEMENT_SEVERITY_LABELS: Record<AnnouncementSeverity, string> 
 
 /** PlatformDashboardDto. mrrUsd/estimatedAiSpendThisMonthUsd are both estimates — see the
  * backend's own AiSpendEstimator/PlatformDashboardService doc comments. */
+/** PlatformDashboardDto. These are platform-wide figures, so `currencyCode`/`currencySymbol` and the
+ * `*Local` amounts are the SIGNED-IN OPERATOR's currency (from the country on their own profile), not any
+ * tenant's — a per-tenant figure is quoted in that tenant's currency instead (see PlatformTenantUsage). */
 export interface PlatformDashboard {
   activeTenants: number;
   trialTenants: number;
@@ -70,6 +73,10 @@ export interface PlatformDashboard {
   estimatedAiSpendThisMonthUsd: number;
   webhookFailuresLast24h: number;
   systemHealthy: boolean;
+  currencyCode: string;
+  currencySymbol: string;
+  mrrLocal: number;
+  estimatedAiSpendThisMonthLocal: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +128,10 @@ export interface PlatformTenantDetail {
   /** Null when never set - plan pricing quotes in USD until it is (RegionalPricingCatalog.Resolve
    * on the backend). Unlike timezone, has no universal default. */
   countryCode: string | null;
+  /** This tenant's own currency, resolved from countryCode — what they're quoted in on their own screens. */
+  currencyCode: string;
+  currencySymbol: string;
+  estimatedAiSpendThisMonthLocal: number;
 }
 
 /** ImpersonationSessionDto — deliberately carries no refresh token (see the backend's
@@ -262,6 +273,15 @@ export interface PlatformTenantUsage {
   /** When the spend window opened: the start of the month in this tenant's own timezone, so the figures
    * match what that tenant sees. The quota columns still run on the UTC month the API enforces. */
   spendPeriodStartUtc: string;
+  /** This row's money in THAT TENANT's currency (from their country), matching what they're quoted on their
+   * own screens. A column therefore mixes currencies and is not comparable across rows — compare or total
+   * the `*Usd` figures instead. */
+  currencyCode: string;
+  currencySymbol: string;
+  estimatedAiSpendThisMonthLocal: number;
+  estimatedWhatsAppSpendThisMonthLocal: number;
+  estimatedLeadDiscoverySpendThisMonthLocal: number;
+  estimatedTotalSpendThisMonthLocal: number;
 }
 
 // ---------------------------------------------------------------------------

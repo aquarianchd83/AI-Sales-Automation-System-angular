@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 
+import { formatCharge } from '../../../core/models/billing.model';
 import { PlatformDashboard } from '../../../core/models/platform.model';
 import { PlatformDashboardService } from '../../../core/services/platform-dashboard.service';
 
@@ -39,12 +40,14 @@ export class PlatformDashboardComponent implements OnInit {
       { label: 'Trial tenants', icon: 'hourglass_top', value: String(d.trialTenants) },
       { label: 'Suspended tenants', icon: 'block', value: String(d.suspendedTenants) },
       { label: 'Signups this month', icon: 'person_add', value: String(d.signupsThisMonth) },
-      { label: 'MRR (est.)', icon: 'payments', value: `$${d.mrrUsd.toFixed(2)}` },
+      // Platform-wide figures, so they're quoted in the operator's own currency (from their profile
+      // country) rather than any tenant's — see PlatformDashboard's own doc comment.
+      { label: 'MRR (est.)', icon: 'payments', value: formatCharge(d.mrrLocal, d.currencySymbol) },
       { label: 'Messages this month', icon: 'forum', value: d.messagesSentThisMonth.toLocaleString() },
       {
         label: 'AI spend this month (est.)',
         icon: 'smart_toy',
-        value: `$${d.estimatedAiSpendThisMonthUsd.toFixed(4)}`,
+        value: formatCharge(d.estimatedAiSpendThisMonthLocal, d.currencySymbol),
         hint: `${d.aiInteractionsThisMonth.toLocaleString()} AI interactions`,
       },
       {

@@ -15,7 +15,7 @@ import {
   TenantJobRunOutcome,
   TenantStatus,
 } from '../../../core/models/platform.model';
-import { RegionOption, TimeZoneOption } from '../../../core/models/billing.model';
+import { RegionOption, TimeZoneOption, formatCharge } from '../../../core/models/billing.model';
 import { TenantAiProviderConfig, TenantSettingCategory, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { ImpersonationSessionService } from '../../../core/services/impersonation-session.service';
@@ -38,6 +38,8 @@ import { PlatformTenantWhatsAppConfigDialogComponent } from '../platform-tenant-
 export class PlatformTenantDetailComponent implements OnInit {
   readonly statusLabels = TENANT_STATUS_LABELS;
   readonly subscriptionStatusLabels = SUBSCRIPTION_STATUS_LABELS;
+  /** This page is about one tenant, so its money is shown in that tenant's currency (USD in the tooltip). */
+  readonly formatCharge = formatCharge;
   readonly TenantStatus = TenantStatus;
   readonly planControl = new FormControl<string | null>(null);
   readonly timezoneControl = new FormControl<string | null>(null);

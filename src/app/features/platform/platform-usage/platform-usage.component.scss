@@ -11,6 +11,12 @@
   flex: 1 1 260px;
 }
 
+/* A row's money is in that tenant's own currency, so each total names which one. */
+.currency-note {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
 .quota-breached {
   color: #b71c1c;
   font-weight: 600;
