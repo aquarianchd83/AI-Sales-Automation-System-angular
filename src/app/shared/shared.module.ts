@@ -9,6 +9,7 @@ import { ModuleFlowsButtonComponent } from './components/module-flows/module-flo
 import { ModuleFlowsDialogComponent } from './components/module-flows/module-flows-dialog.component';
 import { HasRoleDirective } from './directives/has-role.directive';
 import { MaterialModule } from './material.module';
+import { ZonedDatePipe } from './pipes/zoned-date.pipe';
 
 const DECLARATIONS = [
   ConfirmDialogComponent,
@@ -16,6 +17,7 @@ const DECLARATIONS = [
   HasRoleDirective,
   ModuleFlowsButtonComponent,
   ModuleFlowsDialogComponent,
+  ZonedDatePipe,
 ];
 
 /** Re-exported building blocks for feature modules. Holds no providers. */

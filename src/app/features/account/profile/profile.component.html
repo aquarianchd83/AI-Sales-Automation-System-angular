@@ -1,0 +1,128 @@
+<div class="page">
+  <app-page-header title="My profile" subtitle="Your own account details and how dates are shown to you."></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="load-failed" *ngIf="!loading && loadFailed">
+    <mat-icon>cloud_off</mat-icon>
+    <p>We couldn't load your profile.</p>
+    <button mat-stroked-button color="primary" type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <form class="layout" *ngIf="!loading && !loadFailed && profile as p" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="main">
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-teal"><mat-icon>person</mat-icon></span>
+          <div>
+            <h2>Details</h2>
+            <p>How you're identified across the platform.</p>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Full name</mat-label>
+            <input matInput formControlName="fullName" maxlength="200" required />
+            <mat-error>Your name is required.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Sign-in email</mat-label>
+            <mat-icon matPrefix>mail</mat-icon>
+            <input matInput formControlName="email" type="email" maxlength="256" required />
+            <mat-hint *ngIf="emailChanged">You'll sign in with this address from now on.</mat-hint>
+            <mat-error>Enter a valid email address.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Phone number</mat-label>
+            <mat-icon matPrefix>call</mat-icon>
+            <input matInput formControlName="phoneNumber" type="tel" maxlength="32" placeholder="+91 98765 43210" />
+            <mat-error>Use digits, spaces, brackets, dashes and an optional leading +.</mat-error>
+          </mat-form-field>
+        </div>
+      </mat-card>
+
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-blue"><mat-icon>public</mat-icon></span>
+          <div>
+            <h2>Region</h2>
+            <p>Your timezone decides how dates and times are shown to you.</p>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Timezone</mat-label>
+            <mat-select formControlName="timezone">
+              <mat-option *ngFor="let tz of timezones" [value]="tz.id">
+                {{ tz.displayName }} (UTC{{ tz.utcOffset }})
+              </mat-option>
+            </mat-select>
+            <mat-hint>Every timestamp in the app is shown in this zone.</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Country</mat-label>
+            <mat-select formControlName="countryCode">
+              <mat-option [value]="">Not set</mat-option>
+              <mat-option *ngFor="let region of regions" [value]="region.countryCode">
+                {{ region.countryName }}
+              </mat-option>
+            </mat-select>
+            <mat-hint>Your own country. Plan pricing follows each tenant's country, not this.</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <p class="field-message" *ngIf="timezoneChanged">
+          <mat-icon>refresh</mat-icon>
+          Saving will reload the app so every timestamp redraws in the new timezone.
+        </p>
+      </mat-card>
+    </div>
+
+    <aside class="side">
+      <mat-card class="section summary">
+        <span class="summary-avatar">{{ initials(form.controls.fullName.value) }}</span>
+        <h3>{{ form.controls.fullName.value || 'Your name' }}</h3>
+        <p class="muted">{{ p.email }}</p>
+        <span class="role-chip">{{ roleLabel }}</span>
+
+        <dl class="facts">
+          <dt>Account</dt>
+          <dd>{{ p.isPlatformSuperAdmin ? 'Platform operator' : 'Tenant user' }}</dd>
+          <dt>Created</dt>
+          <dd>{{ p.createdAt | zonedDate: 'mediumDate' }}</dd>
+          <dt>Last sign-in</dt>
+          <dd>{{ p.lastLoginAt ? (p.lastLoginAt | zonedDate: 'medium') : 'This session' }}</dd>
+        </dl>
+      </mat-card>
+
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-violet"><mat-icon>lock</mat-icon></span>
+          <div>
+            <h2>Security</h2>
+            <p>Your password is changed on its own screen.</p>
+          </div>
+        </div>
+        <a mat-stroked-button color="primary" routerLink="/change-password">
+          <mat-icon>lock_reset</mat-icon>
+          Change password
+        </a>
+      </mat-card>
+    </aside>
+  </form>
+
+  <div class="save-bar" *ngIf="!loading && !loadFailed && form.dirty">
+    <mat-icon>edit_note</mat-icon>
+    <span>You have unsaved changes</span>
+    <span class="spacer"></span>
+    <button mat-button type="button" (click)="discard()" [disabled]="saving">Discard</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
+      {{ saving ? 'Saving…' : 'Save changes' }}
+    </button>
+  </div>
+</div>

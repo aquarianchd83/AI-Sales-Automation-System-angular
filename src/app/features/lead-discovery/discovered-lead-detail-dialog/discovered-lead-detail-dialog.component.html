@@ -1,0 +1,72 @@
+<h2 mat-dialog-title class="title">
+  <span class="title-text">{{ lead.businessName }}</span>
+  <span [class]="scoreClass(lead.leadScore)">Score {{ lead.leadScore }}</span>
+</h2>
+
+<mat-dialog-content>
+  <p class="muted subtitle">{{ lead.businessType }} · discovered {{ lead.discoveredAt | date: 'medium' }}</p>
+
+  <dl class="details">
+    <dt>Contact person</dt>
+    <dd>{{ lead.contactPerson || '—' }}</dd>
+
+    <dt>Phone</dt>
+    <dd>
+      <ng-container *ngIf="lead.phone; else none">
+        <span class="phone">
+          {{ lead.phone }}
+          <mat-icon *ngIf="lead.phoneVerified" class="verified-icon" aria-label="Verified">verified</mat-icon>
+        </span>
+        <div class="source" *ngIf="isSafeLink(lead.phoneSourceUrl)">
+          Found on
+          <a [href]="lead.phoneSourceUrl" target="_blank" rel="noopener noreferrer">{{ shortUrl(lead.phoneSourceUrl!) }}</a>
+        </div>
+      </ng-container>
+    </dd>
+
+    <dt>Email</dt>
+    <dd>
+      <a *ngIf="lead.email; else none" [href]="'mailto:' + lead.email">{{ lead.email }}</a>
+    </dd>
+
+    <dt>Website</dt>
+    <dd>
+      <a *ngIf="isSafeLink(lead.website); else plainWebsite" [href]="lead.website" target="_blank" rel="noopener noreferrer">
+        {{ shortUrl(lead.website!) }}
+      </a>
+      <ng-template #plainWebsite>{{ lead.website || '—' }}</ng-template>
+    </dd>
+
+    <dt>Location</dt>
+    <dd>{{ location || '—' }}</dd>
+
+    <dt>In your CRM</dt>
+    <dd>
+      <a *ngIf="lead.customerId; else notInCrm" [routerLink]="['/customers', lead.customerId]" mat-dialog-close>
+        Open customer
+      </a>
+      <ng-template #notInCrm>
+        <span class="muted">Not added — a lead needs a usable phone number to become a customer.</span>
+      </ng-template>
+    </dd>
+
+    <dt>Discovered on</dt>
+    <dd>
+      <a *ngIf="isSafeLink(lead.sourceUrl); else plainSource" [href]="lead.sourceUrl" target="_blank" rel="noopener noreferrer">
+        {{ shortUrl(lead.sourceUrl) }}
+      </a>
+      <ng-template #plainSource>{{ lead.sourceUrl }}</ng-template>
+    </dd>
+  </dl>
+
+  <div class="rationale" *ngIf="lead.scoreRationale">
+    <h3>Why it scored {{ lead.leadScore }}</h3>
+    <p>{{ lead.scoreRationale }}</p>
+  </div>
+
+  <ng-template #none>—</ng-template>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">Close</button>
+</mat-dialog-actions>

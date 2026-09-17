@@ -3,7 +3,12 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { TenantAiProviderConfig, TenantMessageUsage, TenantWhatsAppConfig } from '../models/tenant-settings.model';
+import {
+  TenantAiProviderConfig,
+  TenantCharges,
+  TenantMessageUsage,
+  TenantWhatsAppConfig,
+} from '../models/tenant-settings.model';
 
 /**
  * A tenant's own read-only view of its WhatsApp Business Account connection, AI provider setup, and
@@ -33,5 +38,11 @@ export class TenantSettingsService {
   /** How much of this calendar month's WhatsApp message quota the tenant has used. */
   getUsage(): Observable<TenantMessageUsage> {
     return this.http.get<TenantMessageUsage>(`${this.baseUrl}/usage`);
+  }
+
+  /** This calendar month's usage charges — WhatsApp sending plus lead discovery. Estimates from
+   * hand-maintained rate tables, not a bill; see TenantCharges' own doc comment. */
+  getCharges(): Observable<TenantCharges> {
+    return this.http.get<TenantCharges>(`${this.baseUrl}/charges`);
   }
 }

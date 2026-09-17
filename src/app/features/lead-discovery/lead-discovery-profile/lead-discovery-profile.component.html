@@ -1,0 +1,273 @@
+<div class="page">
+  <app-page-header
+    title="Lead discovery profile"
+    subtitle="Tell the lead discovery job which businesses to look for and which ones are worth keeping."
+  >
+    <a mat-button routerLink="..">
+      <mat-icon>arrow_back</mat-icon>
+      Discovered leads
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="load-failed" *ngIf="!loading && loadFailed">
+    <mat-icon>cloud_off</mat-icon>
+    <p>We couldn't load your lead discovery profile.</p>
+    <button mat-stroked-button color="primary" type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <form class="layout" *ngIf="!loading && !loadFailed && saved" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="main">
+      <!-- Target -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-teal"><mat-icon>track_changes</mat-icon></span>
+          <div>
+            <h2>Who to find</h2>
+            <p>The kind of business you sell to, and the words it's found by.</p>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Target business type</mat-label>
+          <input
+            matInput
+            formControlName="targetBusinessType"
+            [maxlength]="limits.targetBusinessType"
+            placeholder="e.g. Eye clinic, Computer hardware distributor"
+            required
+          />
+          <mat-error>Describe the kind of business to look for.</mat-error>
+        </mat-form-field>
+
+        <div class="list-head">
+          <span class="list-label">Search keywords</span>
+          <span class="count" [class.count--full]="lists.keywords.length >= limits.maxKeywords">
+            {{ lists.keywords.length }} / {{ limits.maxKeywords }}
+          </span>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Add keywords</mat-label>
+          <mat-chip-grid #keywordGrid aria-label="Search keywords">
+            <mat-chip-row *ngFor="let keyword of lists.keywords" (removed)="remove('keywords', keyword)">
+              {{ keyword }}
+              <button matChipRemove type="button" [attr.aria-label]="'Remove ' + keyword">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+            <input
+              [formControl]="keywordInput"
+              placeholder="Type a keyword and press Enter"
+              [matChipInputFor]="keywordGrid"
+              [matChipInputSeparatorKeyCodes]="keywordSeparators"
+              [matChipInputAddOnBlur]="true"
+              (matChipInputTokenEnd)="addKeyword($event)"
+            />
+          </mat-chip-grid>
+          <mat-hint>Each keyword is searched in every location. Press Enter or comma after each one.</mat-hint>
+        </mat-form-field>
+        <p class="field-message field-message--error" *ngIf="listErrors.keywords as error" role="alert">
+          <mat-icon>error_outline</mat-icon>{{ error }}
+        </p>
+        <p class="field-message field-message--error" *ngIf="keywordsMissing" role="alert">
+          <mat-icon>error_outline</mat-icon>Add at least one search keyword.
+        </p>
+
+        <div class="list-head list-gap">
+          <span class="list-label">Locations</span>
+          <span class="count" [class.count--full]="lists.locations.length >= limits.maxLocations">
+            {{ lists.locations.length }} / {{ limits.maxLocations }}
+          </span>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Add locations</mat-label>
+          <mat-icon matPrefix>place</mat-icon>
+          <mat-chip-grid #locationGrid aria-label="Locations">
+            <mat-chip-row *ngFor="let location of lists.locations" (removed)="remove('locations', location)">
+              {{ location }}
+              <button matChipRemove type="button" [attr.aria-label]="'Remove ' + location">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+            <input
+              [formControl]="locationInput"
+              placeholder="City, region or area, then Enter"
+              [matChipInputFor]="locationGrid"
+              [matChipInputSeparatorKeyCodes]="locationSeparators"
+              [matChipInputAddOnBlur]="true"
+              (matChipInputTokenEnd)="addLocation($event)"
+            />
+          </mat-chip-grid>
+          <mat-hint>e.g. Chandigarh, or Andheri West, Mumbai. Press Enter after each one.</mat-hint>
+        </mat-form-field>
+        <p class="field-message field-message--error" *ngIf="listErrors.locations as error" role="alert">
+          <mat-icon>error_outline</mat-icon>{{ error }}
+        </p>
+        <p class="field-message field-message--error" *ngIf="locationsMissing" role="alert">
+          <mat-icon>error_outline</mat-icon>Add at least one location.
+        </p>
+      </mat-card>
+
+      <!-- Qualification -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-indigo"><mat-icon>fact_check</mat-icon></span>
+          <div>
+            <h2>What qualifies</h2>
+            <p>A business that fails any of these rules is not saved.</p>
+          </div>
+        </div>
+
+        <div class="switch-list">
+          <div class="switch-row">
+            <div>
+              <strong>Phone number required</strong>
+              <span>Only numbers found on a page the job actually opened are kept.</span>
+            </div>
+            <mat-slide-toggle formControlName="phoneRequired" aria-label="Phone number required"></mat-slide-toggle>
+          </div>
+          <div class="switch-row">
+            <div>
+              <strong>Email address required</strong>
+              <span>Also checked against a page the job opened.</span>
+            </div>
+            <mat-slide-toggle formControlName="emailRequired" aria-label="Email address required"></mat-slide-toggle>
+          </div>
+          <div class="switch-row">
+            <div>
+              <strong>Independent businesses only</strong>
+              <span>Skip chains, franchises and branches of larger groups.</span>
+            </div>
+            <mat-slide-toggle formControlName="independentBusiness" aria-label="Independent businesses only"></mat-slide-toggle>
+          </div>
+        </div>
+
+        <div class="list-head list-gap">
+          <span class="list-label">Also require</span>
+        </div>
+        <div class="field-checks" formGroupName="fields">
+          <mat-checkbox *ngFor="let field of checkboxFields" [formControlName]="field.key">{{ field.label }}</mat-checkbox>
+        </div>
+
+        <mat-form-field appearance="outline" class="score-field">
+          <mat-label>Minimum lead score</mat-label>
+          <input matInput type="number" min="0" max="100" formControlName="minimumLeadScore" />
+          <span matTextSuffix>/ 100</span>
+          <mat-hint>How closely a business must match your target. 60 is a sensible start.</mat-hint>
+          <mat-error>Enter a score from 0 to 100.</mat-error>
+        </mat-form-field>
+      </mat-card>
+
+      <!-- Additional criteria -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-violet"><mat-icon>rule</mat-icon></span>
+          <div>
+            <h2>Additional criteria</h2>
+            <p>Anything else a good lead looks like, in plain language.</p>
+          </div>
+          <span class="spacer"></span>
+          <span class="count" [class.count--full]="lists.additionalCriteria.length >= limits.maxAdditionalCriteria">
+            {{ lists.additionalCriteria.length }} / {{ limits.maxAdditionalCriteria }}
+          </span>
+        </div>
+
+        <ol class="criteria" *ngIf="lists.additionalCriteria.length">
+          <li *ngFor="let criterion of lists.additionalCriteria">
+            <span>{{ criterion }}</span>
+            <button
+              mat-icon-button
+              type="button"
+              (click)="remove('additionalCriteria', criterion)"
+              [attr.aria-label]="'Remove ' + criterion"
+            >
+              <mat-icon>close</mat-icon>
+            </button>
+          </li>
+        </ol>
+
+        <div class="criterion-add">
+          <mat-form-field appearance="outline" class="criterion-input">
+            <mat-label>Add a criterion</mat-label>
+            <input
+              matInput
+              [formControl]="criterionInput"
+              [maxlength]="limits.criterion"
+              placeholder="e.g. Has been in business for at least 3 years"
+              (keydown.enter)="$event.preventDefault(); addCriterion()"
+            />
+          </mat-form-field>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            [disabled]="!criterionInput.value.trim()"
+            (click)="addCriterion()"
+          >
+            Add
+          </button>
+        </div>
+        <p class="field-message field-message--error" *ngIf="listErrors.additionalCriteria as error" role="alert">
+          <mat-icon>error_outline</mat-icon>{{ error }}
+        </p>
+      </mat-card>
+    </div>
+
+    <aside class="side">
+      <!-- Status -->
+      <mat-card class="section status-card" [class.status-card--on]="form.controls.isEnabled.value">
+        <div class="status-row">
+          <span class="section-icon" [class.tone-green]="form.controls.isEnabled.value" [class.tone-grey]="!form.controls.isEnabled.value">
+            <mat-icon>{{ form.controls.isEnabled.value ? 'travel_explore' : 'pause_circle' }}</mat-icon>
+          </span>
+          <div class="status-text">
+            <h2>Discovery is {{ form.controls.isEnabled.value ? 'on' : 'off' }}</h2>
+            <p>{{ form.controls.isEnabled.value ? 'Runs on your workspace’s discovery schedule.' : 'No searches run while this is off.' }}</p>
+          </div>
+          <mat-slide-toggle formControlName="isEnabled" aria-label="Lead discovery on"></mat-slide-toggle>
+        </div>
+        <p class="summary">{{ summary }}</p>
+        <p class="muted meta" *ngIf="saved.updatedAt">Last saved {{ saved.updatedAt | date: 'medium' }}</p>
+        <p class="muted meta" *ngIf="!saved.updatedAt">Not saved yet.</p>
+      </mat-card>
+
+      <!-- Volume -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-blue"><mat-icon>speed</mat-icon></span>
+          <div>
+            <h2>Leads per run</h2>
+            <p>Each run spends your workspace’s AI credit.</p>
+          </div>
+        </div>
+
+        <div class="plan-warning" *ngIf="planExcludesDiscovery" role="alert">
+          <mat-icon>lock</mat-icon>
+          <span>Your plan doesn't include lead discovery. <a routerLink="/billing">View plans</a></span>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>New leads per run</mat-label>
+          <input matInput type="number" min="1" [max]="batchLimit" formControlName="batchSize" />
+          <mat-hint *ngIf="saved.planMaxBatchSize != null">Your plan allows up to {{ saved.planMaxBatchSize }} per run.</mat-hint>
+          <mat-hint *ngIf="saved.planMaxBatchSize == null">Up to {{ limits.maxBatchSize }} per run.</mat-hint>
+          <mat-error *ngIf="form.controls.batchSize.hasError('max')">
+            {{ planExcludesDiscovery ? 'Not available on your plan.' : 'At most ' + batchLimit + ' per run.' }}
+          </mat-error>
+          <mat-error *ngIf="!form.controls.batchSize.hasError('max')">Enter at least 1.</mat-error>
+        </mat-form-field>
+      </mat-card>
+    </aside>
+  </form>
+
+  <div class="save-bar" *ngIf="!loading && !loadFailed && hasChanges">
+    <mat-icon>edit_note</mat-icon>
+    <span>You have unsaved changes</span>
+    <span class="spacer"></span>
+    <button mat-button type="button" (click)="discard()" [disabled]="saving">Discard</button>
+    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
+      {{ saving ? 'Saving…' : 'Save changes' }}
+    </button>
+  </div>
+</div>

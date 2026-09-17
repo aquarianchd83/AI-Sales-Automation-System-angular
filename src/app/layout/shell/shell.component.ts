@@ -6,6 +6,7 @@ import { map, shareReplay } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { AppRole, User } from '../../core/models/user.model';
 import { Announcement, PLATFORM_ADMIN_ROLES } from '../../core/models/platform.model';
+import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 
 interface NavItem {
@@ -64,6 +65,7 @@ export class ShellComponent implements OnInit {
       items: [
         { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
         { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
+        { label: 'Lead Discovery', icon: 'travel_explore', route: '/lead-discovery', roles: [] },
         { label: 'Tags', icon: 'sell', route: '/tags', roles: [] },
       ],
     },
@@ -140,6 +142,13 @@ export class ShellComponent implements OnInit {
         { label: 'Audit Log', icon: 'history', route: '/platform/audit-log', roles: [] },
       ],
     },
+    {
+      // The operator's own account. It lives in the nav as well as the account menu because this is the
+      // only profile screen a PlatformSuperAdmin has — they belong to no tenant, so the tenant-scoped
+      // Users screens can neither see nor edit them.
+      label: 'Account',
+      items: [{ label: 'My Profile', icon: 'account_circle', route: '/account/profile', roles: [] }],
+    },
   ];
 
   /** True for the platform operator account — read once, not as an Observable, same reasoning as
@@ -180,13 +189,21 @@ export class ShellComponent implements OnInit {
   constructor(
     private readonly auth: AuthService,
     private readonly breakpoints: BreakpointObserver,
-    private readonly announcementService: AnnouncementService
+    private readonly announcementService: AnnouncementService,
+    private readonly account: AccountService
   ) {}
 
   ngOnInit(): void {
     if (this.isImpersonating) {
       return;
     }
+
+    // Caches this user's display timezone so ZonedDatePipe renders in it from the first paint. Skipped
+    // during a support session on purpose: localStorage is shared across same-origin tabs, so storing the
+    // impersonated user's zone would change how the operator's own tab renders (same hazard AuthService's
+    // clearSession documents for the cached user).
+    this.account.getProfile().subscribe({ error: () => undefined });
+
     this.announcementService.getActive().subscribe({
       next: (announcements) => {
         const dismissed = this.dismissedIds();

@@ -12,6 +12,7 @@ import {
   takeUntil,
 } from 'rxjs/operators';
 
+import { formatCharge } from '../../../core/models/billing.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { PlatformTenantUsage } from '../../../core/models/platform.model';
 import { PlatformUsageService } from '../../../core/services/platform-usage.service';
@@ -24,8 +25,11 @@ import { PlatformUsageService } from '../../../core/services/platform-usage.serv
 export class PlatformUsageComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['tenant', 'messages', 'users', 'ai'];
+  readonly displayedColumns = ['tenant', 'messages', 'users', 'ai', 'whatsAppSpend', 'discovery', 'total'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
+  /** Every money column here is USD — these are the platform's own costs to serve a tenant, not what
+   * that tenant is quoted in its own currency (that conversion belongs on the tenant's own screens). */
+  readonly formatCharge = formatCharge;
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
 
   page: PagedResult<PlatformTenantUsage> = emptyPage<PlatformTenantUsage>();

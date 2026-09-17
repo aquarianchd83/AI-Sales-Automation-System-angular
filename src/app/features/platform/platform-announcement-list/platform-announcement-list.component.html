@@ -29,7 +29,7 @@
         </button>
       </div>
       <p>{{ announcement.body }}</p>
-      <span class="muted timestamp">Created {{ announcement.createdAt | date: 'medium' }}</span>
+      <span class="muted timestamp">Created {{ announcement.createdAt | zonedDate: 'medium' }}</span>
     </mat-card>
 
     <div class="empty-state" *ngIf="!announcements.length">

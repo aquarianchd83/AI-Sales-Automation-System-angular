@@ -65,6 +65,49 @@ export interface UpdateTenantAiProviderConfigRequest {
   googleEmbeddingModel?: string | null;
 }
 
+/** TenantWhatsAppCategoryChargeDto — one template category's share. `category` is a TemplateCategory
+ * name (Marketing/Utility/Authentication). */
+export interface TenantWhatsAppCategoryCharge {
+  category: string;
+  messages: number;
+  ratePerMessageUsd: number;
+  estimatedCostUsd: number;
+  estimatedCostLocal: number;
+}
+
+/** TenantWhatsAppChargesDto. `messagesSent` is every message this month (what the plan allowance counts);
+ * `billableMessages` is the template sends Meta charges for — an inbound message or a free-form session
+ * reply costs nothing, which is why the two differ. */
+export interface TenantWhatsAppCharges {
+  messagesSent: number;
+  billableMessages: number;
+  freeMessages: number;
+  estimatedCostUsd: number;
+  estimatedCostLocal: number;
+  byCategory: TenantWhatsAppCategoryCharge[];
+}
+
+/** TenantLeadDiscoveryChargesDto — the current-month half of GET /lead-discovery/spend. */
+export interface TenantLeadDiscoveryCharges {
+  runs: number;
+  leadsSaved: number;
+  estimatedCostUsd: number;
+  estimatedCostLocal: number;
+}
+
+/** TenantChargesDto (GET /tenant-settings/charges) — this calendar month's usage charges: WhatsApp
+ * sending plus lead discovery, excluding the plan subscription fee. Every figure is an ESTIMATE priced
+ * from hand-maintained rate tables, so any screen showing these must say so rather than implying a bill. */
+export interface TenantCharges {
+  currencyCode: string;
+  currencySymbol: string;
+  periodStartUtc: string;
+  whatsApp: TenantWhatsAppCharges;
+  leadDiscovery: TenantLeadDiscoveryCharges;
+  totalEstimatedCostUsd: number;
+  totalEstimatedCostLocal: number;
+}
+
 /** The chat providers a tenant can pick for AiProviderConfig.provider. */
 export const AI_CHAT_PROVIDERS: string[] = ['Simulated', 'Anthropic', 'OpenAI', 'Google'];
 

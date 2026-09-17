@@ -23,6 +23,7 @@
           <li>{{ plan.maxMessagesPerMonth.toLocaleString() }} messages/mo</li>
           <li>{{ plan.maxCampaigns }} campaigns</li>
           <li>{{ plan.maxKnowledgeBaseArticles }} KB articles</li>
+          <li>{{ plan.maxLeadDiscoveryBatchSize }} leads/discovery run</li>
         </ul>
         <div class="plan-tile-actions">
           <button mat-stroked-button type="button" (click)="editPlan(plan)">Edit</button>
@@ -61,7 +62,7 @@
 
         <ng-container matColumnDef="currentPeriodEnd">
           <th mat-header-cell *matHeaderCellDef>Period ends</th>
-          <td mat-cell *matCellDef="let sub">{{ sub.currentPeriodEndUtc ? (sub.currentPeriodEndUtc | date: 'mediumDate') : '—' }}</td>
+          <td mat-cell *matCellDef="let sub">{{ sub.currentPeriodEndUtc ? (sub.currentPeriodEndUtc | zonedDate: 'mediumDate') : '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="failedPayment">

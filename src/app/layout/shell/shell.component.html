@@ -70,7 +70,11 @@
             <div class="menu-roles">{{ user.roles.join(', ') || 'No role assigned' }}</div>
           </div>
           <mat-divider></mat-divider>
-          <a mat-menu-item routerLink="/change-password">
+          <a mat-menu-item routerLink="/account/profile">
+            <mat-icon>account_circle</mat-icon>
+            <span>My profile</span>
+          </a>
+          <a mat-menu-item routerLink="/account/change-password">
             <mat-icon>lock_reset</mat-icon>
             <span>Change password</span>
           </a>

@@ -10,10 +10,23 @@ export interface Plan {
   maxMessagesPerMonth: number;
   maxCampaigns: number;
   maxKnowledgeBaseArticles: number;
+  maxLeadDiscoveryBatchSize: number;
   priceMonthlyCents: number;
   currencyCode: string;
   currencySymbol: string;
   localPriceAmount: number;
+}
+
+/**
+ * Renders a usage charge. A cheap month genuinely costs a fraction of a cent, which `| currency` would
+ * render as "$0.00" and read as free — so anything below a cent keeps four decimals, and everything else
+ * uses the ordinary two. Shared by the tenant Settings charges card and the platform usage table.
+ */
+export function formatCharge(amount: number, symbol = '$'): string {
+  // Exactly zero is "nothing spent", not a tiny amount, so it gets the plain two decimals — a column of
+  // "$0.0000" reads as noise.
+  const decimals = amount === 0 || Math.abs(amount) >= 0.01 ? 2 : 4;
+  return `${symbol}${amount.toFixed(decimals)}`;
 }
 
 /** RegionDto — one row of the public region catalog (GET /billing/regions, no auth required),

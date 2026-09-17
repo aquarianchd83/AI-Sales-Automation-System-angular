@@ -69,7 +69,7 @@
 
         <ng-container matColumnDef="createdAt">
           <th mat-header-cell *matHeaderCellDef>Signed up</th>
-          <td mat-cell *matCellDef="let tenant">{{ tenant.createdAt | date: 'mediumDate' }}</td>
+          <td mat-cell *matCellDef="let tenant">{{ tenant.createdAt | zonedDate: 'mediumDate' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">

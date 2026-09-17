@@ -68,6 +68,15 @@ const routes: Routes = [
           import('./features/leads/leads.module').then((m) => m.LeadsModule),
       },
       {
+        // Discovered leads are open to every tenant user; the module's own `profile` child route is
+        // gated to tenant admins.
+        path: 'lead-discovery',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ROLES },
+        loadChildren: () =>
+          import('./features/lead-discovery/lead-discovery.module').then((m) => m.LeadDiscoveryModule),
+      },
+      {
         path: 'knowledge-base',
         canActivate: [roleGuard],
         data: { roles: TENANT_ROLES },
@@ -144,11 +153,18 @@ const routes: Routes = [
           import('./features/billing/billing.module').then((m) => m.BillingModule),
       },
       {
-        // Deliberately no role gate — a PlatformSuperAdmin has a password to change too, same as
-        // any tenant user.
-        path: 'change-password',
+        // Deliberately no role gate — every signed-in user has an account to maintain, and a
+        // PlatformSuperAdmin belongs to no tenant, so this is the only profile screen they have.
+        path: 'account',
         loadChildren: () =>
           import('./features/account/account.module').then((m) => m.AccountModule),
+      },
+      {
+        // Where the account menu pointed before the profile screen existed; kept so old links and
+        // bookmarks still land somewhere real.
+        path: 'change-password',
+        pathMatch: 'full',
+        redirectTo: 'account/change-password',
       },
       {
         path: 'platform',

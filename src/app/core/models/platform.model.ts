@@ -178,12 +178,15 @@ export interface PlatformPlan {
   maxMessagesPerMonth: number;
   maxCampaigns: number;
   maxKnowledgeBaseArticles: number;
+  /** The most new leads one lead discovery run may add for a tenant on this plan. */
+  maxLeadDiscoveryBatchSize: number;
   priceMonthlyCents: number;
   isActive: boolean;
 }
 
 /** Body of POST the plan catalog endpoint. code is immutable once a plan exists — there is no
- * update path for it, only creation (see UpdatePlanRequest). */
+ * update path for it, only creation (see UpdatePlanRequest). maxLeadDiscoveryBatchSize omitted
+ * means the backend default (25). */
 export interface CreatePlanRequest {
   code: string;
   name: string;
@@ -192,10 +195,12 @@ export interface CreatePlanRequest {
   maxCampaigns: number;
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
+  maxLeadDiscoveryBatchSize?: number | null;
 }
 
 /** Body of PUT one plan. isActive is how a plan is both retired (the Delete button sets it false)
- * and un-retired — there is no separate reactivate endpoint. */
+ * and un-retired — there is no separate reactivate endpoint. maxLeadDiscoveryBatchSize omitted
+ * leaves the stored value unchanged. */
 export interface UpdatePlanRequest {
   name: string;
   maxUsers: number;
@@ -204,6 +209,7 @@ export interface UpdatePlanRequest {
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
   isActive: boolean;
+  maxLeadDiscoveryBatchSize?: number | null;
 }
 
 export interface PlatformSubscriptionQuery {
@@ -229,7 +235,12 @@ export interface PlatformSubscriptionListItem {
 // ---------------------------------------------------------------------------
 
 /** PlatformTenantUsageDto. A null *Limit means the tenant has no active plan, so no quota
- * applies — never rendered as a breach. */
+ * applies — never rendered as a breach.
+ *
+ * The three spend figures come from three different estimators and are not interchangeable:
+ * conversational AI, WhatsApp message sending, and lead discovery runs. estimatedTotalSpendThisMonthUsd
+ * is their sum — what serving this tenant costs the platform this month, not what the tenant pays.
+ * Every one is an estimate from a hand-maintained rate table; label them as such wherever shown. */
 export interface PlatformTenantUsage {
   tenantId: string;
   tenantName: string;
@@ -241,6 +252,16 @@ export interface PlatformTenantUsage {
   userQuotaBreached: boolean;
   aiInteractionsThisMonth: number;
   estimatedAiSpendThisMonthUsd: number;
+  /** Template sends only — inbound and free-form session messages cost nothing. */
+  billableWhatsAppMessagesThisMonth: number;
+  estimatedWhatsAppSpendThisMonthUsd: number;
+  leadDiscoveryRunsThisMonth: number;
+  leadDiscoveryLeadsThisMonth: number;
+  estimatedLeadDiscoverySpendThisMonthUsd: number;
+  estimatedTotalSpendThisMonthUsd: number;
+  /** When the spend window opened: the start of the month in this tenant's own timezone, so the figures
+   * match what that tenant sees. The quota columns still run on the UTC month the API enforces. */
+  spendPeriodStartUtc: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -35,6 +35,8 @@ export class PlatformPlanFormDialogComponent {
     maxMessagesPerMonth: [this.data.plan?.maxMessagesPerMonth ?? 0, [Validators.required, Validators.min(0)]],
     maxCampaigns: [this.data.plan?.maxCampaigns ?? 0, [Validators.required, Validators.min(0)]],
     maxKnowledgeBaseArticles: [this.data.plan?.maxKnowledgeBaseArticles ?? 0, [Validators.required, Validators.min(0)]],
+    // 25 is Plan.DefaultLeadDiscoveryBatchSize on the backend.
+    maxLeadDiscoveryBatchSize: [this.data.plan?.maxLeadDiscoveryBatchSize ?? 25, [Validators.required, Validators.min(0)]],
     priceMonthlyDollars: [
       this.data.plan ? this.data.plan.priceMonthlyCents / 100 : 0,
       [Validators.required, Validators.min(0)],
@@ -69,6 +71,7 @@ export class PlatformPlanFormDialogComponent {
           maxMessagesPerMonth: raw.maxMessagesPerMonth,
           maxCampaigns: raw.maxCampaigns,
           maxKnowledgeBaseArticles: raw.maxKnowledgeBaseArticles,
+          maxLeadDiscoveryBatchSize: raw.maxLeadDiscoveryBatchSize,
           priceMonthlyCents,
           isActive: raw.isActive,
         } as UpdatePlanRequest)
@@ -79,6 +82,7 @@ export class PlatformPlanFormDialogComponent {
           maxMessagesPerMonth: raw.maxMessagesPerMonth,
           maxCampaigns: raw.maxCampaigns,
           maxKnowledgeBaseArticles: raw.maxKnowledgeBaseArticles,
+          maxLeadDiscoveryBatchSize: raw.maxLeadDiscoveryBatchSize,
           priceMonthlyCents,
         } as CreatePlanRequest);
 

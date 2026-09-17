@@ -16,7 +16,7 @@
       <table mat-table [dataSource]="page.items">
         <ng-container matColumnDef="createdAt">
           <th mat-header-cell *matHeaderCellDef>When</th>
-          <td mat-cell *matCellDef="let entry">{{ entry.createdAt | date: 'medium' }}</td>
+          <td mat-cell *matCellDef="let entry">{{ entry.createdAt | zonedDate: 'medium' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actor">
