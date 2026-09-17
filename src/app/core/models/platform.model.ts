@@ -191,8 +191,14 @@ export interface PlatformPlan {
   maxKnowledgeBaseArticles: number;
   /** The most new leads one lead discovery run may add for a tenant on this plan. */
   maxLeadDiscoveryBatchSize: number;
+  /** The authored base list price, always USD — what the create/update dialog edits. */
   priceMonthlyCents: number;
   isActive: boolean;
+  /** The same price in the signed-in operator's currency (from their profile country), for display. The
+   * catalog is still authored in USD, so a rate change never rewrites a plan. */
+  currencyCode: string;
+  currencySymbol: string;
+  priceMonthlyLocal: number;
 }
 
 /** Body of POST the plan catalog endpoint. code is immutable once a plan exists — there is no

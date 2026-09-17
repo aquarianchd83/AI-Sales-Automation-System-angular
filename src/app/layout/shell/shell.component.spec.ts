@@ -78,7 +78,7 @@ describe('ShellComponent sidenav', () => {
       'businessTenants',
       'manage_accountsUsers',
       'campaignAnnouncements',
-      'paymentsBilling',
+      'paymentsPackage',
       'data_usageUsage & Quotas',
       'cloud_syncWhatsApp Connections',
       'scheduleBackground Jobs',

@@ -73,8 +73,21 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
     this.reload$.next();
   }
 
-  formatPrice(priceMonthlyCents: number): string {
-    return `$${(priceMonthlyCents / 100).toFixed(priceMonthlyCents % 100 === 0 ? 0 : 2)}/mo`;
+  /** Shown in the operator's own currency (from their profile country); the catalog itself is still
+   * authored in USD, which is what the add/edit dialog writes. */
+  formatPrice(plan: PlatformPlan): string {
+    const whole = Number.isInteger(plan.priceMonthlyLocal);
+    return `${plan.currencySymbol}${plan.priceMonthlyLocal.toFixed(whole ? 0 : 2)}/mo`;
+  }
+
+  /** The authored figure, for the card's secondary line — so an operator editing the plan knows what the
+   * dialog will show them. Omitted when the operator is already on USD. */
+  formatBasePrice(plan: PlatformPlan): string | null {
+    if (plan.currencyCode === 'USD') {
+      return null;
+    }
+    const usd = plan.priceMonthlyCents / 100;
+    return `$${usd.toFixed(usd % 1 === 0 ? 0 : 2)} USD`;
   }
 
   addPlan(): void {

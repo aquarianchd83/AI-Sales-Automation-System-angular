@@ -9,8 +9,9 @@
         </button>
       </div>
       <span class="muted">
-        Retired plans stay visible so existing subscribers keep their limits. Prices are the base USD list
-        price this catalog is authored in — each tenant is quoted their own currency.
+        Retired plans stay visible so existing subscribers keep their limits. Prices are shown in your own
+        currency, converted from the USD list price the catalog is authored in — which is what the add and
+        edit dialogs write. Each tenant is quoted in their own currency.
       </span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
@@ -20,7 +21,8 @@
           <h3>{{ plan.name }}</h3>
           <span class="muted" *ngIf="!plan.isActive">Retired</span>
         </div>
-        <div class="plan-price">{{ formatPrice(plan.priceMonthlyCents) }}</div>
+        <div class="plan-price">{{ formatPrice(plan) }}</div>
+        <div class="muted plan-base-price" *ngIf="formatBasePrice(plan) as basePrice">{{ basePrice }}</div>
         <ul>
           <li>{{ plan.maxUsers }} users</li>
           <li>{{ plan.maxMessagesPerMonth.toLocaleString() }} messages/mo</li>

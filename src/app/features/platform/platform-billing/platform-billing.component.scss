@@ -53,6 +53,13 @@
   margin: 6px 0 10px;
 }
 
+/* The authored USD figure, when the operator's own currency isn't USD. Pulled up under the converted
+   price so the pair reads as one block, keeping the gap below identical either way. */
+.plan-base-price {
+  font-size: 12px;
+  margin: -8px 0 10px;
+}
+
 ul {
   margin: 0 0 10px;
   padding-left: 18px;
