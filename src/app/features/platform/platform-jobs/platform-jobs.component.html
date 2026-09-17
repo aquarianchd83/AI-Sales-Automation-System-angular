@@ -20,10 +20,10 @@
       <code class="job-id">{{ job.recurringJobId }}</code>
       <span class="cron">{{ job.cronExpression || '—' }}</span>
       <span class="muted">
-        next {{ job.nextExecutionUtc ? (job.nextExecutionUtc | date: 'medium') : '—' }}
+        next {{ job.nextExecutionUtc ? (job.nextExecutionUtc | zonedDate: 'medium') : '—' }}
       </span>
       <span class="muted">
-        last {{ job.lastExecutionUtc ? (job.lastExecutionUtc | date: 'medium') : 'never' }}
+        last {{ job.lastExecutionUtc ? (job.lastExecutionUtc | zonedDate: 'medium') : 'never' }}
         <ng-container *ngIf="job.lastJobState"> · {{ job.lastJobState }}</ng-container>
       </span>
       <span class="failure" *ngIf="job.error">{{ job.error }}</span>
@@ -135,7 +135,7 @@
                 {{ outcomeLabel(row.lastRunOutcome) }}
               </span>
               <div class="muted sub">
-                {{ row.lastRunAtUtc | date: 'medium' }}
+                {{ row.lastRunAtUtc | zonedDate: 'medium' }}
                 <ng-container *ngIf="row.lastRunDurationMs != null"> · {{ row.lastRunDurationMs }} ms</ng-container>
               </div>
               <div class="muted sub summary" *ngIf="row.lastRunSummary" [matTooltip]="row.lastRunSummary">
@@ -149,7 +149,7 @@
         <ng-container matColumnDef="nextRun">
           <th mat-header-cell *matHeaderCellDef>Next run</th>
           <td mat-cell *matCellDef="let row">
-            {{ row.nextExecutionUtc ? (row.nextExecutionUtc | date: 'medium') : '—' }}
+            {{ row.nextExecutionUtc ? (row.nextExecutionUtc | zonedDate: 'medium') : '—' }}
           </td>
         </ng-container>
 

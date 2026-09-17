@@ -15,6 +15,7 @@ import {
 } from '../models/auth.model';
 import { User } from '../models/user.model';
 import { TokenStorageService } from './token-storage.service';
+import { UserPreferencesService } from './user-preferences.service';
 
 const USER_KEY = 'wsa.user';
 
@@ -31,7 +32,8 @@ export class AuthService {
   constructor(
     private readonly http: HttpClient,
     private readonly tokens: TokenStorageService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly preferences: UserPreferencesService
   ) {
     this.restoreSession();
   }
@@ -190,6 +192,9 @@ export class AuthService {
     this.tokens.clear();
     if (!wasImpersonating) {
       localStorage.removeItem(USER_KEY);
+      // Same reasoning as USER_KEY above: localStorage is shared across same-origin tabs, so ending a
+      // support session must not wipe the PlatformSuperAdmin's own display timezone in their other tab.
+      this.preferences.clear();
     }
     this.currentUserSubject.next(null);
   }

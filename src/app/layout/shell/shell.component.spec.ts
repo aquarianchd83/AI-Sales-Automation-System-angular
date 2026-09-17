@@ -3,6 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
+import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SharedModule } from '../../shared/shared.module';
@@ -23,6 +24,7 @@ describe('ShellComponent sidenav', () => {
       providers: [
         { provide: AuthService, useValue: auth },
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
+        { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
       ],
     });
 
@@ -47,6 +49,7 @@ describe('ShellComponent sidenav', () => {
       'campaignCampaigns',
       'groupsCustomers',
       'insightsLeads',
+      'travel_exploreLead Discovery',
       'sellTags',
       'text_snippetMessage Templates',
       'perm_mediaMedia Library',
@@ -63,13 +66,13 @@ describe('ShellComponent sidenav', () => {
 
     expect(labels(root)).toEqual(['Engage', 'CRM', 'Content']);
     expect(items(root)).not.toContain('settingsSettings');
-    expect(items(root).length).toBe(10);
+    expect(items(root).length).toBe(11);
   });
 
   it('groups the platform console nav the same way, with no tenant items', () => {
     const root = render(['PlatformSuperAdmin']);
 
-    expect(labels(root)).toEqual(['Tenants', 'Revenue', 'Infrastructure', 'Monitoring']);
+    expect(labels(root)).toEqual(['Tenants', 'Revenue', 'Infrastructure', 'Monitoring', 'Account']);
     expect(items(root)).toEqual([
       'dashboardDashboard',
       'businessTenants',
@@ -81,6 +84,7 @@ describe('ShellComponent sidenav', () => {
       'scheduleBackground Jobs',
       'receipt_longLogs',
       'historyAudit Log',
+      'account_circleMy Profile',
     ]);
   });
 });

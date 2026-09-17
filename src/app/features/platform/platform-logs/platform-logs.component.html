@@ -46,7 +46,7 @@
         <mat-select [formControl]="dateControl">
           <mat-option *ngIf="!dates.length" value="">Today</mat-option>
           <mat-option *ngFor="let date of dates" [value]="date">
-            {{ date | date: 'EEE, MMM d' }}
+            {{ date | zonedDate: 'EEE, MMM d' }}
           </mat-option>
         </mat-select>
       </mat-form-field>
@@ -92,7 +92,7 @@
         <ng-container matColumnDef="timestamp">
           <th mat-header-cell *matHeaderCellDef>Time</th>
           <td mat-cell *matCellDef="let entry">
-            <span class="mono">{{ entry.timestamp | date: 'HH:mm:ss.SSS' }}</span>
+            <span class="mono">{{ entry.timestamp | zonedDate: 'HH:mm:ss.SSS' }}</span>
           </td>
         </ng-container>
 

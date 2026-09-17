@@ -29,9 +29,9 @@
           <dt>Users</dt>
           <dd>{{ tenant.userCount }}</dd>
           <dt>Signed up</dt>
-          <dd>{{ tenant.createdAt | date: 'medium' }}</dd>
+          <dd>{{ tenant.createdAt | zonedDate: 'medium' }}</dd>
           <dt>Trial ends</dt>
-          <dd>{{ tenant.trialEndsAtUtc ? (tenant.trialEndsAtUtc | date: 'medium') : '—' }}</dd>
+          <dd>{{ tenant.trialEndsAtUtc ? (tenant.trialEndsAtUtc | zonedDate: 'medium') : '—' }}</dd>
           <dt>Timezone</dt>
           <dd>{{ tenant.timezone }}</dd>
           <dt>Country</dt>
@@ -96,7 +96,7 @@
           <dt>Subscription status</dt>
           <dd>{{ tenant.subscriptionStatus !== null ? subscriptionStatusLabels[tenant.subscriptionStatus] : '—' }}</dd>
           <dt>Current period ends</dt>
-          <dd>{{ tenant.currentPeriodEndUtc ? (tenant.currentPeriodEndUtc | date: 'medium') : '—' }}</dd>
+          <dd>{{ tenant.currentPeriodEndUtc ? (tenant.currentPeriodEndUtc | zonedDate: 'medium') : '—' }}</dd>
         </dl>
         <div class="inline-override">
           <mat-form-field subscriptSizing="dynamic" class="inline-select">
@@ -188,7 +188,7 @@
                 </span>
                 <span class="muted job-last" *ngIf="job.lastRunAtUtc">
                   · last {{ outcomeLabel(job.lastRunOutcome) | lowercase }}
-                  {{ job.lastRunAtUtc | date: 'short' }}
+                  {{ job.lastRunAtUtc | zonedDate: 'short' }}
                 </span>
                 <span
                   class="job-failures"

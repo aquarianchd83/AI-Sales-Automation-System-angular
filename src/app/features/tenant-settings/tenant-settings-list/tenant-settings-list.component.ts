@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 
-import { TenantMessageUsage, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
+import { formatCharge } from '../../../core/models/billing.model';
+import { TenantCharges, TenantMessageUsage, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
 
 /**
@@ -28,9 +29,13 @@ import { TenantSettingsService } from '../../../core/services/tenant-settings.se
 export class TenantSettingsListComponent implements OnInit {
   loadingWhatsApp = true;
   loadingUsage = true;
+  loadingCharges = true;
 
   whatsAppConfig: TenantWhatsAppConfig | null = null;
   usage: TenantMessageUsage | null = null;
+  charges: TenantCharges | null = null;
+
+  readonly formatCharge = formatCharge;
 
   /** 0–100, clamped so a tenant that's gone over quota still shows a full (not overflowing) bar.
    * Null when unlimited (no plan yet) — nothing to show a fraction of. */
@@ -58,6 +63,14 @@ export class TenantSettingsListComponent implements OnInit {
         this.loadingUsage = false;
       },
       error: () => (this.loadingUsage = false),
+    });
+
+    this.tenantSettings.getCharges().subscribe({
+      next: (charges) => {
+        this.charges = charges;
+        this.loadingCharges = false;
+      },
+      error: () => (this.loadingCharges = false),
     });
   }
 }
