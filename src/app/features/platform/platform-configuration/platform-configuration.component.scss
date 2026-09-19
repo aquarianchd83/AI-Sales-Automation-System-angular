@@ -1,0 +1,98 @@
+.config-card {
+  padding: 16px 20px 20px;
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+  }
+
+  p {
+    margin: 0 0 16px;
+  }
+}
+
+.group-title {
+  margin: 24px 0 4px;
+}
+
+.group-note {
+  margin: 0 0 12px;
+}
+
+.save-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 12px 0;
+  margin-bottom: 8px;
+  background: var(--mat-sys-surface, #fff);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px 16px;
+  margin-bottom: 8px;
+}
+
+.rate-table {
+  margin: 8px 0 16px;
+  overflow-x: auto;
+}
+
+.rate-head,
+.rate-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) repeat(3, minmax(110px, 1fr));
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 520px;
+}
+
+.rate-table--lead .rate-head,
+.rate-table--lead .rate-row {
+  grid-template-columns: minmax(170px, 1.4fr) repeat(4, minmax(100px, 1fr)) 56px 40px;
+  min-width: 800px;
+}
+
+.rate-table--ai .rate-head,
+.rate-table--ai .rate-row {
+  grid-template-columns: minmax(200px, 1.6fr) repeat(2, minmax(110px, 1fr)) 56px 40px;
+  min-width: 520px;
+}
+
+.rate-head {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.7;
+  padding-bottom: 4px;
+}
+
+.rate-row {
+  padding: 2px 0;
+}
+
+.rate-name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.default-toggle.is-default {
+  color: var(--mat-sys-primary, #3f51b5);
+}
+
+.country-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 4px 16px;
+}
+
+.config-error {
+  color: var(--mat-sys-error, #b3261e);
+  margin: 8px 0 0;
+}

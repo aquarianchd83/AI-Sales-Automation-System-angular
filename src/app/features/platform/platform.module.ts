@@ -12,6 +12,7 @@ import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dial
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
 import { PlatformLogsComponent } from './platform-logs/platform-logs.component';
 import { CountryPriceEditorComponent } from './country-price-editor/country-price-editor.component';
+import { PlatformConfigurationComponent } from './platform-configuration/platform-configuration.component';
 import { PlatformCreditPackFormDialogComponent } from './platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
 import { PlatformPlanFormDialogComponent } from './platform-plan-form-dialog/platform-plan-form-dialog.component';
 import { PlatformQuotaAdjustDialogComponent } from './platform-quota-adjust-dialog/platform-quota-adjust-dialog.component';
@@ -40,6 +41,7 @@ const routes: Routes = [
       { path: 'billing', component: PlatformBillingComponent },
       { path: 'usage', component: PlatformUsageComponent },
       { path: 'payments', component: PlatformPaymentListComponent },
+      { path: 'configuration', component: PlatformConfigurationComponent },
       // The old usage-invoice screen was retired with prepaid billing.
       { path: 'invoices', pathMatch: 'full', redirectTo: 'payments' },
       { path: 'invoices/:id', redirectTo: 'payments' },
@@ -70,6 +72,7 @@ const routes: Routes = [
     CountryPriceEditorComponent,
     PlatformUsageComponent,
     PlatformPaymentListComponent,
+    PlatformConfigurationComponent,
     PlatformRefundListComponent,
     PlatformRefundReviewDialogComponent,
     PlatformQuotaAdjustDialogComponent,

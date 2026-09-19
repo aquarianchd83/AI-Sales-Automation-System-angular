@@ -113,7 +113,6 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.tenantId = this.route.snapshot.paramMap.get('id') ?? '';
     this.billing.getPlans().subscribe({ next: (plans) => (this.plans = plans) });
     this.timeZoneService.getTimezones().subscribe({ next: (timezones) => (this.timezones = timezones) });
-    this.billingService.getRegions().subscribe({ next: (regions) => (this.regions = regions) });
     this.load();
     this.loadConfig();
     this.loadJobs();
@@ -382,6 +381,8 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.tenants.getById(this.tenantId).subscribe({
       next: (tenant) => {
         this.tenant = tenant;
+        // The countries switched on, plus this tenant's own if it has since been switched off.
+        this.billingService.getRegions(tenant.countryCode).subscribe({ next: (regions) => (this.regions = regions) });
         this.loading = false;
       },
       error: () => {

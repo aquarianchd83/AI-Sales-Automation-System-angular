@@ -51,7 +51,18 @@ export class PlatformCreditPackFormDialogComponent {
     private readonly dialogRef: MatDialogRef<PlatformCreditPackFormDialogComponent, boolean>,
     @Inject(MAT_DIALOG_DATA) public readonly data: PlatformCreditPackFormDialogData
   ) {
-    regionSource.getRegions().subscribe({ next: (regions) => (this.regions = regions), error: () => {} });
+    regionSource.getRegions().subscribe({
+      // The countries switched on, plus any that already carries a price here - a country switched off later keeps its
+      // price and stays editable, rather than the row silently losing its label.
+      next: (regions) => {
+        const known = new Set(regions.map((r) => r.countryCode));
+        const kept = (this.data.pack?.countryPrices ?? [])
+          .filter((p) => !known.has(p.countryCode))
+          .map((p) => ({ countryCode: p.countryCode, countryName: p.countryName + ' (off)', currencyCode: p.currencyCode, currencySymbol: p.currencySymbol }));
+        this.regions = [...regions, ...kept];
+      },
+      error: () => {},
+    });
   }
 
   save(): void {

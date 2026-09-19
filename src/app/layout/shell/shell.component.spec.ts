@@ -85,6 +85,7 @@ describe('ShellComponent sidenav', () => {
       'data_usageUsage & Quotas',
       'receipt_longPayments',
       'assignment_returnRefund Requests',
+      'tuneConfiguration',
       'cloud_syncWhatsApp Connections',
       'scheduleBackground Jobs',
       'receipt_longLogs',

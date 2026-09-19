@@ -79,10 +79,6 @@ export class BusinessProfileComponent implements OnInit {
       next: (timezones) => (this.timezones = timezones),
       error: () => (this.timezones = []),
     });
-    this.billing.getRegions().subscribe({
-      next: (regions) => (this.regions = regions),
-      error: () => (this.regions = []),
-    });
     this.load();
   }
 
@@ -92,6 +88,10 @@ export class BusinessProfileComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: (profile) => {
         this.apply(profile);
+        this.billing.getRegions(profile.countryCode).subscribe({
+          next: (regions) => (this.regions = regions),
+          error: () => (this.regions = []),
+        });
         this.loading = false;
       },
       error: () => {

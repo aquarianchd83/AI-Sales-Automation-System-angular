@@ -128,6 +128,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
         { label: 'Payments', icon: 'receipt_long', route: '/platform/payments', roles: [] },
         { label: 'Refund Requests', icon: 'assignment_return', route: '/platform/refunds', roles: [] },
+        { label: 'Configuration', icon: 'tune', route: '/platform/configuration', roles: [] },
       ],
     },
     {

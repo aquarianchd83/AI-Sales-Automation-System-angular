@@ -39,8 +39,12 @@ export class BillingService {
 
   /** The public country/currency catalog — safe to call unauthenticated, backs the signup page's
    * country picker. */
-  getRegions(): Observable<RegionOption[]> {
-    return this.http.get<RegionOption[]>(`${this.baseUrl}/regions`);
+  /** The countries the operator has switched on. `include` keeps one more in the list - a screen's current value,
+   * so a country switched off after it was chosen doesn't leave the picker blank. */
+  getRegions(include?: string | null): Observable<RegionOption[]> {
+    return this.http.get<RegionOption[]>(`${this.baseUrl}/regions`, {
+      params: include ? { include } : {},
+    });
   }
 
   /** Null if the tenant has no Subscription row at all yet (still on its signup trial). */

@@ -395,6 +395,99 @@ export interface PlatformPaymentListItem {
 }
 
 // ---------------------------------------------------------------------------
+// Configuration (GET/PUT /platform/configuration)
+// ---------------------------------------------------------------------------
+
+/** The whole Configuration page. The same shape is read and written — a save replaces the document. All money is USD. */
+export interface PlatformConfiguration {
+  refunds: RefundPolicyConfig;
+  alerts: BillingAlertConfig;
+  trial: TrialQuotaConfig;
+  quotaWeights: QuotaWeightConfig;
+  charges: ChargesConfig;
+  /** Every country the platform prices for, on or off. Omitted on a save leaves the choice as it is. */
+  countries?: CountryConfig[];
+}
+
+/** One country the platform prices for. Switched off, it is offered nowhere; tenants already in it are unaffected. */
+export interface CountryConfig {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
+  isEnabled: boolean;
+}
+
+export interface RefundPolicyConfig {
+  creditWindowDays: number;
+  subscriptionWindowDays: number;
+  /** 0–1 on the wire (0.10 = 10%). */
+  subscriptionMaxUsageFraction: number;
+  subscriptionPeriodDays: number;
+  requestExpiryDays: number;
+}
+
+export interface BillingAlertConfig {
+  whatsAppTemplateName: string;
+  whatsAppTemplateLanguage: string;
+}
+
+export interface TrialQuotaConfig {
+  whatsAppMessages: number;
+  aiConversations: number;
+  leadCandidates: number;
+}
+
+export interface QuotaWeightConfig {
+  marketing: number;
+  authentication: number;
+  utility: number;
+}
+
+export interface WhatsAppCategoryRates {
+  marketing: number;
+  utility: number;
+  authentication: number;
+}
+
+export interface WhatsAppCountryRates extends WhatsAppCategoryRates {
+  countryCode: string;
+  countryName: string;
+}
+
+export interface LeadDiscoveryModelRates {
+  /** "Default" for the fallback row. */
+  model: string;
+  inputPerMillion: number;
+  outputPerMillion: number;
+  cacheReadPerMillion: number;
+  cacheWritePerMillion: number;
+}
+
+/** Reads "Provider:model", e.g. "OpenAI:gpt-5-mini". */
+export interface AiModelRates {
+  model: string;
+  promptPer1K: number;
+  completionPer1K: number;
+}
+
+export interface ChargesConfig {
+  whatsApp: { default: WhatsAppCategoryRates; countries: WhatsAppCountryRates[] };
+  leadDiscovery: {
+    webSearchPerThousand: number;
+    default: LeadDiscoveryModelRates;
+    models: LeadDiscoveryModelRates[];
+    /** The model the platform runs; a run on a model with no row is priced at this one. Null = none chosen. */
+    defaultModel: string | null;
+  };
+  ai: {
+    models: AiModelRates[];
+    /** "Provider:model", one of models. An interaction on a model with no row is priced at this one. Null = none chosen. */
+    defaultModel: string | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
 // WhatsApp Connections (GET /platform/whatsapp-connections)
 // ---------------------------------------------------------------------------
 
