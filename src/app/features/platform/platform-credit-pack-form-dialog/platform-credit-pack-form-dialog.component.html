@@ -1,0 +1,87 @@
+<h2 mat-dialog-title>{{ isEditMode ? 'Edit credit pack' : 'Add credit pack' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>Credits for</mat-label>
+      <mat-select formControlName="quotaType">
+        <mat-option *ngFor="let type of quotaTypes" [value]="type">{{ quotaLabels[type] }}</mat-option>
+      </mat-select>
+      <mat-hint *ngIf="isEditMode">Set once, when the pack was created.</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" autocomplete="off" placeholder="5,000 WhatsApp messages" />
+      <mat-error *ngIf="form.controls.name.hasError('required')">Required.</mat-error>
+      <mat-error *ngIf="form.controls.name.hasError('maxlength')">At most 100 characters.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Units</mat-label>
+      <input matInput type="number" min="1" formControlName="units" />
+      <mat-error *ngIf="form.controls.units.invalid">Must be at least 1.</mat-error>
+    </mat-form-field>
+
+    <div class="cost-panel">
+      <div class="cost-head">
+        <strong>Price from the Configuration charges</strong>
+        <span class="spacer"></span>
+        <mat-spinner diameter="16" *ngIf="costLoading"></mat-spinner>
+      </div>
+      <p class="muted cost-note">
+        What this pack costs to serve comes from the <a routerLink="/platform/configuration" mat-dialog-close>Configuration page</a>
+        (the provider charges and the typical usage). Choose the margin you want over cost and it suggests a price for every country.
+      </p>
+
+      <mat-form-field class="full-width" subscriptSizing="dynamic">
+        <mat-label>Margin over cost (%)</mat-label>
+        <input matInput type="number" min="0" max="1000" formControlName="marginPercent" />
+        <mat-hint>50 means the price is the cost plus half again. Tax is added on top at checkout.</mat-hint>
+      </mat-form-field>
+
+      <p class="muted" *ngIf="costFailed">The price could not be calculated. Change something to try again.</p>
+
+      <ng-container *ngIf="cost">
+        <ul class="cost-warnings" *ngIf="cost.warnings.length">
+          <li *ngFor="let w of cost.warnings"><mat-icon>warning_amber</mat-icon> {{ w }}</li>
+        </ul>
+
+        <div class="cost-summary">
+          {{ cost.units | number }} {{ quotaLabels[cost.quotaType] | lowercase }} cost
+          <strong>{{ formatCharge(cost.totalCostInr, '₹') }}</strong> to serve
+          <span class="muted">({{ formatCharge(cost.unitCostInr, '₹') }} each, in India)</span>.
+        </div>
+
+        <table class="cost-table">
+          <thead>
+            <tr><th>Country</th><th>Cost</th><th>Price at {{ cost.marginPercent }}% margin</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of cost.countries">
+              <td>{{ c.countryName }}</td>
+              <td>{{ formatCharge(c.costLocal, c.currencySymbol) }}</td>
+              <td>
+                <strong>{{ formatCharge(c.suggestedPriceLocal, c.currencySymbol) }}</strong>
+                <span class="muted cost-inr" *ngIf="c.currencyCode !== 'INR'"> {{ formatCharge(c.suggestedPriceInr, '₹') }}</span>
+              </td>
+              <td><button mat-button type="button" (click)="useSuggestedPrice(c)">Use</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <button mat-stroked-button type="button" class="use-all" (click)="useSuggestedPrices()">Use these prices for every country</button>
+      </ng-container>
+    </div>
+
+    <app-country-price-editor [rows]="countryPrices" [regions]="regions"></app-country-price-editor>
+
+    <mat-checkbox formControlName="isActive" *ngIf="isEditMode">Active (unchecking stops offering this pack)</mat-checkbox>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Save' }}
+  </button>
+</mat-dialog-actions>

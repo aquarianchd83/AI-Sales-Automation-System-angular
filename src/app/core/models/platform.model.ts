@@ -1,3 +1,4 @@
+import { IncludedQuota, QuotaType } from './billing.model';
 import { AppRole } from './user.model';
 
 /**
@@ -59,6 +60,9 @@ export const ANNOUNCEMENT_SEVERITY_LABELS: Record<AnnouncementSeverity, string> 
 
 /** PlatformDashboardDto. mrrUsd/estimatedAiSpendThisMonthUsd are both estimates — see the
  * backend's own AiSpendEstimator/PlatformDashboardService doc comments. */
+/** PlatformDashboardDto. These are platform-wide figures, so `currencyCode`/`currencySymbol` and the
+ * `*Local` amounts are the SIGNED-IN OPERATOR's currency (from the country on their own profile), not any
+ * tenant's — a per-tenant figure is quoted in that tenant's currency instead (see PlatformTenantUsage). */
 export interface PlatformDashboard {
   activeTenants: number;
   trialTenants: number;
@@ -70,6 +74,10 @@ export interface PlatformDashboard {
   estimatedAiSpendThisMonthUsd: number;
   webhookFailuresLast24h: number;
   systemHealthy: boolean;
+  currencyCode: string;
+  currencySymbol: string;
+  mrrLocal: number;
+  estimatedAiSpendThisMonthLocal: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +129,14 @@ export interface PlatformTenantDetail {
   /** Null when never set - plan pricing quotes in USD until it is (RegionalPricingCatalog.Resolve
    * on the backend). Unlike timezone, has no universal default. */
   countryCode: string | null;
+  /** The tenant's state where its country's tax splits by state (India). */
+  stateCode?: string | null;
+  /** This tenant's own currency, resolved from countryCode — what they're quoted in on their own screens. */
+  currencyCode: string;
+  currencySymbol: string;
+  estimatedAiSpendThisMonthLocal: number;
+  /** Whether this tenant can ask for refunds from its own Billing page - off by default, switched on here. */
+  refundRequestsEnabled: boolean;
 }
 
 /** ImpersonationSessionDto — deliberately carries no refresh token (see the backend's
@@ -154,6 +170,7 @@ export interface CreatePlatformTenantRequest {
    * Profile (see TenantProfile). countryCode/timezone must be supported values when given; timezone
    * defaults to India Standard Time like signup. */
   countryCode?: string | null;
+  stateCode?: string | null;
   timezone?: string | null;
   productName?: string | null;
   industry?: string | null;
@@ -180,8 +197,40 @@ export interface PlatformPlan {
   maxKnowledgeBaseArticles: number;
   /** The most new leads one lead discovery run may add for a tenant on this plan. */
   maxLeadDiscoveryBatchSize: number;
+  /** The authored base list price, always USD — what the create/update dialog edits. */
   priceMonthlyCents: number;
   isActive: boolean;
+  /** The same price in the signed-in operator's currency (from their profile country), for display. The
+   * catalog is still authored in USD, so a rate change never rewrites a plan. */
+  currencyCode: string;
+  currencySymbol: string;
+  priceMonthlyLocal: number;
+  /** What the plan grants each billing period, per prepaid quota type. Empty = no prepaid quota. */
+  includedQuotas: IncludedQuota[];
+  /** Explicit prices set per country, each in that country's own currency. A country without one is quoted the
+   * USD price converted at the platform rate. */
+  countryPrices: CountryPrice[];
+}
+
+/** One country's explicit price (PlatformPlanDto/PlatformCreditPackDto.countryPrices). */
+export interface CountryPrice {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
+  amount: number;
+}
+
+/** A country price being set. An amount of 0 removes the country's price. */
+export interface CountryPriceInput {
+  countryCode: string;
+  amount: number;
+}
+
+/** One quota line of a plan write: units per billing period for a quota type (0 removes the line on update). */
+export interface PlanQuotaInput {
+  quotaType: QuotaType;
+  units: number;
 }
 
 /** Body of POST the plan catalog endpoint. code is immutable once a plan exists — there is no
@@ -196,6 +245,8 @@ export interface CreatePlanRequest {
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
   maxLeadDiscoveryBatchSize?: number | null;
+  includedQuotas?: PlanQuotaInput[] | null;
+  countryPrices?: CountryPriceInput[] | null;
 }
 
 /** Body of PUT one plan. isActive is how a plan is both retired (the Delete button sets it false)
@@ -210,6 +261,145 @@ export interface UpdatePlanRequest {
   priceMonthlyCents: number;
   isActive: boolean;
   maxLeadDiscoveryBatchSize?: number | null;
+  /** Omitted leaves the plan's quotas unchanged; when sent it is the complete set. */
+  includedQuotas?: PlanQuotaInput[] | null;
+  /** Omitted leaves the plan's country prices unchanged; when sent it is the complete set. */
+  countryPrices?: CountryPriceInput[] | null;
+}
+
+/** PlatformCreditPackDto — the credit-pack catalog. priceCents is the authored USD price; priceLocal is the
+ * same in the signed-in operator's currency, for display. Retired packs (isActive false) stay listed. */
+export interface PlatformCreditPack {
+  id: string;
+  quotaType: QuotaType;
+  name: string;
+  units: number;
+  priceCents: number;
+  isActive: boolean;
+  currencyCode: string;
+  currencySymbol: string;
+  priceLocal: number;
+  countryPrices: CountryPrice[];
+}
+
+export interface CreateCreditPackRequest {
+  quotaType: QuotaType;
+  name: string;
+  units: number;
+  priceCents: number;
+  countryPrices?: CountryPriceInput[] | null;
+}
+
+export interface UpdateCreditPackRequest {
+  name: string;
+  units: number;
+  priceCents: number;
+  isActive: boolean;
+  countryPrices?: CountryPriceInput[] | null;
+}
+
+// ---------------------------------------------------------------------------
+// Plan cost report (POST /platform/billing/plan-cost-report)
+// ---------------------------------------------------------------------------
+
+/** What a plan's quotas cost to serve depends on how they get used; these are the usage assumptions the report rests on. */
+export interface PlanCostAssumptions {
+  /** How the pooled WhatsApp units are spent, by template category. Relative shares - they need not add to 100. */
+  marketingSharePercent: number;
+  utilitySharePercent: number;
+  authenticationSharePercent: number;
+  promptTokensPerConversation: number;
+  completionTokensPerConversation: number;
+  inputTokensPerCandidate: number;
+  outputTokensPerCandidate: number;
+  webSearchesPerCandidate: number;
+}
+
+/** The starting assumptions, and where the AI and lead figures came from (real usage, or a built-in estimate). */
+export interface PlanCostDefaults {
+  assumptions: PlanCostAssumptions;
+  aiSource: string;
+  leadSource: string;
+}
+
+/** What a credit pack should cost: its quota type and size, and the margin wanted over what it costs to serve. */
+export interface CreditPackCostRequest {
+  quotaType: QuotaType;
+  units: number;
+  marginPercent: number;
+}
+
+/** One country's view of a credit pack: what serving it costs there, and the price that leaves the wanted margin - in that
+ * country's currency and in rupees. The price is before tax; tax is added on top at checkout. */
+export interface CreditPackCostCountry {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
+  costLocal: number;
+  suggestedPriceLocal: number;
+  costInr: number;
+  suggestedPriceInr: number;
+}
+
+export interface CreditPackCostReport {
+  quotaType: QuotaType;
+  units: number;
+  marginPercent: number;
+  /** What one unit costs to serve, in rupees (India's figure). */
+  unitCostInr: number;
+  totalCostInr: number;
+  countries: CreditPackCostCountry[];
+  warnings: string[];
+  assumptions: PlanCostAssumptions;
+}
+
+export interface PlanCostReportRequest {
+  includedQuotas: PlanQuotaInput[];
+  countryPrices: CountryPriceInput[];
+}
+
+export interface PlanCostCategory {
+  category: string;
+  sharePercent: number;
+  quotaWeight: number;
+  messages: number;
+}
+
+/** One country's view of the plan. Local amounts are in that country's currency; costs are also given in USD. */
+export interface PlanCostCountry {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
+  priceLocal: number;
+  isCustomPrice: boolean;
+  whatsAppCostUsd: number;
+  aiCostUsd: number;
+  leadCostUsd: number;
+  totalCostUsd: number;
+  costLocal: number;
+  marginLocal: number;
+  marginPercent: number | null;
+  /** False where no price is set for the country: the plan is not sold there and has no margin. */
+  isSold: boolean;
+  /** The platform admin is in India, so these are what the report leads with. */
+  priceInr: number;
+  costInr: number;
+  marginInr: number;
+}
+
+export interface PlanCostReport {
+  whatsAppUnits: number;
+  whatsAppMessagesEstimate: number;
+  whatsAppCategories: PlanCostCategory[];
+  ai: { units: number; model: string | null; costPerConversationUsd: number; totalUsd: number };
+  leads: { units: number; model: string; costPerCandidateUsd: number; totalUsd: number };
+  countries: PlanCostCountry[];
+  warnings: string[];
+  assumptions: PlanCostAssumptions;
+  /** Rupees per dollar - what the USD unit costs are converted at. */
+  inrPerUsd: number;
 }
 
 export interface PlatformSubscriptionQuery {
@@ -220,7 +410,7 @@ export interface PlatformSubscriptionQuery {
 }
 
 /** PlatformSubscriptionListItemDto. hasFailedPayment is derived from Status === PastDue — this
- * system keeps no local invoice ledger, so it is not a per-invoice history. */
+ * system keeps no per-period ledger, so it is not a history of payments. */
 export interface PlatformSubscriptionListItem {
   tenantId: string;
   tenantName: string;
@@ -262,6 +452,180 @@ export interface PlatformTenantUsage {
   /** When the spend window opened: the start of the month in this tenant's own timezone, so the figures
    * match what that tenant sees. The quota columns still run on the UTC month the API enforces. */
   spendPeriodStartUtc: string;
+  /** This row's money in THAT TENANT's currency (from their country), matching what they're quoted on their
+   * own screens. A column therefore mixes currencies and is not comparable across rows — compare or total
+   * the `*Usd` figures instead. */
+  currencyCode: string;
+  currencySymbol: string;
+  estimatedAiSpendThisMonthLocal: number;
+  estimatedWhatsAppSpendThisMonthLocal: number;
+  estimatedLeadDiscoverySpendThisMonthLocal: number;
+  estimatedTotalSpendThisMonthLocal: number;
+}
+
+// ---------------------------------------------------------------------------
+// Payments (GET /platform/payments)
+// ---------------------------------------------------------------------------
+
+/** PaymentKind as its name — the query binder accepts the enum name, and the DTO's `kind` is a string. */
+export type PlatformPaymentKind = 'Subscription' | 'CreditPack' | 'Refund';
+
+export const PLATFORM_PAYMENT_KIND_LABELS: Record<string, string> = {
+  Subscription: 'Plan subscription',
+  CreditPack: 'Credit pack',
+  Refund: 'Refund',
+};
+
+export interface PlatformPaymentQuery {
+  page: number;
+  pageSize: number;
+  search?: string;
+  kind?: PlatformPaymentKind;
+  tenantId?: string;
+}
+
+/** PlatformPaymentListItemDto — money that actually moved. Amounts are in the tenant's own currency
+ * (snapshotted at charge time); a refund carries negative amounts. Total per currency, never across. */
+export interface PlatformPaymentListItem {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  kind: string;
+  description: string;
+  amountCents: number;
+  currencyCode: string;
+  currencySymbol: string;
+  localAmount: number;
+  provider: string;
+  /** Null on an upcoming charge, which has not been paid yet - see dueAtUtc. */
+  paidAtUtc: string | null;
+  refundOfPaymentId: string | null;
+  countryCode?: string | null;
+  stateCode?: string | null;
+  /** localAmount is the price before tax; the tenant paid totalLocal. */
+  taxLocal?: number;
+  totalLocal?: number;
+  taxLines?: { name: string; ratePercent: number; amount: number }[];
+  /** The total in rupees at the exchange rate of the day. */
+  amountInr?: number;
+  /** "Paid" is money that moved. The rest are monthly subscriptions not charged yet: "Upcoming" (next charge scheduled),
+   * "NotScheduled" (a plan an operator set, no billing period yet) and "NoPrice" (no price in the tenant's country, so it
+   * cannot be charged or renewed there). Absent on older responses, meaning Paid. */
+  status?: 'Paid' | 'Upcoming' | 'NotScheduled' | 'NoPrice';
+  /** For an upcoming charge: when it is next due. */
+  dueAtUtc?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Configuration (GET/PUT /platform/configuration)
+// ---------------------------------------------------------------------------
+
+/** The whole Configuration page. The same shape is read and written — a save replaces the document. All money is USD. */
+export interface PlatformConfiguration {
+  refunds: RefundPolicyConfig;
+  alerts: BillingAlertConfig;
+  trial: TrialQuotaConfig;
+  charges: ChargesConfig;
+  /** Every country the platform prices for, on or off. Omitted on a save leaves the choice as it is. */
+  countries?: CountryConfig[];
+  /** Tax added on top of prices. Omitted on a save leaves it as it is. */
+  tax?: TaxConfig;
+  /** Rupees per US dollar. Omitted on a save leaves it as it is. */
+  fx?: FxConfig;
+  /** Typical usage the plan cost report prices a plan against. Omitted on a save leaves it as it is. */
+  costAssumptions?: PlanCostAssumptions;
+}
+
+export interface TaxCountryConfig {
+  countryCode: string;
+  countryName: string;
+  taxName: string;
+  ratePercent: number;
+  /** India's GST: CGST + SGST inside the platform's own state, IGST anywhere else. */
+  splitByState: boolean;
+}
+
+export interface TaxConfig {
+  /** The state the platform is registered in — decides CGST + SGST versus IGST. */
+  supplierStateCode: string;
+  countries: TaxCountryConfig[];
+}
+
+export interface FxConfig {
+  inrPerUsd: number;
+}
+
+/** One country the platform prices for. Switched off, it is offered nowhere; tenants already in it are unaffected. */
+export interface CountryConfig {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
+  isEnabled: boolean;
+}
+
+export interface RefundPolicyConfig {
+  creditWindowDays: number;
+  subscriptionWindowDays: number;
+  /** 0–1 on the wire (0.10 = 10%). */
+  subscriptionMaxUsageFraction: number;
+  subscriptionPeriodDays: number;
+  requestExpiryDays: number;
+}
+
+export interface BillingAlertConfig {
+  whatsAppTemplateName: string;
+  whatsAppTemplateLanguage: string;
+}
+
+export interface TrialQuotaConfig {
+  whatsAppMessages: number;
+  aiConversations: number;
+  leadCandidates: number;
+}
+
+
+export interface WhatsAppCategoryRates {
+  marketing: number;
+  utility: number;
+  authentication: number;
+}
+
+export interface WhatsAppCountryRates extends WhatsAppCategoryRates {
+  countryCode: string;
+  countryName: string;
+}
+
+export interface LeadDiscoveryModelRates {
+  /** "Default" for the fallback row. */
+  model: string;
+  inputPerMillion: number;
+  outputPerMillion: number;
+  cacheReadPerMillion: number;
+  cacheWritePerMillion: number;
+}
+
+/** Reads "Provider:model", e.g. "OpenAI:gpt-5-mini". */
+export interface AiModelRates {
+  model: string;
+  promptPer1K: number;
+  completionPer1K: number;
+}
+
+export interface ChargesConfig {
+  whatsApp: { default: WhatsAppCategoryRates; countries: WhatsAppCountryRates[] };
+  leadDiscovery: {
+    webSearchPerThousand: number;
+    default: LeadDiscoveryModelRates;
+    models: LeadDiscoveryModelRates[];
+    /** The model the platform runs; a run on a model with no row is priced at this one. Null = none chosen. */
+    defaultModel: string | null;
+  };
+  ai: {
+    models: AiModelRates[];
+    /** "Provider:model", one of models. An interaction on a model with no row is priced at this one. Null = none chosen. */
+    defaultModel: string | null;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -505,4 +869,21 @@ export interface TenantJobReconcileSummary {
   jobsRegistered: number;
   jobsRemoved: number;
   orphanRegistrationsRemoved: number;
+}
+
+export type PlatformNotificationKind = 'JobFailing' | 'JobRecovered';
+export type PlatformNotificationSeverity = 'Info' | 'Warning' | 'Critical';
+
+/** An alert for the platform operators — a tenant's background job that keeps failing, or has recovered. */
+export interface PlatformNotification {
+  id: string;
+  kind: PlatformNotificationKind;
+  severity: PlatformNotificationSeverity;
+  tenantId: string | null;
+  tenantName: string | null;
+  jobType: string | null;
+  title: string;
+  body: string;
+  createdAt: string;
+  acknowledged: boolean;
 }

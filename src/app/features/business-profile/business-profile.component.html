@@ -193,8 +193,10 @@
               {{ region.countryName }} ({{ region.currencyCode }})
             </mat-option>
           </mat-select>
-          <mat-hint>Controls which currency your plan price shows in.</mat-hint>
+          <mat-hint>Sets your currency, your plan prices and the tax on them.</mat-hint>
         </mat-form-field>
+
+        <app-state-select class="field-gap" [control]="form.controls.stateCode" [country]="form.controls.countryCode.value"></app-state-select>
       </mat-card>
     </aside>
   </form>

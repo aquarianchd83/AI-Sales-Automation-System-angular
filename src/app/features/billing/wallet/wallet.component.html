@@ -1,0 +1,183 @@
+<div class="page">
+  <app-page-header title="Usage & credits" subtitle="What you've prepaid for, what's left, and how to top up.">
+    <a mat-stroked-button routerLink="/billing">
+      <mat-icon>payments</mat-icon>
+      Plans & payments
+    </a>
+  </app-page-header>
+
+  <div class="notice" *ngFor="let n of notifications" [class.notice--urgent]="urgent(n)">
+    <mat-icon>{{ urgent(n) ? 'warning' : 'info' }}</mat-icon>
+    <div class="notice-text">
+      <strong>{{ n.title }}</strong>
+      <span>{{ n.body }}</span>
+    </div>
+    <button mat-button type="button" (click)="dismiss(n)">Dismiss</button>
+  </div>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="balance-grid" *ngIf="!loading">
+    <mat-card class="balance-card" *ngFor="let b of balances" [ngClass]="'balance-card--' + b.level">
+      <div class="balance-head">
+        <mat-icon>{{ typeIcons[b.type] }}</mat-icon>
+        <span>{{ typeLabels[b.type] }}</span>
+      </div>
+
+      <div class="balance-number">{{ formatUnits(b.balance) }}</div>
+      <div class="muted balance-sub" *ngIf="b.level === 'none'">Nothing included yet — choose a plan or buy credits.</div>
+      <div class="muted balance-sub" *ngIf="b.level === 'empty'">Used up — anything that needs this is paused.</div>
+      <div class="muted balance-sub" *ngIf="b.level === 'low'">Running low — {{ b.percentLeft | number: '1.0-0' }}% left.</div>
+      <div class="muted balance-sub" *ngIf="b.level === 'ok'">of {{ formatUnits(b.capacity) }} available</div>
+
+      <mat-progress-bar
+        *ngIf="b.level !== 'none'"
+        mode="determinate"
+        [value]="b.percentLeft"
+        [color]="b.level === 'ok' ? 'primary' : 'warn'"
+      ></mat-progress-bar>
+
+      <ul class="grant-list" *ngIf="b.grants.length">
+        <li *ngFor="let g of b.grants">
+          <span>{{ originLabels[g.origin] }}</span>
+          <span class="muted">until {{ g.expiresAtUtc | zonedDate: 'mediumDate' }}</span>
+          <strong>{{ formatUnits(g.unitsRemaining) }}</strong>
+        </li>
+      </ul>
+    </mat-card>
+  </div>
+
+  <mat-card class="section-card">
+    <h3>Buy extra credits</h3>
+    <p class="muted hint" *ngIf="!canBuy">
+      Credits top up a plan — choose a plan first on the <a routerLink="/billing">Billing</a> page.
+    </p>
+    <p class="muted hint" *ngIf="canBuy">
+      Add more at any time, before or after you run out. Credits are used after your plan's included quota and stay
+      valid for 12 months.
+    </p>
+
+    <div class="pack-groups">
+      <div class="pack-group" *ngFor="let type of quotaTypes">
+        <h4>
+          <mat-icon>{{ typeIcons[type] }}</mat-icon>
+          {{ typeLabels[type] }}
+        </h4>
+        <div class="pack-row" *ngFor="let pack of packsFor(type)">
+          <div>
+            <div class="pack-name">{{ pack.name }}</div>
+            <div class="muted pack-price">{{ priceWithTax(pack) }}</div>
+          </div>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="!canBuy || !!buyingPackId"
+            (click)="buy(pack)"
+          >
+            {{ buyingPackId === pack.id ? 'Adding…' : 'Buy' }}
+          </button>
+        </div>
+        <p class="muted" *ngIf="!packsFor(type).length">No packs available.</p>
+      </div>
+    </div>
+  </mat-card>
+
+  <mat-card class="section-card">
+    <h3>Alerts</h3>
+    <p class="muted hint">
+      We warn you when a quota is running low or used up, and before credits expire — in the app, by email and on
+      WhatsApp. With no email set, alerts go to the account owner's login email.
+    </p>
+
+    <form [formGroup]="alertForm" (ngSubmit)="saveAlertSettings()" class="alert-form" novalidate>
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>Alert email</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="off" />
+        <mat-error>Enter a valid email address.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>WhatsApp number</mat-label>
+        <input matInput formControlName="phoneE164" placeholder="+919876543210" autocomplete="off" />
+        <mat-hint>With country code, like +919876543210.</mat-hint>
+        <mat-error *ngIf="alertForm.controls.phoneE164.hasError('required')">Add a number, or turn WhatsApp alerts off.</mat-error>
+        <mat-error *ngIf="alertForm.controls.phoneE164.hasError('pattern')">Use the format +919876543210.</mat-error>
+      </mat-form-field>
+
+      <mat-slide-toggle formControlName="whatsAppEnabled">Send alerts on WhatsApp</mat-slide-toggle>
+
+      <div>
+        <button mat-flat-button color="primary" type="submit" [disabled]="savingAlerts || alertForm.pristine">Save</button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card class="section-card">
+    <div class="ledger-head">
+      <h3>History</h3>
+      <mat-form-field subscriptSizing="dynamic" class="ledger-filter">
+        <mat-label>Show</mat-label>
+        <mat-select [value]="ledgerFilter" (selectionChange)="onLedgerFilter($event.value)">
+          <mat-option [value]="null">Everything</mat-option>
+          <mat-option *ngFor="let type of quotaTypes" [value]="type">{{ typeLabels[type] }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loadingLedger"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="ledger.items">
+        <ng-container matColumnDef="when">
+          <th mat-header-cell *matHeaderCellDef>When</th>
+          <td mat-cell *matCellDef="let row">{{ row.occurredAtUtc | zonedDate: 'short' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="quota">
+          <th mat-header-cell *matHeaderCellDef>Quota</th>
+          <td mat-cell *matCellDef="let row">{{ typeLabel(row.quotaType) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="what">
+          <th mat-header-cell *matHeaderCellDef>What happened</th>
+          <td mat-cell *matCellDef="let row">{{ entryLabel(row.entryType) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="units">
+          <th mat-header-cell *matHeaderCellDef class="num">Units</th>
+          <td mat-cell *matCellDef="let row" class="num" [class.units-in]="row.unitsDelta > 0" [class.units-out]="row.unitsDelta < 0">
+            {{ row.unitsDelta > 0 ? '+' : '' }}{{ formatUnits(row.unitsDelta) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="balance">
+          <th mat-header-cell *matHeaderCellDef class="num">Balance</th>
+          <td mat-cell *matCellDef="let row" class="num">{{ formatUnits(row.balanceAfter) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="note">
+          <th mat-header-cell *matHeaderCellDef>Details</th>
+          <td mat-cell *matCellDef="let row" class="muted">{{ row.note || '' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="ledgerColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: ledgerColumns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loadingLedger && !ledger.items.length">
+      <mat-icon class="empty-icon">history</mat-icon>
+      <p>Nothing here yet.</p>
+    </div>
+
+    <mat-paginator
+      [length]="ledger.totalCount"
+      [pageSize]="ledger.pageSize"
+      [pageIndex]="ledger.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

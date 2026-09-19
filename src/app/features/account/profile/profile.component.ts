@@ -61,10 +61,6 @@ export class ProfileComponent implements OnInit {
       next: (timezones) => (this.timezones = timezones),
       error: () => (this.timezones = []),
     });
-    this.billing.getRegions().subscribe({
-      next: (regions) => (this.regions = regions),
-      error: () => (this.regions = []),
-    });
     this.load();
   }
 
@@ -74,12 +70,21 @@ export class ProfileComponent implements OnInit {
     this.account.getProfile().subscribe({
       next: (profile) => {
         this.apply(profile);
+        this.loadRegions(profile.countryCode);
         this.loading = false;
       },
       error: () => {
         this.loading = false;
         this.loadFailed = true;
       },
+    });
+  }
+
+  /** The countries the operator has switched on, plus the user's own if it has since been switched off. */
+  private loadRegions(current: string | null): void {
+    this.billing.getRegions(current).subscribe({
+      next: (regions) => (this.regions = regions),
+      error: () => (this.regions = []),
     });
   }
 

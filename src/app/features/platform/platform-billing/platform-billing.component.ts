@@ -1,88 +1,111 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { Subject, of } from 'rxjs';
-import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
-import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
-import {
-  PlatformPlan,
-  PlatformSubscriptionListItem,
-  PlatformSubscriptionQuery,
-  SUBSCRIPTION_STATUS_LABELS,
-  SubscriptionStatus,
-} from '../../../core/models/platform.model';
+import { QUOTA_TYPE_LABELS, QuotaType, formatUnits } from '../../../core/models/billing.model';
+import { PlatformCreditPack, PlatformPlan } from '../../../core/models/platform.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
-import { PlatformPlanFormDialogComponent } from '../platform-plan-form-dialog/platform-plan-form-dialog.component';
+import { PlatformCreditPackFormDialogComponent } from '../platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
 
 @Component({
   selector: 'app-platform-billing',
   templateUrl: './platform-billing.component.html',
   styleUrls: ['./platform-billing.component.scss'],
 })
-export class PlatformBillingComponent implements OnInit, OnDestroy {
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
-
-  readonly displayedColumns = ['tenant', 'plan', 'status', 'currentPeriodEnd', 'failedPayment'];
-  readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
-  readonly subscriptionStatusLabels = SUBSCRIPTION_STATUS_LABELS;
+export class PlatformBillingComponent implements OnInit {
+  readonly packColumns = ['name', 'type', 'units', 'price', 'status', 'actions'];
+  readonly formatUnits = formatUnits;
 
   plans: PlatformPlan[] = [];
   loadingPlans = true;
 
-  subscriptionsPage: PagedResult<PlatformSubscriptionListItem> = emptyPage<PlatformSubscriptionListItem>();
-  loadingSubscriptions = true;
-
-  private query: PlatformSubscriptionQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
-  private readonly reload$ = new Subject<void>();
-  private readonly destroy$ = new Subject<void>();
+  packs: PlatformCreditPack[] = [];
+  loadingPacks = true;
 
   constructor(
     private readonly billing: PlatformBillingService,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly router: Router
   ) {}
 
   ngOnInit(): void {
     this.loadPlans();
+    this.loadPacks();
 
-    this.reload$
-      .pipe(
-        startWith(undefined),
-        switchMap(() => {
-          this.loadingSubscriptions = true;
-          return this.billing.getSubscriptions(this.query).pipe(
-            catchError(() => of(emptyPage<PlatformSubscriptionListItem>(this.query.pageSize))),
-            finalize(() => (this.loadingSubscriptions = false))
-          );
-        }),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((page) => (this.subscriptionsPage = page));
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+  /** Shown in the operator's own currency (from their profile country); the catalog itself is still
+   * authored in USD, which is what the add/edit dialog writes. */
+  formatPrice(plan: PlatformPlan): string {
+    if (!plan.priceMonthlyLocal) {
+      return 'Not sold in India';
+    }
+    const whole = Number.isInteger(plan.priceMonthlyLocal);
+    return `${plan.currencySymbol}${plan.priceMonthlyLocal.toFixed(whole ? 0 : 2)}/mo`;
   }
 
-  onPage(event: PageEvent): void {
-    this.query = { ...this.query, page: event.pageIndex + 1, pageSize: event.pageSize };
-    this.reload$.next();
+  /** The authored figure, for the card's secondary line — so an operator editing the plan knows what the
+   * dialog will show them. Omitted when the operator is already on USD. */
+  formatBasePrice(plan: PlatformPlan): string | null {
+    if (plan.currencyCode === 'USD') {
+      return null;
+    }
+    const usd = plan.priceMonthlyCents / 100;
+    return `$${usd.toFixed(usd % 1 === 0 ? 0 : 2)} USD`;
   }
 
-  formatPrice(priceMonthlyCents: number): string {
-    return `$${(priceMonthlyCents / 100).toFixed(priceMonthlyCents % 100 === 0 ? 0 : 2)}/mo`;
+  quotaLabel(type: QuotaType): string {
+    return QUOTA_TYPE_LABELS[type];
   }
 
+  formatPackPrice(pack: PlatformCreditPack): string {
+    if (!pack.priceLocal) {
+      return 'Not sold in India';
+    }
+    return `${pack.currencySymbol}${pack.priceLocal.toFixed(Number.isInteger(pack.priceLocal) ? 0 : 2)}`;
+  }
+
+  addPack(): void {
+    this.openPackDialog(null);
+  }
+
+  editPack(pack: PlatformCreditPack): void {
+    this.openPackDialog(pack);
+  }
+
+  retirePack(pack: PlatformCreditPack): void {
+    const data: ConfirmDialogData = {
+      title: 'Retire this credit pack?',
+      message: `${pack.name} will stop being offered. Credits tenants already bought from it are unaffected.`,
+      confirmLabel: 'Retire',
+      destructive: true,
+    };
+    this.dialog
+      .open(ConfirmDialogComponent, { data, width: '460px' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.billing.deleteCreditPack(pack.id).subscribe({
+          next: () => {
+            this.notify.success('Credit pack retired.');
+            this.loadPacks();
+          },
+        });
+      });
+  }
+
+  /** Plans are created and edited on their own page, which shows what the plan will cost to serve. */
   addPlan(): void {
-    this.openPlanDialog(null);
+    this.router.navigate(['/platform/billing/plans/new']);
   }
 
   editPlan(plan: PlatformPlan): void {
-    this.openPlanDialog(plan);
+    this.router.navigate(['/platform/billing/plans', plan.id]);
   }
 
   deletePlan(plan: PlatformPlan): void {
@@ -108,15 +131,26 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
       });
   }
 
-  private openPlanDialog(plan: PlatformPlan | null): void {
+  private openPackDialog(pack: PlatformCreditPack | null): void {
     this.dialog
-      .open(PlatformPlanFormDialogComponent, { data: { plan }, width: '480px', disableClose: true })
+      .open(PlatformCreditPackFormDialogComponent, { data: { pack }, width: '720px', maxWidth: '95vw', disableClose: true })
       .afterClosed()
       .subscribe((saved) => {
         if (saved) {
-          this.loadPlans();
+          this.loadPacks();
         }
       });
+  }
+
+  private loadPacks(): void {
+    this.loadingPacks = true;
+    this.billing.getCreditPacks().subscribe({
+      next: (packs) => {
+        this.packs = packs;
+        this.loadingPacks = false;
+      },
+      error: () => (this.loadingPacks = false),
+    });
   }
 
   private loadPlans(): void {
@@ -128,11 +162,5 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
       },
       error: () => (this.loadingPlans = false),
     });
-  }
-
-  /** See PlatformTenantListComponent.statusLabel's own comment for why this is a method, not a
-   * template-level Record index. */
-  subscriptionStatusLabel(status: SubscriptionStatus | null): string {
-    return status === null ? '—' : this.subscriptionStatusLabels[status];
   }
 }

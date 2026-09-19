@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
 import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dialog.component';
+import { StateSelectComponent } from './components/state-select/state-select.component';
 import { PageHeaderComponent } from './components/page-header/page-header.component';
 import { ModuleFlowsButtonComponent } from './components/module-flows/module-flows-button.component';
 import { ModuleFlowsDialogComponent } from './components/module-flows/module-flows-dialog.component';
@@ -14,6 +15,7 @@ import { ZonedDatePipe } from './pipes/zoned-date.pipe';
 const DECLARATIONS = [
   ConfirmDialogComponent,
   PageHeaderComponent,
+  StateSelectComponent,
   HasRoleDirective,
   ModuleFlowsButtonComponent,
   ModuleFlowsDialogComponent,

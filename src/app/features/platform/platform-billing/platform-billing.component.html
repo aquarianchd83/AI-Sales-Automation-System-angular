@@ -8,7 +8,10 @@
           Add plan
         </button>
       </div>
-      <span class="muted">Retired plans stay visible so existing subscribers keep their limits.</span>
+      <span class="muted">
+        Retired plans stay visible so existing subscribers keep their limits. Each plan is priced per country, in that country's currency; the price shown on a plan is India's, in rupees. A country with no
+        price does not sell the plan. Tax is added on top at checkout.
+      </span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
     <div class="plan-grid" *ngIf="!loadingPlans">
@@ -17,14 +20,22 @@
           <h3>{{ plan.name }}</h3>
           <span class="muted" *ngIf="!plan.isActive">Retired</span>
         </div>
-        <div class="plan-price">{{ formatPrice(plan.priceMonthlyCents) }}</div>
+        <div class="plan-price">{{ formatPrice(plan) }}</div>
         <ul>
           <li>{{ plan.maxUsers }} users</li>
-          <li>{{ plan.maxMessagesPerMonth.toLocaleString() }} messages/mo</li>
           <li>{{ plan.maxCampaigns }} campaigns</li>
           <li>{{ plan.maxKnowledgeBaseArticles }} KB articles</li>
-          <li>{{ plan.maxLeadDiscoveryBatchSize }} leads/discovery run</li>
+          <li>up to {{ plan.maxLeadDiscoveryBatchSize }} leads per discovery run</li>
         </ul>
+        <div class="plan-quotas" *ngIf="plan.includedQuotas.length">
+          <div class="muted plan-quotas-title">Included each period</div>
+          <div *ngFor="let q of plan.includedQuotas">{{ formatUnits(q.units) }} {{ quotaLabel(q.quotaType) }}</div>
+        </div>
+        <div class="muted" *ngIf="!plan.includedQuotas.length">No prepaid quota</div>
+        <div class="plan-quotas" *ngIf="plan.countryPrices.length">
+          <div class="muted plan-quotas-title">Country prices</div>
+          <div *ngFor="let p of plan.countryPrices">{{ p.countryName }}: {{ p.currencySymbol }}{{ p.amount }}</div>
+        </div>
         <div class="plan-tile-actions">
           <button mat-stroked-button type="button" (click)="editPlan(plan)">Edit</button>
           <button mat-stroked-button color="warn" type="button" *ngIf="plan.isActive" (click)="deletePlan(plan)">
@@ -35,61 +46,69 @@
     </div>
   </mat-card>
 
-  <mat-card class="table-card">
+  <mat-card class="table-card packs-card">
     <div class="section-header">
-      <h2>Subscriptions</h2>
+      <div class="section-header-row">
+        <h2>Credit packs</h2>
+        <button mat-stroked-button type="button" (click)="addPack()">
+          <mat-icon>add</mat-icon>
+          Add credit pack
+        </button>
+      </div>
+      <span class="muted">
+        Extra units tenants can buy any time; they stay valid for 12 months. Each pack is priced per country; the price
+        shown here is India's, in rupees. A country with no price does not sell the pack. Retired packs stop being offered but purchases already made keep their credits.
+      </span>
     </div>
-    <mat-progress-bar mode="indeterminate" *ngIf="loadingSubscriptions"></mat-progress-bar>
+    <mat-progress-bar mode="indeterminate" *ngIf="loadingPacks"></mat-progress-bar>
 
     <div class="table-scroll">
-      <table mat-table [dataSource]="subscriptionsPage.items">
-        <ng-container matColumnDef="tenant">
-          <th mat-header-cell *matHeaderCellDef>Tenant</th>
-          <td mat-cell *matCellDef="let sub">
-            <a [routerLink]="['/platform/tenants', sub.tenantId]">{{ sub.tenantName }}</a>
+      <table mat-table [dataSource]="packs" *ngIf="packs.length">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Pack</th>
+          <td mat-cell *matCellDef="let pack">{{ pack.name }}</td>
+        </ng-container>
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Credits for</th>
+          <td mat-cell *matCellDef="let pack">{{ quotaLabel(pack.quotaType) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="units">
+          <th mat-header-cell *matHeaderCellDef>Units</th>
+          <td mat-cell *matCellDef="let pack">{{ formatUnits(pack.units) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="price">
+          <th mat-header-cell *matHeaderCellDef>Price</th>
+          <td mat-cell *matCellDef="let pack">
+            {{ formatPackPrice(pack) }}
+            <div class="muted pack-base" *ngIf="pack.countryPrices.length">
+              {{ pack.countryPrices.length }} country price{{ pack.countryPrices.length === 1 ? '' : 's' }}
+            </div>
           </td>
         </ng-container>
-
-        <ng-container matColumnDef="plan">
-          <th mat-header-cell *matHeaderCellDef>Plan</th>
-          <td mat-cell *matCellDef="let sub">{{ sub.planName || '—' }}</td>
-        </ng-container>
-
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
-          <td mat-cell *matCellDef="let sub">{{ subscriptionStatusLabel(sub.status) }}</td>
+          <td mat-cell *matCellDef="let pack">
+            <span class="status-chip status-chip--opted-in" *ngIf="pack.isActive">Active</span>
+            <span class="muted" *ngIf="!pack.isActive">Retired</span>
+          </td>
         </ng-container>
-
-        <ng-container matColumnDef="currentPeriodEnd">
-          <th mat-header-cell *matHeaderCellDef>Period ends</th>
-          <td mat-cell *matCellDef="let sub">{{ sub.currentPeriodEndUtc ? (sub.currentPeriodEndUtc | zonedDate: 'mediumDate') : '—' }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="failedPayment">
-          <th mat-header-cell *matHeaderCellDef>Payment</th>
-          <td mat-cell *matCellDef="let sub">
-            <span class="status-chip status-chip--opted-out" *ngIf="sub.hasFailedPayment">Failed</span>
-            <span class="muted" *ngIf="!sub.hasFailedPayment">OK</span>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let pack">
+            <button mat-button type="button" (click)="editPack(pack)">Edit</button>
+            <button mat-button color="warn" type="button" *ngIf="pack.isActive" (click)="retirePack(pack)">Retire</button>
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let sub; columns: displayedColumns"></tr>
+        <tr mat-header-row *matHeaderRowDef="packColumns"></tr>
+        <tr mat-row *matRowDef="let pack; columns: packColumns"></tr>
       </table>
     </div>
 
-    <div class="empty-state" *ngIf="!loadingSubscriptions && !subscriptionsPage.items.length">
-      <mat-icon class="empty-icon">payments</mat-icon>
-      <p>No subscriptions yet.</p>
+    <div class="empty-state" *ngIf="!loadingPacks && !packs.length">
+      <mat-icon class="empty-icon">add_shopping_cart</mat-icon>
+      <p>No credit packs yet - tenants cannot top up until you add one.</p>
     </div>
-
-    <mat-paginator
-      [length]="subscriptionsPage.totalCount"
-      [pageSize]="subscriptionsPage.pageSize"
-      [pageIndex]="subscriptionsPage.page - 1"
-      [pageSizeOptions]="pageSizeOptions"
-      showFirstLastButtons
-      (page)="onPage($event)"
-    ></mat-paginator>
   </mat-card>
+
 </div>

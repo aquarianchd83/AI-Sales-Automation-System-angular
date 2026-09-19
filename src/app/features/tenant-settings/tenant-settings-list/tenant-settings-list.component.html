@@ -37,8 +37,8 @@
         <mat-progress-bar mode="indeterminate" *ngIf="loadingUsage"></mat-progress-bar>
         <ng-container *ngIf="!loadingUsage && usage">
           <div class="usage-count">
-            {{ usage.messagesSentThisMonth | number }} / {{ usage.maxMessagesPerMonth ? (usage.maxMessagesPerMonth | number) : 'Unlimited' }}
-            messages
+            {{ usage.messagesSentThisMonth | number }}
+            messages sent
           </div>
           <mat-progress-bar
             *ngIf="usagePercent !== null"
@@ -46,7 +46,9 @@
             [value]="usagePercent"
             [color]="usagePercent >= 100 ? 'warn' : 'primary'"
           ></mat-progress-bar>
-          <p class="muted hint" *ngIf="!usage.maxMessagesPerMonth">No plan yet — sends aren't capped during your trial.</p>
+          <p class="muted hint" *ngIf="!usage.maxMessagesPerMonth">
+            What you can send is your prepaid WhatsApp balance - see <a routerLink="/billing/wallet">Usage &amp; Credits</a>.
+          </p>
         </ng-container>
       </div>
     </mat-card>

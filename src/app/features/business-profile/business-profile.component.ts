@@ -50,6 +50,7 @@ export class BusinessProfileComponent implements OnInit {
     supportPhone: ['', [Validators.maxLength(L.supportPhone), Validators.pattern(PHONE_PATTERN)]],
     timezone: ['', Validators.required],
     countryCode: [''],
+    stateCode: [''],
   });
 
   readonly keywordInput = new FormControl('', { nonNullable: true });
@@ -79,10 +80,6 @@ export class BusinessProfileComponent implements OnInit {
       next: (timezones) => (this.timezones = timezones),
       error: () => (this.timezones = []),
     });
-    this.billing.getRegions().subscribe({
-      next: (regions) => (this.regions = regions),
-      error: () => (this.regions = []),
-    });
     this.load();
   }
 
@@ -92,6 +89,10 @@ export class BusinessProfileComponent implements OnInit {
     this.profileService.getProfile().subscribe({
       next: (profile) => {
         this.apply(profile);
+        this.billing.getRegions(profile.countryCode).subscribe({
+          next: (regions) => (this.regions = regions),
+          error: () => (this.regions = []),
+        });
         this.loading = false;
       },
       error: () => {
@@ -185,8 +186,8 @@ export class BusinessProfileComponent implements OnInit {
     if (v.timezone && v.timezone !== this.saved.timezone) {
       steps.push(this.profileService.updateTimezone(v.timezone));
     }
-    if (v.countryCode && v.countryCode !== (this.saved.countryCode ?? '')) {
-      steps.push(this.profileService.updateCountry(v.countryCode));
+    if (v.countryCode && (v.countryCode !== (this.saved.countryCode ?? '') || v.stateCode !== (this.saved.stateCode ?? ''))) {
+      steps.push(this.profileService.updateCountry(v.countryCode, v.stateCode));
     }
 
     this.saving = true;
@@ -215,6 +216,7 @@ export class BusinessProfileComponent implements OnInit {
       supportPhone: profile.supportPhone ?? '',
       timezone: profile.timezone,
       countryCode: profile.countryCode ?? '',
+      stateCode: profile.stateCode ?? '',
     });
     this.keywords = [...profile.domainKeywords];
     this.keywordError = null;

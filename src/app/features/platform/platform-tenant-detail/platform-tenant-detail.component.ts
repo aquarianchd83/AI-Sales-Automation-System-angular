@@ -15,7 +15,16 @@ import {
   TenantJobRunOutcome,
   TenantStatus,
 } from '../../../core/models/platform.model';
-import { RegionOption, TimeZoneOption } from '../../../core/models/billing.model';
+import {
+  Payment,
+  QUOTA_TYPE_LABELS,
+  QUOTA_GRANT_ORIGIN_LABELS,
+  QuotaBalance,
+  RegionOption,
+  TimeZoneOption,
+  formatCharge,
+  formatUnits,
+} from '../../../core/models/billing.model';
 import { TenantAiProviderConfig, TenantSettingCategory, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { ImpersonationSessionService } from '../../../core/services/impersonation-session.service';
@@ -23,9 +32,12 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { PlatformJobService } from '../../../core/services/platform-job.service';
 import { PlatformTenantConfigService } from '../../../core/services/platform-tenant-config.service';
+import { PlatformRefundService } from '../../../core/services/platform-refund.service';
 import { PlatformTenantService } from '../../../core/services/platform-tenant.service';
 import { TimeZoneService } from '../../../core/services/timezone.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { PlatformQuotaAdjustDialogComponent } from '../platform-quota-adjust-dialog/platform-quota-adjust-dialog.component';
+import { PlatformRefundReviewDialogComponent } from '../platform-refund-review-dialog/platform-refund-review-dialog.component';
 import { PlatformTenantAiConfigDialogComponent } from '../platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
 import { PlatformTenantConfigOverridesDialogComponent } from '../platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
 import { PlatformTenantWhatsAppConfigDialogComponent } from '../platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
@@ -38,10 +50,13 @@ import { PlatformTenantWhatsAppConfigDialogComponent } from '../platform-tenant-
 export class PlatformTenantDetailComponent implements OnInit {
   readonly statusLabels = TENANT_STATUS_LABELS;
   readonly subscriptionStatusLabels = SUBSCRIPTION_STATUS_LABELS;
+  /** This page is about one tenant, so its money is shown in that tenant's currency (USD in the tooltip). */
+  readonly formatCharge = formatCharge;
   readonly TenantStatus = TenantStatus;
   readonly planControl = new FormControl<string | null>(null);
   readonly timezoneControl = new FormControl<string | null>(null);
   readonly countryControl = new FormControl<string | null>(null);
+  readonly stateControl = new FormControl<string>('', { nonNullable: true });
 
   tenant: PlatformTenantDetail | null = null;
   plans: PlatformPlan[] = [];
@@ -66,6 +81,18 @@ export class PlatformTenantDetailComponent implements OnInit {
   tenantJobs: PlatformTenantJobs | null = null;
   loadingJobs = true;
 
+  readonly quotaLabels = QUOTA_TYPE_LABELS;
+  readonly originLabels = QUOTA_GRANT_ORIGIN_LABELS;
+  readonly formatUnits = formatUnits;
+
+  /** This tenant's prepaid quota and payments - loaded beside the profile rather than with it, so a slow
+   * quota query never holds up the rest of the page. */
+  quota: QuotaBalance[] = [];
+  loadingQuota = true;
+  payments: Payment[] = [];
+  loadingPayments = true;
+  togglingRefunds = false;
+
   private tenantId!: string;
 
   constructor(
@@ -79,18 +106,20 @@ export class PlatformTenantDetailComponent implements OnInit {
     private readonly billingService: BillingService,
     private readonly impersonation: ImpersonationSessionService,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly refundService: PlatformRefundService
   ) {}
 
   ngOnInit(): void {
     this.tenantId = this.route.snapshot.paramMap.get('id') ?? '';
     this.billing.getPlans().subscribe({ next: (plans) => (this.plans = plans) });
     this.timeZoneService.getTimezones().subscribe({ next: (timezones) => (this.timezones = timezones) });
-    this.billingService.getRegions().subscribe({ next: (regions) => (this.regions = regions) });
     this.load();
     this.loadConfig();
     this.loadJobs();
     this.loadConfigOverrides();
+    this.loadQuota();
+    this.loadPayments();
   }
 
   /** Count of tenant-overridable keys this tenant currently overrides, across all categories - what
@@ -101,6 +130,65 @@ export class PlatformTenantDetailComponent implements OnInit {
 
   get totalOverridableCount(): number {
     return this.configOverrides.flatMap((c) => c.items).length;
+  }
+
+  adjustQuota(): void {
+    this.dialog
+      .open(PlatformQuotaAdjustDialogComponent, {
+        data: { tenantId: this.tenantId, tenantName: this.tenant?.name ?? '' },
+        width: '480px',
+        disableClose: true,
+      })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed) {
+          this.loadQuota();
+        }
+      });
+  }
+
+  /** The per-tenant refund switch. Off hides the request option from the tenant, and the server refuses it either way. */
+  setRefundRequests(enabled: boolean): void {
+    if (this.togglingRefunds || !this.tenant) {
+      return;
+    }
+    this.togglingRefunds = true;
+    this.refundService
+      .setRefundRequestsEnabled(this.tenantId, enabled)
+      .pipe(finalize(() => (this.togglingRefunds = false)))
+      .subscribe({
+        next: () => {
+          this.tenant!.refundRequestsEnabled = enabled;
+          this.notify.success(enabled ? 'This tenant can now request refunds.' : 'Refund requests turned off for this tenant.');
+        },
+        error: () => this.load(),
+      });
+  }
+
+  /** A real charge - not a refund row, and not free. The server still decides whether anything is left to refund. */
+  canRefund(payment: Payment): boolean {
+    return payment.kind !== 'Refund' && payment.localAmount > 0;
+  }
+
+  refundPayment(payment: Payment): void {
+    this.dialog
+      .open(PlatformRefundReviewDialogComponent, {
+        data: { mode: 'direct', payment, tenantId: this.tenantId },
+        width: '520px',
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (result) {
+          this.loadPayments();
+          this.loadQuota();
+        }
+      });
+  }
+
+  formatPayment(payment: Payment): string {
+    const paid = payment.totalLocal ? payment.totalLocal : payment.localAmount;
+    const amount = Math.abs(paid).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${paid < 0 ? '−' : ''}${payment.currencySymbol}${amount}`;
   }
 
   suspend(): void {
@@ -194,10 +282,10 @@ export class PlatformTenantDetailComponent implements OnInit {
     }
     this.savingCountry = true;
     this.tenants
-      .updateCountry(this.tenantId, countryCode)
+      .updateCountry(this.tenantId, countryCode, this.stateControl.value)
       .pipe(finalize(() => (this.savingCountry = false)))
       .subscribe(() => {
-        this.notify.success('Country updated — plan pricing now shows in the matching currency.');
+        this.notify.success('Country updated — plan pricing and tax now follow it.');
         this.load();
       });
   }
@@ -295,6 +383,9 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.tenants.getById(this.tenantId).subscribe({
       next: (tenant) => {
         this.tenant = tenant;
+        this.stateControl.setValue(tenant.stateCode ?? '');
+        // The countries switched on, plus this tenant's own if it has since been switched off.
+        this.billingService.getRegions(tenant.countryCode).subscribe({ next: (regions) => (this.regions = regions) });
         this.loading = false;
       },
       error: () => {
@@ -302,6 +393,22 @@ export class PlatformTenantDetailComponent implements OnInit {
         void this.router.navigate(['/platform/tenants']);
       },
     });
+  }
+
+  private loadQuota(): void {
+    this.loadingQuota = true;
+    this.refundService
+      .getTenantQuota(this.tenantId)
+      .pipe(finalize(() => (this.loadingQuota = false)))
+      .subscribe({ next: (quota) => (this.quota = quota) });
+  }
+
+  private loadPayments(): void {
+    this.loadingPayments = true;
+    this.refundService
+      .getTenantPayments(this.tenantId)
+      .pipe(finalize(() => (this.loadingPayments = false)))
+      .subscribe({ next: (payments) => (this.payments = payments) });
   }
 
   private loadConfig(): void {

@@ -35,7 +35,7 @@
           <dt>Timezone</dt>
           <dd>{{ tenant.timezone }}</dd>
           <dt>Country</dt>
-          <dd>{{ tenant.countryCode || '— (plan pricing shows in USD)' }}</dd>
+          <dd>{{ tenant.countryCode || '— (not set)' }}{{ tenant.stateCode ? ', ' + tenant.stateCode : '' }}</dd>
         </dl>
         <div class="inline-override">
           <mat-form-field subscriptSizing="dynamic" class="inline-select">
@@ -56,6 +56,7 @@
               <mat-option *ngFor="let region of regions" [value]="region.countryCode">{{ region.countryName }} ({{ region.currencyCode }})</mat-option>
             </mat-select>
           </mat-form-field>
+          <app-state-select [control]="stateControl" [country]="countryControl.value"></app-state-select>
           <button mat-flat-button type="button" [disabled]="!countryControl.value || savingCountry" (click)="saveCountryOverride()">
             Apply
           </button>
@@ -113,14 +114,61 @@
       </mat-card>
 
       <mat-card class="detail-card">
+        <h3>Prepaid quota</h3>
+        <p class="muted" *ngIf="loadingQuota">Loading…</p>
+        <dl *ngIf="!loadingQuota">
+          <ng-container *ngFor="let q of quota">
+            <dt>{{ quotaLabels[q.quotaType] }}</dt>
+            <dd>
+              <strong>{{ formatUnits(q.balance) }}</strong>
+              <div class="muted hint-line" *ngFor="let g of q.grants">
+                {{ originLabels[g.origin] }} · {{ formatUnits(g.unitsRemaining) }} until {{ g.expiresAtUtc | zonedDate: 'mediumDate' }}
+              </div>
+            </dd>
+          </ng-container>
+        </dl>
+        <div class="card-actions">
+          <button mat-stroked-button type="button" (click)="adjustQuota()">Adjust quota</button>
+        </div>
+        <p class="muted hint">Units left right now, and where they came from. Every adjustment needs a reason and is visible to the tenant in their history.</p>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h3>Payments &amp; refunds</h3>
+        <mat-slide-toggle
+          [checked]="tenant.refundRequestsEnabled"
+          [disabled]="togglingRefunds"
+          (change)="setRefundRequests($event.checked)"
+        >
+          Let this tenant request refunds
+        </mat-slide-toggle>
+        <p class="muted hint">
+          When on, the tenant sees "Request refund" on its Billing page; you still approve every one in
+          <a routerLink="/platform/refunds">Refund Requests</a>. When off, the option is hidden and the server refuses it.
+        </p>
+
+        <p class="muted" *ngIf="loadingPayments">Loading…</p>
+        <div class="payment-line" *ngFor="let payment of payments">
+          <span class="muted">{{ payment.paidAtUtc | zonedDate: 'mediumDate' }}</span>
+          <span class="payment-line-name">{{ payment.planName }}</span>
+          <span [class.refund-amount]="payment.kind === 'Refund'">{{ formatPayment(payment) }}</span>
+          <button mat-button type="button" *ngIf="canRefund(payment)" (click)="refundPayment(payment)">Refund</button>
+        </div>
+        <p class="muted" *ngIf="!loadingPayments && !payments.length">No payments yet.</p>
+      </mat-card>
+
+      <mat-card class="detail-card">
         <h3>Usage this month</h3>
         <dl>
           <dt>Messages sent</dt>
-          <dd>{{ tenant.messagesSentThisMonth }} / {{ tenant.maxMessagesPerMonth ?? '∞' }}</dd>
+          <dd>{{ tenant.messagesSentThisMonth }}</dd>
           <dt>AI interactions</dt>
           <dd>{{ tenant.aiInteractionsThisMonth }}</dd>
           <dt>Estimated AI spend</dt>
-          <dd>${{ tenant.estimatedAiSpendThisMonthUsd.toFixed(4) }}</dd>
+          <dd [matTooltip]="formatCharge(tenant.estimatedAiSpendThisMonthUsd) + ' USD'">
+            {{ formatCharge(tenant.estimatedAiSpendThisMonthLocal, tenant.currencySymbol) }}
+            <span class="muted">{{ tenant.currencyCode }}</span>
+          </dd>
         </dl>
       </mat-card>
 

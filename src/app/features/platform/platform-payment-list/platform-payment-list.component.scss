@@ -1,0 +1,45 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  min-width: 260px;
+  flex: 1 1 260px;
+}
+
+.filter-kind {
+  min-width: 180px;
+}
+
+/* A row's money is in that tenant's own currency, so each figure names which one. */
+.currency-note {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+/* A subscription not charged yet reads lighter than money that actually moved. */
+.upcoming-row td {
+  opacity: 0.85;
+  background: rgba(63, 81, 181, 0.04);
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}
+
+.mat-mdc-footer-row {
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Hidden rather than *ngIf'd off the row def - matFooterRowDef needs a stable column set. */
+.footer-row-hidden {
+  display: none;
+}

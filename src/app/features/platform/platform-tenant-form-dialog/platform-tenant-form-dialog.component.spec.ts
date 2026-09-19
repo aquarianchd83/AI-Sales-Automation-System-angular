@@ -44,7 +44,10 @@ describe('PlatformTenantFormDialogComponent', () => {
         },
         {
           provide: BillingService,
-          useValue: { getRegions: () => of([{ countryCode: 'AE', countryName: 'UAE', currencyCode: 'AED', currencySymbol: 'د.إ' }]) },
+          useValue: {
+            getRegions: () => of([{ countryCode: 'AE', countryName: 'UAE', currencyCode: 'AED', currencySymbol: 'د.إ' }]),
+            getStates: () => of([]),
+          },
         },
       ],
     });
@@ -69,6 +72,7 @@ describe('PlatformTenantFormDialogComponent', () => {
       adminEmail: 'priya@sunvolt.example.com',
       adminPassword: 'Temp#12345',
       countryCode: null,
+      stateCode: null,
       timezone: null,
       productName: null,
       industry: null,

@@ -12,9 +12,10 @@
 
     <p class="muted estimate-note">
       Spend is estimated from hand-maintained list prices — AI, WhatsApp template sends and lead discovery
-      runs — and is measured over each tenant's own calendar month, in their timezone. The platform's own
-      provider invoices are the authority, and this excludes what tenants pay for their plans. Message and
-      user quotas stay on the UTC month the plan allowance is enforced on.
+      runs — and is measured over each tenant's own calendar month, in their timezone, and shown in their own
+      currency. Amounts therefore aren't comparable between rows; hover a total for the USD figure. The
+      platform's own provider invoices are the authority, and this excludes what tenants pay for their plans.
+      Message and user quotas stay on the UTC month the plan allowance is enforced on.
     </p>
 
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -49,7 +50,8 @@
         <ng-container matColumnDef="ai">
           <th mat-header-cell *matHeaderCellDef>AI (mo.)</th>
           <td mat-cell *matCellDef="let row">
-            {{ row.aiInteractionsThisMonth }} interactions · {{ formatCharge(row.estimatedAiSpendThisMonthUsd) }}
+            {{ row.aiInteractionsThisMonth }} interactions ·
+            {{ formatCharge(row.estimatedAiSpendThisMonthLocal, row.currencySymbol) }}
           </td>
         </ng-container>
 
@@ -57,7 +59,7 @@
           <th mat-header-cell *matHeaderCellDef>WhatsApp (mo.)</th>
           <td mat-cell *matCellDef="let row">
             {{ row.billableWhatsAppMessagesThisMonth | number }} billable ·
-            {{ formatCharge(row.estimatedWhatsAppSpendThisMonthUsd) }}
+            {{ formatCharge(row.estimatedWhatsAppSpendThisMonthLocal, row.currencySymbol) }}
           </td>
         </ng-container>
 
@@ -65,16 +67,22 @@
           <th mat-header-cell *matHeaderCellDef>Lead discovery (mo.)</th>
           <td mat-cell *matCellDef="let row">
             {{ row.leadDiscoveryRunsThisMonth }} run{{ row.leadDiscoveryRunsThisMonth === 1 ? '' : 's' }} ·
-            {{ formatCharge(row.estimatedLeadDiscoverySpendThisMonthUsd) }}
+            {{ formatCharge(row.estimatedLeadDiscoverySpendThisMonthLocal, row.currencySymbol) }}
           </td>
         </ng-container>
 
         <ng-container matColumnDef="total">
           <th mat-header-cell *matHeaderCellDef>Total (mo.)</th>
           <td mat-cell *matCellDef="let row">
-            <strong [matTooltip]="'Since ' + (row.spendPeriodStartUtc | zonedDate: 'medium') + ' — this tenant\'s own month'">
-              {{ formatCharge(row.estimatedTotalSpendThisMonthUsd) }}
+            <strong
+              [matTooltip]="
+                formatCharge(row.estimatedTotalSpendThisMonthUsd) + ' USD · since ' +
+                (row.spendPeriodStartUtc | zonedDate: 'medium') + ', this tenant\'s own month'
+              "
+            >
+              {{ formatCharge(row.estimatedTotalSpendThisMonthLocal, row.currencySymbol) }}
             </strong>
+            <div class="muted currency-note">{{ row.currencyCode }}</div>
           </td>
         </ng-container>
 

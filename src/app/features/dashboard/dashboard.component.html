@@ -278,9 +278,7 @@
           <ng-container *ngIf="account.usage as usage; else usageUnavailable">
             <div class="account-value">
               {{ usage.messagesSentThisMonth | number }}
-              <span class="muted account-of">
-                / {{ usage.maxMessagesPerMonth ? (usage.maxMessagesPerMonth | number) : 'unlimited' }}
-              </span>
+              <span class="muted account-of" *ngIf="usage.maxMessagesPerMonth">/ {{ usage.maxMessagesPerMonth | number }}</span>
             </div>
             <mat-progress-bar
               *ngIf="quotaPercent !== null"

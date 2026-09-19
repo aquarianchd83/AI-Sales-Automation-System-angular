@@ -1,0 +1,33 @@
+<div class="country-prices">
+  <h3 class="quota-heading">Prices by country</h3>
+  <p class="muted quota-note">
+    Set the price in a country's own currency. A country with no price here does not sell this - it is not offered to tenants
+    there. Tax is added on top at checkout.
+  </p>
+
+  <div class="country-price-row" *ngFor="let row of rows.controls; let i = index" [formGroup]="row">
+    <mat-form-field class="country-select" subscriptSizing="dynamic">
+      <mat-label>Country</mat-label>
+      <mat-select formControlName="countryCode">
+        <mat-option *ngFor="let region of availableRegions(row.controls.countryCode.value)" [value]="region.countryCode">
+          {{ region.countryName }} ({{ region.currencyCode }})
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="amount-field" subscriptSizing="dynamic">
+      <mat-label>Price{{ currencyFor(row.controls.countryCode.value) ? ' (' + currencyFor(row.controls.countryCode.value) + ')' : '' }}</mat-label>
+      <input matInput type="number" min="0.01" step="0.01" formControlName="amount" />
+      <span matTextPrefix>{{ symbolFor(row.controls.countryCode.value) }}&nbsp;</span>
+    </mat-form-field>
+
+    <button mat-icon-button type="button" aria-label="Remove country price" (click)="remove(i)">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <button mat-stroked-button type="button" [disabled]="!canAdd" (click)="add()">
+    <mat-icon>add</mat-icon>
+    Add country price
+  </button>
+</div>

@@ -29,6 +29,14 @@ const row: PlatformTenantUsage = {
   estimatedTotalSpendThisMonthUsd: 2.2556,
   // 1 Sep 00:00 IST — a tenant in Asia/Kolkata starts its month 5.5 hours before UTC does.
   spendPeriodStartUtc: '2026-08-31T18:30:00Z',
+  // This tenant is Indian, so its row is quoted in rupees (83x the USD figures) — not the operator's
+  // currency, which is what the dashboard uses.
+  currencyCode: 'INR',
+  currencySymbol: '₹',
+  estimatedAiSpendThisMonthLocal: 10.2422,
+  estimatedWhatsAppSpendThisMonthLocal: 106.821,
+  estimatedLeadDiscoverySpendThisMonthLocal: 70.1516,
+  estimatedTotalSpendThisMonthLocal: 187.2148,
 };
 
 describe('PlatformUsageComponent', () => {
@@ -53,23 +61,37 @@ describe('PlatformUsageComponent', () => {
     });
   });
 
-  it('shows per-tenant WhatsApp, lead discovery and total spend beside the quotas', () => {
+  it("shows each row's spend in that tenant's own currency, beside the quotas", () => {
     create(row);
 
     expect(text()).toContain('SunVolt Energy');
     expect(text()).toContain('420 / 1000');
     expect(text()).toContain('130 billable');
-    expect(text()).toContain('$1.29'); // WhatsApp
+    expect(text()).toContain('₹106.82'); // WhatsApp, in the tenant's currency
     expect(text()).toContain('2 runs');
-    expect(text()).toContain('$0.85'); // lead discovery
-    expect(text()).toContain('$2.26'); // total
+    expect(text()).toContain('₹70.15'); // lead discovery
+    expect(text()).toContain('₹187.21'); // total
+    expect(text()).toContain('INR');
+    expect(text()).not.toContain('$1.29'); // the USD figure belongs in the tooltip, not the cell
     expect(text()).toContain('Spend is estimated from hand-maintained list prices');
   });
 
+  it('keeps the USD figure available on the total for comparing rows that use different currencies', () => {
+    create(row);
+
+    const total = (fixture.nativeElement as HTMLElement).querySelector('td strong');
+    expect(total?.getAttribute('ng-reflect-message') ?? '').toContain('$2.26 USD');
+  });
+
   it('keeps a sub-cent estimate visible rather than rounding it to zero', () => {
-    create({ ...row, estimatedAiSpendThisMonthUsd: 0.0034, estimatedTotalSpendThisMonthUsd: 0.0034 });
+    create({
+      ...row,
+      estimatedAiSpendThisMonthLocal: 0.0034,
+      estimatedTotalSpendThisMonthLocal: 0.0034,
+      currencySymbol: '$',
+      currencyCode: 'USD',
+    });
 
     expect(text()).toContain('$0.0034');
-    expect(text()).not.toContain('$0.00 ');
   });
 });
