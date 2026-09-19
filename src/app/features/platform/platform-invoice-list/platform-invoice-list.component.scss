@@ -1,0 +1,45 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  min-width: 260px;
+  flex: 1 1 260px;
+}
+
+.filter-status {
+  min-width: 160px;
+}
+
+/* A row's money is in that tenant's own currency, so each total names which one. */
+.currency-note {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.period-range {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}
+
+.mat-mdc-footer-row {
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* Hidden rather than *ngIf'd off the row def - matFooterRowDef needs a stable column set, and an
+   empty page already shows its own empty-state block below the table. */
+.footer-row-hidden {
+  display: none;
+}

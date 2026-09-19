@@ -121,6 +121,7 @@ export class ShellComponent implements OnInit {
       items: [
         { label: 'Package', icon: 'payments', route: '/platform/billing', roles: [] },
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
+        { label: 'Invoices', icon: 'request_quote', route: '/platform/invoices', roles: [] },
       ],
     },
     {

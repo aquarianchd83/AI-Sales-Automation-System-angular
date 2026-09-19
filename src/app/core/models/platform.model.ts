@@ -291,6 +291,153 @@ export interface PlatformTenantUsage {
 }
 
 // ---------------------------------------------------------------------------
+// Invoices (GET /platform/invoices/*)
+// ---------------------------------------------------------------------------
+
+/** InvoiceStatus — plain int enum on the wire (verified against /swagger/v1/swagger.json — the
+ * backend's HasConversion<string>() is EF Core's own DB storage choice, not the JSON API contract),
+ * same as TenantStatus/SubscriptionStatus above. The current, still-open period's invoice is always
+ * Upcoming; once the month closes the backend flips it to Due exactly once, and from there it only
+ * ever moves to Paid through a PlatformSuperAdmin's explicit "Mark as paid" action — there is no
+ * payment gateway to flip it automatically. The backend rejects marking an Upcoming invoice paid
+ * (HTTP 409) since it's still accruing. */
+export enum InvoiceStatus {
+  Due = 0,
+  Paid = 1,
+  Upcoming = 2,
+}
+
+export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  [InvoiceStatus.Due]: 'Due',
+  [InvoiceStatus.Paid]: 'Paid',
+  [InvoiceStatus.Upcoming]: 'Upcoming',
+};
+
+export interface PlatformInvoiceQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: InvoiceStatus;
+  tenantId?: string;
+}
+
+/** PlatformInvoiceListItemDto — one tenant's bill for one closed calendar month. Money is in that
+ * tenant's own currency (stamped at generation time, like Payment) — not comparable across rows;
+ * total the `*Usd` figure instead. See PlatformInvoiceDetail for the four line items broken out. */
+export interface PlatformInvoiceListItem {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  periodStartUtc: string;
+  periodEndUtc: string;
+  planName: string | null;
+  status: InvoiceStatus;
+  paidAtUtc: string | null;
+  totalAmountUsd: number;
+  totalAmountLocal: number;
+  currencyCode: string;
+  currencySymbol: string;
+}
+
+/** PlatformInvoiceDetailDto — the four things a tenant is billed for, plus the usage count each was
+ * priced from. subscriptionAmount is the tenant's CURRENT plan price applied flat to the whole month
+ * (this system keeps no per-period subscription charge record to read back exactly what applied at
+ * the time — see the backend's Invoice doc comment); the other three are the same Usage & Quotas
+ * estimates, totalled over this fixed period instead of "this month so far". messagesSentCount/
+ * userCount are a CURRENT snapshot even for a past period — same limitation as subscriptionAmount. */
+export interface PlatformInvoiceDetail {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  periodStartUtc: string;
+  periodEndUtc: string;
+  planName: string | null;
+  status: InvoiceStatus;
+  paidAtUtc: string | null;
+  subscriptionAmountUsd: number;
+  subscriptionAmountLocal: number;
+  messagesSentCount: number;
+  messageLimit: number | null;
+  userCount: number;
+  userLimit: number | null;
+  leadDiscoveryAmountUsd: number;
+  leadDiscoveryAmountLocal: number;
+  leadDiscoveryRunsCount: number;
+  leadDiscoveryLeadsCount: number;
+  whatsAppAmountUsd: number;
+  whatsAppAmountLocal: number;
+  whatsAppBillableMessagesCount: number;
+  aiConversationAmountUsd: number;
+  aiConversationAmountLocal: number;
+  aiInteractionsCount: number;
+  totalAmountUsd: number;
+  totalAmountLocal: number;
+  currencyCode: string;
+  currencySymbol: string;
+}
+
+/** One line item on the Invoice detail screen — built from a PlatformInvoiceDetail in the component
+ * rather than sent by the API, so the "attractive" label lives in one place. quantityLabel is the
+ * usage count that amount was priced from — a plan quota (assigned/used) for the subscription line, a
+ * plain count for the three pay-per-use lines. */
+export interface InvoiceLineItem {
+  label: string;
+  amountUsd: number;
+  amountLocal: number;
+  quantityLabel: string;
+}
+
+export function invoiceLineItems(invoice: PlatformInvoiceDetail): InvoiceLineItem[] {
+  return [
+    {
+      label: 'Subscription Fee',
+      amountUsd: invoice.subscriptionAmountUsd,
+      amountLocal: invoice.subscriptionAmountLocal,
+      quantityLabel:
+        `Messages ${invoice.messagesSentCount.toLocaleString()} / ${invoice.messageLimit?.toLocaleString() ?? '∞'} · ` +
+        `Users ${invoice.userCount.toLocaleString()} / ${invoice.userLimit?.toLocaleString() ?? '∞'}`,
+    },
+    {
+      label: 'Lead Discovery Charges',
+      amountUsd: invoice.leadDiscoveryAmountUsd,
+      amountLocal: invoice.leadDiscoveryAmountLocal,
+      quantityLabel: `${invoice.leadDiscoveryRunsCount.toLocaleString()} run${invoice.leadDiscoveryRunsCount === 1 ? '' : 's'} · ${invoice.leadDiscoveryLeadsCount.toLocaleString()} leads`,
+    },
+    {
+      label: 'WhatsApp Messaging Charges',
+      amountUsd: invoice.whatsAppAmountUsd,
+      amountLocal: invoice.whatsAppAmountLocal,
+      quantityLabel: `${invoice.whatsAppBillableMessagesCount.toLocaleString()} billable messages`,
+    },
+    {
+      label: 'AI Conversation Charges',
+      amountUsd: invoice.aiConversationAmountUsd,
+      amountLocal: invoice.aiConversationAmountLocal,
+      quantityLabel: `${invoice.aiInteractionsCount.toLocaleString()} interactions`,
+    },
+  ];
+}
+
+/** Renders a billing period as "September 2026" — parsed as UTC so a viewer west of UTC never sees
+ * the period roll back into the previous month. */
+export function formatInvoicePeriod(periodStartUtc: string): string {
+  const date = new Date(periodStartUtc);
+  return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date);
+}
+
+/** Renders a billing period's exact date range, e.g. "01 Sep 2026 – 30 Sep 2026" — periodEndUtc is the
+ * exclusive start of the NEXT month, so the displayed end date is one day earlier. Both dates are read
+ * as UTC, matching formatInvoicePeriod, so a viewer's local timezone never shifts the range by a day. */
+export function formatInvoicePeriodRange(periodStartUtc: string, periodEndUtc: string): string {
+  const start = new Date(periodStartUtc);
+  const endExclusive = new Date(periodEndUtc);
+  const inclusiveEnd = new Date(endExclusive.getTime() - 24 * 60 * 60 * 1000);
+
+  const formatter = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  return `${formatter.format(start)} – ${formatter.format(inclusiveEnd)}`;
+}
+
+// ---------------------------------------------------------------------------
 // WhatsApp Connections (GET /platform/whatsapp-connections)
 // ---------------------------------------------------------------------------
 

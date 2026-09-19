@@ -7,6 +7,8 @@ import { PlatformAnnouncementListComponent } from './platform-announcement-list/
 import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-log.component';
 import { PlatformBillingComponent } from './platform-billing/platform-billing.component';
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
+import { PlatformInvoiceDetailComponent } from './platform-invoice-detail/platform-invoice-detail.component';
+import { PlatformInvoiceListComponent } from './platform-invoice-list/platform-invoice-list.component';
 import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dialog/platform-job-schedule-dialog.component';
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
 import { PlatformLogsComponent } from './platform-logs/platform-logs.component';
@@ -33,6 +35,8 @@ const routes: Routes = [
       { path: 'tenants/:id', component: PlatformTenantDetailComponent },
       { path: 'billing', component: PlatformBillingComponent },
       { path: 'usage', component: PlatformUsageComponent },
+      { path: 'invoices', component: PlatformInvoiceListComponent },
+      { path: 'invoices/:id', component: PlatformInvoiceDetailComponent },
       { path: 'whatsapp-connections', component: PlatformWhatsAppConnectionsComponent },
       { path: 'jobs', component: PlatformJobsComponent },
       { path: 'users', component: PlatformUserSearchComponent },
@@ -56,6 +60,8 @@ const routes: Routes = [
     PlatformBillingComponent,
     PlatformPlanFormDialogComponent,
     PlatformUsageComponent,
+    PlatformInvoiceListComponent,
+    PlatformInvoiceDetailComponent,
     PlatformWhatsAppConnectionsComponent,
     PlatformJobsComponent,
     PlatformJobScheduleDialogComponent,
