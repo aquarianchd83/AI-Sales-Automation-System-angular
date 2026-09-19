@@ -322,6 +322,38 @@ export interface PlanCostDefaults {
   leadSource: string;
 }
 
+/** What a credit pack should cost: its quota type and size, and the margin wanted over what it costs to serve. */
+export interface CreditPackCostRequest {
+  quotaType: QuotaType;
+  units: number;
+  marginPercent: number;
+}
+
+/** One country's view of a credit pack: what serving it costs there, and the price that leaves the wanted margin - in that
+ * country's currency and in rupees. The price is before tax; tax is added on top at checkout. */
+export interface CreditPackCostCountry {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
+  costLocal: number;
+  suggestedPriceLocal: number;
+  costInr: number;
+  suggestedPriceInr: number;
+}
+
+export interface CreditPackCostReport {
+  quotaType: QuotaType;
+  units: number;
+  marginPercent: number;
+  /** What one unit costs to serve, in rupees (India's figure). */
+  unitCostInr: number;
+  totalCostInr: number;
+  countries: CreditPackCostCountry[];
+  warnings: string[];
+  assumptions: PlanCostAssumptions;
+}
+
 export interface PlanCostReportRequest {
   includedQuotas: PlanQuotaInput[];
   countryPrices: CountryPriceInput[];

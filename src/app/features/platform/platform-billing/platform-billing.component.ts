@@ -1,20 +1,9 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Router } from '@angular/router';
-import { Subject, of } from 'rxjs';
-import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
-import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { QUOTA_TYPE_LABELS, QuotaType, formatUnits } from '../../../core/models/billing.model';
-import {
-  PlatformCreditPack,
-  PlatformPlan,
-  PlatformSubscriptionListItem,
-  PlatformSubscriptionQuery,
-  SUBSCRIPTION_STATUS_LABELS,
-  SubscriptionStatus,
-} from '../../../core/models/platform.model';
+import { PlatformCreditPack, PlatformPlan } from '../../../core/models/platform.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -25,13 +14,7 @@ import { PlatformCreditPackFormDialogComponent } from '../platform-credit-pack-f
   templateUrl: './platform-billing.component.html',
   styleUrls: ['./platform-billing.component.scss'],
 })
-export class PlatformBillingComponent implements OnInit, OnDestroy {
-  @ViewChild(MatPaginator) paginator?: MatPaginator;
-
-  readonly displayedColumns = ['tenant', 'plan', 'status', 'currentPeriodEnd', 'failedPayment'];
-  readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
-  readonly subscriptionStatusLabels = SUBSCRIPTION_STATUS_LABELS;
-
+export class PlatformBillingComponent implements OnInit {
   readonly packColumns = ['name', 'type', 'units', 'price', 'status', 'actions'];
   readonly formatUnits = formatUnits;
 
@@ -40,13 +23,6 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
 
   packs: PlatformCreditPack[] = [];
   loadingPacks = true;
-
-  subscriptionsPage: PagedResult<PlatformSubscriptionListItem> = emptyPage<PlatformSubscriptionListItem>();
-  loadingSubscriptions = true;
-
-  private query: PlatformSubscriptionQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
-  private readonly reload$ = new Subject<void>();
-  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly billing: PlatformBillingService,
@@ -59,29 +35,6 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
     this.loadPlans();
     this.loadPacks();
 
-    this.reload$
-      .pipe(
-        startWith(undefined),
-        switchMap(() => {
-          this.loadingSubscriptions = true;
-          return this.billing.getSubscriptions(this.query).pipe(
-            catchError(() => of(emptyPage<PlatformSubscriptionListItem>(this.query.pageSize))),
-            finalize(() => (this.loadingSubscriptions = false))
-          );
-        }),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((page) => (this.subscriptionsPage = page));
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  onPage(event: PageEvent): void {
-    this.query = { ...this.query, page: event.pageIndex + 1, pageSize: event.pageSize };
-    this.reload$.next();
   }
 
   /** Shown in the operator's own currency (from their profile country); the catalog itself is still
@@ -180,7 +133,7 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
 
   private openPackDialog(pack: PlatformCreditPack | null): void {
     this.dialog
-      .open(PlatformCreditPackFormDialogComponent, { data: { pack }, width: '480px', disableClose: true })
+      .open(PlatformCreditPackFormDialogComponent, { data: { pack }, width: '720px', maxWidth: '95vw', disableClose: true })
       .afterClosed()
       .subscribe((saved) => {
         if (saved) {
@@ -209,11 +162,5 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
       },
       error: () => (this.loadingPlans = false),
     });
-  }
-
-  /** See PlatformTenantListComponent.statusLabel's own comment for why this is a method, not a
-   * template-level Record index. */
-  subscriptionStatusLabel(status: SubscriptionStatus | null): string {
-    return status === null ? '—' : this.subscriptionStatusLabels[status];
   }
 }

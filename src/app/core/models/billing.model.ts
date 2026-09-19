@@ -267,6 +267,10 @@ export enum TenantNotificationKind {
   RefundApproved = 5,
   RefundRejected = 6,
   RefundExpired = 7,
+  /** The plan's billing period ends in a week: it renews (and is charged), or cannot renew. */
+  PlanExpiring7 = 8,
+  /** ...and the day before. */
+  PlanExpiring1 = 9,
 }
 
 export interface TenantNotification {
@@ -286,7 +290,8 @@ export function isUrgentNotification(kind: TenantNotificationKind): boolean {
   return (
     kind === TenantNotificationKind.QuotaExhausted ||
     kind === TenantNotificationKind.QuotaLow5 ||
-    kind === TenantNotificationKind.CreditsExpiring3
+    kind === TenantNotificationKind.CreditsExpiring3 ||
+    kind === TenantNotificationKind.PlanExpiring1
   );
 }
 

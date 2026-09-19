@@ -6,14 +6,14 @@ import { environment } from '../../../environments/environment';
 import { PagedResult, toPagedParams } from '../models/paged-result.model';
 import {
   CreateCreditPackRequest,
+  CreditPackCostReport,
+  CreditPackCostRequest,
   CreatePlanRequest,
   PlanCostDefaults,
   PlanCostReport,
   PlanCostReportRequest,
   PlatformCreditPack,
   PlatformPlan,
-  PlatformSubscriptionListItem,
-  PlatformSubscriptionQuery,
   UpdateCreditPackRequest,
   UpdatePlanRequest,
 } from '../models/platform.model';
@@ -52,6 +52,11 @@ export class PlatformBillingService {
     return this.http.post<PlanCostReport>(`${this.baseUrl}/plan-cost-report`, request);
   }
 
+  /** What a credit pack costs to serve and the price that leaves the wanted margin, from the Configuration charges. Nothing is saved. */
+  buildCreditPackCost(request: CreditPackCostRequest): Observable<CreditPackCostReport> {
+    return this.http.post<CreditPackCostReport>(`${this.baseUrl}/credit-pack-cost`, request);
+  }
+
   getCreditPacks(): Observable<PlatformCreditPack[]> {
     return this.http.get<PlatformCreditPack[]>(`${this.baseUrl}/credit-packs`);
   }
@@ -67,14 +72,5 @@ export class PlatformBillingService {
   /** Retires the pack (isActive = false) - purchases already made keep their credits. */
   deleteCreditPack(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/credit-packs/${id}`);
-  }
-
-  getSubscriptions(query: PlatformSubscriptionQuery): Observable<PagedResult<PlatformSubscriptionListItem>> {
-    return this.http.get<PagedResult<PlatformSubscriptionListItem>>(`${this.baseUrl}/subscriptions`, {
-      params: {
-        ...toPagedParams(query),
-        ...(query.status != null ? { Status: String(query.status) } : {}),
-      },
-    });
   }
 }

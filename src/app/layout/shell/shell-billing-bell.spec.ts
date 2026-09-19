@@ -86,6 +86,23 @@ describe('ShellComponent billing bell', () => {
     discardPeriodicTasks();
   }));
 
+  it('shows a plan-expiry notice to the tenant, counted like any other alert, urgent the day before', fakeAsync(() => {
+    const { root, fixture } = render({
+      roles: ['Admin'],
+      notifications: [
+        { ...alert('p7', TenantNotificationKind.PlanExpiring7), quotaType: null, title: 'Your Silver plan renews in 7 days' },
+        { ...alert('p1', TenantNotificationKind.PlanExpiring1), quotaType: null, title: 'Your Silver plan renews tomorrow' },
+      ],
+    });
+
+    expect(root.querySelector('.bell-count')?.textContent?.trim()).toBe('2');
+    const [week, day] = fixture.componentInstance.billingAlerts;
+    expect(week.title).toBe('Your Silver plan renews in 7 days');
+    expect(fixture.componentInstance.urgentAlert(week)).toBeFalse();
+    expect(fixture.componentInstance.urgentAlert(day)).toBeTrue();
+    discardPeriodicTasks();
+  }));
+
   it('never appears for the platform operator, and never even asks the API', fakeAsync(() => {
     const { root, getNotifications } = render({ roles: ['PlatformSuperAdmin'], notifications: [alert('1', TenantNotificationKind.QuotaLow20)] });
 

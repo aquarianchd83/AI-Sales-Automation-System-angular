@@ -1,10 +1,11 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
 import { NonNullableFormBuilder, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { finalize } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { catchError, debounceTime, finalize, switchMap, takeUntil, tap } from 'rxjs/operators';
 
-import { QUOTA_TYPE_LABELS, QuotaType, RegionOption } from '../../../core/models/billing.model';
-import { PlatformCreditPack } from '../../../core/models/platform.model';
+import { QUOTA_TYPE_LABELS, QuotaType, RegionOption, formatCharge } from '../../../core/models/billing.model';
+import { CreditPackCostCountry, CreditPackCostReport, PlatformCreditPack } from '../../../core/models/platform.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
@@ -21,8 +22,64 @@ export interface PlatformCreditPackFormDialogData {
 @Component({
   selector: 'app-platform-credit-pack-form-dialog',
   templateUrl: './platform-credit-pack-form-dialog.component.html',
+  styles: [
+    `
+      .cost-panel {
+        margin: 8px 0 16px;
+        padding: 12px 14px 14px;
+        border: 1px solid rgba(128, 128, 128, 0.35);
+        border-radius: 8px;
+      }
+      .cost-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .cost-note {
+        margin: 4px 0 12px;
+        font-size: 12px;
+      }
+      .cost-summary {
+        margin: 12px 0 8px;
+      }
+      .cost-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .cost-table th {
+        text-align: left;
+        font-weight: 500;
+        opacity: 0.7;
+        padding: 4px 8px 6px 0;
+      }
+      .cost-table td {
+        padding: 2px 8px 2px 0;
+        border-top: 1px solid rgba(128, 128, 128, 0.2);
+      }
+      .cost-inr {
+        font-size: 11px;
+      }
+      .use-all {
+        margin-top: 10px;
+      }
+      .cost-warnings {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0;
+        color: var(--mat-sys-error, #b3261e);
+        font-size: 12px;
+      }
+      .cost-warnings li {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+    `,
+  ],
 })
-export class PlatformCreditPackFormDialogComponent {
+export class PlatformCreditPackFormDialogComponent implements OnInit, OnDestroy {
+  readonly formatCharge = formatCharge;
   readonly isEditMode = this.data.pack !== null;
   readonly quotaTypes = [QuotaType.WhatsAppMessages, QuotaType.AiConversations, QuotaType.LeadCandidates];
   readonly quotaLabels = QUOTA_TYPE_LABELS;
@@ -35,7 +92,16 @@ export class PlatformCreditPackFormDialogComponent {
     name: [this.data.pack?.name ?? '', [Validators.required, Validators.maxLength(100)]],
     units: [this.data.pack?.units ?? 1000, [Validators.required, Validators.min(1)]],
     isActive: [this.data.pack?.isActive ?? true],
+    // Not saved with the pack: the margin wanted over cost, used only to suggest a price from the Configuration charges.
+    marginPercent: [50, [Validators.required, Validators.min(0), Validators.max(1000)]],
   });
+
+  /** What this pack costs to serve and the price that leaves the margin, from the Configuration page's charges. */
+  cost: CreditPackCostReport | null = null;
+  costLoading = false;
+  costFailed = false;
+
+  private readonly destroy$ = new Subject<void>();
 
   readonly countryPrices = countryPriceRows(this.data.pack?.countryPrices);
   regions: RegionOption[] = [];
@@ -66,6 +132,74 @@ export class PlatformCreditPackFormDialogComponent {
       },
       error: () => {},
     });
+  }
+
+  ngOnInit(): void {
+    // Recalculates as the type, size or margin change; a short pause keeps it from calling on every keystroke.
+    this.form.valueChanges
+      .pipe(
+        debounceTime(350),
+        tap(() => {
+          this.costLoading = true;
+          this.costFailed = false;
+        }),
+        switchMap(() => this.loadCost()),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((report) => this.showCost(report));
+
+    this.loadCost().subscribe((report) => this.showCost(report));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /** Puts the suggested price for every country into the price rows below (replacing what is there). */
+  useSuggestedPrices(): void {
+    if (!this.cost) {
+      return;
+    }
+    this.countryPrices.clear();
+    for (const c of this.cost.countries.filter((x) => x.suggestedPriceLocal > 0)) {
+      this.countryPrices.push(newCountryPriceRow(c.countryCode, c.suggestedPriceLocal));
+    }
+    this.countryPrices.markAsDirty();
+  }
+
+  /** Sets one country's price to its suggestion, adding the row if it has none yet. */
+  useSuggestedPrice(country: CreditPackCostCountry): void {
+    const existing = this.countryPrices.controls.find((r) => r.controls.countryCode.value === country.countryCode);
+    if (existing) {
+      existing.controls.amount.setValue(country.suggestedPriceLocal);
+    } else {
+      this.countryPrices.push(newCountryPriceRow(country.countryCode, country.suggestedPriceLocal));
+    }
+    this.countryPrices.markAsDirty();
+  }
+
+  private loadCost() {
+    const raw = this.form.getRawValue();
+    const units = Number(raw.units) || 0;
+    if (units <= 0) {
+      return of<CreditPackCostReport | null>(null);
+    }
+    return this.billing
+      .buildCreditPackCost({ quotaType: raw.quotaType, units, marginPercent: Number(raw.marginPercent) || 0 })
+      .pipe(
+        catchError(() => {
+          this.costFailed = true;
+          return of<CreditPackCostReport | null>(null);
+        })
+      );
+  }
+
+  private showCost(report: CreditPackCostReport | null): void {
+    this.costLoading = false;
+    if (report) {
+      this.cost = report;
+    }
   }
 
   save(): void {
