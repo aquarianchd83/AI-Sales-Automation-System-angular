@@ -78,6 +78,37 @@
         </mat-menu>
       </ng-container>
 
+      <ng-container *ngIf="showPlatformBell">
+        <button mat-icon-button type="button" class="bell" [matMenuTriggerFor]="platformAlertsMenu" aria-label="Platform alerts">
+          <mat-icon>{{ platformAlerts.length ? 'notifications_active' : 'notifications_none' }}</mat-icon>
+          <span class="bell-count" *ngIf="platformAlerts.length">{{ platformAlerts.length > 9 ? '9+' : platformAlerts.length }}</span>
+        </button>
+
+        <mat-menu #platformAlertsMenu="matMenu" class="alerts-menu">
+          <div class="alerts-empty" mat-menu-item disabled *ngIf="!platformAlerts.length">No new platform alerts</div>
+          <a
+            mat-menu-item
+            class="alert-item"
+            routerLink="/platform/jobs"
+            *ngFor="let alert of platformAlerts.slice(0, 5)"
+            [class.alert-item--urgent]="platformAlertUrgent(alert)"
+            (click)="openPlatformAlert(alert)"
+          >
+            <span class="alert-title">{{ alert.title }}</span>
+            <span class="alert-body">{{ alert.body }}</span>
+          </a>
+          <mat-divider></mat-divider>
+          <button mat-menu-item type="button" *ngIf="platformAlerts.length" (click)="acknowledgeAllPlatformAlerts()">
+            <mat-icon>done_all</mat-icon>
+            <span>Mark all as read</span>
+          </button>
+          <a mat-menu-item routerLink="/platform/jobs">
+            <mat-icon>schedule</mat-icon>
+            <span>Background jobs</span>
+          </a>
+        </mat-menu>
+      </ng-container>
+
       <ng-container *ngIf="currentUser$ | async as user">
         <button
           mat-button

@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
@@ -7,11 +7,13 @@ import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
+import { PlatformNotification } from '../../core/models/platform.model';
+import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
 describe('ShellComponent sidenav', () => {
-  function render(roles: string[]): HTMLElement {
+  function createFixture(roles: string[], platformAlerts: PlatformNotification[] = []): ComponentFixture<ShellComponent> {
     const auth = {
       currentUser$: of({ fullName: 'Test User', email: 't@example.com', roles }),
       isImpersonating: false,
@@ -27,13 +29,16 @@ describe('ShellComponent sidenav', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
+        { provide: PlatformNotificationService, useValue: { getRecent: () => of(platformAlerts) } },
       ],
     });
 
     const fixture = TestBed.createComponent(ShellComponent);
     fixture.detectChanges();
-    return fixture.nativeElement as HTMLElement;
+    return fixture;
   }
+
+  const render = (roles: string[]) => createFixture(roles).nativeElement as HTMLElement;
 
   const labels = (root: HTMLElement) =>
     Array.from(root.querySelectorAll('.nav-section-label')).map((el) => el.textContent?.trim());
@@ -92,5 +97,30 @@ describe('ShellComponent sidenav', () => {
       'historyAudit Log',
       'account_circleMy Profile',
     ]);
+  });
+
+  describe('platform alerts bell', () => {
+    const alert = (over: Partial<PlatformNotification>): PlatformNotification => ({
+      id: 'a1', kind: 'JobFailing', severity: 'Critical', tenantId: 't1', tenantName: 'Acme',
+      jobType: 'campaign-initial-sends', title: 'Campaign initial sends is failing for Acme', body: 'failed 3 runs',
+      createdAt: '2026-09-19T10:00:00Z', acknowledged: false, ...over,
+    });
+
+    it('shows the operator only their unacknowledged job alerts', fakeAsync(() => {
+      const fixture = createFixture(['PlatformSuperAdmin'], [alert({}), alert({ id: 'a2', acknowledged: true })]);
+      tick(1); // the poll's first tick
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(root.querySelector('[aria-label="Platform alerts"]')).not.toBeNull();
+      expect(root.querySelector('.bell-count')?.textContent?.trim()).toBe('1');
+      discardPeriodicTasks();
+    }));
+
+    it('is not shown to a tenant admin', () => {
+      const root = render(['Admin']);
+
+      expect(root.querySelector('[aria-label="Platform alerts"]')).toBeNull();
+    });
   });
 });

@@ -8,6 +8,7 @@ import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
+import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
@@ -40,6 +41,7 @@ describe('ShellComponent billing bell', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications } },
+        { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },
       ],
     });
 
@@ -106,8 +108,9 @@ describe('ShellComponent billing bell', () => {
   it('never appears for the platform operator, and never even asks the API', fakeAsync(() => {
     const { root, getNotifications } = render({ roles: ['PlatformSuperAdmin'], notifications: [alert('1', TenantNotificationKind.QuotaLow20)] });
 
-    expect(root.querySelector('.bell')).toBeNull();
+    expect(root.querySelector('[aria-label="Billing alerts"]')).toBeNull();
     expect(getNotifications).not.toHaveBeenCalled();
+    discardPeriodicTasks(); // the operator's own platform-alerts poll
   }));
 
   it('never appears in a support session, so looking at a tenant cannot mark its alerts read', fakeAsync(() => {

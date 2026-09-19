@@ -870,3 +870,20 @@ export interface TenantJobReconcileSummary {
   jobsRemoved: number;
   orphanRegistrationsRemoved: number;
 }
+
+export type PlatformNotificationKind = 'JobFailing' | 'JobRecovered';
+export type PlatformNotificationSeverity = 'Info' | 'Warning' | 'Critical';
+
+/** An alert for the platform operators — a tenant's background job that keeps failing, or has recovered. */
+export interface PlatformNotification {
+  id: string;
+  kind: PlatformNotificationKind;
+  severity: PlatformNotificationSeverity;
+  tenantId: string | null;
+  tenantName: string | null;
+  jobType: string | null;
+  title: string;
+  body: string;
+  createdAt: string;
+  acknowledged: boolean;
+}

@@ -5,11 +5,12 @@ import { map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
 import { AppRole, User } from '../../core/models/user.model';
-import { Announcement, PLATFORM_ADMIN_ROLES } from '../../core/models/platform.model';
+import { Announcement, PLATFORM_ADMIN_ROLES, PlatformNotification } from '../../core/models/platform.model';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { TenantNotification, isUrgentNotification } from '../../core/models/billing.model';
 import { BillingService } from '../../core/services/billing.service';
+import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 
 interface NavItem {
   label: string;
@@ -199,6 +200,11 @@ export class ShellComponent implements OnInit, OnDestroy {
    * never mark them read. */
   readonly showBillingBell = !this.isPlatformSuperAdmin && !this.auth.isImpersonating && this.auth.hasAnyRole(TENANT_ADMIN_ONLY);
   billingAlerts: TenantNotification[] = [];
+
+  /** Background-job alerts for the platform operator (a tenant's job failing repeatedly, or recovering). Shared
+   * across operators, and skipped in a support session for the same reason the billing bell is. */
+  readonly showPlatformBell = this.isPlatformSuperAdmin && !this.auth.isImpersonating;
+  platformAlerts: PlatformNotification[] = [];
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -206,7 +212,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly breakpoints: BreakpointObserver,
     private readonly announcementService: AnnouncementService,
     private readonly account: AccountService,
-    private readonly billing: BillingService
+    private readonly billing: BillingService,
+    private readonly platformNotifications: PlatformNotificationService
   ) {}
 
   ngOnInit(): void {
@@ -234,6 +241,19 @@ export class ShellComponent implements OnInit, OnDestroy {
         });
     }
 
+    if (this.showPlatformBell) {
+      // Job runs are minutely at their fastest, so a minute is the useful resolution for noticing a failure.
+      timer(0, 60 * 1000)
+        .pipe(
+          switchMap(() => this.platformNotifications.getRecent()),
+          takeUntil(this.destroy$)
+        )
+        .subscribe({
+          next: (all) => (this.platformAlerts = all.filter((n) => !n.acknowledged)),
+          error: () => undefined,
+        });
+    }
+
     this.announcementService.getActive().subscribe({
       next: (announcements) => {
         const dismissed = this.dismissedIds();
@@ -246,6 +266,21 @@ export class ShellComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  platformAlertUrgent(alert: PlatformNotification): boolean {
+    return alert.severity === 'Critical';
+  }
+
+  /** Clears the alert as it is opened — the click is the operator seeing it — and leaves the list to the poll. */
+  openPlatformAlert(alert: PlatformNotification): void {
+    this.platformAlerts = this.platformAlerts.filter((n) => n.id !== alert.id);
+    this.platformNotifications.acknowledge(alert.id).subscribe({ error: () => undefined });
+  }
+
+  acknowledgeAllPlatformAlerts(): void {
+    this.platformAlerts = [];
+    this.platformNotifications.acknowledgeAll().subscribe({ error: () => undefined });
   }
 
   urgentAlert(alert: TenantNotification): boolean {
