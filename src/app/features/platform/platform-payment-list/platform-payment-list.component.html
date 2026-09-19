@@ -21,7 +21,8 @@
 
     <p class="muted estimate-note">
       Billing is prepaid: tenants pay up front for a plan or a credit pack, so there is nothing to invoice
-      afterwards. This is every payment and refund, newest first. Each row shows what the tenant paid, tax included, in their own
+      afterwards. Each subscribed tenant's <strong>upcoming</strong> monthly charge is at the top - so a subscription shows before its first
+      payment - followed by every payment and refund, newest first. Each row shows what the tenant paid, tax included, in their own
       currency, and its value in rupees at the rate of the day; refunds are negative. Refund decisions are on Refund Requests.
     </p>
 
@@ -31,8 +32,14 @@
       <table mat-table [dataSource]="page.items">
         <ng-container matColumnDef="paidAt">
           <th mat-header-cell *matHeaderCellDef>Date</th>
-          <td mat-cell *matCellDef="let row">{{ row.paidAtUtc | date: 'dd MMM yyyy, HH:mm' }}</td>
-          <td mat-footer-cell *matFooterCellDef>Net (this page, in rupees)</td>
+          <td mat-cell *matCellDef="let row">
+            <ng-container *ngIf="isPaid(row); else due">{{ row.paidAtUtc | date: 'dd MMM yyyy, HH:mm' }}</ng-container>
+            <ng-template #due>
+              <span *ngIf="row.dueAtUtc; else noDate">Due {{ row.dueAtUtc | date: 'dd MMM yyyy' }}</span>
+              <ng-template #noDate><span class="muted">-</span></ng-template>
+            </ng-template>
+          </td>
+          <td mat-footer-cell *matFooterCellDef>Net paid (this page, in rupees)</td>
         </ng-container>
 
         <ng-container matColumnDef="tenant">
@@ -63,12 +70,30 @@
           <td mat-footer-cell *matFooterCellDef></td>
         </ng-container>
 
-        <ng-container matColumnDef="amount">
-          <th mat-header-cell *matHeaderCellDef>Paid</th>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let row">
-            <strong>{{ formatCharge(paidLocal(row), row.currencySymbol) }}</strong>
-            <div class="muted currency-note">{{ row.currencyCode }}{{ row.countryCode ? ' · ' + row.countryCode : '' }}</div>
-            <div class="muted currency-note" *ngIf="taxNote(row) as note">{{ note }}</div>
+            <span
+              class="status-chip"
+              [class.status-chip--opted-in]="row.status === 'Paid' || !row.status"
+              [class.status-chip--scheduled]="row.status === 'Upcoming' || row.status === 'NotScheduled'"
+              [class.status-chip--opted-out]="row.status === 'NoPrice'"
+            >
+              {{ statusLabel(row) }}
+            </span>
+          </td>
+          <td mat-footer-cell *matFooterCellDef></td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">
+            <ng-container *ngIf="row.status !== 'NoPrice'; else noPrice">
+              <strong>{{ formatCharge(paidLocal(row), row.currencySymbol) }}</strong>
+              <div class="muted currency-note">{{ row.currencyCode }}{{ row.countryCode ? ' · ' + row.countryCode : '' }}</div>
+              <div class="muted currency-note" *ngIf="taxNote(row) as note">{{ note }}</div>
+            </ng-container>
+            <ng-template #noPrice><span class="muted">No price in {{ row.countryCode }}</span></ng-template>
           </td>
           <td mat-footer-cell *matFooterCellDef></td>
         </ng-container>
@@ -84,12 +109,12 @@
 
         <ng-container matColumnDef="provider">
           <th mat-header-cell *matHeaderCellDef>Provider</th>
-          <td mat-cell *matCellDef="let row">{{ row.provider }}</td>
+          <td mat-cell *matCellDef="let row">{{ row.provider || '-' }}</td>
           <td mat-footer-cell *matFooterCellDef></td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" [class.upcoming-row]="!isPaid(row)"></tr>
         <tr mat-footer-row *matFooterRowDef="displayedColumns" [class.footer-row-hidden]="!page.items.length"></tr>
       </table>
     </div>

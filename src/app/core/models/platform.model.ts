@@ -465,7 +465,8 @@ export interface PlatformPaymentListItem {
   currencySymbol: string;
   localAmount: number;
   provider: string;
-  paidAtUtc: string;
+  /** Null on an upcoming charge, which has not been paid yet - see dueAtUtc. */
+  paidAtUtc: string | null;
   refundOfPaymentId: string | null;
   countryCode?: string | null;
   stateCode?: string | null;
@@ -475,6 +476,12 @@ export interface PlatformPaymentListItem {
   taxLines?: { name: string; ratePercent: number; amount: number }[];
   /** The total in rupees at the exchange rate of the day. */
   amountInr?: number;
+  /** "Paid" is money that moved. The rest are monthly subscriptions not charged yet: "Upcoming" (next charge scheduled),
+   * "NotScheduled" (a plan an operator set, no billing period yet) and "NoPrice" (no price in the tenant's country, so it
+   * cannot be charged or renewed there). Absent on older responses, meaning Paid. */
+  status?: 'Paid' | 'Upcoming' | 'NotScheduled' | 'NoPrice';
+  /** For an upcoming charge: when it is next due. */
+  dueAtUtc?: string | null;
 }
 
 // ---------------------------------------------------------------------------

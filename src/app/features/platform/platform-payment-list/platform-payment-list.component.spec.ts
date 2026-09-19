@@ -43,6 +43,56 @@ describe('PlatformPaymentListComponent', () => {
 
   const text = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
+  const upcoming = (over: Partial<PlatformPaymentListItem> = {}): PlatformPaymentListItem =>
+    payment({
+      id: 's1', tenantName: 'Confianza IT Solutions', description: 'silver', paidAtUtc: null, provider: '',
+      status: 'Upcoming', dueAtUtc: '2026-10-19T10:54:00Z',
+      localAmount: 2500, taxLocal: 450, totalLocal: 2950, amountInr: 2950,
+      taxLines: [{ name: 'IGST', ratePercent: 18, amount: 450 }],
+      ...over,
+    });
+
+  it('shows an upcoming monthly subscription in the same grid, before any payment exists', () => {
+    const { root } = render([upcoming()]);
+
+    const rows = root.querySelectorAll('tr.mat-mdc-row');
+    expect(rows.length).toBe(1);
+    const row = text(rows[0]);
+    expect(row).toContain('Confianza IT Solutions');
+    expect(row).toContain('Due 19 Oct 2026');
+    expect(row).toContain('Upcoming');
+    expect(row).toContain('₹2950.00');
+    expect(row).toContain('IGST 18%');
+    expect(rows[0].classList).toContain('upcoming-row');
+  });
+
+  it('marks paid rows as paid and lists the upcoming ones apart from them', () => {
+    const { root } = render([upcoming(), payment({ id: 'p9' })]);
+
+    const rows = Array.from(root.querySelectorAll('tr.mat-mdc-row'));
+    expect(text(rows[0])).toContain('Upcoming');
+    expect(text(rows[1])).toContain('Paid');
+    expect(rows[1].classList).not.toContain('upcoming-row');
+  });
+
+  it('says No price for a plan the tenant country does not price, and Not scheduled for one with no billing period', () => {
+    const { root } = render([
+      upcoming({ id: 's2', status: 'NoPrice', countryCode: 'DE', totalLocal: 0, localAmount: 0, amountInr: 0, taxLocal: 0, taxLines: [] }),
+      upcoming({ id: 's3', status: 'NotScheduled', dueAtUtc: null }),
+    ]);
+
+    const rows = Array.from(root.querySelectorAll('tr.mat-mdc-row')).map((r) => text(r));
+    expect(rows[0]).toContain('No price');
+    expect(rows[0]).toContain('No price in DE');
+    expect(rows[1]).toContain('Not scheduled');
+  });
+
+  it('keeps upcoming charges out of the rupee total, which is money that moved', () => {
+    const { fixture } = render([upcoming(), payment({ amountInr: 1178.82 })]);
+
+    expect(fixture.componentInstance.pageTotalInr).toBeCloseTo(1178.82, 2);
+  });
+
   it('lists payments with their type and tenant link', () => {
     const { root } = render([payment(), payment({ id: 'p2', kind: 'CreditPack', description: '1,000 AI conversations' })]);
 

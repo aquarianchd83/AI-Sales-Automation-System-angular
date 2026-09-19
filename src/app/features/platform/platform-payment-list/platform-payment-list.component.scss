@@ -21,6 +21,12 @@
   line-height: 1.2;
 }
 
+/* A subscription not charged yet reads lighter than money that actually moved. */
+.upcoming-row td {
+  opacity: 0.85;
+  background: rgba(63, 81, 181, 0.04);
+}
+
 .empty-icon {
   font-size: 40px;
   width: 40px;

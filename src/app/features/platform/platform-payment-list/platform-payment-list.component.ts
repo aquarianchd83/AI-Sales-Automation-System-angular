@@ -22,7 +22,7 @@ import { PlatformPaymentService } from '../../../core/services/platform-payment.
 export class PlatformPaymentListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['paidAt', 'tenant', 'kind', 'description', 'amount', 'inr', 'provider'];
+  readonly displayedColumns = ['paidAt', 'tenant', 'kind', 'description', 'status', 'amount', 'inr', 'provider'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly formatCharge = formatCharge;
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
@@ -77,6 +77,24 @@ export class PlatformPaymentListComponent implements OnInit, OnDestroy {
     this.reload$.next();
   }
 
+  /** A charge that has actually happened. Anything else is a monthly subscription still to be charged. */
+  isPaid(row: PlatformPaymentListItem): boolean {
+    return !row.status || row.status === 'Paid';
+  }
+
+  statusLabel(row: PlatformPaymentListItem): string {
+    switch (row.status) {
+      case 'Upcoming':
+        return 'Upcoming';
+      case 'NotScheduled':
+        return 'Not scheduled';
+      case 'NoPrice':
+        return 'No price';
+      default:
+        return row.kind === 'Refund' ? 'Refunded' : 'Paid';
+    }
+  }
+
   kindLabel(kind: string): string {
     return PLATFORM_PAYMENT_KIND_LABELS[kind] ?? kind;
   }
@@ -91,9 +109,9 @@ export class PlatformPaymentListComponent implements OnInit, OnDestroy {
     return row.taxLocal ? `incl. ${taxBreakdown(row.taxLines, row.currencySymbol)}` : '';
   }
 
-  /** Net of the rows on this page in rupees - the platform admin is in India, and each payment carries its rupee value at the
+  /** Net of the PAID rows on this page in rupees (an upcoming charge is not money yet) - the platform admin is in India, and each payment carries its rupee value at the
    * rate of the day, so rows in different currencies add up honestly. Refunds are negative: money kept, not money taken. */
   get pageTotalInr(): number {
-    return this.page.items.reduce((sum, row) => sum + (row.amountInr ?? 0), 0);
+    return this.page.items.filter((row) => this.isPaid(row)).reduce((sum, row) => sum + (row.amountInr ?? 0), 0);
   }
 }
