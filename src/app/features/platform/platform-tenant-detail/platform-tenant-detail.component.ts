@@ -110,6 +110,11 @@ export class PlatformTenantDetailComponent implements OnInit {
     private readonly refundService: PlatformRefundService
   ) {}
 
+  initials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    return parts.length ? parts.slice(0, 2).map((p) => p[0].toUpperCase()).join('') : '?';
+  }
+
   ngOnInit(): void {
     this.tenantId = this.route.snapshot.paramMap.get('id') ?? '';
     this.billing.getPlans().subscribe({ next: (plans) => (this.plans = plans) });
