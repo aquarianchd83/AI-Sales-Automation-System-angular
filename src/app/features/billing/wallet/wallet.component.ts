@@ -20,6 +20,8 @@ import {
   TenantNotification,
   formatUnits,
   isUrgentNotification,
+  formatMoney,
+  taxBreakdown,
 } from '../../../core/models/billing.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { BillingService } from '../../../core/services/billing.service';
@@ -122,6 +124,14 @@ export class WalletComponent implements OnInit, OnDestroy {
     return isUrgentNotification(notification.kind);
   }
 
+  /** "₹999 + GST 18% ₹179.82 = ₹1,178.82" — the price, the tax on top and what is charged. */
+  priceWithTax(pack: CreditPack): string {
+    if (!pack.taxLocal) {
+      return this.formatPrice(pack);
+    }
+    return `${this.formatPrice(pack)} + ${taxBreakdown(pack.taxLines, pack.currencySymbol)} = ${formatMoney(pack.currencySymbol, pack.totalLocal)}`;
+  }
+
   formatPrice(pack: CreditPack): string {
     const amount = pack.localPriceAmount;
     const decimals = Number.isInteger(amount) ? 0 : 2;
@@ -146,7 +156,7 @@ export class WalletComponent implements OnInit, OnDestroy {
       .open(ConfirmDialogComponent, {
         data: {
           title: `Buy ${pack.name}?`,
-          message: `You'll be charged ${this.formatPrice(pack)}. The credits are added straight away and stay valid for 12 months.`,
+          message: `You'll be charged ${pack.taxLocal ? formatMoney(pack.currencySymbol, pack.totalLocal) + ' (' + this.priceWithTax(pack) + ')' : this.formatPrice(pack)}. The credits are added straight away and stay valid for 12 months.`,
           confirmLabel: 'Buy credits',
         },
         width: '460px',

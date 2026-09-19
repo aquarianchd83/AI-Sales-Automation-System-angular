@@ -56,6 +56,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   readonly planControl = new FormControl<string | null>(null);
   readonly timezoneControl = new FormControl<string | null>(null);
   readonly countryControl = new FormControl<string | null>(null);
+  readonly stateControl = new FormControl<string>('', { nonNullable: true });
 
   tenant: PlatformTenantDetail | null = null;
   plans: PlatformPlan[] = [];
@@ -185,8 +186,9 @@ export class PlatformTenantDetailComponent implements OnInit {
   }
 
   formatPayment(payment: Payment): string {
-    const amount = Math.abs(payment.localAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return `${payment.localAmount < 0 ? '−' : ''}${payment.currencySymbol}${amount}`;
+    const paid = payment.totalLocal ? payment.totalLocal : payment.localAmount;
+    const amount = Math.abs(paid).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${paid < 0 ? '−' : ''}${payment.currencySymbol}${amount}`;
   }
 
   suspend(): void {
@@ -280,10 +282,10 @@ export class PlatformTenantDetailComponent implements OnInit {
     }
     this.savingCountry = true;
     this.tenants
-      .updateCountry(this.tenantId, countryCode)
+      .updateCountry(this.tenantId, countryCode, this.stateControl.value)
       .pipe(finalize(() => (this.savingCountry = false)))
       .subscribe(() => {
-        this.notify.success('Country updated — plan pricing now shows in the matching currency.');
+        this.notify.success('Country updated — plan pricing and tax now follow it.');
         this.load();
       });
   }
@@ -381,6 +383,7 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.tenants.getById(this.tenantId).subscribe({
       next: (tenant) => {
         this.tenant = tenant;
+        this.stateControl.setValue(tenant.stateCode ?? '');
         // The countries switched on, plus this tenant's own if it has since been switched off.
         this.billingService.getRegions(tenant.countryCode).subscribe({ next: (regions) => (this.regions = regions) });
         this.loading = false;

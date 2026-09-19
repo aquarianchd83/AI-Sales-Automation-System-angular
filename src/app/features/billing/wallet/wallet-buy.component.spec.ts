@@ -20,6 +20,9 @@ const PACK: CreditPack = {
   currencyCode: 'INR',
   currencySymbol: '₹',
   localPriceAmount: 1660,
+  taxLines: [],
+  taxLocal: 0,
+  totalLocal: 1660,
 };
 
 /** The purchase itself, end to end at the screen: confirm first, charge once, refresh what's shown. */

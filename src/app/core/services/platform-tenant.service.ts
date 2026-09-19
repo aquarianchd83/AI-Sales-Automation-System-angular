@@ -80,8 +80,8 @@ export class PlatformTenantService {
   /** Support-facing override of one tenant's country (and therefore plan pricing currency) — same
    * backend column the tenant's own Workspace settings editor writes to
    * (TenantProfileService.updateCountry), audited here. */
-  updateCountry(id: string, countryCode: string): Observable<TenantProfile> {
-    const request: UpdateTenantCountryRequest = { countryCode };
+  updateCountry(id: string, countryCode: string, stateCode?: string | null): Observable<TenantProfile> {
+    const request: UpdateTenantCountryRequest = { countryCode, stateCode: stateCode || null };
     return this.http.put<TenantProfile>(`${this.baseUrl}/${id}/country`, request);
   }
 }

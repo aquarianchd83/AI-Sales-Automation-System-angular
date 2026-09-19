@@ -14,6 +14,7 @@ import {
   QuotaLedgerQuery,
   RefundEligibility,
   RefundRequest,
+  IndianState,
   RegionOption,
   Subscription,
   TenantNotification,
@@ -41,6 +42,11 @@ export class BillingService {
    * country picker. */
   /** The countries the operator has switched on. `include` keeps one more in the list - a screen's current value,
    * so a country switched off after it was chosen doesn't leave the picker blank. */
+  /** The states to pick from where the country's tax splits by state (India); empty for any other country. */
+  getStates(country: string | null | undefined): Observable<IndianState[]> {
+    return this.http.get<IndianState[]>(`${this.baseUrl}/states`, { params: country ? { country } : {} });
+  }
+
   getRegions(include?: string | null): Observable<RegionOption[]> {
     return this.http.get<RegionOption[]>(`${this.baseUrl}/regions`, {
       params: include ? { include } : {},

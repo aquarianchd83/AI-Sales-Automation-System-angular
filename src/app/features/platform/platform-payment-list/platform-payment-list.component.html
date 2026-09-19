@@ -21,8 +21,8 @@
 
     <p class="muted estimate-note">
       Billing is prepaid: tenants pay up front for a plan or a credit pack, so there is nothing to invoice
-      afterwards. This is every payment and refund, newest first. Amounts are in each tenant's own currency
-      and aren't comparable between rows; refunds are negative. Refund decisions are on Refund Requests.
+      afterwards. This is every payment and refund, newest first. Each row shows what the tenant paid, tax included, in their own
+      currency, and its value in rupees at the rate of the day; refunds are negative. Refund decisions are on Refund Requests.
     </p>
 
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -32,7 +32,7 @@
         <ng-container matColumnDef="paidAt">
           <th mat-header-cell *matHeaderCellDef>Date</th>
           <td mat-cell *matCellDef="let row">{{ row.paidAtUtc | date: 'dd MMM yyyy, HH:mm' }}</td>
-          <td mat-footer-cell *matFooterCellDef>Net (this page, by currency)</td>
+          <td mat-footer-cell *matFooterCellDef>Net (this page, in rupees)</td>
         </ng-container>
 
         <ng-container matColumnDef="tenant">
@@ -64,21 +64,22 @@
         </ng-container>
 
         <ng-container matColumnDef="amount">
-          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <th mat-header-cell *matHeaderCellDef>Paid</th>
           <td mat-cell *matCellDef="let row">
-            <strong [matTooltip]="formatCharge(row.amountCents / 100) + ' USD'">
-              {{ formatCharge(row.localAmount, row.currencySymbol) }}
-            </strong>
-            <div class="muted currency-note">{{ row.currencyCode }}</div>
+            <strong>{{ formatCharge(paidLocal(row), row.currencySymbol) }}</strong>
+            <div class="muted currency-note">{{ row.currencyCode }}{{ row.countryCode ? ' · ' + row.countryCode : '' }}</div>
+            <div class="muted currency-note" *ngIf="taxNote(row) as note">{{ note }}</div>
           </td>
-          <td mat-footer-cell *matFooterCellDef>
-            <div *ngFor="let total of pageTotals">
-              <strong [matTooltip]="formatCharge(total.amountUsd) + ' USD'">
-                {{ formatCharge(total.amount, total.currencySymbol) }}
-              </strong>
-              <span class="muted currency-note"> {{ total.currencyCode }}</span>
-            </div>
+          <td mat-footer-cell *matFooterCellDef></td>
+        </ng-container>
+
+        <ng-container matColumnDef="inr">
+          <th mat-header-cell *matHeaderCellDef>In rupees</th>
+          <td mat-cell *matCellDef="let row">
+            <span *ngIf="row.amountInr; else noInr">{{ formatCharge(row.amountInr, '₹') }}</span>
+            <ng-template #noInr><span class="muted">-</span></ng-template>
           </td>
+          <td mat-footer-cell *matFooterCellDef><strong>{{ formatCharge(pageTotalInr, '₹') }}</strong></td>
         </ng-container>
 
         <ng-container matColumnDef="provider">

@@ -12,6 +12,48 @@
   }
 }
 
+.config-accordion {
+  display: block;
+}
+
+.config-panel {
+  margin-bottom: 8px;
+
+  p {
+    margin: 0 0 16px;
+  }
+}
+
+.panel-warn {
+  color: var(--mat-sys-error, #b3261e);
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  vertical-align: text-bottom;
+}
+
+mat-panel-title {
+  font-weight: 500;
+  flex: 0 0 34%;
+  align-items: center;
+}
+
+mat-panel-description {
+  opacity: 0.7;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-card h3 {
+  margin: 12px 0 8px;
+  font-size: 14px;
+}
+
 .group-title {
   margin: 24px 0 4px;
 }
@@ -58,6 +100,12 @@
 .rate-table--lead .rate-row {
   grid-template-columns: minmax(170px, 1.4fr) repeat(4, minmax(100px, 1fr)) 56px 40px;
   min-width: 800px;
+}
+
+.rate-table--tax .rate-head,
+.rate-table--tax .rate-row {
+  grid-template-columns: minmax(150px, 1.4fr) minmax(110px, 1fr) minmax(110px, 1fr) minmax(110px, 1fr);
+  min-width: 520px;
 }
 
 .rate-table--ai .rate-head,

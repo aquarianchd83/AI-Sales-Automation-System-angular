@@ -14,7 +14,7 @@ import { PlatformLogsComponent } from './platform-logs/platform-logs.component';
 import { CountryPriceEditorComponent } from './country-price-editor/country-price-editor.component';
 import { PlatformConfigurationComponent } from './platform-configuration/platform-configuration.component';
 import { PlatformCreditPackFormDialogComponent } from './platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
-import { PlatformPlanFormDialogComponent } from './platform-plan-form-dialog/platform-plan-form-dialog.component';
+import { PlatformPlanEditorComponent } from './platform-plan-editor/platform-plan-editor.component';
 import { PlatformQuotaAdjustDialogComponent } from './platform-quota-adjust-dialog/platform-quota-adjust-dialog.component';
 import { PlatformRefundListComponent } from './platform-refund-list/platform-refund-list.component';
 import { PlatformRefundReviewDialogComponent } from './platform-refund-review-dialog/platform-refund-review-dialog.component';
@@ -39,6 +39,8 @@ const routes: Routes = [
       { path: 'tenants', component: PlatformTenantListComponent },
       { path: 'tenants/:id', component: PlatformTenantDetailComponent },
       { path: 'billing', component: PlatformBillingComponent },
+      { path: 'billing/plans/new', component: PlatformPlanEditorComponent },
+      { path: 'billing/plans/:id', component: PlatformPlanEditorComponent },
       { path: 'usage', component: PlatformUsageComponent },
       { path: 'payments', component: PlatformPaymentListComponent },
       { path: 'configuration', component: PlatformConfigurationComponent },
@@ -67,7 +69,7 @@ const routes: Routes = [
     PlatformTenantAiConfigDialogComponent,
     PlatformTenantConfigOverridesDialogComponent,
     PlatformBillingComponent,
-    PlatformPlanFormDialogComponent,
+    PlatformPlanEditorComponent,
     PlatformCreditPackFormDialogComponent,
     CountryPriceEditorComponent,
     PlatformUsageComponent,

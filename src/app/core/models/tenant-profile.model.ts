@@ -15,6 +15,8 @@ export interface TenantProfile {
   domainKeywords: string[];
   timezone: string;
   countryCode: string | null;
+  /** The tenant's state where its country's tax splits by state (India) — decides CGST + SGST versus IGST. */
+  stateCode?: string | null;
 }
 
 /** Body of PUT /tenant-profile — replaces every business field at once, so a null optional field
@@ -108,4 +110,6 @@ export interface UpdateTenantTimezoneRequest {
  * currency when it's showing USD because countryCode was never set. */
 export interface UpdateTenantCountryRequest {
   countryCode: string;
+  /** India only; ignored (and cleared) for any other country. */
+  stateCode?: string | null;
 }

@@ -6,9 +6,13 @@ import {
   AiModelRates,
   CountryConfig,
   LeadDiscoveryModelRates,
+  TaxCountryConfig,
   PlatformConfiguration,
   WhatsAppCountryRates,
 } from '../../../core/models/platform.model';
+import { IndianState } from '../../../core/models/billing.model';
+import { BillingService } from '../../../core/services/billing.service';
+import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformConfigurationService } from '../../../core/services/platform-configuration.service';
 
@@ -43,11 +47,6 @@ export class PlatformConfigurationComponent implements OnInit {
       aiConversations: [0, nonNegative],
       leadCandidates: [0, nonNegative],
     }),
-    quotaWeights: this.fb.group({
-      marketing: [0, nonNegative],
-      authentication: [0, nonNegative],
-      utility: [0, nonNegative],
-    }),
     whatsAppDefault: this.categoryRates(),
     whatsAppCountries: this.fb.array<FormGroup>([]),
     webSearchPerThousand: [0, nonNegative],
@@ -56,10 +55,37 @@ export class PlatformConfigurationComponent implements OnInit {
     leadDefaultModel: [''],
     aiModels: this.fb.array<FormGroup>([]),
     aiDefaultModel: [''],
+    // Tax is always added on top of a price; the state decides CGST + SGST versus IGST for India.
+    supplierStateCode: ['MH', [Validators.required]],
+    taxCountries: this.fb.array<FormGroup>([]),
+    // Typical usage the plan cost report prices a plan against: how the WhatsApp quota splits, and how big one AI conversation
+    // and one lead candidate are. Set here once so no plan page asks for it again.
+    costing: this.fb.group({
+      marketingSharePercent: [60, [Validators.required, Validators.min(0)]],
+      utilitySharePercent: [30, [Validators.required, Validators.min(0)]],
+      authenticationSharePercent: [10, [Validators.required, Validators.min(0)]],
+      promptTokensPerConversation: [0, [Validators.required, Validators.min(0)]],
+      completionTokensPerConversation: [0, [Validators.required, Validators.min(0)]],
+      inputTokensPerCandidate: [0, [Validators.required, Validators.min(0)]],
+      outputTokensPerCandidate: [0, [Validators.required, Validators.min(0)]],
+      webSearchesPerCandidate: [0, [Validators.required, Validators.min(0)]],
+    }),
+    // Rupees per US dollar - the one exchange rate set by hand.
+    inrPerUsd: [83, [Validators.required, Validators.min(1), Validators.max(1000)]],
     // One control per country, in catalog order; at least one must stay enabled.
     countries: this.fb.array<FormGroup>([], [PlatformConfigurationComponent.atLeastOneEnabled]),
   });
 
+  /** Which sections are open. All start closed, so the page reads as a short list. */
+  open: Record<string, boolean> = {
+    countries: false, tax: false, fx: false, costing: false, refunds: false,
+    alerts: false, trial: false, whatsapp: false, lead: false, ai: false,
+  };
+
+  states: IndianState[] = [];
+  /** Where the platform averages the "fill from" button would use come from, once fetched. */
+  averagesSource: { ai: string; lead: string } | null = null;
+  fillingAverages = false;
   loading = true;
   saving = false;
   loadFailed = false;
@@ -67,12 +93,26 @@ export class PlatformConfigurationComponent implements OnInit {
   constructor(
     private readonly fb: NonNullableFormBuilder,
     private readonly configuration: PlatformConfigurationService,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly billing: BillingService,
+    private readonly platformBilling: PlatformBillingService
   ) {}
 
   /** The rate table's rows - the countries that are switched on. */
   get countries(): FormArray<FormGroup> {
     return this.form.controls.whatsAppCountries;
+  }
+
+  /** How much of the pooled WhatsApp quota one message of each category uses, as a share of a marketing message. Not a setting: it
+   * is the ratio of the prices in the "all other countries" row, so it moves when those prices do. */
+  get quotaUsePerMessage(): { marketing: number; utility: number; authentication: number } {
+    const d = this.form.controls.whatsAppDefault.getRawValue() as { marketing: number; utility: number; authentication: number };
+    const marketing = Number(d.marketing);
+    if (!(marketing > 0)) {
+      return { marketing: 1, utility: 1, authentication: 1 };
+    }
+    const share = (price: number) => Math.round((Number(price) / marketing) * 10000) / 10000;
+    return { marketing: 1, utility: share(d.utility), authentication: share(d.authentication) };
   }
 
   get countryChoices(): FormArray<FormGroup> {
@@ -92,7 +132,12 @@ export class PlatformConfigurationComponent implements OnInit {
     return this.form.controls.aiModels;
   }
 
+  get taxCountries(): FormArray<FormGroup> {
+    return this.form.controls.taxCountries;
+  }
+
   ngOnInit(): void {
+    this.billing.getStates('IN').subscribe({ next: (states) => (this.states = states), error: () => (this.states = []) });
     this.load();
   }
 
@@ -106,6 +151,49 @@ export class PlatformConfigurationComponent implements OnInit {
         next: (config) => this.patch(config),
         error: () => (this.loadFailed = true),
       });
+  }
+
+  /** Fills the typical-usage fields from what the platform has actually recorded (AI conversations and discovery runs of the
+   * last 90 days), falling back to built-in estimates where there is no history. Nothing is saved until Save. */
+  fillFromAverages(): void {
+    if (this.fillingAverages) {
+      return;
+    }
+    this.fillingAverages = true;
+    this.platformBilling
+      .getPlanCostDefaults()
+      .pipe(finalize(() => (this.fillingAverages = false)))
+      .subscribe({
+        next: (defaults) => {
+          this.form.controls.costing.patchValue(defaults.assumptions);
+          this.averagesSource = { ai: defaults.aiSource, lead: defaults.leadSource };
+          this.form.markAsDirty();
+        },
+      });
+  }
+
+  /** True when something in that section is invalid, so a closed section can still flag it. */
+  sectionInvalid(key: string): boolean {
+    const f = this.form.controls;
+    const controls: Record<string, { invalid: boolean }[]> = {
+      countries: [f.countries],
+      tax: [f.supplierStateCode, f.taxCountries],
+      fx: [f.inrPerUsd],
+      costing: [f.costing],
+      refunds: [f.refunds],
+      alerts: [f.alerts],
+      trial: [f.trial],
+      whatsapp: [f.whatsAppDefault, f.whatsAppCountries],
+      lead: [f.webSearchPerThousand, f.leadDefault, f.leadModels],
+      ai: [f.aiModels],
+    };
+    return (controls[key] ?? []).some((c) => c.invalid);
+  }
+
+  setAll(expanded: boolean): void {
+    for (const key of Object.keys(this.open)) {
+      this.open[key] = expanded;
+    }
   }
 
   addLeadModel(): void {
@@ -159,6 +247,12 @@ export class PlatformConfigurationComponent implements OnInit {
   save(): void {
     if (this.form.invalid || this.saving) {
       this.form.markAllAsTouched();
+      // Open whatever is wrong, so the error is not hiding in a closed section.
+      for (const key of Object.keys(this.open)) {
+        if (this.sectionInvalid(key)) {
+          this.open[key] = true;
+        }
+      }
       return;
     }
 
@@ -193,7 +287,7 @@ export class PlatformConfigurationComponent implements OnInit {
   }
 
   private patch(config: PlatformConfiguration): void {
-    const { refunds, alerts, trial, quotaWeights, charges } = config;
+    const { refunds, alerts, trial, charges } = config;
 
     this.form.patchValue({
       refunds: {
@@ -205,7 +299,6 @@ export class PlatformConfigurationComponent implements OnInit {
       },
       alerts,
       trial,
-      quotaWeights,
       whatsAppDefault: charges.whatsApp.default,
       webSearchPerThousand: charges.leadDiscovery.webSearchPerThousand,
       leadDefault: charges.leadDiscovery.default,
@@ -239,6 +332,28 @@ export class PlatformConfigurationComponent implements OnInit {
       );
     }
 
+    if (config.tax) {
+      this.form.controls.supplierStateCode.setValue(config.tax.supplierStateCode);
+      this.taxCountries.clear();
+      for (const t of config.tax.countries) {
+        this.taxCountries.push(
+          this.fb.group({
+            countryCode: [t.countryCode],
+            countryName: [t.countryName],
+            taxName: [t.taxName, [Validators.required, Validators.maxLength(20)]],
+            ratePercent: [t.ratePercent, [Validators.required, Validators.min(0), Validators.max(100)]],
+            splitByState: [t.splitByState],
+          })
+        );
+      }
+    }
+    if (config.costAssumptions) {
+      this.form.controls.costing.patchValue(config.costAssumptions);
+    }
+    if (config.fx) {
+      this.form.controls.inrPerUsd.setValue(config.fx.inrPerUsd);
+    }
+
     this.leadModels.clear();
     for (const m of charges.leadDiscovery.models) {
       const group = this.leadRates(m.model);
@@ -266,6 +381,27 @@ export class PlatformConfigurationComponent implements OnInit {
     const refunds = v.refunds;
 
     return {
+      tax: {
+        supplierStateCode: v.supplierStateCode,
+        countries: (v.taxCountries as TaxCountryConfig[]).map((t) => ({
+          countryCode: t.countryCode,
+          countryName: t.countryName,
+          taxName: String(t.taxName).trim(),
+          ratePercent: Number(t.ratePercent),
+          splitByState: !!t.splitByState,
+        })),
+      },
+      fx: { inrPerUsd: Number(v.inrPerUsd) },
+      costAssumptions: {
+        marketingSharePercent: Number(v.costing.marketingSharePercent),
+        utilitySharePercent: Number(v.costing.utilitySharePercent),
+        authenticationSharePercent: Number(v.costing.authenticationSharePercent),
+        promptTokensPerConversation: Math.round(Number(v.costing.promptTokensPerConversation)),
+        completionTokensPerConversation: Math.round(Number(v.costing.completionTokensPerConversation)),
+        inputTokensPerCandidate: Math.round(Number(v.costing.inputTokensPerCandidate)),
+        outputTokensPerCandidate: Math.round(Number(v.costing.outputTokensPerCandidate)),
+        webSearchesPerCandidate: Number(v.costing.webSearchesPerCandidate),
+      },
       countries: (v.countries as CountryConfig[]).map((c) => ({
         countryCode: c.countryCode,
         countryName: c.countryName,
@@ -282,7 +418,6 @@ export class PlatformConfigurationComponent implements OnInit {
       },
       alerts: { ...v.alerts, whatsAppTemplateName: v.alerts.whatsAppTemplateName.trim(), whatsAppTemplateLanguage: v.alerts.whatsAppTemplateLanguage.trim() },
       trial: v.trial,
-      quotaWeights: v.quotaWeights,
       charges: {
         whatsApp: {
           default: v.whatsAppDefault as PlatformConfiguration['charges']['whatsApp']['default'],

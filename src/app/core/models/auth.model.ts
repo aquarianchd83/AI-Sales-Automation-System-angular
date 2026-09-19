@@ -26,6 +26,7 @@ export interface SignUpRequest {
    * prices are later quoted in (see RegionOption/BillingService.getRegions). Omitted falls back to
    * USD, never an error. */
   countryCode?: string | null;
+  stateCode?: string | null;
   /** IANA timezone id (see TimeZoneOption/TimeZoneService.getTimezones), optional — drives which
    * local time this tenant's Campaign.ScheduledStartAt is compared against. Omitted falls back to
    * India Standard Time, never an error. */

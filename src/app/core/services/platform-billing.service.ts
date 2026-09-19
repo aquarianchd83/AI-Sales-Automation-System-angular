@@ -7,6 +7,9 @@ import { PagedResult, toPagedParams } from '../models/paged-result.model';
 import {
   CreateCreditPackRequest,
   CreatePlanRequest,
+  PlanCostDefaults,
+  PlanCostReport,
+  PlanCostReportRequest,
   PlatformCreditPack,
   PlatformPlan,
   PlatformSubscriptionListItem,
@@ -37,6 +40,16 @@ export class PlatformBillingService {
    * IPlatformBillingService.DeactivatePlanAsync's own doc comment for why. */
   deletePlan(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/plans/${id}`);
+  }
+
+  /** The usage assumptions the cost report starts from - real averages where the platform has history. */
+  getPlanCostDefaults(): Observable<PlanCostDefaults> {
+    return this.http.get<PlanCostDefaults>(`${this.baseUrl}/plan-cost-defaults`);
+  }
+
+  /** The consolidated cost-and-margin report for a plan being designed. Nothing is saved. */
+  buildPlanCostReport(request: PlanCostReportRequest): Observable<PlanCostReport> {
+    return this.http.post<PlanCostReport>(`${this.baseUrl}/plan-cost-report`, request);
   }
 
   getCreditPacks(): Observable<PlatformCreditPack[]> {

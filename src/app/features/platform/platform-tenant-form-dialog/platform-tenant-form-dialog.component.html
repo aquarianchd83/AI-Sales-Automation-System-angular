@@ -81,12 +81,14 @@
           <mat-form-field>
             <mat-label>Country</mat-label>
             <mat-select formControlName="countryCode">
-              <mat-option value="">Prefer USD pricing</mat-option>
+              <mat-option value="">Not set</mat-option>
               <mat-option *ngFor="let region of regions" [value]="region.countryCode">
                 {{ region.countryName }} ({{ region.currencyCode }})
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <app-state-select [control]="form.controls.stateCode" [country]="form.controls.countryCode.value"></app-state-select>
 
           <mat-form-field>
             <mat-label>Timezone</mat-label>

@@ -13,6 +13,7 @@ import {
   RefundStatus,
   Subscription,
   formatUnits,
+  taxBreakdown,
 } from '../../../core/models/billing.model';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { RefundRequestDialogComponent } from '../refund-request-dialog/refund-request-dialog.component';
@@ -74,10 +75,25 @@ export class BillingListComponent implements OnInit {
     return `${this.formatAmount(plan.currencySymbol, plan.localPriceAmount)}/mo`;
   }
 
+  /** "+ GST 18% ₹179.82 = ₹1,178.82/mo" - the tax added on top, spelled out, and what will be charged. Empty with no tax. */
+  taxLine(plan: Plan): string {
+    if (!plan.taxLocal) {
+      return '';
+    }
+    return `+ ${taxBreakdown(plan.taxLines, plan.currencySymbol)} = ${this.formatAmount(plan.currencySymbol, plan.totalLocal)}/mo`;
+  }
+
+  /** What the tenant actually paid: the total including tax. Payments from before tax was recorded show their price. */
   formatPayment(payment: Payment): string {
+    const paid = payment.totalLocal ? payment.totalLocal : payment.localAmount;
     // A refund row carries negative amounts - the sign belongs in front of the symbol, not after it.
-    const formatted = this.formatAmount(payment.currencySymbol, Math.abs(payment.localAmount));
-    return payment.localAmount < 0 ? `−${formatted}` : formatted;
+    const formatted = this.formatAmount(payment.currencySymbol, Math.abs(paid));
+    return paid < 0 ? `−${formatted}` : formatted;
+  }
+
+  /** "incl. GST 18% ₹179.82" under a payment. */
+  paymentTax(payment: Payment): string {
+    return payment.taxLocal ? `incl. ${taxBreakdown(payment.taxLines, payment.currencySymbol)}` : '';
   }
 
   refundStatusLabel(status: RefundStatus): string {

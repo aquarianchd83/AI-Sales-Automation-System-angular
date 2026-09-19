@@ -28,7 +28,7 @@ describe('BillingListComponent refunds', () => {
           {
             id: 'plan-1', code: 'starter', name: 'Starter', maxUsers: 2, maxMessagesPerMonth: 1000, maxCampaigns: 2,
             maxKnowledgeBaseArticles: 20, maxLeadDiscoveryBatchSize: 25, priceMonthlyCents: 3900, currencyCode: 'INR',
-            currencySymbol: '₹', localPriceAmount: 3237,
+            currencySymbol: '₹', localPriceAmount: 3237, taxLines: [], taxLocal: 0, totalLocal: 3237,
             includedQuotas: [
               { quotaType: QuotaType.WhatsAppMessages, units: 500 },
               { quotaType: QuotaType.AiConversations, units: 500 },

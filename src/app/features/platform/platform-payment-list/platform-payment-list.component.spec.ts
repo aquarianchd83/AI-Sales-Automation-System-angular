@@ -53,17 +53,44 @@ describe('PlatformPaymentListComponent', () => {
     expect(rows[0].querySelector('a')?.getAttribute('href')).toBe('/platform/tenants/t1');
   });
 
-  it('totals the page per currency and nets refunds off', () => {
+  it('totals the page in rupees, whatever each tenant paid in, and nets refunds off', () => {
     const { fixture } = render([
-      payment({ localAmount: 8217, amountCents: 9900 }),
-      payment({ id: 'p2', kind: 'Refund', localAmount: -1000, amountCents: -1200 }),
-      payment({ id: 'p3', currencyCode: 'USD', currencySymbol: '$', localAmount: 39, amountCents: 3900 }),
+      payment({ amountInr: 9696.06 }),
+      payment({ id: 'p2', kind: 'Refund', amountInr: -1000 }),
+      payment({ id: 'p3', currencyCode: 'USD', currencySymbol: '$', localAmount: 39, amountInr: 3237 }),
     ]);
 
-    const totals = fixture.componentInstance.pageTotals;
-    expect(totals.length).toBe(2);
-    expect(totals.find((t) => t.currencyCode === 'INR')?.amount).toBe(7217);
-    expect(totals.find((t) => t.currencyCode === 'USD')?.amount).toBe(39);
+    expect(fixture.componentInstance.pageTotalInr).toBeCloseTo(11933.06, 2);
+  });
+
+  it('shows what was paid including tax, with the tax spelled out, and the rupee value', () => {
+    const { root } = render([
+      payment({
+        localAmount: 999,
+        taxLocal: 179.82,
+        totalLocal: 1178.82,
+        amountInr: 1178.82,
+        countryCode: 'IN',
+        taxLines: [
+          { name: 'CGST', ratePercent: 9, amount: 89.91 },
+          { name: 'SGST', ratePercent: 9, amount: 89.91 },
+        ],
+      }),
+    ]);
+
+    const row = text(root.querySelector('tr.mat-mdc-row'));
+    expect(row).toContain('₹1178.82');
+    expect(row).toContain('CGST 9%');
+    expect(row).toContain('SGST 9%');
+    expect(row).toContain('IN');
+  });
+
+  it('shows a payment from before tax was recorded at its price, with no rupee value if none was stored', () => {
+    const { root } = render([payment({ localAmount: 8217, totalLocal: 0, taxLocal: 0, amountInr: 0 })]);
+
+    const row = text(root.querySelector('tr.mat-mdc-row'));
+    expect(row).toContain('₹8217.00');
+    expect(row).not.toContain('incl.');
   });
 
   it('shows an empty state when nothing matches', () => {

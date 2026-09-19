@@ -2,6 +2,32 @@
  * priceMonthlyCents stays the base USD list price; currencyCode/currencySymbol/localPriceAmount are
  * a display/quote figure resolved server-side from the caller's country (an authenticated tenant's
  * own stored country, or an anonymous caller's ?country= query param). */
+/** One tax added on top of a price: "GST 18%", or "CGST 9%" and "SGST 9%" as two lines. */
+export interface TaxLine {
+  name: string;
+  ratePercent: number;
+  amount: number;
+}
+
+/** "CGST 9% ₹89.91 + SGST 9% ₹89.91" — how a tax is spelled out beside a price. Empty when there is no tax. */
+export function taxBreakdown(lines: TaxLine[] | null | undefined, symbol: string): string {
+  return (lines ?? [])
+    .map((l) => `${l.name} ${l.ratePercent}% ${formatMoney(symbol, Math.abs(l.amount))}`)
+    .join(' + ');
+}
+
+/** Money with two decimals, or none when it is a whole amount. */
+export function formatMoney(symbol: string, amount: number): string {
+  const decimals = Number.isInteger(amount) ? 0 : 2;
+  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
+
+/** A state a tenant can be in, where the tax splits by state (India). */
+export interface IndianState {
+  code: string;
+  name: string;
+}
+
 export interface Plan {
   id: string;
   code: string;
@@ -14,9 +40,14 @@ export interface Plan {
   priceMonthlyCents: number;
   currencyCode: string;
   currencySymbol: string;
+  /** The price set for this country, before tax. A plan with no price for the country is not returned at all. */
   localPriceAmount: number;
   /** What the plan includes each billing period, per prepaid quota type. */
   includedQuotas: IncludedQuota[];
+  /** Tax added on top of localPriceAmount for this tenant, and what they would pay in all. */
+  taxLines: TaxLine[];
+  taxLocal: number;
+  totalLocal: number;
 }
 
 export interface IncludedQuota {
@@ -80,6 +111,12 @@ export interface Payment {
   paidAtUtc: string;
   /** "Subscription", "CreditPack" or "Refund" — a refund row carries negative amounts. */
   kind: string;
+  /** localAmount is the price before tax; the tenant paid totalLocal. Absent on payments from before tax was recorded. */
+  countryCode?: string | null;
+  taxLocal?: number;
+  totalLocal?: number;
+  taxLines?: TaxLine[];
+  amountInr?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +235,9 @@ export interface CreditPack {
   currencyCode: string;
   currencySymbol: string;
   localPriceAmount: number;
+  taxLines: TaxLine[];
+  taxLocal: number;
+  totalLocal: number;
 }
 
 export interface BillingCapabilities {

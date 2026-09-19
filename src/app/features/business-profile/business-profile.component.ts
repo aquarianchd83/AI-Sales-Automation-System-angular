@@ -50,6 +50,7 @@ export class BusinessProfileComponent implements OnInit {
     supportPhone: ['', [Validators.maxLength(L.supportPhone), Validators.pattern(PHONE_PATTERN)]],
     timezone: ['', Validators.required],
     countryCode: [''],
+    stateCode: [''],
   });
 
   readonly keywordInput = new FormControl('', { nonNullable: true });
@@ -185,8 +186,8 @@ export class BusinessProfileComponent implements OnInit {
     if (v.timezone && v.timezone !== this.saved.timezone) {
       steps.push(this.profileService.updateTimezone(v.timezone));
     }
-    if (v.countryCode && v.countryCode !== (this.saved.countryCode ?? '')) {
-      steps.push(this.profileService.updateCountry(v.countryCode));
+    if (v.countryCode && (v.countryCode !== (this.saved.countryCode ?? '') || v.stateCode !== (this.saved.stateCode ?? ''))) {
+      steps.push(this.profileService.updateCountry(v.countryCode, v.stateCode));
     }
 
     this.saving = true;
@@ -215,6 +216,7 @@ export class BusinessProfileComponent implements OnInit {
       supportPhone: profile.supportPhone ?? '',
       timezone: profile.timezone,
       countryCode: profile.countryCode ?? '',
+      stateCode: profile.stateCode ?? '',
     });
     this.keywords = [...profile.domainKeywords];
     this.keywordError = null;

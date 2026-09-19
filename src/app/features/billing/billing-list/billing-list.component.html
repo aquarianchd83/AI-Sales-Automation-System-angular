@@ -50,6 +50,7 @@
 
       <h3>{{ plan.name }}</h3>
       <div class="plan-price">{{ formatPrice(plan) }}</div>
+      <div class="muted plan-tax" *ngIf="taxLine(plan) as tax">{{ tax }}</div>
 
       <ul class="plan-features">
         <li>{{ plan.maxUsers }} users</li>
@@ -93,7 +94,7 @@
         <div class="payment-row" *ngFor="let payment of paymentHistory">
           <span class="muted payment-date">{{ payment.paidAtUtc | date: 'mediumDate' }}</span>
           <span class="payment-name">{{ payment.planName }}</span>
-          <span class="payment-amount" [class.refund]="payment.kind === 'Refund'">{{ formatPayment(payment) }}</span>
+          <span class="payment-amount" [class.refund]="payment.kind === 'Refund'">{{ formatPayment(payment) }}<small class="muted payment-tax" *ngIf="paymentTax(payment) as tax"> {{ tax }}</small></span>
           <span class="payment-action">
             <button mat-button type="button" *ngIf="canRequestRefund(payment)" (click)="requestRefund(payment)">Request refund</button>
           </span>

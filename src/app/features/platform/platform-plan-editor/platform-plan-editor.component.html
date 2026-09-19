@@ -1,0 +1,225 @@
+<div class="page">
+  <div class="editor-header">
+    <button mat-button type="button" (click)="cancel()"><mat-icon>arrow_back</mat-icon> Package</button>
+    <h1>{{ isEditMode ? 'Edit plan' : 'Create plan' }}</h1>
+    <span class="spacer"></span>
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="button" [disabled]="saving || loading || loadFailed" (click)="save()">
+      {{ saving ? 'Saving…' : isEditMode ? 'Save changes' : 'Create plan' }}
+    </button>
+  </div>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="loadFailed" class="editor-card">
+    <p>{{ isEditMode ? 'That plan could not be loaded.' : 'The page could not be loaded.' }}</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <div class="editor-layout" *ngIf="!loading && !loadFailed">
+    <!-- ================= The plan ================= -->
+    <form [formGroup]="form" novalidate class="editor-form" (ngSubmit)="save()">
+      <mat-card class="editor-card">
+        <h2>Details</h2>
+        <div class="field-grid">
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Code</mat-label>
+            <input matInput formControlName="code" autocomplete="off" placeholder="starter" />
+            <mat-hint *ngIf="!isEditMode">Lowercase letters, digits and hyphens. Cannot be changed later.</mat-hint>
+            <mat-hint *ngIf="isEditMode">Set once, when the plan was created.</mat-hint>
+            <mat-error *ngIf="form.controls.code.hasError('required')">Required.</mat-error>
+            <mat-error *ngIf="form.controls.code.hasError('pattern')">Lowercase letters, digits and hyphens only.</mat-error>
+          </mat-form-field>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" autocomplete="off" placeholder="Starter" />
+            <mat-error>Required.</mat-error>
+          </mat-form-field>
+        </div>
+        <mat-checkbox formControlName="isActive" *ngIf="isEditMode">Active (unchecking retires the plan - existing subscribers keep their limits)</mat-checkbox>
+      </mat-card>
+
+      <mat-card class="editor-card">
+        <h2>Included quota per billing period</h2>
+        <p class="muted">Prepaid units granted on subscribe and on each renewal. 0 means the plan does not include that type.</p>
+        <div class="field-grid">
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>WhatsApp messages</mat-label>
+            <input matInput type="number" min="0" formControlName="quotaWhatsApp" />
+            <mat-hint>Pooled; template categories use different weights.</mat-hint>
+          </mat-form-field>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>AI conversations</mat-label>
+            <input matInput type="number" min="0" formControlName="quotaAi" />
+          </mat-form-field>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Lead candidates</mat-label>
+            <input matInput type="number" min="0" formControlName="quotaLeads" />
+            <mat-hint>The monthly total. Fresh, duplicate and rejected all count.</mat-hint>
+          </mat-form-field>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Leads per discovery run (cap on one run)</mat-label>
+            <input matInput type="number" min="0" formControlName="maxLeadDiscoveryBatchSize" />
+            <mat-hint>The most one run may add, whatever balance is left. 0 turns discovery off.</mat-hint>
+          </mat-form-field>
+        </div>
+      </mat-card>
+
+      <mat-card class="editor-card">
+        <h2>Monthly price</h2>
+        <p class="muted">
+          Set the price in each country's own currency, starting with India in rupees. A country with no price does not sell this plan.
+          Tax is added on top at checkout.
+        </p>
+        <app-country-price-editor [rows]="countryPrices" [regions]="regions"></app-country-price-editor>
+      </mat-card>
+
+      <mat-card class="editor-card">
+        <h2>Limits</h2>
+        <div class="field-grid">
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Max users</mat-label>
+            <input matInput type="number" min="0" formControlName="maxUsers" />
+          </mat-form-field>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Max campaigns</mat-label>
+            <input matInput type="number" min="0" formControlName="maxCampaigns" />
+          </mat-form-field>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Max knowledge base articles</mat-label>
+            <input matInput type="number" min="0" formControlName="maxKnowledgeBaseArticles" />
+          </mat-form-field>
+        </div>
+      </mat-card>
+
+    </form>
+
+    <!-- ================= The consolidated report ================= -->
+    <aside class="report" aria-label="Consolidated cost report">
+      <mat-card class="editor-card report-card">
+        <div class="assumption-head">
+          <h2>Consolidated report</h2>
+          <span class="spacer"></span>
+          <mat-spinner diameter="18" *ngIf="reportLoading"></mat-spinner>
+        </div>
+        <p class="muted">
+          What this plan costs to serve and what is left of the price. Every figure comes from the
+          <a routerLink="/platform/configuration">Configuration page</a> - the provider charges, the exchange rate, and the typical usage
+          below - so change them there, once, and every plan follows. An estimate from list prices, not an invoice.
+        </p>
+        <p class="muted small assumptions-note" *ngIf="report as r">
+          Typical usage: WhatsApp {{ r.assumptions.marketingSharePercent }}% marketing / {{ r.assumptions.utilitySharePercent }}% utility /
+          {{ r.assumptions.authenticationSharePercent }}% authentication; an AI conversation is
+          {{ r.assumptions.promptTokensPerConversation | number }} + {{ r.assumptions.completionTokensPerConversation | number }} tokens; a lead
+          candidate is {{ r.assumptions.inputTokensPerCandidate | number }} + {{ r.assumptions.outputTokensPerCandidate | number }} tokens and
+          {{ r.assumptions.webSearchesPerCandidate }} web searches.
+        </p>
+
+        <p class="muted" *ngIf="reportFailed">The report could not be calculated. Change something to try again.</p>
+
+        <ng-container *ngIf="report">
+          <ul class="warnings" *ngIf="report.warnings.length">
+            <li *ngFor="let warning of report.warnings"><mat-icon>warning_amber</mat-icon> {{ warning }}</li>
+          </ul>
+
+          <div class="headline" *ngIf="worstMargin as worst">
+            <span class="muted">Lowest margin</span>
+            <strong [class.loss]="worst.marginPercent < 0">{{ worst.marginPercent }}%</strong>
+            <span class="muted">in {{ worst.countryName }}</span>
+          </div>
+
+          <h3>How each quota is costed</h3>
+          <table class="unit-table">
+            <thead>
+              <tr><th>Quota</th><th>Included</th><th>Unit cost</th><th>Cost</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>WhatsApp messages</td>
+                <td>{{ report.whatsAppUnits | number }}</td>
+                <td class="muted">by country and category (below)</td>
+                <td class="muted">by country</td>
+              </tr>
+              <tr>
+                <td>
+                  AI conversations
+                  <div class="muted small" *ngIf="report.ai.model">{{ report.ai.model }}</div>
+                </td>
+                <td>{{ report.ai.units | number }}</td>
+                <td>{{ formatCharge(toInr(report.ai.costPerConversationUsd), '₹') }}</td>
+                <td>{{ formatCharge(toInr(report.ai.totalUsd), '₹') }}</td>
+              </tr>
+              <tr>
+                <td>
+                  Lead candidates
+                  <div class="muted small">{{ report.leads.model }}</div>
+                </td>
+                <td>{{ report.leads.units | number }}</td>
+                <td>{{ formatCharge(toInr(report.leads.costPerCandidateUsd), '₹') }}</td>
+                <td>{{ formatCharge(toInr(report.leads.totalUsd), '₹') }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <ng-container *ngIf="report.whatsAppUnits > 0">
+            <p class="muted small">
+              {{ report.whatsAppUnits | number }} pooled units buy about {{ report.whatsAppMessagesEstimate | number }} messages at this mix:
+              <span *ngFor="let c of report.whatsAppCategories; let last = last">
+                {{ c.messages | number }} {{ c.category | lowercase }} ({{ c.sharePercent }}%, weight {{ c.quotaWeight }}){{ last ? '.' : ',' }}
+              </span>
+            </p>
+          </ng-container>
+
+          <h3>Cost and margin by country</h3>
+          <div class="table-scroll">
+            <table class="country-table">
+              <thead>
+                <tr>
+                  <th>Country</th>
+                  <th>Price</th>
+                  <th>Total cost</th>
+                  <th>Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of report.countries" [class.loss-row]="c.isSold && c.marginInr < 0" [class.unsold-row]="!c.isSold">
+                  <td>
+                    {{ c.countryName }}
+                    <div class="muted small">{{ c.currencyCode }}</div>
+                  </td>
+                  <td>
+                    <ng-container *ngIf="c.isSold; else notSold">
+                      {{ formatCharge(c.priceLocal, c.currencySymbol) }}
+                      <div class="muted small" *ngIf="c.currencyCode !== 'INR'">{{ formatCharge(c.priceInr, '₹') }}</div>
+                    </ng-container>
+                    <ng-template #notSold><span class="muted">Not sold</span></ng-template>
+                  </td>
+                  <td>
+                    {{ formatCharge(c.costInr, '₹') }}
+                    <div class="muted small">
+                      WhatsApp {{ formatCharge(toInr(c.whatsAppCostUsd), '₹') }} · AI {{ formatCharge(toInr(c.aiCostUsd), '₹') }} · Leads {{ formatCharge(toInr(c.leadCostUsd), '₹') }}
+                    </div>
+                  </td>
+                  <td [class.loss]="c.isSold && c.marginInr < 0">
+                    <ng-container *ngIf="c.isSold; else noMargin">
+                      {{ formatCharge(c.marginInr, '₹') }}
+                      <div class="small" *ngIf="c.marginPercent !== null">{{ c.marginPercent }}%</div>
+                    </ng-container>
+                    <ng-template #noMargin><span class="muted">-</span></ng-template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="muted small">
+            Everything is in rupees and before tax (tax is collected from the tenant on top and is not your revenue). Prices in other
+            currencies show their rupee value underneath.
+          </p>
+
+        </ng-container>
+
+        <p class="muted" *ngIf="!report && !reportFailed">Calculating…</p>
+      </mat-card>
+    </aside>
+  </div>
+</div>

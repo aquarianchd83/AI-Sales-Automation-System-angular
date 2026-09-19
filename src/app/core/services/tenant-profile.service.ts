@@ -34,8 +34,8 @@ export class TenantProfileService {
 
   /** Fixes a tenant's plan pricing currency (RegionalPricingCatalog.Resolve on the backend) when
    * it's showing USD because countryCode was never set at signup. */
-  updateCountry(countryCode: string): Observable<TenantProfile> {
-    const request: UpdateTenantCountryRequest = { countryCode };
+  updateCountry(countryCode: string, stateCode?: string | null): Observable<TenantProfile> {
+    const request: UpdateTenantCountryRequest = { countryCode, stateCode: stateCode || null };
     return this.http.put<TenantProfile>(`${this.baseUrl}/country`, request);
   }
 }

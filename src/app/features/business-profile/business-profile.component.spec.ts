@@ -61,7 +61,10 @@ describe('BusinessProfileComponent', () => {
         },
         {
           provide: BillingService,
-          useValue: { getRegions: () => of([{ countryCode: 'IN', countryName: 'India', currencyCode: 'INR', currencySymbol: '₹' }]) },
+          useValue: {
+            getRegions: () => of([{ countryCode: 'IN', countryName: 'India', currencyCode: 'INR', currencySymbol: '₹' }]),
+            getStates: () => of([{ code: 'MH', name: 'Maharashtra' }]),
+          },
         },
         { provide: NotificationService, useValue: notify },
       ],

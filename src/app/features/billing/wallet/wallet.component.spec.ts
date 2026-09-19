@@ -42,6 +42,9 @@ const PACK: CreditPack = {
   currencyCode: 'INR',
   currencySymbol: '₹',
   localPriceAmount: 1660,
+  taxLines: [],
+  taxLocal: 0,
+  totalLocal: 1660,
 };
 
 describe('WalletComponent', () => {

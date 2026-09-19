@@ -9,9 +9,8 @@
         </button>
       </div>
       <span class="muted">
-        Retired plans stay visible so existing subscribers keep their limits. Prices are shown in your own
-        currency, converted from the USD list price the catalog is authored in — which is what the add and
-        edit dialogs write. Each tenant is quoted in their own currency.
+        Retired plans stay visible so existing subscribers keep their limits. Each plan is priced per country, in that country's currency; the price shown on a plan is India's, in rupees. A country with no
+        price does not sell the plan. Tax is added on top at checkout.
       </span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
@@ -22,13 +21,11 @@
           <span class="muted" *ngIf="!plan.isActive">Retired</span>
         </div>
         <div class="plan-price">{{ formatPrice(plan) }}</div>
-        <div class="muted plan-base-price" *ngIf="formatBasePrice(plan) as basePrice">{{ basePrice }}</div>
         <ul>
           <li>{{ plan.maxUsers }} users</li>
-          <li>{{ plan.maxMessagesPerMonth.toLocaleString() }} messages/mo</li>
           <li>{{ plan.maxCampaigns }} campaigns</li>
           <li>{{ plan.maxKnowledgeBaseArticles }} KB articles</li>
-          <li>{{ plan.maxLeadDiscoveryBatchSize }} leads/discovery run</li>
+          <li>up to {{ plan.maxLeadDiscoveryBatchSize }} leads per discovery run</li>
         </ul>
         <div class="plan-quotas" *ngIf="plan.includedQuotas.length">
           <div class="muted plan-quotas-title">Included each period</div>
@@ -59,8 +56,8 @@
         </button>
       </div>
       <span class="muted">
-        Extra units tenants can buy any time; they stay valid for 12 months. Prices are authored in USD and
-        shown here in your currency unless a country has its own price. Retired packs stop being offered but purchases already made keep their credits.
+        Extra units tenants can buy any time; they stay valid for 12 months. Each pack is priced per country; the price
+        shown here is India's, in rupees. A country with no price does not sell the pack. Retired packs stop being offered but purchases already made keep their credits.
       </span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPacks"></mat-progress-bar>
@@ -83,9 +80,6 @@
           <th mat-header-cell *matHeaderCellDef>Price</th>
           <td mat-cell *matCellDef="let pack">
             {{ formatPackPrice(pack) }}
-            <div class="muted pack-base" *ngIf="pack.currencyCode !== 'USD'">
-              ${{ (pack.priceCents / 100).toFixed(2) }} USD
-            </div>
             <div class="muted pack-base" *ngIf="pack.countryPrices.length">
               {{ pack.countryPrices.length }} country price{{ pack.countryPrices.length === 1 ? '' : 's' }}
             </div>

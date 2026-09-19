@@ -4,7 +4,7 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
-import { formatCharge } from '../../../core/models/billing.model';
+import { formatCharge, taxBreakdown } from '../../../core/models/billing.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import {
   PLATFORM_PAYMENT_KIND_LABELS,
@@ -22,7 +22,7 @@ import { PlatformPaymentService } from '../../../core/services/platform-payment.
 export class PlatformPaymentListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['paidAt', 'tenant', 'kind', 'description', 'amount', 'provider'];
+  readonly displayedColumns = ['paidAt', 'tenant', 'kind', 'description', 'amount', 'inr', 'provider'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly formatCharge = formatCharge;
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
@@ -81,21 +81,19 @@ export class PlatformPaymentListComponent implements OnInit, OnDestroy {
     return PLATFORM_PAYMENT_KIND_LABELS[kind] ?? kind;
   }
 
-  /** Net of the rows on this page per currency - each row is in its tenant's own currency, and INR + USD
-   * can't be added into one honest number. Refunds are negative, so this is money kept, not money taken. */
-  get pageTotals(): { currencyCode: string; currencySymbol: string; amount: number; amountUsd: number }[] {
-    const byCurrency = new Map<string, { currencyCode: string; currencySymbol: string; amount: number; amountUsd: number }>();
-    for (const row of this.page.items) {
-      const entry = byCurrency.get(row.currencyCode) ?? {
-        currencyCode: row.currencyCode,
-        currencySymbol: row.currencySymbol,
-        amount: 0,
-        amountUsd: 0,
-      };
-      entry.amount += row.localAmount;
-      entry.amountUsd += row.amountCents / 100;
-      byCurrency.set(row.currencyCode, entry);
-    }
-    return [...byCurrency.values()];
+  /** What a tenant actually paid on a row: the total including tax. Rows from before tax was recorded show their price. */
+  paidLocal(row: PlatformPaymentListItem): number {
+    return row.totalLocal ? row.totalLocal : row.localAmount;
+  }
+
+  /** "GST 18% ₹179.82" under the amount. Empty when no tax was charged. */
+  taxNote(row: PlatformPaymentListItem): string {
+    return row.taxLocal ? `incl. ${taxBreakdown(row.taxLines, row.currencySymbol)}` : '';
+  }
+
+  /** Net of the rows on this page in rupees - the platform admin is in India, and each payment carries its rupee value at the
+   * rate of the day, so rows in different currencies add up honestly. Refunds are negative: money kept, not money taken. */
+  get pageTotalInr(): number {
+    return this.page.items.reduce((sum, row) => sum + (row.amountInr ?? 0), 0);
   }
 }

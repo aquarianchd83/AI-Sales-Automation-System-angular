@@ -28,6 +28,7 @@ export class SignupComponent implements OnInit {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     country: [''],
+    state: [''],
     timezone: [''],
   });
 
@@ -66,7 +67,7 @@ export class SignupComponent implements OnInit {
     }
 
     this.submitting = true;
-    const { country, timezone, productName, ...raw } = this.form.getRawValue();
+    const { country, state, timezone, productName, ...raw } = this.form.getRawValue();
     // slug is deliberately omitted — the backend derives and de-duplicates one from
     // companyName automatically; nothing in this UI collects a custom slug yet.
     this.auth
@@ -74,6 +75,7 @@ export class SignupComponent implements OnInit {
         ...raw,
         productName: productName.trim() || null,
         countryCode: country || null,
+        stateCode: state || null,
         timezone: timezone || null,
       })
       .pipe(finalize(() => (this.submitting = false)))

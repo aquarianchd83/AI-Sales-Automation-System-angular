@@ -129,6 +129,8 @@ export interface PlatformTenantDetail {
   /** Null when never set - plan pricing quotes in USD until it is (RegionalPricingCatalog.Resolve
    * on the backend). Unlike timezone, has no universal default. */
   countryCode: string | null;
+  /** The tenant's state where its country's tax splits by state (India). */
+  stateCode?: string | null;
   /** This tenant's own currency, resolved from countryCode — what they're quoted in on their own screens. */
   currencyCode: string;
   currencySymbol: string;
@@ -168,6 +170,7 @@ export interface CreatePlatformTenantRequest {
    * Profile (see TenantProfile). countryCode/timezone must be supported values when given; timezone
    * defaults to India Standard Time like signup. */
   countryCode?: string | null;
+  stateCode?: string | null;
   timezone?: string | null;
   productName?: string | null;
   industry?: string | null;
@@ -295,6 +298,78 @@ export interface UpdateCreditPackRequest {
   countryPrices?: CountryPriceInput[] | null;
 }
 
+// ---------------------------------------------------------------------------
+// Plan cost report (POST /platform/billing/plan-cost-report)
+// ---------------------------------------------------------------------------
+
+/** What a plan's quotas cost to serve depends on how they get used; these are the usage assumptions the report rests on. */
+export interface PlanCostAssumptions {
+  /** How the pooled WhatsApp units are spent, by template category. Relative shares - they need not add to 100. */
+  marketingSharePercent: number;
+  utilitySharePercent: number;
+  authenticationSharePercent: number;
+  promptTokensPerConversation: number;
+  completionTokensPerConversation: number;
+  inputTokensPerCandidate: number;
+  outputTokensPerCandidate: number;
+  webSearchesPerCandidate: number;
+}
+
+/** The starting assumptions, and where the AI and lead figures came from (real usage, or a built-in estimate). */
+export interface PlanCostDefaults {
+  assumptions: PlanCostAssumptions;
+  aiSource: string;
+  leadSource: string;
+}
+
+export interface PlanCostReportRequest {
+  includedQuotas: PlanQuotaInput[];
+  countryPrices: CountryPriceInput[];
+}
+
+export interface PlanCostCategory {
+  category: string;
+  sharePercent: number;
+  quotaWeight: number;
+  messages: number;
+}
+
+/** One country's view of the plan. Local amounts are in that country's currency; costs are also given in USD. */
+export interface PlanCostCountry {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
+  priceLocal: number;
+  isCustomPrice: boolean;
+  whatsAppCostUsd: number;
+  aiCostUsd: number;
+  leadCostUsd: number;
+  totalCostUsd: number;
+  costLocal: number;
+  marginLocal: number;
+  marginPercent: number | null;
+  /** False where no price is set for the country: the plan is not sold there and has no margin. */
+  isSold: boolean;
+  /** The platform admin is in India, so these are what the report leads with. */
+  priceInr: number;
+  costInr: number;
+  marginInr: number;
+}
+
+export interface PlanCostReport {
+  whatsAppUnits: number;
+  whatsAppMessagesEstimate: number;
+  whatsAppCategories: PlanCostCategory[];
+  ai: { units: number; model: string | null; costPerConversationUsd: number; totalUsd: number };
+  leads: { units: number; model: string; costPerCandidateUsd: number; totalUsd: number };
+  countries: PlanCostCountry[];
+  warnings: string[];
+  assumptions: PlanCostAssumptions;
+  /** Rupees per dollar - what the USD unit costs are converted at. */
+  inrPerUsd: number;
+}
+
 export interface PlatformSubscriptionQuery {
   page?: number;
   pageSize?: number;
@@ -392,6 +467,14 @@ export interface PlatformPaymentListItem {
   provider: string;
   paidAtUtc: string;
   refundOfPaymentId: string | null;
+  countryCode?: string | null;
+  stateCode?: string | null;
+  /** localAmount is the price before tax; the tenant paid totalLocal. */
+  taxLocal?: number;
+  totalLocal?: number;
+  taxLines?: { name: string; ratePercent: number; amount: number }[];
+  /** The total in rupees at the exchange rate of the day. */
+  amountInr?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -403,10 +486,34 @@ export interface PlatformConfiguration {
   refunds: RefundPolicyConfig;
   alerts: BillingAlertConfig;
   trial: TrialQuotaConfig;
-  quotaWeights: QuotaWeightConfig;
   charges: ChargesConfig;
   /** Every country the platform prices for, on or off. Omitted on a save leaves the choice as it is. */
   countries?: CountryConfig[];
+  /** Tax added on top of prices. Omitted on a save leaves it as it is. */
+  tax?: TaxConfig;
+  /** Rupees per US dollar. Omitted on a save leaves it as it is. */
+  fx?: FxConfig;
+  /** Typical usage the plan cost report prices a plan against. Omitted on a save leaves it as it is. */
+  costAssumptions?: PlanCostAssumptions;
+}
+
+export interface TaxCountryConfig {
+  countryCode: string;
+  countryName: string;
+  taxName: string;
+  ratePercent: number;
+  /** India's GST: CGST + SGST inside the platform's own state, IGST anywhere else. */
+  splitByState: boolean;
+}
+
+export interface TaxConfig {
+  /** The state the platform is registered in — decides CGST + SGST versus IGST. */
+  supplierStateCode: string;
+  countries: TaxCountryConfig[];
+}
+
+export interface FxConfig {
+  inrPerUsd: number;
 }
 
 /** One country the platform prices for. Switched off, it is offered nowhere; tenants already in it are unaffected. */
@@ -438,11 +545,6 @@ export interface TrialQuotaConfig {
   leadCandidates: number;
 }
 
-export interface QuotaWeightConfig {
-  marketing: number;
-  authentication: number;
-  utility: number;
-}
 
 export interface WhatsAppCategoryRates {
   marketing: number;

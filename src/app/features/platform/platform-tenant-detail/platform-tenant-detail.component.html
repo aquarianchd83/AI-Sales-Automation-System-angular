@@ -35,7 +35,7 @@
           <dt>Timezone</dt>
           <dd>{{ tenant.timezone }}</dd>
           <dt>Country</dt>
-          <dd>{{ tenant.countryCode || '— (plan pricing shows in USD)' }}</dd>
+          <dd>{{ tenant.countryCode || '— (not set)' }}{{ tenant.stateCode ? ', ' + tenant.stateCode : '' }}</dd>
         </dl>
         <div class="inline-override">
           <mat-form-field subscriptSizing="dynamic" class="inline-select">
@@ -56,6 +56,7 @@
               <mat-option *ngFor="let region of regions" [value]="region.countryCode">{{ region.countryName }} ({{ region.currencyCode }})</mat-option>
             </mat-select>
           </mat-form-field>
+          <app-state-select [control]="stateControl" [country]="countryControl.value"></app-state-select>
           <button mat-flat-button type="button" [disabled]="!countryControl.value || savingCountry" (click)="saveCountryOverride()">
             Apply
           </button>
@@ -160,7 +161,7 @@
         <h3>Usage this month</h3>
         <dl>
           <dt>Messages sent</dt>
-          <dd>{{ tenant.messagesSentThisMonth }} / {{ tenant.maxMessagesPerMonth ?? '∞' }}</dd>
+          <dd>{{ tenant.messagesSentThisMonth }}</dd>
           <dt>AI interactions</dt>
           <dd>{{ tenant.aiInteractionsThisMonth }}</dd>
           <dt>Estimated AI spend</dt>

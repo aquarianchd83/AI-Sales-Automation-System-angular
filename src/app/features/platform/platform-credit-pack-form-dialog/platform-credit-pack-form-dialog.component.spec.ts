@@ -56,39 +56,50 @@ describe('PlatformCreditPackFormDialogComponent', () => {
     return { component: fixture.componentInstance, billing, dialogRef };
   }
 
-  it('creates a pack, converting dollars to cents', () => {
+  it('starts a new pack with the India row, since the platform is based there, and sends the price in rupees', () => {
     const { component, billing, dialogRef } = create(null);
+    expect(component.countryPrices.length).toBe(1);
+    expect(component.countryPrices.at(0).controls.countryCode.value).toBe('IN');
 
-    component.form.patchValue({ quotaType: QuotaType.LeadCandidates, name: ' 500 leads ', units: 500, priceDollars: 9.99 });
+    component.form.patchValue({ quotaType: QuotaType.LeadCandidates, name: ' 500 leads ', units: 500 });
+    component.countryPrices.at(0).patchValue({ amount: 830 });
     component.save();
 
+    // The price is the country prices; the server derives the one legacy USD figure.
     expect(billing.createCreditPack).toHaveBeenCalledWith({
       quotaType: QuotaType.LeadCandidates,
       name: '500 leads',
       units: 500,
-      priceCents: 999,
-      countryPrices: [],
+      priceCents: 0,
+      countryPrices: [{ countryCode: 'IN', amount: 830 }],
     });
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 
-  it('will not save a pack with no price or a blank name', () => {
+  it('will not save a pack with a blank name or an unpriced country row', () => {
     const { component, billing } = create(null);
 
-    component.form.patchValue({ name: '', priceDollars: 0 });
+    component.form.patchValue({ name: '' });
     component.save();
+    expect(billing.createCreditPack).not.toHaveBeenCalled();
 
+    component.form.patchValue({ name: 'Leads' });
+    component.save(); // India's row is still at 0
     expect(billing.createCreditPack).not.toHaveBeenCalled();
   });
 
-  it('sends a country price along with the pack', () => {
+  it('sends several country prices along with the pack', () => {
     const { component, billing } = create(null);
 
-    component.form.patchValue({ name: 'Leads', units: 500, priceDollars: 9 });
-    component.countryPrices.push(newCountryPriceRow('IN', 499));
+    component.form.patchValue({ name: 'Leads', units: 500 });
+    component.countryPrices.at(0).patchValue({ amount: 499 });
+    component.countryPrices.push(newCountryPriceRow('GB', 5));
     component.save();
 
-    expect(billing.createCreditPack.calls.mostRecent().args[0].countryPrices).toEqual([{ countryCode: 'IN', amount: 499 }]);
+    expect(billing.createCreditPack.calls.mostRecent().args[0].countryPrices).toEqual([
+      { countryCode: 'IN', amount: 499 },
+      { countryCode: 'GB', amount: 5 },
+    ]);
   });
 
   it('locks the quota type when editing and sends the active flag', () => {
@@ -102,7 +113,7 @@ describe('PlatformCreditPackFormDialogComponent', () => {
     expect(billing.updateCreditPack).toHaveBeenCalledWith('cp1', {
       name: '1,000 AI conversations',
       units: 1000,
-      priceCents: 1400,
+      priceCents: 0,
       isActive: false,
       countryPrices: [],
     });

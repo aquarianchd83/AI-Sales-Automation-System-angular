@@ -8,17 +8,26 @@
 
   <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading && !loadFailed" novalidate>
     <div class="save-bar">
-      <span class="muted">Changes apply from the next request - no restart. Money is in USD.</span>
+      <span class="muted">Changes apply from the next request - no restart. Charges are entered in USD, as the providers bill them.</span>
       <span class="spacer"></span>
+      <button mat-button type="button" (click)="setAll(true)">Expand all</button>
+      <button mat-button type="button" (click)="setAll(false)">Collapse all</button>
       <button mat-button type="button" [disabled]="saving || form.pristine" (click)="load()">Discard changes</button>
       <button mat-flat-button color="primary" type="submit" [disabled]="saving || form.pristine">
         {{ saving ? 'Saving…' : 'Save configuration' }}
       </button>
     </div>
 
+    <mat-accordion multi class="config-accordion">
+
     <!-- Countries -->
-    <mat-card class="config-card">
-      <h2>Countries</h2>
+    <mat-expansion-panel class="config-panel"  [expanded]="open['countries']" (opened)="open['countries'] = true" (closed)="open['countries'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Countries<mat-icon class="panel-warn" *ngIf="sectionInvalid('countries')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>Which countries are offered</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
       <p class="muted">
         Switch a country off and it is no longer offered anywhere in the application - signup, profiles, tenant
         creation, and the price tables. Tenants already in it keep working and keep their pricing; it just can't be newly
@@ -34,11 +43,135 @@
         </div>
       </div>
       <p class="config-error" *ngIf="countryChoices.hasError('noneEnabled')">At least one country must stay enabled.</p>
-    </mat-card>
+    </mat-expansion-panel>
+
+    <!-- Tax -->
+    <mat-expansion-panel class="config-panel"  [expanded]="open['tax']" (opened)="open['tax'] = true" (closed)="open['tax'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Tax<mat-icon class="panel-warn" *ngIf="sectionInvalid('tax')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>GST / VAT added on top of prices</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
+      <p class="muted">
+        Tax is always added on top of a price and is not your revenue. India's GST is CGST + SGST when the tenant is in your own
+        state, and IGST anywhere else. A rate of 0 means no tax in that country.
+      </p>
+      <div class="field-grid">
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Your registered state</mat-label>
+          <mat-select [formControl]="form.controls.supplierStateCode">
+            <mat-option *ngFor="let state of states" [value]="state.code">{{ state.name }}</mat-option>
+          </mat-select>
+          <mat-hint>Decides CGST + SGST versus IGST.</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div class="rate-table rate-table--tax">
+        <div class="rate-head"><span>Country</span><span>Tax name</span><span>Rate (%)</span><span>Splits by state</span></div>
+        <div class="rate-row" *ngFor="let tax of taxCountries.controls" [formGroup]="tax">
+          <span class="rate-name">{{ tax.controls['countryName'].value }}</span>
+          <mat-form-field subscriptSizing="dynamic"><input matInput formControlName="taxName" aria-label="Tax name" autocomplete="off" /></mat-form-field>
+          <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" max="100" step="0.5" formControlName="ratePercent" aria-label="Tax rate" /></mat-form-field>
+          <mat-checkbox formControlName="splitByState" aria-label="Splits by state"></mat-checkbox>
+        </div>
+      </div>
+    </mat-expansion-panel>
+
+    <!-- Exchange rate -->
+    <mat-expansion-panel class="config-panel"  [expanded]="open['fx']" (opened)="open['fx'] = true" (closed)="open['fx'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Exchange rate<mat-icon class="panel-warn" *ngIf="sectionInvalid('fx')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>Rupees per US dollar</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
+      <p class="muted">
+        Rupees per US dollar. It turns the providers' dollar costs into rupees on the plan report, and stamps each payment's rupee
+        value on your reports. It never changes what a tenant pays.
+      </p>
+      <div class="field-grid">
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Rupees per US dollar</mat-label>
+          <input matInput type="number" min="1" max="1000" step="0.01" formControlName="inrPerUsd" />
+          <span matTextPrefix>₹&nbsp;</span>
+          <mat-error>Between 1 and 1000.</mat-error>
+        </mat-form-field>
+      </div>
+    </mat-expansion-panel>
+
+    <!-- Typical usage, for costing plans -->
+    <mat-expansion-panel class="config-panel" formGroupName="costing" [expanded]="open['costing']" (opened)="open['costing'] = true" (closed)="open['costing'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Typical usage (for costing plans)<mat-icon class="panel-warn" *ngIf="sectionInvalid('costing')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>How a plan's quota is priced</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <div class="card-head">
+        
+        <span class="spacer"></span>
+        <button mat-stroked-button type="button" [disabled]="fillingAverages" (click)="fillFromAverages()">Fill from platform averages</button>
+      </div>
+      <p class="muted">
+        The providers charge per token and per message, but a plan sells whole conversations, leads and messages. To turn one into the
+        other, the plan page's cost report needs a picture of typical use. Set it here once and every plan is costed the same way;
+        the plan page only reads these.
+      </p>
+      <p class="muted small" *ngIf="averagesSource">AI: {{ averagesSource.ai }} Leads: {{ averagesSource.lead }} Review, then Save.</p>
+
+      <h3>WhatsApp: how the pooled quota is spent</h3>
+      <div class="field-grid">
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Marketing (%)</mat-label>
+          <input matInput type="number" min="0" formControlName="marketingSharePercent" />
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Utility (%)</mat-label>
+          <input matInput type="number" min="0" formControlName="utilitySharePercent" />
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Authentication (%)</mat-label>
+          <input matInput type="number" min="0" formControlName="authenticationSharePercent" />
+        </mat-form-field>
+      </div>
+
+      <h3>One AI conversation</h3>
+      <div class="field-grid">
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Prompt tokens</mat-label>
+          <input matInput type="number" min="0" formControlName="promptTokensPerConversation" />
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Completion tokens</mat-label>
+          <input matInput type="number" min="0" formControlName="completionTokensPerConversation" />
+        </mat-form-field>
+      </div>
+
+      <h3>One lead candidate</h3>
+      <div class="field-grid">
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Input tokens</mat-label>
+          <input matInput type="number" min="0" formControlName="inputTokensPerCandidate" />
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Output tokens</mat-label>
+          <input matInput type="number" min="0" formControlName="outputTokensPerCandidate" />
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Web searches</mat-label>
+          <input matInput type="number" min="0" step="0.1" formControlName="webSearchesPerCandidate" />
+        </mat-form-field>
+      </div>
+    </mat-expansion-panel>
 
     <!-- Refund policy -->
-    <mat-card class="config-card" formGroupName="refunds">
-      <h2>Refund policy</h2>
+    <mat-expansion-panel class="config-panel" formGroupName="refunds" [expanded]="open['refunds']" (opened)="open['refunds'] = true" (closed)="open['refunds'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Refund policy<mat-icon class="panel-warn" *ngIf="sectionInvalid('refunds')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>Windows and limits for refunds</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
       <p class="muted">When a tenant may ask for a refund and how much comes back. Refunds are always decided by a person.</p>
       <div class="field-grid">
         <mat-form-field subscriptSizing="dynamic">
@@ -67,11 +200,16 @@
           <mat-hint>Then it is closed and its held units returned.</mat-hint>
         </mat-form-field>
       </div>
-    </mat-card>
+    </mat-expansion-panel>
 
     <!-- Billing alerts -->
-    <mat-card class="config-card" formGroupName="alerts">
-      <h2>Billing alerts</h2>
+    <mat-expansion-panel class="config-panel" formGroupName="alerts" [expanded]="open['alerts']" (opened)="open['alerts'] = true" (closed)="open['alerts'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Billing alerts<mat-icon class="panel-warn" *ngIf="sectionInvalid('alerts')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>WhatsApp low-balance template</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
       <p class="muted">
         The approved Utility template the platform WhatsApp number sends low-balance alerts with. It takes two body
         parameters - the tenant's name, then the message - and must exist and be approved in Meta first.
@@ -88,11 +226,16 @@
           <mat-error>Use a language code such as en or en_US.</mat-error>
         </mat-form-field>
       </div>
-    </mat-card>
+    </mat-expansion-panel>
 
     <!-- Trial quota -->
-    <mat-card class="config-card" formGroupName="trial">
-      <h2>Trial quota</h2>
+    <mat-expansion-panel class="config-panel" formGroupName="trial" [expanded]="open['trial']" (opened)="open['trial'] = true" (closed)="open['trial'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Trial quota<mat-icon class="panel-warn" *ngIf="sectionInvalid('trial')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>Free allowance for a trial</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
       <p class="muted">The free allowance a trial tenant gets, since it has no plan and so no included quota.</p>
       <div class="field-grid">
         <mat-form-field subscriptSizing="dynamic">
@@ -108,31 +251,7 @@
           <input matInput type="number" min="0" formControlName="leadCandidates" />
         </mat-form-field>
       </div>
-    </mat-card>
-
-    <!-- WhatsApp quota weights -->
-    <mat-card class="config-card" formGroupName="quotaWeights">
-      <h2>WhatsApp quota weights</h2>
-      <p class="muted">
-        How many pooled WhatsApp quota units one template message uses. The pool counts in marketing-message
-        equivalents: a marketing send uses a whole unit and cheaper categories a fraction. Change these when Meta's price
-        ratios move, not the plans.
-      </p>
-      <div class="field-grid">
-        <mat-form-field subscriptSizing="dynamic">
-          <mat-label>Marketing</mat-label>
-          <input matInput type="number" min="0" step="0.05" formControlName="marketing" />
-        </mat-form-field>
-        <mat-form-field subscriptSizing="dynamic">
-          <mat-label>Utility</mat-label>
-          <input matInput type="number" min="0" step="0.05" formControlName="utility" />
-        </mat-form-field>
-        <mat-form-field subscriptSizing="dynamic">
-          <mat-label>Authentication</mat-label>
-          <input matInput type="number" min="0" step="0.05" formControlName="authentication" />
-        </mat-form-field>
-      </div>
-    </mat-card>
+    </mat-expansion-panel>
 
     <!-- Charges -->
     <h2 class="group-title">Charges</h2>
@@ -141,8 +260,13 @@
       estimate - the provider's own invoice is the authority. Re-check them when a provider changes its prices.
     </p>
 
-    <mat-card class="config-card">
-      <h2>WhatsApp messages</h2>
+    <mat-expansion-panel class="config-panel"  [expanded]="open['whatsapp']" (opened)="open['whatsapp'] = true" (closed)="open['whatsapp'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>WhatsApp messages<mat-icon class="panel-warn" *ngIf="sectionInvalid('whatsapp')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>Price per message, by category and country</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
       <p class="muted">
         Per template message, by category. Meta prices by the recipient's country, so a country's rate applies to tenants
         in that country; a country without its own figure uses the default row.
@@ -158,6 +282,12 @@
         </div>
       </div>
 
+      <p class="muted quota-use" *ngIf="quotaUsePerMessage as use">
+        <strong>Quota use per message:</strong> marketing {{ use.marketing }}, utility {{ use.utility }}, authentication {{ use.authentication }}.
+        A tenant's pooled WhatsApp quota counts in marketing messages, so a cheaper category uses the fraction its price is of a marketing
+        message's (from the "all other countries" row). Change a price and this follows - there is nothing else to keep in step.
+      </p>
+
       <div class="rate-table">
         <div class="rate-head"><span>Country</span><span>Marketing</span><span>Utility</span><span>Authentication</span></div>
         <div class="rate-row" *ngFor="let country of countries.controls" [formGroup]="country">
@@ -167,10 +297,15 @@
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.0001" formControlName="authentication" [attr.aria-label]="country.controls['countryName'].value + ' authentication rate'" /></mat-form-field>
         </div>
       </div>
-    </mat-card>
+    </mat-expansion-panel>
 
-    <mat-card class="config-card">
-      <h2>Lead discovery</h2>
+    <mat-expansion-panel class="config-panel"  [expanded]="open['lead']" (opened)="open['lead'] = true" (closed)="open['lead'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Lead discovery<mat-icon class="panel-warn" *ngIf="sectionInvalid('lead')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>Web search and model token prices</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
       <p class="muted">
         A discovery run is charged for the tokens the model used plus web searches. Token prices are per million tokens.
         You use one model at a time: mark it as the default and any run on a model with no row of its own is priced at its rates.
@@ -223,10 +358,15 @@
         </div>
       </div>
       <button mat-stroked-button type="button" (click)="addLeadModel()"><mat-icon>add</mat-icon> Add model</button>
-    </mat-card>
+    </mat-expansion-panel>
 
-    <mat-card class="config-card">
-      <h2>AI conversations</h2>
+    <mat-expansion-panel class="config-panel"  [expanded]="open['ai']" (opened)="open['ai'] = true" (closed)="open['ai'] = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>AI conversations<mat-icon class="panel-warn" *ngIf="sectionInvalid('ai')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
+        <mat-panel-description>Model token prices</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      
       <p class="muted">
         A conversational reply is priced from the model that wrote it and its token counts, per 1,000 tokens. A model with
         no row of its own is priced at the default model. You use one model at a time: mark it as the default. With no default, such a model is counted as free.
@@ -259,6 +399,7 @@
         </div>
       </div>
       <button mat-stroked-button type="button" (click)="addAiModel()"><mat-icon>add</mat-icon> Add model</button>
-    </mat-card>
+    </mat-expansion-panel>
+    </mat-accordion>
   </form>
 </div>

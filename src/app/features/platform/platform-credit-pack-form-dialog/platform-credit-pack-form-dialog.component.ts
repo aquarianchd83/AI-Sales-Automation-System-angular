@@ -8,7 +8,7 @@ import { PlatformCreditPack } from '../../../core/models/platform.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
-import { countryPriceRows, toCountryPriceInputs } from '../country-price-editor/country-price-editor.component';
+import { countryPriceRows, newCountryPriceRow, toCountryPriceInputs } from '../country-price-editor/country-price-editor.component';
 
 export interface PlatformCreditPackFormDialogData {
   /** Null means "create a new pack" - otherwise the pack being edited. */
@@ -34,7 +34,6 @@ export class PlatformCreditPackFormDialogComponent {
     ],
     name: [this.data.pack?.name ?? '', [Validators.required, Validators.maxLength(100)]],
     units: [this.data.pack?.units ?? 1000, [Validators.required, Validators.min(1)]],
-    priceDollars: [this.data.pack ? this.data.pack.priceCents / 100 : 0, [Validators.required, Validators.min(0.01)]],
     isActive: [this.data.pack?.isActive ?? true],
   });
 
@@ -60,6 +59,10 @@ export class PlatformCreditPackFormDialogComponent {
           .filter((p) => !known.has(p.countryCode))
           .map((p) => ({ countryCode: p.countryCode, countryName: p.countryName + ' (off)', currencyCode: p.currencyCode, currencySymbol: p.currencySymbol }));
         this.regions = [...regions, ...kept];
+        // A new pack starts with India's row: the platform is based there, so the price is entered in rupees.
+        if (!this.data.pack && this.countryPrices.length === 0) {
+          this.countryPrices.push(newCountryPriceRow('IN', 0));
+        }
       },
       error: () => {},
     });
@@ -73,7 +76,8 @@ export class PlatformCreditPackFormDialogComponent {
     }
 
     const raw = this.form.getRawValue();
-    const priceCents = Math.round(raw.priceDollars * 100);
+    // The price is the country prices below; the server derives the one legacy USD figure.
+    const priceCents = 0;
 
     this.saving = true;
     const request$ = this.isEditMode

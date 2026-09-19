@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { Router } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
@@ -18,7 +19,6 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PlatformCreditPackFormDialogComponent } from '../platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
-import { PlatformPlanFormDialogComponent } from '../platform-plan-form-dialog/platform-plan-form-dialog.component';
 
 @Component({
   selector: 'app-platform-billing',
@@ -51,7 +51,8 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
   constructor(
     private readonly billing: PlatformBillingService,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly router: Router
   ) {}
 
   ngOnInit(): void {
@@ -86,6 +87,9 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
   /** Shown in the operator's own currency (from their profile country); the catalog itself is still
    * authored in USD, which is what the add/edit dialog writes. */
   formatPrice(plan: PlatformPlan): string {
+    if (!plan.priceMonthlyLocal) {
+      return 'Not sold in India';
+    }
     const whole = Number.isInteger(plan.priceMonthlyLocal);
     return `${plan.currencySymbol}${plan.priceMonthlyLocal.toFixed(whole ? 0 : 2)}/mo`;
   }
@@ -105,6 +109,9 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
   }
 
   formatPackPrice(pack: PlatformCreditPack): string {
+    if (!pack.priceLocal) {
+      return 'Not sold in India';
+    }
     return `${pack.currencySymbol}${pack.priceLocal.toFixed(Number.isInteger(pack.priceLocal) ? 0 : 2)}`;
   }
 
@@ -139,12 +146,13 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Plans are created and edited on their own page, which shows what the plan will cost to serve. */
   addPlan(): void {
-    this.openPlanDialog(null);
+    this.router.navigate(['/platform/billing/plans/new']);
   }
 
   editPlan(plan: PlatformPlan): void {
-    this.openPlanDialog(plan);
+    this.router.navigate(['/platform/billing/plans', plan.id]);
   }
 
   deletePlan(plan: PlatformPlan): void {
@@ -167,17 +175,6 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
             this.loadPlans();
           },
         });
-      });
-  }
-
-  private openPlanDialog(plan: PlatformPlan | null): void {
-    this.dialog
-      .open(PlatformPlanFormDialogComponent, { data: { plan }, width: '480px', disableClose: true })
-      .afterClosed()
-      .subscribe((saved) => {
-        if (saved) {
-          this.loadPlans();
-        }
       });
   }
 

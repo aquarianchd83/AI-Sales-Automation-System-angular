@@ -1,8 +1,8 @@
 <div class="country-prices">
   <h3 class="quota-heading">Prices by country</h3>
   <p class="muted quota-note">
-    Set the price in a country's own currency. Tenants in a country with no price here are quoted the USD price
-    converted at the platform rate.
+    Set the price in a country's own currency. A country with no price here does not sell this - it is not offered to tenants
+    there. Tax is added on top at checkout.
   </p>
 
   <div class="country-price-row" *ngFor="let row of rows.controls; let i = index" [formGroup]="row">
