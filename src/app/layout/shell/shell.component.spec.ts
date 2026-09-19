@@ -6,6 +6,7 @@ import { of } from 'rxjs';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
+import { BillingService } from '../../core/services/billing.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
@@ -25,6 +26,7 @@ describe('ShellComponent sidenav', () => {
         { provide: AuthService, useValue: auth },
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
+        { provide: BillingService, useValue: { getNotifications: () => of([]) } },
       ],
     });
 
@@ -58,6 +60,7 @@ describe('ShellComponent sidenav', () => {
       'manage_accountsUsers & Roles',
       'settingsSettings',
       'paymentsBilling',
+      'data_usageUsage & Credits',
     ]);
   });
 
@@ -80,6 +83,8 @@ describe('ShellComponent sidenav', () => {
       'campaignAnnouncements',
       'paymentsPackage',
       'data_usageUsage & Quotas',
+      'receipt_longPayments',
+      'assignment_returnRefund Requests',
       'cloud_syncWhatsApp Connections',
       'scheduleBackground Jobs',
       'receipt_longLogs',

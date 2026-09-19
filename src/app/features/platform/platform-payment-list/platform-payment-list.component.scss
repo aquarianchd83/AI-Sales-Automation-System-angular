@@ -11,17 +11,12 @@
   flex: 1 1 260px;
 }
 
-.filter-status {
-  min-width: 160px;
+.filter-kind {
+  min-width: 180px;
 }
 
-/* A row's money is in that tenant's own currency, so each total names which one. */
+/* A row's money is in that tenant's own currency, so each figure names which one. */
 .currency-note {
-  font-size: 11px;
-  line-height: 1.2;
-}
-
-.period-range {
   font-size: 11px;
   line-height: 1.2;
 }
@@ -38,8 +33,7 @@
   background: rgba(0, 0, 0, 0.02);
 }
 
-/* Hidden rather than *ngIf'd off the row def - matFooterRowDef needs a stable column set, and an
-   empty page already shows its own empty-state block below the table. */
+/* Hidden rather than *ngIf'd off the row def - matFooterRowDef needs a stable column set. */
 .footer-row-hidden {
   display: none;
 }

@@ -212,3 +212,53 @@
     flex: 1;
   }
 }
+
+.bell {
+  position: relative;
+}
+
+.bell-count {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ef5350;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
+.alert-item {
+  height: auto !important;
+  min-height: 56px;
+  max-width: 340px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  white-space: normal !important;
+
+  &--urgent .alert-title {
+    color: #b3261e;
+  }
+}
+
+.alert-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.alert-body {
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0.75;
+}
+
+.alerts-empty {
+  font-size: 13px;
+}

@@ -2,54 +2,40 @@ import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, of } from 'rxjs';
-import {
-  catchError,
-  debounceTime,
-  distinctUntilChanged,
-  finalize,
-  startWith,
-  switchMap,
-  takeUntil,
-} from 'rxjs/operators';
+import { catchError, debounceTime, distinctUntilChanged, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
 import { formatCharge } from '../../../core/models/billing.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import {
-  INVOICE_STATUS_LABELS,
-  InvoiceStatus,
-  PlatformInvoiceListItem,
-  PlatformInvoiceQuery,
-  formatInvoicePeriod,
-  formatInvoicePeriodRange,
+  PLATFORM_PAYMENT_KIND_LABELS,
+  PlatformPaymentKind,
+  PlatformPaymentListItem,
+  PlatformPaymentQuery,
 } from '../../../core/models/platform.model';
-import { PlatformInvoiceService } from '../../../core/services/platform-invoice.service';
+import { PlatformPaymentService } from '../../../core/services/platform-payment.service';
 
 @Component({
-  selector: 'app-platform-invoice-list',
-  templateUrl: './platform-invoice-list.component.html',
-  styleUrls: ['./platform-invoice-list.component.scss'],
+  selector: 'app-platform-payment-list',
+  templateUrl: './platform-payment-list.component.html',
+  styleUrls: ['./platform-payment-list.component.scss'],
 })
-export class PlatformInvoiceListComponent implements OnInit, OnDestroy {
+export class PlatformPaymentListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['tenant', 'period', 'plan', 'total', 'status', 'actions'];
+  readonly displayedColumns = ['paidAt', 'tenant', 'kind', 'description', 'amount', 'provider'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
-  readonly statusLabels = INVOICE_STATUS_LABELS;
-  readonly InvoiceStatus = InvoiceStatus;
   readonly formatCharge = formatCharge;
-  readonly formatInvoicePeriod = formatInvoicePeriod;
-  readonly formatInvoicePeriodRange = formatInvoicePeriodRange;
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
-  readonly statusControl = new FormControl<InvoiceStatus | ''>('', { nonNullable: true });
+  readonly kindControl = new FormControl<PlatformPaymentKind | ''>('', { nonNullable: true });
 
-  page: PagedResult<PlatformInvoiceListItem> = emptyPage<PlatformInvoiceListItem>();
+  page: PagedResult<PlatformPaymentListItem> = emptyPage<PlatformPaymentListItem>();
   loading = true;
 
-  private query: PlatformInvoiceQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
+  private query: PlatformPaymentQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private readonly invoices: PlatformInvoiceService) {}
+  constructor(private readonly payments: PlatformPaymentService) {}
 
   ngOnInit(): void {
     this.searchControl.valueChanges
@@ -60,9 +46,8 @@ export class PlatformInvoiceListComponent implements OnInit, OnDestroy {
         this.reload$.next();
       });
 
-    this.statusControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((status) => {
-      // status === '' rather than a truthy check - InvoiceStatus.Due is 0, which is falsy.
-      this.query = { ...this.query, page: 1, status: status === '' ? undefined : status };
+    this.kindControl.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((kind) => {
+      this.query = { ...this.query, page: 1, kind: kind || undefined };
       this.paginator?.firstPage();
       this.reload$.next();
     });
@@ -72,8 +57,8 @@ export class PlatformInvoiceListComponent implements OnInit, OnDestroy {
         startWith(undefined),
         switchMap(() => {
           this.loading = true;
-          return this.invoices.getPaged(this.query).pipe(
-            catchError(() => of(emptyPage<PlatformInvoiceListItem>(this.query.pageSize))),
+          return this.payments.getPaged(this.query).pipe(
+            catchError(() => of(emptyPage<PlatformPaymentListItem>(this.query.pageSize))),
             finalize(() => (this.loading = false))
           );
         }),
@@ -92,8 +77,12 @@ export class PlatformInvoiceListComponent implements OnInit, OnDestroy {
     this.reload$.next();
   }
 
-  /** Totals the rows on the current page per currency - each row is quoted in its tenant's own
-   * country currency, and INR + USD can't be added into one honest number. */
+  kindLabel(kind: string): string {
+    return PLATFORM_PAYMENT_KIND_LABELS[kind] ?? kind;
+  }
+
+  /** Net of the rows on this page per currency - each row is in its tenant's own currency, and INR + USD
+   * can't be added into one honest number. Refunds are negative, so this is money kept, not money taken. */
   get pageTotals(): { currencyCode: string; currencySymbol: string; amount: number; amountUsd: number }[] {
     const byCurrency = new Map<string, { currencyCode: string; currencySymbol: string; amount: number; amountUsd: number }>();
     for (const row of this.page.items) {
@@ -103,17 +92,10 @@ export class PlatformInvoiceListComponent implements OnInit, OnDestroy {
         amount: 0,
         amountUsd: 0,
       };
-      entry.amount += row.totalAmountLocal;
-      entry.amountUsd += row.totalAmountUsd;
+      entry.amount += row.localAmount;
+      entry.amountUsd += row.amountCents / 100;
       byCurrency.set(row.currencyCode, entry);
     }
     return [...byCurrency.values()];
-  }
-
-  /** A method rather than indexing `statusLabels[row.status]` directly in the template - the table
-   * row's `status` doesn't narrow to InvoiceStatus inside a *matCellDef context, the same reason
-   * PlatformTenantDetailComponent.outcomeLabel exists. */
-  statusLabel(status: InvoiceStatus): string {
-    return this.statusLabels[status];
   }
 }

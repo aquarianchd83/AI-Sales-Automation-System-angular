@@ -1,3 +1,4 @@
+import { IncludedQuota, QuotaType } from './billing.model';
 import { AppRole } from './user.model';
 
 /**
@@ -132,6 +133,8 @@ export interface PlatformTenantDetail {
   currencyCode: string;
   currencySymbol: string;
   estimatedAiSpendThisMonthLocal: number;
+  /** Whether this tenant can ask for refunds from its own Billing page - off by default, switched on here. */
+  refundRequestsEnabled: boolean;
 }
 
 /** ImpersonationSessionDto — deliberately carries no refresh token (see the backend's
@@ -199,6 +202,32 @@ export interface PlatformPlan {
   currencyCode: string;
   currencySymbol: string;
   priceMonthlyLocal: number;
+  /** What the plan grants each billing period, per prepaid quota type. Empty = no prepaid quota. */
+  includedQuotas: IncludedQuota[];
+  /** Explicit prices set per country, each in that country's own currency. A country without one is quoted the
+   * USD price converted at the platform rate. */
+  countryPrices: CountryPrice[];
+}
+
+/** One country's explicit price (PlatformPlanDto/PlatformCreditPackDto.countryPrices). */
+export interface CountryPrice {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencySymbol: string;
+  amount: number;
+}
+
+/** A country price being set. An amount of 0 removes the country's price. */
+export interface CountryPriceInput {
+  countryCode: string;
+  amount: number;
+}
+
+/** One quota line of a plan write: units per billing period for a quota type (0 removes the line on update). */
+export interface PlanQuotaInput {
+  quotaType: QuotaType;
+  units: number;
 }
 
 /** Body of POST the plan catalog endpoint. code is immutable once a plan exists — there is no
@@ -213,6 +242,8 @@ export interface CreatePlanRequest {
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
   maxLeadDiscoveryBatchSize?: number | null;
+  includedQuotas?: PlanQuotaInput[] | null;
+  countryPrices?: CountryPriceInput[] | null;
 }
 
 /** Body of PUT one plan. isActive is how a plan is both retired (the Delete button sets it false)
@@ -227,6 +258,41 @@ export interface UpdatePlanRequest {
   priceMonthlyCents: number;
   isActive: boolean;
   maxLeadDiscoveryBatchSize?: number | null;
+  /** Omitted leaves the plan's quotas unchanged; when sent it is the complete set. */
+  includedQuotas?: PlanQuotaInput[] | null;
+  /** Omitted leaves the plan's country prices unchanged; when sent it is the complete set. */
+  countryPrices?: CountryPriceInput[] | null;
+}
+
+/** PlatformCreditPackDto — the credit-pack catalog. priceCents is the authored USD price; priceLocal is the
+ * same in the signed-in operator's currency, for display. Retired packs (isActive false) stay listed. */
+export interface PlatformCreditPack {
+  id: string;
+  quotaType: QuotaType;
+  name: string;
+  units: number;
+  priceCents: number;
+  isActive: boolean;
+  currencyCode: string;
+  currencySymbol: string;
+  priceLocal: number;
+  countryPrices: CountryPrice[];
+}
+
+export interface CreateCreditPackRequest {
+  quotaType: QuotaType;
+  name: string;
+  units: number;
+  priceCents: number;
+  countryPrices?: CountryPriceInput[] | null;
+}
+
+export interface UpdateCreditPackRequest {
+  name: string;
+  units: number;
+  priceCents: number;
+  isActive: boolean;
+  countryPrices?: CountryPriceInput[] | null;
 }
 
 export interface PlatformSubscriptionQuery {
@@ -237,7 +303,7 @@ export interface PlatformSubscriptionQuery {
 }
 
 /** PlatformSubscriptionListItemDto. hasFailedPayment is derived from Status === PastDue — this
- * system keeps no local invoice ledger, so it is not a per-invoice history. */
+ * system keeps no per-period ledger, so it is not a history of payments. */
 export interface PlatformSubscriptionListItem {
   tenantId: string;
   tenantName: string;
@@ -291,150 +357,41 @@ export interface PlatformTenantUsage {
 }
 
 // ---------------------------------------------------------------------------
-// Invoices (GET /platform/invoices/*)
+// Payments (GET /platform/payments)
 // ---------------------------------------------------------------------------
 
-/** InvoiceStatus — plain int enum on the wire (verified against /swagger/v1/swagger.json — the
- * backend's HasConversion<string>() is EF Core's own DB storage choice, not the JSON API contract),
- * same as TenantStatus/SubscriptionStatus above. The current, still-open period's invoice is always
- * Upcoming; once the month closes the backend flips it to Due exactly once, and from there it only
- * ever moves to Paid through a PlatformSuperAdmin's explicit "Mark as paid" action — there is no
- * payment gateway to flip it automatically. The backend rejects marking an Upcoming invoice paid
- * (HTTP 409) since it's still accruing. */
-export enum InvoiceStatus {
-  Due = 0,
-  Paid = 1,
-  Upcoming = 2,
-}
+/** PaymentKind as its name — the query binder accepts the enum name, and the DTO's `kind` is a string. */
+export type PlatformPaymentKind = 'Subscription' | 'CreditPack' | 'Refund';
 
-export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
-  [InvoiceStatus.Due]: 'Due',
-  [InvoiceStatus.Paid]: 'Paid',
-  [InvoiceStatus.Upcoming]: 'Upcoming',
+export const PLATFORM_PAYMENT_KIND_LABELS: Record<string, string> = {
+  Subscription: 'Plan subscription',
+  CreditPack: 'Credit pack',
+  Refund: 'Refund',
 };
 
-export interface PlatformInvoiceQuery {
-  page?: number;
-  pageSize?: number;
+export interface PlatformPaymentQuery {
+  page: number;
+  pageSize: number;
   search?: string;
-  status?: InvoiceStatus;
+  kind?: PlatformPaymentKind;
   tenantId?: string;
 }
 
-/** PlatformInvoiceListItemDto — one tenant's bill for one closed calendar month. Money is in that
- * tenant's own currency (stamped at generation time, like Payment) — not comparable across rows;
- * total the `*Usd` figure instead. See PlatformInvoiceDetail for the four line items broken out. */
-export interface PlatformInvoiceListItem {
+/** PlatformPaymentListItemDto — money that actually moved. Amounts are in the tenant's own currency
+ * (snapshotted at charge time); a refund carries negative amounts. Total per currency, never across. */
+export interface PlatformPaymentListItem {
   id: string;
   tenantId: string;
   tenantName: string;
-  periodStartUtc: string;
-  periodEndUtc: string;
-  planName: string | null;
-  status: InvoiceStatus;
-  paidAtUtc: string | null;
-  totalAmountUsd: number;
-  totalAmountLocal: number;
+  kind: string;
+  description: string;
+  amountCents: number;
   currencyCode: string;
   currencySymbol: string;
-}
-
-/** PlatformInvoiceDetailDto — the four things a tenant is billed for, plus the usage count each was
- * priced from. subscriptionAmount is the tenant's CURRENT plan price applied flat to the whole month
- * (this system keeps no per-period subscription charge record to read back exactly what applied at
- * the time — see the backend's Invoice doc comment); the other three are the same Usage & Quotas
- * estimates, totalled over this fixed period instead of "this month so far". messagesSentCount/
- * userCount are a CURRENT snapshot even for a past period — same limitation as subscriptionAmount. */
-export interface PlatformInvoiceDetail {
-  id: string;
-  tenantId: string;
-  tenantName: string;
-  periodStartUtc: string;
-  periodEndUtc: string;
-  planName: string | null;
-  status: InvoiceStatus;
-  paidAtUtc: string | null;
-  subscriptionAmountUsd: number;
-  subscriptionAmountLocal: number;
-  messagesSentCount: number;
-  messageLimit: number | null;
-  userCount: number;
-  userLimit: number | null;
-  leadDiscoveryAmountUsd: number;
-  leadDiscoveryAmountLocal: number;
-  leadDiscoveryRunsCount: number;
-  leadDiscoveryLeadsCount: number;
-  whatsAppAmountUsd: number;
-  whatsAppAmountLocal: number;
-  whatsAppBillableMessagesCount: number;
-  aiConversationAmountUsd: number;
-  aiConversationAmountLocal: number;
-  aiInteractionsCount: number;
-  totalAmountUsd: number;
-  totalAmountLocal: number;
-  currencyCode: string;
-  currencySymbol: string;
-}
-
-/** One line item on the Invoice detail screen — built from a PlatformInvoiceDetail in the component
- * rather than sent by the API, so the "attractive" label lives in one place. quantityLabel is the
- * usage count that amount was priced from — a plan quota (assigned/used) for the subscription line, a
- * plain count for the three pay-per-use lines. */
-export interface InvoiceLineItem {
-  label: string;
-  amountUsd: number;
-  amountLocal: number;
-  quantityLabel: string;
-}
-
-export function invoiceLineItems(invoice: PlatformInvoiceDetail): InvoiceLineItem[] {
-  return [
-    {
-      label: 'Subscription Fee',
-      amountUsd: invoice.subscriptionAmountUsd,
-      amountLocal: invoice.subscriptionAmountLocal,
-      quantityLabel:
-        `Messages ${invoice.messagesSentCount.toLocaleString()} / ${invoice.messageLimit?.toLocaleString() ?? '∞'} · ` +
-        `Users ${invoice.userCount.toLocaleString()} / ${invoice.userLimit?.toLocaleString() ?? '∞'}`,
-    },
-    {
-      label: 'Lead Discovery Charges',
-      amountUsd: invoice.leadDiscoveryAmountUsd,
-      amountLocal: invoice.leadDiscoveryAmountLocal,
-      quantityLabel: `${invoice.leadDiscoveryRunsCount.toLocaleString()} run${invoice.leadDiscoveryRunsCount === 1 ? '' : 's'} · ${invoice.leadDiscoveryLeadsCount.toLocaleString()} leads`,
-    },
-    {
-      label: 'WhatsApp Messaging Charges',
-      amountUsd: invoice.whatsAppAmountUsd,
-      amountLocal: invoice.whatsAppAmountLocal,
-      quantityLabel: `${invoice.whatsAppBillableMessagesCount.toLocaleString()} billable messages`,
-    },
-    {
-      label: 'AI Conversation Charges',
-      amountUsd: invoice.aiConversationAmountUsd,
-      amountLocal: invoice.aiConversationAmountLocal,
-      quantityLabel: `${invoice.aiInteractionsCount.toLocaleString()} interactions`,
-    },
-  ];
-}
-
-/** Renders a billing period as "September 2026" — parsed as UTC so a viewer west of UTC never sees
- * the period roll back into the previous month. */
-export function formatInvoicePeriod(periodStartUtc: string): string {
-  const date = new Date(periodStartUtc);
-  return new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date);
-}
-
-/** Renders a billing period's exact date range, e.g. "01 Sep 2026 – 30 Sep 2026" — periodEndUtc is the
- * exclusive start of the NEXT month, so the displayed end date is one day earlier. Both dates are read
- * as UTC, matching formatInvoicePeriod, so a viewer's local timezone never shifts the range by a day. */
-export function formatInvoicePeriodRange(periodStartUtc: string, periodEndUtc: string): string {
-  const start = new Date(periodStartUtc);
-  const endExclusive = new Date(periodEndUtc);
-  const inclusiveEnd = new Date(endExclusive.getTime() - 24 * 60 * 60 * 1000);
-
-  const formatter = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
-  return `${formatter.format(start)} – ${formatter.format(inclusiveEnd)}`;
+  localAmount: number;
+  provider: string;
+  paidAtUtc: string;
+  refundOfPaymentId: string | null;
 }
 
 // ---------------------------------------------------------------------------

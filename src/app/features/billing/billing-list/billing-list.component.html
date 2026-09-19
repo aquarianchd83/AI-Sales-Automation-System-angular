@@ -1,5 +1,10 @@
 <div class="page">
-  <app-page-header title="Billing" subtitle="Choose a plan or switch to another one."></app-page-header>
+  <app-page-header title="Billing" subtitle="Choose a plan or switch to another one.">
+    <a mat-stroked-button routerLink="/billing/wallet">
+      <mat-icon>data_usage</mat-icon>
+      Usage &amp; credits
+    </a>
+  </app-page-header>
 
   <mat-card class="subscription-card" *ngIf="!loadingSubscription">
     <ng-container *ngIf="subscription; else noSubscription">
@@ -48,7 +53,7 @@
 
       <ul class="plan-features">
         <li>{{ plan.maxUsers }} users</li>
-        <li>{{ plan.maxMessagesPerMonth | number }} messages / month</li>
+        <li *ngFor="let q of plan.includedQuotas">{{ formatUnits(q.units) }} {{ quotaLabels[q.quotaType] | lowercase }} / month</li>
         <li>{{ plan.maxCampaigns }} campaigns</li>
         <li>{{ plan.maxKnowledgeBaseArticles }} knowledge base articles</li>
         <li>{{ plan.maxLeadDiscoveryBatchSize }} discovered leads per run</li>
@@ -84,13 +89,44 @@
     <h3>Payment history</h3>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPayments"></mat-progress-bar>
     <ng-container *ngIf="!loadingPayments">
-      <dl *ngIf="paymentHistory.length">
-        <ng-container *ngFor="let payment of paymentHistory">
-          <dt>{{ payment.paidAtUtc | date: 'mediumDate' }}</dt>
-          <dd>{{ payment.planName }} — {{ formatPayment(payment) }}</dd>
-        </ng-container>
-      </dl>
+      <div class="payment-list" *ngIf="paymentHistory.length">
+        <div class="payment-row" *ngFor="let payment of paymentHistory">
+          <span class="muted payment-date">{{ payment.paidAtUtc | date: 'mediumDate' }}</span>
+          <span class="payment-name">{{ payment.planName }}</span>
+          <span class="payment-amount" [class.refund]="payment.kind === 'Refund'">{{ formatPayment(payment) }}</span>
+          <span class="payment-action">
+            <button mat-button type="button" *ngIf="canRequestRefund(payment)" (click)="requestRefund(payment)">Request refund</button>
+          </span>
+        </div>
+      </div>
       <p class="muted" *ngIf="!paymentHistory.length">No payments yet.</p>
     </ng-container>
+  </mat-card>
+
+  <mat-card class="payment-history-card" *ngIf="refundRequests.length">
+    <h3>Refund requests</h3>
+    <div class="payment-list">
+      <div class="refund-row" *ngFor="let request of refundRequests">
+        <div class="refund-main">
+          <span>{{ request.paymentDescription }}</span>
+          <span class="muted refund-meta">
+            Asked {{ request.createdAt | date: 'mediumDate' }} · up to {{ request.currencySymbol }}{{ request.eligibleLocalAmount | number: '1.2-2' }}
+          </span>
+          <span class="muted refund-meta" *ngIf="request.reviewNote">Note: {{ request.reviewNote }}</span>
+        </div>
+        <span
+          class="status-chip"
+          [class.status-chip--opted-in]="request.status === RefundStatus.Refunded"
+          [class.status-chip--pending]="request.status === RefundStatus.Requested"
+          [class.status-chip--opted-out]="request.status === RefundStatus.Rejected || request.status === RefundStatus.Failed"
+          [class.status-chip--inactive]="request.status === RefundStatus.Cancelled || request.status === RefundStatus.Expired"
+        >
+          {{ refundStatusLabel(request.status) }}
+        </span>
+        <button mat-button type="button" *ngIf="request.status === RefundStatus.Requested" (click)="cancelRefundRequest(request)">
+          Withdraw
+        </button>
+      </div>
+    </div>
   </mat-card>
 </div>

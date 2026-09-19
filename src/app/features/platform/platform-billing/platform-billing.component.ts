@@ -5,7 +5,9 @@ import { Subject, of } from 'rxjs';
 import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
+import { QUOTA_TYPE_LABELS, QuotaType, formatUnits } from '../../../core/models/billing.model';
 import {
+  PlatformCreditPack,
   PlatformPlan,
   PlatformSubscriptionListItem,
   PlatformSubscriptionQuery,
@@ -15,6 +17,7 @@ import {
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { PlatformCreditPackFormDialogComponent } from '../platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
 import { PlatformPlanFormDialogComponent } from '../platform-plan-form-dialog/platform-plan-form-dialog.component';
 
 @Component({
@@ -29,8 +32,14 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly subscriptionStatusLabels = SUBSCRIPTION_STATUS_LABELS;
 
+  readonly packColumns = ['name', 'type', 'units', 'price', 'status', 'actions'];
+  readonly formatUnits = formatUnits;
+
   plans: PlatformPlan[] = [];
   loadingPlans = true;
+
+  packs: PlatformCreditPack[] = [];
+  loadingPacks = true;
 
   subscriptionsPage: PagedResult<PlatformSubscriptionListItem> = emptyPage<PlatformSubscriptionListItem>();
   loadingSubscriptions = true;
@@ -47,6 +56,7 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadPlans();
+    this.loadPacks();
 
     this.reload$
       .pipe(
@@ -90,6 +100,45 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
     return `$${usd.toFixed(usd % 1 === 0 ? 0 : 2)} USD`;
   }
 
+  quotaLabel(type: QuotaType): string {
+    return QUOTA_TYPE_LABELS[type];
+  }
+
+  formatPackPrice(pack: PlatformCreditPack): string {
+    return `${pack.currencySymbol}${pack.priceLocal.toFixed(Number.isInteger(pack.priceLocal) ? 0 : 2)}`;
+  }
+
+  addPack(): void {
+    this.openPackDialog(null);
+  }
+
+  editPack(pack: PlatformCreditPack): void {
+    this.openPackDialog(pack);
+  }
+
+  retirePack(pack: PlatformCreditPack): void {
+    const data: ConfirmDialogData = {
+      title: 'Retire this credit pack?',
+      message: `${pack.name} will stop being offered. Credits tenants already bought from it are unaffected.`,
+      confirmLabel: 'Retire',
+      destructive: true,
+    };
+    this.dialog
+      .open(ConfirmDialogComponent, { data, width: '460px' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.billing.deleteCreditPack(pack.id).subscribe({
+          next: () => {
+            this.notify.success('Credit pack retired.');
+            this.loadPacks();
+          },
+        });
+      });
+  }
+
   addPlan(): void {
     this.openPlanDialog(null);
   }
@@ -130,6 +179,28 @@ export class PlatformBillingComponent implements OnInit, OnDestroy {
           this.loadPlans();
         }
       });
+  }
+
+  private openPackDialog(pack: PlatformCreditPack | null): void {
+    this.dialog
+      .open(PlatformCreditPackFormDialogComponent, { data: { pack }, width: '480px', disableClose: true })
+      .afterClosed()
+      .subscribe((saved) => {
+        if (saved) {
+          this.loadPacks();
+        }
+      });
+  }
+
+  private loadPacks(): void {
+    this.loadingPacks = true;
+    this.billing.getCreditPacks().subscribe({
+      next: (packs) => {
+        this.packs = packs;
+        this.loadingPacks = false;
+      },
+      error: () => (this.loadingPacks = false),
+    });
   }
 
   private loadPlans(): void {

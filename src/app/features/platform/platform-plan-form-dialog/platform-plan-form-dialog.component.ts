@@ -3,9 +3,12 @@ import { NonNullableFormBuilder, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
-import { CreatePlanRequest, PlatformPlan, UpdatePlanRequest } from '../../../core/models/platform.model';
+import { QuotaType, RegionOption } from '../../../core/models/billing.model';
+import { CreatePlanRequest, PlanQuotaInput, PlatformPlan, UpdatePlanRequest } from '../../../core/models/platform.model';
+import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
+import { countryPriceRows, toCountryPriceInputs } from '../country-price-editor/country-price-editor.component';
 
 export interface PlatformPlanFormDialogData {
   /** Null means "create a new plan" — otherwise the plan being edited. */
@@ -41,27 +44,44 @@ export class PlatformPlanFormDialogComponent {
       this.data.plan ? this.data.plan.priceMonthlyCents / 100 : 0,
       [Validators.required, Validators.min(0)],
     ],
+    // Prepaid quota granted each billing period; 0 = the plan includes none of that type.
+    quotaWhatsApp: [this.includedUnits(QuotaType.WhatsAppMessages), [Validators.required, Validators.min(0)]],
+    quotaAi: [this.includedUnits(QuotaType.AiConversations), [Validators.required, Validators.min(0)]],
+    quotaLeads: [this.includedUnits(QuotaType.LeadCandidates), [Validators.required, Validators.min(0)]],
     isActive: [this.data.plan?.isActive ?? true],
   });
+
+  /** Explicit per-country prices - part of the form so its validity and save cover them. */
+  readonly countryPrices = countryPriceRows(this.data.plan?.countryPrices);
+  regions: RegionOption[] = [];
 
   saving = false;
 
   constructor(
     private readonly fb: NonNullableFormBuilder,
     private readonly billing: PlatformBillingService,
+    regionSource: BillingService,
     private readonly notify: NotificationService,
     private readonly dialogRef: MatDialogRef<PlatformPlanFormDialogComponent, boolean>,
     @Inject(MAT_DIALOG_DATA) public readonly data: PlatformPlanFormDialogData
-  ) {}
+  ) {
+    regionSource.getRegions().subscribe({ next: (regions) => (this.regions = regions), error: () => {} });
+  }
 
   save(): void {
-    if (this.form.invalid || this.saving) {
+    if (this.form.invalid || this.countryPrices.invalid || this.saving) {
       this.form.markAllAsTouched();
+      this.countryPrices.markAllAsTouched();
       return;
     }
 
     const raw = this.form.getRawValue();
     const priceMonthlyCents = Math.round(raw.priceMonthlyDollars * 100);
+    const includedQuotas: PlanQuotaInput[] = [
+      { quotaType: QuotaType.WhatsAppMessages, units: raw.quotaWhatsApp },
+      { quotaType: QuotaType.AiConversations, units: raw.quotaAi },
+      { quotaType: QuotaType.LeadCandidates, units: raw.quotaLeads },
+    ];
 
     this.saving = true;
     const request$ = this.isEditMode
@@ -74,6 +94,8 @@ export class PlatformPlanFormDialogComponent {
           maxLeadDiscoveryBatchSize: raw.maxLeadDiscoveryBatchSize,
           priceMonthlyCents,
           isActive: raw.isActive,
+          includedQuotas,
+          countryPrices: toCountryPriceInputs(this.countryPrices),
         } as UpdatePlanRequest)
       : this.billing.createPlan({
           code: raw.code,
@@ -84,6 +106,8 @@ export class PlatformPlanFormDialogComponent {
           maxKnowledgeBaseArticles: raw.maxKnowledgeBaseArticles,
           maxLeadDiscoveryBatchSize: raw.maxLeadDiscoveryBatchSize,
           priceMonthlyCents,
+          includedQuotas,
+          countryPrices: toCountryPriceInputs(this.countryPrices),
         } as CreatePlanRequest);
 
     request$.pipe(finalize(() => (this.saving = false))).subscribe({
@@ -95,6 +119,10 @@ export class PlatformPlanFormDialogComponent {
         /* ErrorInterceptor toasts it; keep the dialog open */
       },
     });
+  }
+
+  private includedUnits(type: QuotaType): number {
+    return this.data.plan?.includedQuotas?.find((q) => q.quotaType === type)?.units ?? 0;
   }
 
   cancel(): void {

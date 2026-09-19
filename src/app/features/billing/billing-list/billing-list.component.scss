@@ -112,3 +112,52 @@
     text-align: right;
   }
 }
+
+.payment-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-row,
+.refund-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+}
+
+.payment-date {
+  width: 96px;
+  flex: 0 0 auto;
+}
+
+.payment-name {
+  flex: 1 1 auto;
+}
+
+.payment-amount {
+  font-variant-numeric: tabular-nums;
+
+  &.refund {
+    color: #1e7e34;
+  }
+}
+
+.payment-action {
+  width: 132px;
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.refund-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.refund-meta {
+  font-size: 12px;
+}

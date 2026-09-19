@@ -1,19 +1,23 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map, shareReplay } from 'rxjs/operators';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Observable, Subject, timer } from 'rxjs';
+import { map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
 import { AppRole, User } from '../../core/models/user.model';
 import { Announcement, PLATFORM_ADMIN_ROLES } from '../../core/models/platform.model';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
+import { TenantNotification, isUrgentNotification } from '../../core/models/billing.model';
+import { BillingService } from '../../core/services/billing.service';
 
 interface NavItem {
   label: string;
   icon: string;
   route: string;
   roles: string[];
+  /** Highlight only on an exact route match - for a parent route whose child has its own nav entry. */
+  exact?: boolean;
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -35,7 +39,7 @@ const DISMISSED_ANNOUNCEMENTS_KEY = 'wsa.dismissedAnnouncementIds';
   templateUrl: './shell.component.html',
   styleUrls: ['./shell.component.scss'],
 })
-export class ShellComponent implements OnInit {
+export class ShellComponent implements OnInit, OnDestroy {
   /**
    * The ordinary tenant-scoped nav — shown only to a tenant user (Admin/SalesManager/SalesAgent/
    * tenant SuperAdmin), never to a PlatformSuperAdmin. A PlatformSuperAdmin belongs to no tenant,
@@ -83,7 +87,8 @@ export class ShellComponent implements OnInit {
         { label: 'Business Profile', icon: 'storefront', route: '/profile', roles: TENANT_ADMIN_ONLY },
         { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
         { label: 'Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
-        { label: 'Billing', icon: 'payments', route: '/billing', roles: TENANT_ADMIN_ONLY },
+        { label: 'Billing', icon: 'payments', route: '/billing', roles: TENANT_ADMIN_ONLY, exact: true },
+        { label: 'Usage & Credits', icon: 'data_usage', route: '/billing/wallet', roles: TENANT_ADMIN_ONLY },
       ],
     },
   ];
@@ -121,7 +126,8 @@ export class ShellComponent implements OnInit {
       items: [
         { label: 'Package', icon: 'payments', route: '/platform/billing', roles: [] },
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
-        { label: 'Invoices', icon: 'request_quote', route: '/platform/invoices', roles: [] },
+        { label: 'Payments', icon: 'receipt_long', route: '/platform/payments', roles: [] },
+        { label: 'Refund Requests', icon: 'assignment_return', route: '/platform/refunds', roles: [] },
       ],
     },
     {
@@ -187,11 +193,19 @@ export class ShellComponent implements OnInit {
    * be confusing noise for the PlatformSuperAdmin running it. */
   announcements: Announcement[] = [];
 
+  /** Unread billing alerts (running low, used up, credits expiring, refund decisions) - a tenant admin's bell.
+   * Never shown to the platform operator, and skipped in a support session so looking at a tenant's alerts can
+   * never mark them read. */
+  readonly showBillingBell = !this.isPlatformSuperAdmin && !this.auth.isImpersonating && this.auth.hasAnyRole(TENANT_ADMIN_ONLY);
+  billingAlerts: TenantNotification[] = [];
+  private readonly destroy$ = new Subject<void>();
+
   constructor(
     private readonly auth: AuthService,
     private readonly breakpoints: BreakpointObserver,
     private readonly announcementService: AnnouncementService,
-    private readonly account: AccountService
+    private readonly account: AccountService,
+    private readonly billing: BillingService
   ) {}
 
   ngOnInit(): void {
@@ -205,6 +219,20 @@ export class ShellComponent implements OnInit {
     // clearSession documents for the cached user).
     this.account.getProfile().subscribe({ error: () => undefined });
 
+    if (this.showBillingBell) {
+      // Now and every few minutes after: quota alerts are raised by a job every 15 minutes, so polling faster
+      // than this would only ask the same question twice.
+      timer(0, 3 * 60 * 1000)
+        .pipe(
+          switchMap(() => this.billing.getNotifications()),
+          takeUntil(this.destroy$)
+        )
+        .subscribe({
+          next: (all) => (this.billingAlerts = all.filter((n) => !n.acknowledged)),
+          error: () => undefined,
+        });
+    }
+
     this.announcementService.getActive().subscribe({
       next: (announcements) => {
         const dismissed = this.dismissedIds();
@@ -212,6 +240,15 @@ export class ShellComponent implements OnInit {
       },
       error: () => (this.announcements = []),
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  urgentAlert(alert: TenantNotification): boolean {
+    return isUrgentNotification(alert.kind);
   }
 
   dismiss(announcement: Announcement): void {

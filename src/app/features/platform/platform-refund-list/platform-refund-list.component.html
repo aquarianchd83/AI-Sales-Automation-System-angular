@@ -1,0 +1,108 @@
+<div class="page">
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field class="filter-status" subscriptSizing="dynamic">
+        <mat-label>Status</mat-label>
+        <mat-select [formControl]="statusControl">
+          <mat-option value="">All</mat-option>
+          <mat-option *ngFor="let status of statusOptions" [value]="status">{{ statusLabel(status) }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">{{ page.totalCount }} request{{ page.totalCount === 1 ? '' : 's' }}</span>
+    </div>
+
+    <p class="muted estimate-note">
+      Tenants ask for these from their Billing page, once you've switched refund requests on for them (on the
+      tenant's own page). Nothing is paid until you approve it here, and the credits being refunded are set aside
+      while a request waits.
+    </p>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="page.items">
+        <ng-container matColumnDef="tenant">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let row">
+            <a [routerLink]="['/platform/tenants', row.tenantId]">{{ row.tenantName }}</a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="payment">
+          <th mat-header-cell *matHeaderCellDef>Payment</th>
+          <td mat-cell *matCellDef="let row">{{ row.paymentDescription }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="reason">
+          <th mat-header-cell *matHeaderCellDef>Reason</th>
+          <td mat-cell *matCellDef="let row" class="reason-cell">
+            {{ row.reason }}
+            <div class="muted meta" *ngIf="row.reviewNote">Note: {{ row.reviewNote }}</div>
+            <div class="failure meta" *ngIf="row.failureReason">Payout failed: {{ row.failureReason }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let row">
+            <strong *ngIf="row.refundedLocalAmount != null">{{ row.currencySymbol }}{{ row.refundedLocalAmount | number: '1.2-2' }}</strong>
+            <ng-container *ngIf="row.refundedLocalAmount == null">
+              up to {{ row.currencySymbol }}{{ row.eligibleLocalAmount | number: '1.2-2' }}
+            </ng-container>
+            <div class="muted meta">{{ row.currencyCode }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="asked">
+          <th mat-header-cell *matHeaderCellDef>Asked</th>
+          <td mat-cell *matCellDef="let row">{{ row.createdAt | zonedDate: 'mediumDate' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span
+              class="status-chip"
+              [class.status-chip--opted-in]="row.status === RefundStatus.Refunded"
+              [class.status-chip--pending]="row.status === RefundStatus.Requested"
+              [class.status-chip--opted-out]="row.status === RefundStatus.Rejected || row.status === RefundStatus.Failed"
+              [class.status-chip--inactive]="row.status === RefundStatus.Cancelled || row.status === RefundStatus.Expired"
+            >
+              {{ statusLabel(row.status) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let row" class="actions">
+            <ng-container *ngIf="isOpen(row)">
+              <button mat-flat-button color="primary" type="button" (click)="review(row, 'approve')">
+                {{ row.status === RefundStatus.Failed ? 'Retry' : 'Approve' }}
+              </button>
+              <button mat-button color="warn" type="button" (click)="review(row, 'reject')">Decline</button>
+            </ng-container>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">assignment_return</mat-icon>
+      <p>No refund requests match that filter.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

@@ -7,12 +7,16 @@ import { PlatformAnnouncementListComponent } from './platform-announcement-list/
 import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-log.component';
 import { PlatformBillingComponent } from './platform-billing/platform-billing.component';
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
-import { PlatformInvoiceDetailComponent } from './platform-invoice-detail/platform-invoice-detail.component';
-import { PlatformInvoiceListComponent } from './platform-invoice-list/platform-invoice-list.component';
+import { PlatformPaymentListComponent } from './platform-payment-list/platform-payment-list.component';
 import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dialog/platform-job-schedule-dialog.component';
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
 import { PlatformLogsComponent } from './platform-logs/platform-logs.component';
+import { CountryPriceEditorComponent } from './country-price-editor/country-price-editor.component';
+import { PlatformCreditPackFormDialogComponent } from './platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
 import { PlatformPlanFormDialogComponent } from './platform-plan-form-dialog/platform-plan-form-dialog.component';
+import { PlatformQuotaAdjustDialogComponent } from './platform-quota-adjust-dialog/platform-quota-adjust-dialog.component';
+import { PlatformRefundListComponent } from './platform-refund-list/platform-refund-list.component';
+import { PlatformRefundReviewDialogComponent } from './platform-refund-review-dialog/platform-refund-review-dialog.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
 import { PlatformTenantAiConfigDialogComponent } from './platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
 import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
@@ -35,8 +39,11 @@ const routes: Routes = [
       { path: 'tenants/:id', component: PlatformTenantDetailComponent },
       { path: 'billing', component: PlatformBillingComponent },
       { path: 'usage', component: PlatformUsageComponent },
-      { path: 'invoices', component: PlatformInvoiceListComponent },
-      { path: 'invoices/:id', component: PlatformInvoiceDetailComponent },
+      { path: 'payments', component: PlatformPaymentListComponent },
+      // The old usage-invoice screen was retired with prepaid billing.
+      { path: 'invoices', pathMatch: 'full', redirectTo: 'payments' },
+      { path: 'invoices/:id', redirectTo: 'payments' },
+      { path: 'refunds', component: PlatformRefundListComponent },
       { path: 'whatsapp-connections', component: PlatformWhatsAppConnectionsComponent },
       { path: 'jobs', component: PlatformJobsComponent },
       { path: 'users', component: PlatformUserSearchComponent },
@@ -59,9 +66,13 @@ const routes: Routes = [
     PlatformTenantConfigOverridesDialogComponent,
     PlatformBillingComponent,
     PlatformPlanFormDialogComponent,
+    PlatformCreditPackFormDialogComponent,
+    CountryPriceEditorComponent,
     PlatformUsageComponent,
-    PlatformInvoiceListComponent,
-    PlatformInvoiceDetailComponent,
+    PlatformPaymentListComponent,
+    PlatformRefundListComponent,
+    PlatformRefundReviewDialogComponent,
+    PlatformQuotaAdjustDialogComponent,
     PlatformWhatsAppConnectionsComponent,
     PlatformJobsComponent,
     PlatformJobScheduleDialogComponent,

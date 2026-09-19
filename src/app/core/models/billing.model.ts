@@ -15,6 +15,13 @@ export interface Plan {
   currencyCode: string;
   currencySymbol: string;
   localPriceAmount: number;
+  /** What the plan includes each billing period, per prepaid quota type. */
+  includedQuotas: IncludedQuota[];
+}
+
+export interface IncludedQuota {
+  quotaType: QuotaType;
+  units: number;
 }
 
 /**
@@ -71,4 +78,223 @@ export interface Payment {
   localAmount: number;
   provider: string;
   paidAtUtc: string;
+  /** "Subscription", "CreditPack" or "Refund" — a refund row carries negative amounts. */
+  kind: string;
+}
+
+// ---------------------------------------------------------------------------
+// Prepaid quota, credits, alerts and refunds. Every enum below is a plain int on the wire (the API
+// has no string-enum converter) — the numbers mirror the backend enums exactly.
+// ---------------------------------------------------------------------------
+
+export enum QuotaType {
+  WhatsAppMessages = 0,
+  AiConversations = 1,
+  LeadCandidates = 2,
+}
+
+export const QUOTA_TYPE_LABELS: Record<QuotaType, string> = {
+  [QuotaType.WhatsAppMessages]: 'WhatsApp messages',
+  [QuotaType.AiConversations]: 'AI conversations',
+  [QuotaType.LeadCandidates]: 'Lead candidates',
+};
+
+export const QUOTA_TYPE_ICONS: Record<QuotaType, string> = {
+  [QuotaType.WhatsAppMessages]: 'chat',
+  [QuotaType.AiConversations]: 'smart_toy',
+  [QuotaType.LeadCandidates]: 'travel_explore',
+};
+
+export const QUOTA_TYPES: QuotaType[] = [QuotaType.WhatsAppMessages, QuotaType.AiConversations, QuotaType.LeadCandidates];
+
+export enum QuotaGrantOrigin {
+  PlanAllocation = 0,
+  CreditPurchase = 1,
+  Adjustment = 2,
+  Trial = 3,
+}
+
+export const QUOTA_GRANT_ORIGIN_LABELS: Record<QuotaGrantOrigin, string> = {
+  [QuotaGrantOrigin.PlanAllocation]: 'Included in plan',
+  [QuotaGrantOrigin.CreditPurchase]: 'Purchased credits',
+  [QuotaGrantOrigin.Adjustment]: 'Adjustment',
+  [QuotaGrantOrigin.Trial]: 'Free trial',
+};
+
+export enum QuotaEntryType {
+  Allocation = 0,
+  Purchase = 1,
+  Consumption = 2,
+  ConsumptionReversal = 3,
+  AdjustmentCredit = 4,
+  AdjustmentDebit = 5,
+  Expiry = 6,
+  RefundClawback = 7,
+  RefundHold = 8,
+  RefundRelease = 9,
+}
+
+export const QUOTA_ENTRY_LABELS: Record<QuotaEntryType, string> = {
+  [QuotaEntryType.Allocation]: 'Plan allocation',
+  [QuotaEntryType.Purchase]: 'Credits purchased',
+  [QuotaEntryType.Consumption]: 'Used',
+  [QuotaEntryType.ConsumptionReversal]: 'Returned (failed send)',
+  [QuotaEntryType.AdjustmentCredit]: 'Adjustment (added)',
+  [QuotaEntryType.AdjustmentDebit]: 'Adjustment (removed)',
+  [QuotaEntryType.Expiry]: 'Expired',
+  [QuotaEntryType.RefundClawback]: 'Refund',
+  [QuotaEntryType.RefundHold]: 'Held for refund',
+  [QuotaEntryType.RefundRelease]: 'Refund hold released',
+};
+
+/** Renders a unit count — WhatsApp weights make quarter-units possible, so up to two decimals, none when whole. */
+export function formatUnits(units: number): string {
+  return units.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+export interface QuotaGrant {
+  id: string;
+  origin: QuotaGrantOrigin;
+  unitsGranted: number;
+  unitsRemaining: number;
+  expiresAtUtc: string;
+}
+
+export interface QuotaBalance {
+  quotaType: QuotaType;
+  balance: number;
+  /** Everything the live grants started with, including ones already used up — so "used it all" (balance 0,
+   * capacity above 0) reads differently from "never had any" (both 0). `grants` lists only those with units left. */
+  capacity: number;
+  grants: QuotaGrant[];
+}
+
+export interface QuotaLedgerEntry {
+  id: string;
+  quotaType: QuotaType;
+  entryType: QuotaEntryType;
+  unitsDelta: number;
+  balanceAfter: number;
+  grantId: string | null;
+  referenceType: string | null;
+  referenceId: string | null;
+  note: string | null;
+  occurredAtUtc: string;
+}
+
+export interface QuotaLedgerQuery {
+  page?: number;
+  pageSize?: number;
+  quotaType?: QuotaType;
+}
+
+/** CreditPackDto — priced in the tenant's own currency; priceCents stays the base USD price. */
+export interface CreditPack {
+  id: string;
+  quotaType: QuotaType;
+  name: string;
+  units: number;
+  priceCents: number;
+  currencyCode: string;
+  currencySymbol: string;
+  localPriceAmount: number;
+}
+
+export interface BillingCapabilities {
+  /** Whether the platform operator has switched refund requests on for this tenant. */
+  refundRequestsEnabled: boolean;
+}
+
+export interface BillingAlertSettings {
+  email: string | null;
+  phoneE164: string | null;
+  whatsAppEnabled: boolean;
+}
+
+export enum DeliveryStatus {
+  NotAttempted = 0,
+  Sent = 1,
+  Failed = 2,
+  Skipped = 3,
+}
+
+export enum TenantNotificationKind {
+  QuotaLow20 = 0,
+  QuotaLow5 = 1,
+  QuotaExhausted = 2,
+  CreditsExpiring14 = 3,
+  CreditsExpiring3 = 4,
+  RefundApproved = 5,
+  RefundRejected = 6,
+  RefundExpired = 7,
+}
+
+export interface TenantNotification {
+  id: string;
+  kind: TenantNotificationKind;
+  quotaType: QuotaType | null;
+  title: string;
+  body: string;
+  emailStatus: DeliveryStatus;
+  whatsAppStatus: DeliveryStatus;
+  createdAt: string;
+  acknowledged: boolean;
+}
+
+/** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */
+export function isUrgentNotification(kind: TenantNotificationKind): boolean {
+  return (
+    kind === TenantNotificationKind.QuotaExhausted ||
+    kind === TenantNotificationKind.QuotaLow5 ||
+    kind === TenantNotificationKind.CreditsExpiring3
+  );
+}
+
+export enum RefundStatus {
+  Requested = 0,
+  Refunded = 1,
+  Rejected = 2,
+  Failed = 3,
+  Cancelled = 4,
+  Expired = 5,
+}
+
+export const REFUND_STATUS_LABELS: Record<RefundStatus, string> = {
+  [RefundStatus.Requested]: 'Waiting for review',
+  [RefundStatus.Refunded]: 'Refunded',
+  [RefundStatus.Rejected]: 'Declined',
+  [RefundStatus.Failed]: 'Payout failed',
+  [RefundStatus.Cancelled]: 'Withdrawn',
+  [RefundStatus.Expired]: 'Closed (no answer)',
+};
+
+export interface RefundEligibility {
+  paymentId: string;
+  eligible: boolean;
+  reason: string | null;
+  amountCents: number;
+  localAmount: number;
+  currencyCode: string;
+  currencySymbol: string;
+  windowEndsAtUtc: string | null;
+}
+
+export interface RefundRequest {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  paymentId: string;
+  paymentDescription: string;
+  status: RefundStatus;
+  reason: string;
+  eligibleAmountCents: number;
+  eligibleLocalAmount: number;
+  currencyCode: string;
+  currencySymbol: string;
+  refundedAmountCents: number | null;
+  refundedLocalAmount: number | null;
+  reviewNote: string | null;
+  failureReason: string | null;
+  createdAt: string;
+  reviewedAtUtc: string | null;
 }
