@@ -114,6 +114,15 @@ const routes: Routes = [
           ),
       },
       {
+        path: 'agent-performance',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () =>
+          import('./features/agent-performance/agent-performance.module').then(
+            (m) => m.AgentPerformanceModule
+          ),
+      },
+      {
         path: 'users',
         canActivate: [roleGuard],
         data: { roles: USER_ADMIN_ROLES },

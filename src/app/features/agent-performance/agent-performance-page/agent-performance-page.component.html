@@ -1,0 +1,243 @@
+<div class="page">
+  <app-page-header
+    title="Agent performance"
+    subtitle="What the AI sales agent handled, which questions are working, and whether a hot lead means anything."
+  >
+    <mat-button-toggle-group [value]="days" (change)="setWindow($event.value)">
+      <mat-button-toggle *ngFor="let w of windows" [value]="w.days">{{ w.label }}</mat-button-toggle>
+    </mat-button-toggle-group>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <ng-container *ngIf="report as r">
+    <!-- ── Turns ───────────────────────────────────────────────────────────────────────── -->
+    <div class="kpis">
+      <mat-card class="kpi">
+        <div class="kpi-value">{{ r.turns.totalTurns | number }}</div>
+        <div class="kpi-label">AI turns</div>
+      </mat-card>
+
+      <mat-card class="kpi">
+        <div class="kpi-value">{{ r.turns.containmentRate | percent: '1.0-0' }}</div>
+        <div class="kpi-label">
+          Handled without a human
+          <mat-icon
+            inline
+            matTooltip="Not a number to maximise — an agent that never escalates is one that answers questions it should have handed over."
+            >help_outline</mat-icon
+          >
+        </div>
+      </mat-card>
+
+      <mat-card class="kpi">
+        <div class="kpi-value">{{ r.turns.escalatedTurns | number }}</div>
+        <div class="kpi-label">Escalated</div>
+      </mat-card>
+
+      <mat-card class="kpi" [class.kpi--warn]="r.turns.blockedReplies > 0">
+        <div class="kpi-value">{{ r.turns.blockedReplies | number }}</div>
+        <div class="kpi-label">
+          Replies withheld
+          <mat-icon
+            inline
+            matTooltip="A check stopped the reply before it reached the customer. Different from an escalation: the agent's own output was unusable."
+            >help_outline</mat-icon
+          >
+        </div>
+      </mat-card>
+
+      <mat-card class="kpi">
+        <div class="kpi-value">{{ r.turns.averageConfidence | percent: '1.0-0' }}</div>
+        <div class="kpi-label">Average confidence</div>
+      </mat-card>
+
+      <mat-card class="kpi">
+        <div class="kpi-value">{{ r.turns.averageLatencyMs | number }}<small>ms</small></div>
+        <div class="kpi-label">Average response time</div>
+      </mat-card>
+    </div>
+
+    <!-- ── The thing to act on, if there is one ────────────────────────────────────────── -->
+    <mat-card class="detail-card attention" *ngIf="strugglingFields.length">
+      <h2><mat-icon inline>priority_high</mat-icon> Questions that are not working</h2>
+      <p class="muted">
+        Asked in at least five conversations and answered in under a third of them. That is usually
+        the phrasing rather than the customers — open the question and read it aloud.
+      </p>
+      <ul>
+        <li *ngFor="let f of strugglingFields">
+          <strong>{{ f.displayName }}</strong> — asked in
+          {{ f.conversationsAsked | number }} conversations, answered in
+          {{ f.conversationsCapturedAfterAsk | number }}
+          ({{ f.askEffectiveness | percent: '1.0-0' }})
+        </li>
+      </ul>
+    </mat-card>
+
+    <!-- ── Qualification fields ────────────────────────────────────────────────────────── -->
+    <mat-card class="table-card">
+      <h2>Qualification questions</h2>
+      <div class="table-scroll">
+        <table mat-table [dataSource]="r.fields">
+          <ng-container matColumnDef="field">
+            <th mat-header-cell *matHeaderCellDef>Question</th>
+            <td mat-cell *matCellDef="let f">
+              <span class="primary-cell">{{ f.displayName }}</span>
+              <span class="status-chip status-chip--inactive" *ngIf="!f.isActive">Off</span>
+              <div class="muted key-cell">{{ f.fieldKey }}</div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="asked">
+            <th mat-header-cell *matHeaderCellDef>Asked</th>
+            <td mat-cell *matCellDef="let f">
+              {{ f.conversationsAsked | number }}
+              <span class="muted" *ngIf="f.timesAsked > f.conversationsAsked">
+                ({{ f.timesAsked | number }} times)
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="captured">
+            <th mat-header-cell *matHeaderCellDef>Answered</th>
+            <td mat-cell *matCellDef="let f">
+              {{ f.conversationsCapturedAfterAsk | number }}
+              <span
+                class="muted"
+                *ngIf="f.conversationsCaptured > f.conversationsCapturedAfterAsk"
+                matTooltip="Some customers gave this before being asked. Those do not count toward the question's effectiveness."
+              >
+                (+{{ f.conversationsCaptured - f.conversationsCapturedAfterAsk | number }} unprompted)
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="effectiveness">
+            <th mat-header-cell *matHeaderCellDef>Effectiveness</th>
+            <td mat-cell *matCellDef="let f">
+              <span [class]="effectivenessClass(f.askEffectiveness, f.conversationsAsked)">
+                {{ f.conversationsAsked ? (f.askEffectiveness | percent: '1.0-0') : 'Never asked' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="turnsToCapture">
+            <th mat-header-cell *matHeaderCellDef>Turns to answer</th>
+            <td mat-cell *matCellDef="let f">
+              {{ f.averageTurnsToCapture !== null ? (f.averageTurnsToCapture | number: '1.1-1') : '—' }}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="fieldColumns"></tr>
+          <tr mat-row *matRowDef="let f; columns: fieldColumns"></tr>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!r.fields.length">
+        <mat-icon class="empty-icon">quiz</mat-icon>
+        <p>No qualification questions are configured.</p>
+      </div>
+    </mat-card>
+
+    <!-- ── Output checks ───────────────────────────────────────────────────────────────── -->
+    <mat-card class="table-card">
+      <h2>Output checks that fired</h2>
+      <p class="muted section-note">
+        These name where to look, not who to blame. A run of "stated a number nothing supports"
+        usually means the knowledge base is missing what customers keep asking about.
+      </p>
+
+      <div class="table-scroll" *ngIf="r.validationFailures.length">
+        <table mat-table [dataSource]="r.validationFailures">
+          <ng-container matColumnDef="code">
+            <th mat-header-cell *matHeaderCellDef>Check</th>
+            <td mat-cell *matCellDef="let v">
+              <span class="primary-cell">{{ v.code }}</span>
+              <span class="status-chip status-chip--opted-out" *ngIf="v.blocking">Blocks the reply</span>
+              <div class="muted meaning-cell" *ngIf="codeMeaning(v.code)">{{ codeMeaning(v.code) }}</div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="occurrences">
+            <th mat-header-cell *matHeaderCellDef>Times</th>
+            <td mat-cell *matCellDef="let v">{{ v.occurrences | number }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="conversations">
+            <th mat-header-cell *matHeaderCellDef>Conversations</th>
+            <td mat-cell *matCellDef="let v">{{ v.affectedConversations | number }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="share">
+            <th mat-header-cell *matHeaderCellDef>Share of turns</th>
+            <td mat-cell *matCellDef="let v">{{ v.shareOfTurns | percent: '1.0-1' }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="failureColumns"></tr>
+          <tr mat-row *matRowDef="let v; columns: failureColumns"></tr>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!r.validationFailures.length">
+        <mat-icon class="empty-icon">verified</mat-icon>
+        <p>Nothing the agent produced failed a check in this window.</p>
+      </div>
+    </mat-card>
+
+    <!-- ── Leads ───────────────────────────────────────────────────────────────────────── -->
+    <mat-card class="detail-card">
+      <h2>Lead scoring</h2>
+      <dl>
+        <dt>Leads created</dt>
+        <dd>{{ r.leads.totalLeads | number }}</dd>
+
+        <dt>Currently hot / warm / cold</dt>
+        <dd>
+          {{ r.leads.hot | number }} · {{ r.leads.warm | number }} · {{ r.leads.cold | number }}
+        </dd>
+
+        <dt>
+          Marked hot
+          <mat-icon
+            inline
+            matTooltip="Leads the hot-lead rules fired on. Not the same as the hot band above — the mark is permanent, the band is current state."
+            >help_outline</mat-icon
+          >
+        </dt>
+        <dd>{{ r.leads.hotLeadsDetected | number }}</dd>
+
+        <dt>Won, of those marked hot</dt>
+        <dd>
+          {{ r.leads.hotLeadsWon | number }}
+          <span class="muted">({{ r.leads.hotConversionRate | percent: '1.0-0' }})</span>
+        </dd>
+
+        <dt>Won, of everyone else</dt>
+        <dd>
+          {{ r.leads.otherLeadsWon | number }}
+          <span class="muted">({{ r.leads.otherConversionRate | percent: '1.0-0' }})</span>
+        </dd>
+      </dl>
+
+      <p class="muted section-note" *ngIf="hotLift as lift">
+        Hot leads are closing
+        <strong>{{ lift | number: '1.1-1' }}×</strong>
+        as often as the rest.
+        <ng-container *ngIf="lift < 1.2">
+          That is close enough to even that the rules may not be measuring buying intent — the fix
+          would be in the scoring rules, not in the sales team.
+        </ng-container>
+      </p>
+    </mat-card>
+
+    <p class="muted window-note">
+      {{ r.fromUtc | zonedDate: 'short' }} — {{ r.toUtc | zonedDate: 'short' }}
+    </p>
+  </ng-container>
+
+  <div class="empty-state" *ngIf="!loading && !report">
+    <mat-icon class="empty-icon">insights</mat-icon>
+    <p>Could not load the report.</p>
+  </div>
+</div>
