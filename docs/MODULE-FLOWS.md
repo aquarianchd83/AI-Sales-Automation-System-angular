@@ -8,7 +8,7 @@ docs; where the two differ, the code wins.
 | --- | --- | --- |
 | Campaigns | [campaigns/FLOWS.md](../src/app/features/campaigns/FLOWS.md) | lifecycle, setup and start validation, send pipeline, retries, customer status |
 | Conversations | [conversations/FLOWS.md](../src/app/features/conversations/FLOWS.md) | inbound webhook, AI orchestrator decision, agent send, conversation and message status |
-| Handoffs | [handoffs/FLOWS.md](../src/app/features/handoffs/FLOWS.md) | end-to-end sequence, escalation triggers, claim and resolve |
+| Handoffs | [handoffs/FLOWS.md](../src/app/features/handoffs/FLOWS.md) | end-to-end sequence, escalation triggers, the briefing, claim and resolve |
 | Leads | [leads/FLOWS.md](../src/app/features/leads/FLOWS.md) | AI scoring, stages, agent actions |
 | Knowledge base | [knowledge-base/FLOWS.md](../src/app/features/knowledge-base/FLOWS.md) | publish and embed, per-model publishing, retrieval |
 
@@ -30,7 +30,7 @@ flowchart LR
     KB["Knowledge base"] -- "relevant chunks" --> ORCH
     ORCH -- "confident" --> WA
     ORCH -- "every AI turn" --> LEAD["Leads<br/>score + stage"]
-    ORCH -- "low confidence or<br/>escalation intent" --> HO["Handoffs"]
+    ORCH -- "low confidence, escalation<br/>intent or hot lead" --> HO["Handoffs"]
     HO -- "SignalR" --> AGENT["Agent"]
     CONV -- "Mode Human" --> AGENT
     AGENT -- "reply, template or<br/>free text in 24h window" --> WA
@@ -59,7 +59,7 @@ These are behaviours the charts show as they are today. None are fixed by these 
    only an opt-out keyword stops the sequence.
 3. **Escalated conversations stay Escalated.** Resolving a handoff doesn't return the conversation to
    `Open`, and the AI keeps replying unless the Mode is switched to `Human`.
-4. **Unused statuses.** Handoff `InProgress`, trigger reason `CannotAnswer` and article `Archived` are never
-   set.
-5. **Stale comments in the Angular models.** `conversation.model.ts` and `handoff.model.ts` still say every
-   inbound message escalates to a human because no AI exists yet. The AI orchestrator exists now.
+4. **Unused statuses.** Handoff `InProgress` and article `Archived` are never set. Trigger reasons
+   `KnowledgeGap` and `BusinessRule` are in the enum for tenant-configured escalation rules but
+   nothing raises them yet; `ComplexTechnical` is no longer produced for new handoffs, only kept for
+   ones raised before the support intents were consolidated.

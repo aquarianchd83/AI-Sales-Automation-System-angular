@@ -1,6 +1,7 @@
-/** Conversation.Mode. No IAiService exists until Phase 5 — every inbound message escalates to a
- * human regardless of Mode today (see InboundWebhookProcessor on the backend); Mode is recorded
- * for forward-compatibility, not yet acted on differently per value. */
+/** Conversation.Mode. Acted on now that the AI orchestrator exists: Human skips the AI entirely and
+ * notifies the assigned agent, while AI and Hybrid both take an AI turn that either replies or
+ * escalates. Hybrid is currently handled identically to AI — the partial "answer the safe part
+ * first" behaviour it is meant to have needs product rules that do not exist yet. */
 export enum ConversationMode {
   AI = 'AI',
   Human = 'Human',

@@ -1,0 +1,27 @@
+<h2 mat-dialog-title>Briefing</h2>
+
+<mat-dialog-content>
+  <app-handoff-summary-card
+    *ngIf="data.handoff.summary as summary; else noSummary"
+    [summary]="summary"
+  ></app-handoff-summary-card>
+
+  <ng-template #noSummary>
+    <p class="muted">
+      No briefing was stored for this handoff — it was raised before briefings existed, or by a path
+      that does not build one.
+    </p>
+  </ng-template>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>Close</button>
+  <a
+    mat-flat-button
+    color="primary"
+    [routerLink]="['/conversations', data.handoff.conversationId]"
+    mat-dialog-close
+  >
+    Open conversation
+  </a>
+</mat-dialog-actions>

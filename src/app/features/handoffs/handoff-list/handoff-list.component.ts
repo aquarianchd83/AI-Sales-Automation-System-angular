@@ -4,10 +4,18 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, of } from 'rxjs';
 import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
-import { Handoff, HandoffStatus, canClaimHandoff, canResolveHandoff, handoffStatusChipClass } from '../../../core/models/handoff.model';
+import {
+  Handoff,
+  HandoffStatus,
+  canClaimHandoff,
+  canResolveHandoff,
+  handoffStatusChipClass,
+  handoffTriggerReasonLabel,
+} from '../../../core/models/handoff.model';
 import { HandoffService } from '../../../core/services/handoff.service';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
+import { HandoffSummaryDialogComponent } from '../handoff-summary-dialog/handoff-summary-dialog.component';
 import { ResolveHandoffDialogComponent } from '../resolve-handoff-dialog/resolve-handoff-dialog.component';
 import { User } from '../../../core/models/user.model';
 import { UserService } from '../../../core/services/user.service';
@@ -21,6 +29,7 @@ export class HandoffListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
   readonly displayedColumns = ['customer', 'triggerReason', 'status', 'assignedAgent', 'createdAt', 'actions'];
+  readonly reasonLabel = handoffTriggerReasonLabel;
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusClass = handoffStatusChipClass;
   readonly canClaim = canClaimHandoff;
@@ -105,6 +114,13 @@ export class HandoffListComponent implements OnInit, OnDestroy {
         // ErrorInterceptor toasts it.
       },
     });
+  }
+
+  /** Read-only, so it neither reloads the page nor touches the handoff — an agent can open a briefing,
+   * decide it is not theirs, and leave the queue exactly as they found it. */
+  briefing(handoff: Handoff, event: Event): void {
+    event.stopPropagation();
+    this.dialog.open(HandoffSummaryDialogComponent, { data: { handoff }, width: '640px' });
   }
 
   resolve(handoff: Handoff, event: Event): void {

@@ -1,0 +1,85 @@
+<div class="briefing">
+  <header class="briefing-head">
+    <div class="who">
+      <span class="name">{{ summary.customerName }}</span>
+      <span class="muted phone">{{ summary.customerPhoneNumberE164 }}</span>
+    </div>
+    <div class="badges">
+      <span [class]="temperatureClass(summary.temperature)">
+        {{ summary.temperature }} · {{ summary.scoreNumeric }}
+      </span>
+      <span class="status-chip status-chip--draft">{{ reasonLabel(summary.triggerReason) }}</span>
+      <span class="status-chip status-chip--inactive" *ngIf="summary.detectedIntent">
+        {{ summary.detectedIntent }}
+      </span>
+    </div>
+  </header>
+
+  <p class="hot-reason" *ngIf="summary.isHot && summary.hotReason">
+    <mat-icon inline>local_fire_department</mat-icon>
+    {{ summary.hotReason }}
+  </p>
+
+  <!-- Shown only when validation is what stopped the reply. An escalation on low confidence is not a
+       blocked reply, and saying so would send the agent looking for a fault that is not there. -->
+  <p class="blocked" *ngIf="summary.blockedReason">
+    <mat-icon inline>report</mat-icon>
+    The AI's reply was withheld: {{ summary.blockedReason }}
+  </p>
+
+  <section *ngIf="summary.requirement">
+    <h4>Requirement</h4>
+    <p class="body-text">{{ summary.requirement }}</p>
+  </section>
+
+  <section *ngIf="summary.qualification.length">
+    <h4>What we know</h4>
+    <table class="kv">
+      <tr *ngFor="let item of summary.qualification">
+        <th>{{ item.displayName }}</th>
+        <td>
+          {{ item.rawValue }}
+          <mat-icon
+            class="by-human"
+            inline
+            *ngIf="item.enteredByHuman"
+            matTooltip="Entered by a colleague, not extracted by the AI"
+            >person</mat-icon
+          >
+        </td>
+        <td class="muted when">{{ item.capturedAt | zonedDate: 'short' }}</td>
+      </tr>
+    </table>
+  </section>
+
+  <section *ngIf="summary.stillUnknown.length">
+    <h4>Still unknown</h4>
+    <p class="muted body-text">{{ summary.stillUnknown.join(' · ') }}</p>
+  </section>
+
+  <section *ngIf="summary.scoreBreakdown.length">
+    <h4>Score {{ summary.scoreNumeric }}</h4>
+    <table class="kv">
+      <tr *ngFor="let line of summary.scoreBreakdown">
+        <th>{{ line.label }}</th>
+        <td class="points" [class.negative]="line.points < 0">{{ signed(line.points) }}</td>
+      </tr>
+    </table>
+  </section>
+
+  <section *ngIf="summary.agentNote">
+    <h4>AI's note</h4>
+    <p class="body-text">{{ summary.agentNote }}</p>
+  </section>
+
+  <section *ngIf="summary.lastCustomerMessage">
+    <h4>Last message</h4>
+    <blockquote>{{ summary.lastCustomerMessage }}</blockquote>
+  </section>
+
+  <footer class="muted">
+    {{ summary.messageCount }} message{{ summary.messageCount === 1 ? '' : 's' }} since
+    {{ summary.conversationStartedAt | zonedDate: 'short' }} · escalated
+    {{ summary.escalatedAt | zonedDate: 'short' }}
+  </footer>
+</div>
