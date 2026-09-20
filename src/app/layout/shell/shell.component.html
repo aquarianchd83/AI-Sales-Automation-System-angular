@@ -60,17 +60,25 @@
 
         <mat-menu #alertsMenu="matMenu" class="alerts-menu">
           <div class="alerts-empty" mat-menu-item disabled *ngIf="!billingAlerts.length">No new billing alerts</div>
-          <a
-            mat-menu-item
-            class="alert-item"
-            routerLink="/billing/wallet"
-            *ngFor="let alert of billingAlerts.slice(0, 5)"
-            [class.alert-item--urgent]="urgentAlert(alert)"
-          >
-            <span class="alert-title">{{ alert.title }}</span>
-            <span class="alert-body">{{ alert.body }}</span>
-          </a>
+          <div class="alert-row" *ngFor="let alert of billingAlerts.slice(0, 5)">
+            <a mat-menu-item class="alert-item" routerLink="/billing/wallet" [class.alert-item--urgent]="urgentAlert(alert)">
+              <span class="alert-title">{{ alert.title }}</span>
+              <span class="alert-body">{{ alert.body }}</span>
+            </a>
+            <div class="alert-actions">
+              <button mat-icon-button type="button" class="alert-action" (click)="acknowledgeBillingAlert(alert)" aria-label="Mark as read">
+                <mat-icon>done</mat-icon>
+              </button>
+              <button mat-icon-button type="button" class="alert-action" (click)="deleteBillingAlert(alert)" aria-label="Delete notification">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
           <mat-divider></mat-divider>
+          <button mat-menu-item type="button" *ngIf="billingAlerts.length" (click)="acknowledgeAllBillingAlerts()">
+            <mat-icon>done_all</mat-icon>
+            <span>Mark all as read</span>
+          </button>
           <a mat-menu-item routerLink="/billing/wallet">
             <mat-icon>data_usage</mat-icon>
             <span>Usage &amp; credits</span>
@@ -86,17 +94,26 @@
 
         <mat-menu #platformAlertsMenu="matMenu" class="alerts-menu">
           <div class="alerts-empty" mat-menu-item disabled *ngIf="!platformAlerts.length">No new platform alerts</div>
-          <a
-            mat-menu-item
-            class="alert-item"
-            routerLink="/platform/jobs"
-            *ngFor="let alert of platformAlerts.slice(0, 5)"
-            [class.alert-item--urgent]="platformAlertUrgent(alert)"
-            (click)="openPlatformAlert(alert)"
-          >
-            <span class="alert-title">{{ alert.title }}</span>
-            <span class="alert-body">{{ alert.body }}</span>
-          </a>
+          <div class="alert-row" *ngFor="let alert of platformAlerts.slice(0, 5)">
+            <a
+              mat-menu-item
+              class="alert-item"
+              routerLink="/platform/jobs"
+              [class.alert-item--urgent]="platformAlertUrgent(alert)"
+              (click)="openPlatformAlert(alert)"
+            >
+              <span class="alert-title">{{ alert.title }}</span>
+              <span class="alert-body">{{ alert.body }}</span>
+            </a>
+            <div class="alert-actions">
+              <button mat-icon-button type="button" class="alert-action" (click)="openPlatformAlert(alert)" aria-label="Mark as read">
+                <mat-icon>done</mat-icon>
+              </button>
+              <button mat-icon-button type="button" class="alert-action" (click)="deletePlatformAlert(alert)" aria-label="Delete notification">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
           <mat-divider></mat-divider>
           <button mat-menu-item type="button" *ngIf="platformAlerts.length" (click)="acknowledgeAllPlatformAlerts()">
             <mat-icon>done_all</mat-icon>
