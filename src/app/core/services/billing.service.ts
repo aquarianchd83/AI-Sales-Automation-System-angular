@@ -106,6 +106,14 @@ export class BillingService {
     return this.http.post<void>(`${this.baseUrl}/notifications/${id}/acknowledge`, {});
   }
 
+  acknowledgeAllNotifications(): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/notifications/acknowledge-all`, {});
+  }
+
+  deleteNotification(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/notifications/${id}`);
+  }
+
   getAlertSettings(): Observable<BillingAlertSettings> {
     return this.http.get<BillingAlertSettings>(`${this.baseUrl}/alert-settings`);
   }

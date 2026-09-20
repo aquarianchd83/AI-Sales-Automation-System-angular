@@ -233,16 +233,44 @@
   text-align: center;
 }
 
+.alert-row {
+  display: flex;
+  align-items: stretch;
+  max-width: 340px;
+}
+
 .alert-item {
+  flex: 1;
   height: auto !important;
   min-height: 56px;
-  max-width: 340px;
+  min-width: 0;
   padding-top: 8px;
   padding-bottom: 8px;
   white-space: normal !important;
 
   &--urgent .alert-title {
     color: #b3261e;
+  }
+}
+
+.alert-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-shrink: 0;
+  padding-right: 4px;
+}
+
+.alert-action {
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+
+  .mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
   }
 }
 

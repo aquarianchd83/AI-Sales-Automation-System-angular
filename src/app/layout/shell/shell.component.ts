@@ -287,6 +287,27 @@ export class ShellComponent implements OnInit, OnDestroy {
     return isUrgentNotification(alert.kind);
   }
 
+  /** Marks one billing alert read without navigating anywhere - the bell's own "mark as read" action. */
+  acknowledgeBillingAlert(alert: TenantNotification): void {
+    this.billingAlerts = this.billingAlerts.filter((n) => n.id !== alert.id);
+    this.billing.acknowledgeNotification(alert.id).subscribe({ error: () => undefined });
+  }
+
+  acknowledgeAllBillingAlerts(): void {
+    this.billingAlerts = [];
+    this.billing.acknowledgeAllNotifications().subscribe({ error: () => undefined });
+  }
+
+  deleteBillingAlert(alert: TenantNotification): void {
+    this.billingAlerts = this.billingAlerts.filter((n) => n.id !== alert.id);
+    this.billing.deleteNotification(alert.id).subscribe({ error: () => undefined });
+  }
+
+  deletePlatformAlert(alert: PlatformNotification): void {
+    this.platformAlerts = this.platformAlerts.filter((n) => n.id !== alert.id);
+    this.platformNotifications.delete(alert.id).subscribe({ error: () => undefined });
+  }
+
   dismiss(announcement: Announcement): void {
     this.announcements = this.announcements.filter((a) => a.id !== announcement.id);
     const dismissed = this.dismissedIds();

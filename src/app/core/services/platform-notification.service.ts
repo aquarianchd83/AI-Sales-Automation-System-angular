@@ -23,4 +23,8 @@ export class PlatformNotificationService {
   acknowledgeAll(): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/acknowledge-all`, {});
   }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
 }

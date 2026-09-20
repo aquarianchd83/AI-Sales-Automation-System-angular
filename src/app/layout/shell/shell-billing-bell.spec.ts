@@ -27,6 +27,9 @@ const alert = (id: string, kind: TenantNotificationKind, acknowledged = false): 
 describe('ShellComponent billing bell', () => {
   function render(options: { roles: string[]; impersonating?: boolean; notifications?: TenantNotification[] }) {
     const getNotifications = jasmine.createSpy('getNotifications').and.returnValue(of(options.notifications ?? []));
+    const acknowledgeNotification = jasmine.createSpy('acknowledgeNotification').and.returnValue(of(undefined));
+    const acknowledgeAllNotifications = jasmine.createSpy('acknowledgeAllNotifications').and.returnValue(of(undefined));
+    const deleteNotification = jasmine.createSpy('deleteNotification').and.returnValue(of(undefined));
     const auth = {
       currentUser$: of({ fullName: 'Test User', email: 't@example.com', roles: options.roles }),
       isImpersonating: options.impersonating ?? false,
@@ -40,7 +43,7 @@ describe('ShellComponent billing bell', () => {
         { provide: AuthService, useValue: auth },
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
-        { provide: BillingService, useValue: { getNotifications } },
+        { provide: BillingService, useValue: { getNotifications, acknowledgeNotification, acknowledgeAllNotifications, deleteNotification } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },
       ],
     });
@@ -49,7 +52,14 @@ describe('ShellComponent billing bell', () => {
     fixture.detectChanges();
     tick(1); // the poll's first tick
     fixture.detectChanges();
-    return { fixture, root: fixture.nativeElement as HTMLElement, getNotifications };
+    return {
+      fixture,
+      root: fixture.nativeElement as HTMLElement,
+      getNotifications,
+      acknowledgeNotification,
+      acknowledgeAllNotifications,
+      deleteNotification,
+    };
   }
 
   it('shows a tenant admin how many billing alerts are unread', fakeAsync(() => {
@@ -125,5 +135,44 @@ describe('ShellComponent billing bell', () => {
 
     expect(root.querySelector('.bell')).toBeNull();
     expect(getNotifications).not.toHaveBeenCalled();
+  }));
+
+  it('marks one alert read without touching the others', fakeAsync(() => {
+    const { fixture, acknowledgeNotification } = render({
+      roles: ['Admin'],
+      notifications: [alert('1', TenantNotificationKind.QuotaLow20), alert('2', TenantNotificationKind.QuotaExhausted)],
+    });
+
+    fixture.componentInstance.acknowledgeBillingAlert(alert('1', TenantNotificationKind.QuotaLow20));
+
+    expect(acknowledgeNotification).toHaveBeenCalledWith('1');
+    expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['2']);
+    discardPeriodicTasks();
+  }));
+
+  it('clears every unread alert at once', fakeAsync(() => {
+    const { fixture, acknowledgeAllNotifications } = render({
+      roles: ['Admin'],
+      notifications: [alert('1', TenantNotificationKind.QuotaLow20), alert('2', TenantNotificationKind.QuotaExhausted)],
+    });
+
+    fixture.componentInstance.acknowledgeAllBillingAlerts();
+
+    expect(acknowledgeAllNotifications).toHaveBeenCalled();
+    expect(fixture.componentInstance.billingAlerts).toEqual([]);
+    discardPeriodicTasks();
+  }));
+
+  it('deletes one alert without touching the others', fakeAsync(() => {
+    const { fixture, deleteNotification } = render({
+      roles: ['Admin'],
+      notifications: [alert('1', TenantNotificationKind.QuotaLow20), alert('2', TenantNotificationKind.QuotaExhausted)],
+    });
+
+    fixture.componentInstance.deleteBillingAlert(alert('1', TenantNotificationKind.QuotaLow20));
+
+    expect(deleteNotification).toHaveBeenCalledWith('1');
+    expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['2']);
+    discardPeriodicTasks();
   }));
 });
