@@ -22,6 +22,10 @@ export interface Customer {
   /** How consent was captured — required whenever a customer is opted in. */
   optInSource: string | null;
   optOutTimestamp: string | null;
+  /** How the opt-out was detected: ExactKeyword, PhrasePattern, AiDetected or Manual. Null for one
+   * recorded before the field existed. An AiDetected opt-out is the one worth spot-checking — the
+   * other three are deterministic. */
+  optOutSource: string | null;
   preferredLanguage: string | null;
   assignedAgentId: string | null;
   tags: string[];
@@ -106,4 +110,22 @@ export interface CustomerImportRowError {
 export function customerDisplayName(customer: Customer): string {
   const name = [customer.firstName, customer.lastName].filter(Boolean).join(' ').trim();
   return name || customer.phoneNumberE164;
+}
+
+/** PascalCase enum name -> what a compliance reviewer needs to read off the screen. The wording
+ * names the evidence, not the mechanism: "matched a phrase" is the fact being recorded. */
+export function optOutSourceLabel(source: string | null | undefined): string {
+  switch (source) {
+    case 'ExactKeyword':
+      return 'Replied with an opt-out keyword';
+    case 'PhrasePattern':
+      return 'Message matched an opt-out phrase';
+    case 'AiDetected':
+      return 'The AI read the message as an opt-out';
+    case 'Manual':
+      return 'Set by a person';
+    default:
+      // Includes an opt-out recorded before the field existed — blank rather than a guess.
+      return '—';
+  }
 }

@@ -7,7 +7,7 @@ docs; where the two differ, the code wins.
 | Module | Charts | Covers |
 | --- | --- | --- |
 | Campaigns | [campaigns/FLOWS.md](../src/app/features/campaigns/FLOWS.md) | lifecycle, setup and start validation, send pipeline, retries, customer status |
-| Conversations | [conversations/FLOWS.md](../src/app/features/conversations/FLOWS.md) | inbound webhook, AI orchestrator decision, agent send, conversation and message status |
+| Conversations | [conversations/FLOWS.md](../src/app/features/conversations/FLOWS.md) | inbound webhook, AI orchestrator decision, agent send, conversation and message status, opt-out detection |
 | Handoffs | [handoffs/FLOWS.md](../src/app/features/handoffs/FLOWS.md) | end-to-end sequence, escalation triggers, the briefing, claim and resolve |
 | Leads | [leads/FLOWS.md](../src/app/features/leads/FLOWS.md) | AI scoring, stages, agent actions |
 | Knowledge base | [knowledge-base/FLOWS.md](../src/app/features/knowledge-base/FLOWS.md) | publish and embed, per-model publishing, retrieval |
