@@ -26,6 +26,7 @@
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": ["dayjs", "@braintree/sanitize-url"],
             "assets": [
               "src/assets",
               { "glob": "MODULE-FLOWS.md", "input": "docs", "output": "assets/flows" },
