@@ -67,8 +67,6 @@ export class UserRolesDialogComponent {
 
   describe(roleName: string): string {
     switch (roleName) {
-      case AppRole.SuperAdmin:
-        return 'Full access, including system configuration and the Hangfire dashboard.';
       case AppRole.Admin:
         return 'Manages users, customers, campaigns and knowledge base content.';
       case AppRole.SalesManager:

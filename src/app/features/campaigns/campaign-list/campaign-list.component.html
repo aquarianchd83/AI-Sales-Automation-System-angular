@@ -7,7 +7,7 @@
     <button
       mat-stroked-button
       type="button"
-      *appHasRole="['SuperAdmin']"
+      *appHasRole="['Admin']"
       [disabled]="runningJobs"
       matTooltip="Runs the send pipeline immediately across every eligible campaign, instead of waiting for the next scheduled tick"
       (click)="runJobsNow()"

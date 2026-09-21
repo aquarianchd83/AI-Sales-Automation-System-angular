@@ -165,7 +165,8 @@ export class CampaignListComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** SuperAdmin only — the menu item is hidden for anyone else via *appHasRole. */
+  /** Admin only, matching [Authorize(Roles = AppRoles.Admin)] on POST /campaigns/ops/run-jobs —
+   * the button is hidden for anyone else via *appHasRole. */
   runJobsNow(): void {
     this.runningJobs = true;
     this.campaigns

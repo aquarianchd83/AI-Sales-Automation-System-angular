@@ -36,7 +36,7 @@ export class MessageTemplateService {
     return this.http.put<MessageTemplate>(`${this.baseUrl}/${id}`, request);
   }
 
-  /** Stands in for Meta's real review process. SuperAdmin/Admin only — the API 403s otherwise. */
+  /** Stands in for Meta's real review process. Admin only — the API 403s otherwise. */
   review(id: string, request: ReviewMessageTemplateRequest): Observable<MessageTemplate> {
     return this.http.post<MessageTemplate>(`${this.baseUrl}/${id}/review`, request);
   }
