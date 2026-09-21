@@ -48,14 +48,14 @@ describe('ModuleFlowsButtonComponent', () => {
     return fixture;
   }
 
-  it('is hidden for anyone but SuperAdmin', () => {
-    const fixture = render(['Admin', 'Agent']);
+  it('is hidden for sales staff', () => {
+    const fixture = render(['SalesManager', 'SalesAgent']);
 
     expect(fixture.nativeElement.querySelector('button')).toBeNull();
   });
 
-  it('opens the dialog on its own module for SuperAdmin', () => {
-    const fixture = render(['SuperAdmin']);
+  it('opens the dialog on its own module for an Admin', () => {
+    const fixture = render(['Admin']);
     const open = spyOn(TestBed.inject(MatDialog), 'open');
 
     fixture.nativeElement.querySelector('button').click();
@@ -81,7 +81,7 @@ describe('ModuleFlowsDialogComponent', () => {
   }
 
   it('renders the markdown, draws the charts and turns doc links into in-dialog navigation', async () => {
-    configure(['SuperAdmin'], { module: 'campaigns' });
+    configure(['Admin'], { module: 'campaigns' });
     const fixture = TestBed.createComponent(ModuleFlowsDialogComponent);
     fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
@@ -107,6 +107,9 @@ describe('ModuleFlowsDialogComponent', () => {
     expect(doc.querySelector('h1')?.textContent).toBe('Campaigns');
     expect(doc.querySelector('.flow-chart svg')).not.toBeNull();
     expect(doc.querySelector('.flow-chart--error')).toBeNull();
+    // Sized in pixels, not width="100%": a percentage width makes Mermaid scale a wide chart down
+    // to the dialog, which is what turned the labels into an unreadable smear.
+    expect(doc.querySelector('.flow-chart svg')?.getAttribute('width')).not.toBe('100%');
     // The source-file link became plain text; only the doc link stayed clickable.
     expect(doc.querySelector('code')?.textContent).toBe('the model');
 
@@ -117,7 +120,7 @@ describe('ModuleFlowsDialogComponent', () => {
   });
 
   it('reports a doc it cannot load instead of showing an empty dialog', async () => {
-    configure(['SuperAdmin'], { module: 'leads' });
+    configure(['Admin'], { module: 'leads' });
     const fixture = TestBed.createComponent(ModuleFlowsDialogComponent);
     fixture.detectChanges();
 

@@ -27,7 +27,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-const TENANT_ADMIN_ONLY = [AppRole.SuperAdmin, AppRole.Admin];
+const TENANT_ADMIN_ONLY = [AppRole.Admin];
 
 /** localStorage key for the set of announcement ids this browser has dismissed — a per-viewer
  * convenience (see TokenStorageService's own doc comment on why localStorage is already this

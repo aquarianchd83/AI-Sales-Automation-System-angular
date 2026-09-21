@@ -115,7 +115,7 @@ export class CampaignService {
 
   /**
    * Runs the send pipeline (initial sends, follow-ups, retries) immediately across every
-   * eligible campaign, rather than waiting for the next scheduled tick. SuperAdmin only —
+   * eligible campaign, rather than waiting for the next scheduled tick. Admin only —
    * the API 403s for anyone else.
    */
   runJobsNow(): Observable<RunJobsResult> {

@@ -13,10 +13,14 @@ import { AuthService } from '../../core/services/auth.service';
 /**
  * Structural directive that renders its content only for the given roles.
  *
- *   <a *appHasRole="['SuperAdmin', 'Admin']" routerLink="/users">Users</a>
+ *   <a *appHasRole="['Admin']" routerLink="/users">Users</a>
  *
  * Presentation only — hiding a link is not access control. The route guards and,
  * authoritatively, the API decide what a user may actually do.
+ *
+ * Role names are checked by nobody: misspell one, or name a role the system no longer has, and
+ * the content silently renders for no one at all. Take names from AppRole, which mirrors
+ * AppRoles.cs.
  */
 @Directive({ selector: '[appHasRole]' })
 export class HasRoleDirective implements OnInit, OnDestroy {

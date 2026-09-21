@@ -117,7 +117,19 @@ export class ModuleFlowsDialogComponent implements OnInit, OnDestroy {
     host.innerHTML = await marked.parse(markdown);
     this.rewriteLinks(host);
 
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' });
+    // useMaxWidth false on every diagram type used here. Left at its default, Mermaid emits
+    // width="100%" and scales the SVG down to whatever it is sitting in - these charts are up to
+    // 2100px wide, so in a 1000px dialog every label shrank to an unreadable smear and the chart
+    // read as blank. Explicit pixel dimensions keep the text at its intended size and let
+    // .flow-chart's overflow-x scroll a wide chart instead.
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      theme: 'neutral',
+      flowchart: { useMaxWidth: false },
+      sequence: { useMaxWidth: false },
+      state: { useMaxWidth: false },
+    });
     for (const code of Array.from(host.querySelectorAll('pre > code.language-mermaid'))) {
       const chart = document.createElement('div');
       chart.className = 'flow-chart';
