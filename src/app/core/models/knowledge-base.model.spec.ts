@@ -11,5 +11,8 @@ describe('canPublishArticle', () => {
 
   it('is false for Archived', () => {
     expect(canPublishArticle(KnowledgeBaseArticleStatus.Archived)).toBeFalse();
+    // Deprecated is terminal for the same reason: re-publishing from the list would quietly put a
+    // retired policy back in the AI's mouth.
+    expect(canPublishArticle(KnowledgeBaseArticleStatus.Deprecated)).toBeFalse();
   });
 });

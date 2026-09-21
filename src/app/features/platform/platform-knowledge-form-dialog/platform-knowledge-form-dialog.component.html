@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ isEdit ? 'Edit article' : 'New article' }}</h2>
+<h2 mat-dialog-title>{{ isEdit ? 'Edit platform article' : 'New platform article' }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" novalidate>
@@ -20,15 +20,14 @@
         <mat-select formControlName="sourceType">
           <mat-option *ngFor="let s of sourceTypes" [value]="s">{{ sourceTypeLabel(s) }}</mat-option>
         </mat-select>
+        <mat-hint>Sets the article's authority when answers conflict.</mat-hint>
       </mat-form-field>
     </div>
 
     <mat-form-field class="full-width">
-      <mat-label>Content</mat-label>
-      <textarea matInput formControlName="content" rows="10" maxlength="20000"></textarea>
-      <mat-hint *ngIf="isEdit">
-        Saving only bumps the article's version — Publish (or Reindex) picks up this edit for AI retrieval.
-      </mat-hint>
+      <mat-label>Content (Markdown)</mat-label>
+      <textarea matInput formControlName="content" rows="12" maxlength="20000"></textarea>
+      <mat-hint *ngIf="isEdit">Saving does not change what tenants see - publish again to re-index this edit.</mat-hint>
       <mat-error *ngIf="form.controls.content.hasError('required')">Content is required.</mat-error>
     </mat-form-field>
   </form>
@@ -37,6 +36,6 @@
 <mat-dialog-actions align="end">
   <button mat-button type="button" (click)="cancel()">Cancel</button>
   <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
-    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create article' }}
+    {{ saving ? 'Saving...' : isEdit ? 'Save changes' : 'Create article' }}
   </button>
 </mat-dialog-actions>

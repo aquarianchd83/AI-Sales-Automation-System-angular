@@ -7,45 +7,42 @@ import { finalize } from 'rxjs/operators';
 import {
   KnowledgeBaseArticle,
   KnowledgeBaseSourceType,
-  TENANT_AUTHORABLE_SOURCE_TYPES,
   sourceTypeDisplayName,
 } from '../../../core/models/knowledge-base.model';
-import { KnowledgeBaseService } from '../../../core/services/knowledge-base.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { PlatformKnowledgeService } from '../../../core/services/platform-knowledge.service';
 
-export interface ArticleFormDialogData {
+export interface PlatformKnowledgeFormData {
   mode: 'create' | 'edit';
   article?: KnowledgeBaseArticle;
 }
 
 @Component({
-  selector: 'app-article-form-dialog',
-  templateUrl: './article-form-dialog.component.html',
-  styleUrls: ['./article-form-dialog.component.scss'],
+  selector: 'app-platform-knowledge-form-dialog',
+  templateUrl: './platform-knowledge-form-dialog.component.html',
+  styleUrls: ['./platform-knowledge-form-dialog.component.scss'],
 })
-export class ArticleFormDialogComponent {
+export class PlatformKnowledgeFormDialogComponent {
   readonly isEdit = this.data.mode === 'edit';
-  // Only the types a tenant is allowed to author - the platform-only ones would be rejected by
-  // the API, so listing them would offer a choice that cannot be made. See
-  // TENANT_AUTHORABLE_SOURCE_TYPES.
-  readonly sourceTypes = TENANT_AUTHORABLE_SOURCE_TYPES;
+  /** A platform author may use every source type - it decides the article's authority rank. */
+  readonly sourceTypes = Object.values(KnowledgeBaseSourceType);
   readonly sourceTypeLabel = sourceTypeDisplayName;
 
   readonly form = this.fb.nonNullable.group({
     title: [this.data.article?.title ?? '', [Validators.required, Validators.maxLength(200)]],
     category: [this.data.article?.category ?? '', [Validators.maxLength(100)]],
     content: [this.data.article?.content ?? '', [Validators.required, Validators.maxLength(20000)]],
-    sourceType: [this.data.article?.sourceType ?? KnowledgeBaseSourceType.AdminConfiguredArticle],
+    sourceType: [this.data.article?.sourceType ?? KnowledgeBaseSourceType.ProductDocumentation],
   });
 
   saving = false;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public readonly data: ArticleFormDialogData,
+    @Inject(MAT_DIALOG_DATA) public readonly data: PlatformKnowledgeFormData,
     private readonly fb: FormBuilder,
-    private readonly articles: KnowledgeBaseService,
+    private readonly articles: PlatformKnowledgeService,
     private readonly notify: NotificationService,
-    private readonly dialogRef: MatDialogRef<ArticleFormDialogComponent, boolean>
+    private readonly dialogRef: MatDialogRef<PlatformKnowledgeFormDialogComponent, boolean>
   ) {}
 
   save(): void {
@@ -72,7 +69,9 @@ export class ArticleFormDialogComponent {
     this.saving = true;
     saved$.pipe(finalize(() => (this.saving = false))).subscribe({
       next: () => {
-        this.notify.success(this.isEdit ? 'Article updated.' : 'Article created as Draft — publish it to make it retrievable.');
+        this.notify.success(
+          this.isEdit ? 'Article updated.' : 'Article created as Draft - publish it to make it available to every tenant.'
+        );
         this.dialogRef.close(true);
       },
       error: () => {
