@@ -10,6 +10,9 @@ import { PlatformDashboardComponent } from './platform-dashboard/platform-dashbo
 import { PlatformPaymentListComponent } from './platform-payment-list/platform-payment-list.component';
 import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dialog/platform-job-schedule-dialog.component';
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
+import { PlatformKnowledgeComponent } from './platform-knowledge/platform-knowledge.component';
+import { PlatformKnowledgeDeprecateDialogComponent } from './platform-knowledge-deprecate-dialog/platform-knowledge-deprecate-dialog.component';
+import { PlatformKnowledgeFormDialogComponent } from './platform-knowledge-form-dialog/platform-knowledge-form-dialog.component';
 import { PlatformLogsComponent } from './platform-logs/platform-logs.component';
 import { CountryPriceEditorComponent } from './country-price-editor/country-price-editor.component';
 import { PlatformConfigurationComponent } from './platform-configuration/platform-configuration.component';
@@ -53,6 +56,7 @@ const routes: Routes = [
       { path: 'users', component: PlatformUserSearchComponent },
       { path: 'audit-log', component: PlatformAuditLogComponent },
       { path: 'logs', component: PlatformLogsComponent },
+      { path: 'knowledge', component: PlatformKnowledgeComponent },
       { path: 'announcements', component: PlatformAnnouncementListComponent },
     ],
   },
@@ -84,6 +88,9 @@ const routes: Routes = [
     PlatformUserSearchComponent,
     PlatformAuditLogComponent,
     PlatformLogsComponent,
+    PlatformKnowledgeComponent,
+    PlatformKnowledgeFormDialogComponent,
+    PlatformKnowledgeDeprecateDialogComponent,
     PlatformAnnouncementListComponent,
     PlatformAnnouncementFormDialogComponent,
   ],

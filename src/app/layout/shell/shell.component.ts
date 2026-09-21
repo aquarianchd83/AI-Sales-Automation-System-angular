@@ -121,6 +121,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Tenants', icon: 'business', route: '/platform/tenants', roles: [] },
         { label: 'Users', icon: 'manage_accounts', route: '/platform/users', roles: [] },
         { label: 'Announcements', icon: 'campaign', route: '/platform/announcements', roles: [] },
+        { label: 'Knowledge Base', icon: 'menu_book', route: '/platform/knowledge', roles: [] },
       ],
     },
     {
