@@ -15,6 +15,7 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPag
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformEmbeddingStatus, PlatformKnowledgeService } from '../../../core/services/platform-knowledge.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { PlatformEmbeddingSettingsComponent } from '../platform-embedding-settings/platform-embedding-settings.component';
 import { PlatformKnowledgeDeprecateDialogComponent } from '../platform-knowledge-deprecate-dialog/platform-knowledge-deprecate-dialog.component';
 import {
   PlatformKnowledgeFormData,
@@ -212,6 +213,18 @@ export class PlatformKnowledgeComponent implements OnInit, OnDestroy {
         error: () => {
           // ErrorInterceptor toasts it.
         },
+      });
+  }
+
+  /** Provider, model and key the platform indexes these articles with; refreshes the banner after a save. */
+  openEmbeddingSettings(): void {
+    this.dialog
+      .open(PlatformEmbeddingSettingsComponent, { width: '640px', disableClose: true })
+      .afterClosed()
+      .subscribe((changed) => {
+        if (changed) {
+          this.loadEmbeddingStatus();
+        }
       });
   }
 

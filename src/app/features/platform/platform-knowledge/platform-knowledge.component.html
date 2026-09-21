@@ -4,6 +4,10 @@
     subtitle="Platform articles the AI support agent uses when any tenant asks about the product - refunds, credits, plans. Published articles are shared with every tenant."
   >
     <input #fileInput type="file" hidden accept=".md,.txt,.html,.docx,.pdf" (change)="onFileSelected($event)" />
+    <button mat-stroked-button type="button" (click)="openEmbeddingSettings()">
+      <mat-icon>settings</mat-icon>
+      Embedding settings
+    </button>
     <button mat-stroked-button type="button" [disabled]="uploading" (click)="fileInput.click()">
       <mat-icon>upload_file</mat-icon>
       {{ uploading ? 'Uploading...' : 'Upload file' }}

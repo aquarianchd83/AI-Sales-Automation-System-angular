@@ -1,5 +1,5 @@
-<mat-card class="embedding-card">
-  <h2>Platform knowledge embeddings</h2>
+<h2 mat-dialog-title>Embedding settings</h2>
+<mat-dialog-content>
   <p class="muted">
     The provider, model and API key used to index the platform's own Knowledge Base articles. The platform pays for this, not
     tenants. Stored in the database; keys are encrypted and never shown again.
@@ -52,11 +52,13 @@
         </mat-form-field>
       </div>
 
-      <div class="actions">
-        <button mat-flat-button color="primary" type="submit" [disabled]="saving || form.pristine">
-          {{ saving ? 'Saving...' : 'Save embedding settings' }}
-        </button>
-      </div>
     </form>
   </ng-container>
-</mat-card>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Close</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="loading || loadFailed || saving || form.pristine" (click)="save()">
+    {{ saving ? 'Saving...' : 'Save' }}
+  </button>
+</mat-dialog-actions>

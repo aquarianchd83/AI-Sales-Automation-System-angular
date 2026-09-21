@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
+import { MatDialogRef } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
 import { SettingItem } from '../../../core/models/settings.model';
@@ -44,8 +45,15 @@ export class PlatformEmbeddingSettingsComponent implements OnInit {
     private readonly fb: FormBuilder,
     private readonly settings: SettingsService,
     private readonly knowledge: PlatformKnowledgeService,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly dialogRef: MatDialogRef<PlatformEmbeddingSettingsComponent, boolean>
   ) {}
+
+  private changed = false;
+
+  close(): void {
+    this.dialogRef.close(this.changed);
+  }
 
   ngOnInit(): void {
     this.load();
@@ -105,6 +113,7 @@ export class PlatformEmbeddingSettingsComponent implements OnInit {
       .subscribe({
         next: () => {
           this.notify.success('Embedding settings saved. Re-index the platform Knowledge Base to apply them to existing articles.');
+          this.changed = true;
           this.load();
         },
         error: () => {
