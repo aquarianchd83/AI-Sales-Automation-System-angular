@@ -18,7 +18,7 @@
       <mat-form-field class="source-field" *ngIf="!isEdit">
         <mat-label>Source</mat-label>
         <mat-select formControlName="sourceType">
-          <mat-option *ngFor="let s of sourceTypes" [value]="s">{{ s }}</mat-option>
+          <mat-option *ngFor="let s of sourceTypes" [value]="s">{{ sourceTypeLabel(s) }}</mat-option>
         </mat-select>
       </mat-form-field>
     </div>

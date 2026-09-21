@@ -4,7 +4,12 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
-import { KnowledgeBaseArticle, KnowledgeBaseSourceType } from '../../../core/models/knowledge-base.model';
+import {
+  KnowledgeBaseArticle,
+  KnowledgeBaseSourceType,
+  TENANT_AUTHORABLE_SOURCE_TYPES,
+  sourceTypeDisplayName,
+} from '../../../core/models/knowledge-base.model';
 import { KnowledgeBaseService } from '../../../core/services/knowledge-base.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -20,13 +25,17 @@ export interface ArticleFormDialogData {
 })
 export class ArticleFormDialogComponent {
   readonly isEdit = this.data.mode === 'edit';
-  readonly sourceTypes = Object.values(KnowledgeBaseSourceType);
+  // Only the types a tenant is allowed to author - the platform-only ones would be rejected by
+  // the API, so listing them would offer a choice that cannot be made. See
+  // TENANT_AUTHORABLE_SOURCE_TYPES.
+  readonly sourceTypes = TENANT_AUTHORABLE_SOURCE_TYPES;
+  readonly sourceTypeLabel = sourceTypeDisplayName;
 
   readonly form = this.fb.nonNullable.group({
     title: [this.data.article?.title ?? '', [Validators.required, Validators.maxLength(200)]],
     category: [this.data.article?.category ?? '', [Validators.maxLength(100)]],
     content: [this.data.article?.content ?? '', [Validators.required, Validators.maxLength(20000)]],
-    sourceType: [this.data.article?.sourceType ?? KnowledgeBaseSourceType.Manual],
+    sourceType: [this.data.article?.sourceType ?? KnowledgeBaseSourceType.AdminConfiguredArticle],
   });
 
   saving = false;
