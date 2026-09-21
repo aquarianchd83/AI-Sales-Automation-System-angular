@@ -107,6 +107,9 @@ describe('ModuleFlowsDialogComponent', () => {
     expect(doc.querySelector('h1')?.textContent).toBe('Campaigns');
     expect(doc.querySelector('.flow-chart svg')).not.toBeNull();
     expect(doc.querySelector('.flow-chart--error')).toBeNull();
+    // Sized in pixels, not width="100%": a percentage width makes Mermaid scale a wide chart down
+    // to the dialog, which is what turned the labels into an unreadable smear.
+    expect(doc.querySelector('.flow-chart svg')?.getAttribute('width')).not.toBe('100%');
     // The source-file link became plain text; only the doc link stayed clickable.
     expect(doc.querySelector('code')?.textContent).toBe('the model');
 
