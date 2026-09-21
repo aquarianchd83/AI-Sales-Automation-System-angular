@@ -1,0 +1,168 @@
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.kpi {
+  padding: 16px;
+
+  &--warn .kpi-value {
+    color: #b3261e;
+  }
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.1;
+
+  small {
+    font-size: 14px;
+    opacity: 0.6;
+    margin-left: 2px;
+  }
+}
+
+.kpi-label {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.table-card,
+.detail-card {
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 500;
+
+  &.spaced {
+    margin-top: 20px;
+  }
+}
+
+.section-note {
+  margin: 0 0 12px;
+  max-width: 70ch;
+}
+
+.small {
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.num {
+  text-align: right;
+}
+
+.primary-cell {
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-left: 3px solid #a15c00;
+  background: rgba(161, 92, 0, 0.06);
+  font-size: 13px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 110px;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.bar-track {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.bar {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: #1565c0;
+
+  &--band {
+    background: #6a1b9a;
+  }
+}
+
+.bar-value {
+  text-align: right;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) 1fr;
+  gap: 6px 24px;
+  margin: 12px 0 0;
+}
+
+dt {
+  opacity: 0.7;
+}
+
+dd {
+  margin: 0;
+}
+
+.daily {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 120px;
+  margin-top: 12px;
+}
+
+.daily-col {
+  flex: 1 1 0;
+  min-width: 3px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.daily-bar {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+  background: #90caf9;
+  overflow: hidden;
+}
+
+.daily-bar-escalated {
+  display: block;
+  width: 100%;
+  background: #1565c0;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

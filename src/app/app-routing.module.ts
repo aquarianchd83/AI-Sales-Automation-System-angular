@@ -4,7 +4,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { authGuard, guestGuard, homeRedirectGuard, roleGuard } from './core/guards/auth.guard';
 import { PLATFORM_ADMIN_ROLES } from './core/models/platform.model';
 import { SETTINGS_ADMIN_ROLES } from './core/models/settings.model';
-import { TENANT_ADMIN_ROLES, TENANT_ROLES, USER_ADMIN_ROLES } from './core/models/user.model';
+import { REPORT_ROLES, TENANT_ADMIN_ROLES, TENANT_ROLES, USER_ADMIN_ROLES } from './core/models/user.model';
 import { ShellComponent } from './layout/shell/shell.component';
 
 const routes: Routes = [
@@ -112,6 +112,18 @@ const routes: Routes = [
           import('./features/message-templates/message-templates.module').then(
             (m) => m.MessageTemplatesModule
           ),
+      },
+      {
+        path: 'reports',
+        canActivate: [roleGuard],
+        data: { roles: REPORT_ROLES },
+        loadChildren: () => import('./features/reports/reports.module').then((m) => m.ReportsModule),
+      },
+      {
+        path: 'audit-log',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () => import('./features/audit-log/audit-log.module').then((m) => m.AuditLogModule),
       },
       {
         path: 'agent-performance',
