@@ -91,6 +91,18 @@
 
           <dt>Opted out</dt>
           <dd>{{ (c.optOutTimestamp | date: 'medium') || '—' }}</dd>
+
+          <dt>Detected by</dt>
+          <dd>
+            {{ optOutSourceLabel(c.optOutSource) }}
+            <mat-icon
+              class="verify-hint"
+              inline
+              *ngIf="c.optOutSource === 'AiDetected'"
+              matTooltip="The only non-deterministic path — worth spot-checking against the conversation"
+              >help_outline</mat-icon
+            >
+          </dd>
         </dl>
 
         <p class="muted consent-note" *ngIf="isOptedOut">

@@ -7,6 +7,7 @@ import {
   Customer,
   OptInStatus,
   customerDisplayName,
+  optOutSourceLabel,
 } from '../../../core/models/customer.model';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { CustomerFormDialogComponent } from '../customer-form-dialog/customer-form-dialog.component';
@@ -22,6 +23,8 @@ import { NotificationService } from '../../../core/services/notification.service
 export class CustomerDetailComponent implements OnInit {
   customer: Customer | null = null;
   loading = true;
+
+  readonly optOutSourceLabel = optOutSourceLabel;
 
   constructor(
     private readonly route: ActivatedRoute,
