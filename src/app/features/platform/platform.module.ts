@@ -10,6 +10,7 @@ import { PlatformDashboardComponent } from './platform-dashboard/platform-dashbo
 import { PlatformPaymentListComponent } from './platform-payment-list/platform-payment-list.component';
 import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dialog/platform-job-schedule-dialog.component';
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
+import { PlatformEmbeddingSettingsComponent } from './platform-embedding-settings/platform-embedding-settings.component';
 import { PlatformKnowledgeComponent } from './platform-knowledge/platform-knowledge.component';
 import { PlatformKnowledgeDeprecateDialogComponent } from './platform-knowledge-deprecate-dialog/platform-knowledge-deprecate-dialog.component';
 import { PlatformKnowledgeFormDialogComponent } from './platform-knowledge-form-dialog/platform-knowledge-form-dialog.component';
@@ -89,6 +90,7 @@ const routes: Routes = [
     PlatformAuditLogComponent,
     PlatformLogsComponent,
     PlatformKnowledgeComponent,
+    PlatformEmbeddingSettingsComponent,
     PlatformKnowledgeFormDialogComponent,
     PlatformKnowledgeDeprecateDialogComponent,
     PlatformAnnouncementListComponent,
