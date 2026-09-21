@@ -1,0 +1,124 @@
+<div class="page">
+  <app-page-header
+    title="Audit log"
+    subtitle="Who changed a lead's stage, started or stopped a campaign, switched a conversation between AI and human, or recorded an opt-out. Newest first."
+  ></app-page-header>
+
+  <mat-card class="table-card">
+    <form class="filters" [formGroup]="filters">
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search</mat-label>
+        <input matInput formControlName="search" placeholder="Person, record or action" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field class="filter" subscriptSizing="dynamic">
+        <mat-label>Record type</mat-label>
+        <input matInput formControlName="entityName" placeholder="e.g. Lead" />
+      </mat-form-field>
+
+      <mat-form-field class="filter" subscriptSizing="dynamic">
+        <mat-label>Action</mat-label>
+        <input matInput formControlName="action" placeholder="e.g. Updated" />
+      </mat-form-field>
+
+      <mat-form-field class="filter" subscriptSizing="dynamic">
+        <mat-label>From</mat-label>
+        <input matInput type="date" formControlName="from" />
+      </mat-form-field>
+
+      <mat-form-field class="filter" subscriptSizing="dynamic">
+        <mat-label>To</mat-label>
+        <input matInput type="date" formControlName="to" />
+      </mat-form-field>
+
+      <button mat-button type="button" *ngIf="hasFilters" (click)="clearFilters()">Clear</button>
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">{{ page.totalCount }} entr{{ page.totalCount === 1 ? 'y' : 'ies' }}</span>
+    </form>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="page.items" multiTemplateDataRows>
+        <ng-container matColumnDef="performedAt">
+          <th mat-header-cell *matHeaderCellDef>When</th>
+          <td mat-cell *matCellDef="let entry">{{ entry.performedAt | zonedDate: 'medium' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="performedBy">
+          <th mat-header-cell *matHeaderCellDef>Who</th>
+          <td mat-cell *matCellDef="let entry">
+            {{ entry.performedByName || (entry.performedBy ? 'Unknown user' : 'System') }}
+            <mat-icon
+              inline
+              class="impersonated"
+              *ngIf="entry.impersonatedBy"
+              matTooltip="Made by a platform operator while signed in as this user."
+              >support_agent</mat-icon
+            >
+            <div class="muted small" *ngIf="entry.ipAddress">{{ entry.ipAddress }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="entity">
+          <th mat-header-cell *matHeaderCellDef>Record</th>
+          <td mat-cell *matCellDef="let entry">
+            {{ entry.entityName || '—' }}
+            <div class="muted small">{{ entry.entityId }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef>Action</th>
+          <td mat-cell *matCellDef="let entry"><span class="tag">{{ entry.action || '—' }}</span></td>
+        </ng-container>
+
+        <ng-container matColumnDef="expand">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let entry">
+            <button
+              mat-icon-button
+              type="button"
+              *ngIf="entry.changesJson"
+              [attr.aria-label]="expandedId === entry.id ? 'Hide changes' : 'Show changes'"
+              (click)="toggle(entry)"
+            >
+              <mat-icon>{{ expandedId === entry.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="changes">
+          <td mat-cell *matCellDef="let entry" [attr.colspan]="displayedColumns.length" class="changes-cell">
+            <pre class="changes" *ngIf="expandedId === entry.id">{{ formatChanges(entry.changesJson) }}</pre>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let entry; columns: displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let entry; columns: ['changes']"
+          class="changes-row"
+          [class.open]="expandedId === entry.id"
+        ></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">history</mat-icon>
+      <p *ngIf="failed">The audit log could not be loaded.</p>
+      <p *ngIf="!failed">No entries match{{ hasFilters ? ' those filters' : ' yet' }}.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>
