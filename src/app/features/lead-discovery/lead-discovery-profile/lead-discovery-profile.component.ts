@@ -89,6 +89,20 @@ export class LeadDiscoveryProfileComponent implements OnInit {
   campaignsLoading = true;
   campaignsLoadFailed = false;
 
+  /**
+   * The picker's options: eligible (non-Stopped) campaigns, plus the currently saved source
+   * campaign even if it is Stopped or missing from that list - otherwise an admin who already has
+   * an ineligible source configured would see a blank picker instead of what's actually saved.
+   *
+   * A plain field, recomputed explicitly by refreshSourceCampaignOptions() rather than a template
+   * getter: this array is bound via *ngFor, and a getter returning a brand-new array (and brand-new
+   * item objects) on every change-detection pass makes NgForOf tear down and rebuild every
+   * mat-option on every single check - Material's own listener churn from that then keeps
+   * re-triggering change detection, which live-locks the page. Recomputing only when campaigns or
+   * saved actually change keeps the reference (and the mat-options) stable in between.
+   */
+  sourceCampaignOptions: { id: string; name: string; status: string | null }[] = [];
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly leadDiscovery: LeadDiscoveryService,
@@ -127,6 +141,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
           .filter((c) => c.status !== CampaignStatus.Stopped)
           .sort((a, b) => a.name.localeCompare(b.name));
         this.campaignsLoading = false;
+        this.refreshSourceCampaignOptions();
       },
       error: () => {
         this.campaignsLoading = false;
@@ -135,10 +150,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     });
   }
 
-  /** The picker's options: eligible (non-Stopped) campaigns, plus the currently saved source
-   * campaign even if it is Stopped or missing from that list - otherwise an admin who already has
-   * an ineligible source configured would see a blank picker instead of what's actually saved. */
-  get sourceCampaignOptions(): { id: string; name: string; status: string | null }[] {
+  private refreshSourceCampaignOptions(): void {
     const options: { id: string; name: string; status: string | null }[] = this.campaigns.map((c) => ({
       id: c.id,
       name: c.name,
@@ -148,7 +160,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     if (savedId && !options.some((o) => o.id === savedId)) {
       options.push({ id: savedId, name: this.saved!.sourceCampaignName ?? '(deleted campaign)', status: this.saved!.sourceCampaignStatus });
     }
-    return options;
+    this.sourceCampaignOptions = options;
   }
 
   /** True once the selected source campaign is known not to be eligible (Stopped, or no longer
@@ -307,6 +319,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
   private apply(profile: LeadDiscoveryProfile): void {
     this.saved = profile;
     this.submitted = false;
+    this.refreshSourceCampaignOptions();
 
     const required = (key: string) => profile.requiredFields.some((f) => f.toLowerCase() === key.toLowerCase());
     this.form.reset({
