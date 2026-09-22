@@ -3,7 +3,10 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
+import { Campaign, CampaignStatus } from '../../../core/models/campaign.model';
 import { LeadDiscoveryProfile } from '../../../core/models/lead-discovery.model';
+import { emptyPage } from '../../../core/models/paged-result.model';
+import { CampaignService } from '../../../core/services/campaign.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { SharedModule } from '../../../shared/shared.module';
@@ -22,6 +25,10 @@ const profile: LeadDiscoveryProfile = {
   independentBusiness: true,
   minimumLeadScore: 70,
   additionalCriteria: ['Open on weekends'],
+  autoCampaignEnabled: false,
+  sourceCampaignId: null,
+  sourceCampaignName: null,
+  sourceCampaignStatus: null,
   updatedAt: '2026-09-15T10:00:00Z',
 };
 
@@ -29,6 +36,7 @@ describe('LeadDiscoveryProfileComponent', () => {
   let fixture: ComponentFixture<LeadDiscoveryProfileComponent>;
   let component: LeadDiscoveryProfileComponent;
   let service: jasmine.SpyObj<LeadDiscoveryService>;
+  let campaigns: jasmine.SpyObj<CampaignService>;
   let notify: jasmine.SpyObj<NotificationService>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
@@ -43,6 +51,8 @@ describe('LeadDiscoveryProfileComponent', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj('LeadDiscoveryService', ['getProfile', 'saveProfile']);
     service.saveProfile.and.callFake((request) => of({ ...profile, ...request, updatedAt: '2026-09-15T11:00:00Z' }));
+    campaigns = jasmine.createSpyObj('CampaignService', ['getPaged']);
+    campaigns.getPaged.and.returnValue(of(emptyPage<Campaign>()));
     notify = jasmine.createSpyObj('NotificationService', ['success']);
 
     TestBed.configureTestingModule({
@@ -50,6 +60,7 @@ describe('LeadDiscoveryProfileComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: LeadDiscoveryService, useValue: service },
+        { provide: CampaignService, useValue: campaigns },
         { provide: NotificationService, useValue: notify },
       ],
     });
@@ -89,6 +100,8 @@ describe('LeadDiscoveryProfileComponent', () => {
       independentBusiness: true,
       minimumLeadScore: 80,
       additionalCriteria: ['Open on weekends'],
+      autoCampaignEnabled: false,
+      sourceCampaignId: null,
     });
     expect(notify.success).toHaveBeenCalled();
     expect(component.hasChanges).toBeFalse();
@@ -142,5 +155,71 @@ describe('LeadDiscoveryProfileComponent', () => {
     expect(text()).toContain('Discovery is off');
     expect(text()).toContain('Not saved yet.');
     expect(component.batchLimit).toBe(200);
+  });
+
+  describe('auto campaign', () => {
+    const runningCampaign: Campaign = {
+      id: 'campaign-1',
+      name: 'Spring Outreach',
+      description: null,
+      status: CampaignStatus.Running,
+      scheduledStartAt: null,
+      createdBy: 'user-1',
+      startedAt: '2026-09-01T09:00:00Z',
+      stoppedAt: null,
+      audienceCount: 5,
+      steps: [],
+      createdAt: '2026-08-30T09:00:00Z',
+    };
+
+    it('blocks saving when enabled with no source campaign selected', () => {
+      create(profile);
+
+      component.form.controls.autoCampaignEnabled.setValue(true);
+      component.form.markAsDirty();
+      fixture.detectChanges();
+      expect(component.sourceCampaignMissing).toBeTrue();
+
+      component.save();
+      fixture.detectChanges();
+
+      expect(service.saveProfile).not.toHaveBeenCalled();
+      expect(text()).toContain('Select a source campaign to enable auto campaign.');
+    });
+
+    it('saves with the selected source campaign once one is picked', () => {
+      campaigns.getPaged.and.returnValue(of({ items: [runningCampaign], totalCount: 1, page: 1, pageSize: 100, totalPages: 1 }));
+      create(profile);
+      fixture.detectChanges();
+
+      component.form.controls.autoCampaignEnabled.setValue(true);
+      component.form.controls.sourceCampaignId.setValue(runningCampaign.id);
+      component.form.markAsDirty();
+      expect(component.sourceCampaignMissing).toBeFalse();
+      expect(component.sourceCampaignIneligible).toBeFalse();
+
+      component.save();
+
+      expect(service.saveProfile).toHaveBeenCalledWith(
+        jasmine.objectContaining({ autoCampaignEnabled: true, sourceCampaignId: runningCampaign.id })
+      );
+    });
+
+    it('flags a saved source campaign that is no longer eligible (Stopped)', () => {
+      create({
+        ...profile,
+        autoCampaignEnabled: true,
+        sourceCampaignId: 'campaign-stopped',
+        sourceCampaignName: 'Old Campaign',
+        sourceCampaignStatus: CampaignStatus.Stopped,
+      });
+      fixture.detectChanges();
+
+      expect(component.sourceCampaignIneligible).toBeTrue();
+      expect(text()).toContain("This campaign is Stopped and can no longer be used. Pick another.");
+
+      component.save();
+      expect(service.saveProfile).not.toHaveBeenCalled();
+    });
   });
 });

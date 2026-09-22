@@ -44,7 +44,7 @@ export const TENANT_ADMIN_ROLES: string[] = [AppRole.Admin];
 
 /** Roles allowed to read the tenant reports and nothing more: managers reading how campaigns and
  * agents are doing is the point of a report, so this is wider than TENANT_ADMIN_ROLES. */
-export const REPORT_ROLES: string[] = [AppRole.SuperAdmin, AppRole.Admin, AppRole.SalesManager];
+export const REPORT_ROLES: string[] = [AppRole.Admin, AppRole.SalesManager];
 
 /** GET /roles returns a plain array of role names, not objects. */
 export type Role = string;

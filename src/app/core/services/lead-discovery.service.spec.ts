@@ -36,6 +36,8 @@ describe('LeadDiscoveryService', () => {
       independentBusiness: true,
       minimumLeadScore: 60,
       additionalCriteria: [],
+      autoCampaignEnabled: false,
+      sourceCampaignId: null,
     };
     service.saveProfile(request).subscribe();
 

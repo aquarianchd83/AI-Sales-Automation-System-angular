@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  AutoCampaignEnrollment,
   DiscoveredLead,
   LeadDiscoveryProfile,
   LeadDiscoveryRun,
@@ -48,6 +49,14 @@ export class LeadDiscoveryService {
   /** What each run cost and produced, newest first. Admin only. */
   getRuns(query: PagedQuery): Observable<PagedResult<LeadDiscoveryRun>> {
     return this.http.get<PagedResult<LeadDiscoveryRun>>(`${this.baseUrl}/runs`, {
+      params: toPagedParams(query),
+    });
+  }
+
+  /** Auto-campaign enrollment outcomes (Started/Skipped/Failed) for discovered customers, newest
+   * first. Admin only, like the profile it configures. */
+  getAutoCampaignHistory(query: PagedQuery): Observable<PagedResult<AutoCampaignEnrollment>> {
+    return this.http.get<PagedResult<AutoCampaignEnrollment>>(`${this.baseUrl}/auto-campaign-history`, {
       params: toPagedParams(query),
     });
   }

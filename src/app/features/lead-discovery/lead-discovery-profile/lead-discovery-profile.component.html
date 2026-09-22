@@ -232,6 +232,57 @@
         <p class="muted meta" *ngIf="!saved.updatedAt">Not saved yet.</p>
       </mat-card>
 
+      <!-- Auto campaign -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-violet"><mat-icon>campaign</mat-icon></span>
+          <div>
+            <h2>Auto campaign</h2>
+            <p>Enroll each newly discovered customer into an existing campaign automatically.</p>
+          </div>
+        </div>
+
+        <div class="switch-list">
+          <div class="switch-row">
+            <div>
+              <strong>Auto campaign enabled</strong>
+              <span>Clones the source campaign's content and schedule for every customer this job discovers.</span>
+            </div>
+            <mat-slide-toggle formControlName="autoCampaignEnabled" aria-label="Auto campaign enabled"></mat-slide-toggle>
+          </div>
+        </div>
+
+        <ng-container *ngIf="form.controls.autoCampaignEnabled.value">
+          <mat-form-field appearance="outline" class="full-width list-gap">
+            <mat-label>Source campaign</mat-label>
+            <mat-select formControlName="sourceCampaignId" [disabled]="campaignsLoading">
+              <mat-option *ngIf="!campaignsLoading && !sourceCampaignOptions.length" disabled>
+                No existing campaigns yet — create one first
+              </mat-option>
+              <mat-option *ngFor="let c of sourceCampaignOptions" [value]="c.id">{{ c.name }}</mat-option>
+            </mat-select>
+            <mat-hint>Its steps and template are reused as-is. This screen never creates campaign content.</mat-hint>
+          </mat-form-field>
+
+          <p class="field-message field-message--error" *ngIf="sourceCampaignMissing" role="alert">
+            <mat-icon>error_outline</mat-icon>Select a source campaign to enable auto campaign.
+          </p>
+          <p class="field-message field-message--error" *ngIf="sourceCampaignIneligible" role="alert">
+            <mat-icon>error_outline</mat-icon>This campaign is Stopped and can no longer be used. Pick another.
+          </p>
+          <p class="field-message field-message--error" *ngIf="campaignsLoadFailed" role="alert">
+            <mat-icon>error_outline</mat-icon>Couldn't load your campaigns.
+            <button type="button" mat-button (click)="loadCampaigns()">Retry</button>
+          </p>
+
+          <div class="source-campaign-status" *ngIf="form.controls.sourceCampaignId.value as id">
+            <span class="list-label">Campaign status</span>
+            <span [class]="campaignStatusChipClass(sourceCampaignStatusOf(id) || '')">{{ sourceCampaignStatusOf(id) || 'Unknown' }}</span>
+            <a [routerLink]="['/campaigns', id]">View campaign</a>
+          </div>
+        </ng-container>
+      </mat-card>
+
       <!-- Volume -->
       <mat-card class="section">
         <div class="section-head">
