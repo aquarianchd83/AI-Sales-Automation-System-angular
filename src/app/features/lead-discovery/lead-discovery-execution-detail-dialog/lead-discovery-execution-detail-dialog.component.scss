@@ -1,0 +1,47 @@
+.summary-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.meta {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.field-message--error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b3261e;
+  font-size: 13px;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+.detail-table {
+  width: 100%;
+}
+
+.empty-tab {
+  padding: 24px 4px;
+  text-align: center;
+}
+
+.sub {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.dialog-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 24px;
+}

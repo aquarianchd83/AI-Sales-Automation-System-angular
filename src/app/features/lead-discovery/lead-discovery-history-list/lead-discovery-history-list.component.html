@@ -1,0 +1,130 @@
+<div class="page">
+  <app-page-header
+    title="Lead discovery history"
+    subtitle="Every lead-discovery execution, grouped by processing date — customers, Auto-Campaign, templates, mapping, retry and lock status."
+  >
+    <a mat-button routerLink="..">
+      <mat-icon>arrow_back</mat-icon>
+      Discovered leads
+    </a>
+  </app-page-header>
+
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field subscriptSizing="dynamic" class="filter-select">
+        <mat-label>Status</mat-label>
+        <mat-select [formControl]="statusControl">
+          <mat-option [value]="null">Any status</mat-option>
+          <mat-option *ngFor="let s of statusOptions" [value]="s">{{ s }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">{{ page.totalCount }} processing dat{{ page.totalCount === 1 ? 'e' : 'es' }}</span>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <mat-accordion multi *ngIf="page.items.length" class="days">
+      <mat-expansion-panel *ngFor="let day of page.items; let first = first" [expanded]="first">
+        <mat-expansion-panel-header>
+          <mat-panel-title>{{ day.processingDate | date: 'mediumDate' }}</mat-panel-title>
+          <mat-panel-description>
+            {{ day.executions.length }} execution{{ day.executions.length === 1 ? '' : 's' }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="table-scroll">
+          <table mat-table [dataSource]="day.executions">
+            <ng-container matColumnDef="profile">
+              <th mat-header-cell *matHeaderCellDef>Profile</th>
+              <td mat-cell *matCellDef="let row">
+                <div>{{ row.profileName }}</div>
+                <div class="muted sub">
+                  {{ row.trigger }}<span *ngIf="chainLabel(row)"> · {{ chainLabel(row) }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let row">
+                <span [class]="chipClass(row.status)">{{ row.status }}</span>
+                <div class="muted sub" *ngIf="row.nextRetryInfo" [matTooltip]="row.nextRetryInfo">{{ row.nextRetryInfo }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="customers">
+              <th mat-header-cell *matHeaderCellDef>Customers</th>
+              <td mat-cell *matCellDef="let row">
+                <span matTooltip="Created">{{ row.customersCreated }} created</span> ·
+                <span matTooltip="Duplicate">{{ row.customersDuplicate }} dup</span>
+                <span *ngIf="row.customersFailed" class="warn-text"> · {{ row.customersFailed }} failed</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="campaign">
+              <th mat-header-cell *matHeaderCellDef>Auto-Campaign</th>
+              <td mat-cell *matCellDef="let row">
+                <span *ngIf="!row.autoCampaignConfigured" class="muted">Not configured</span>
+                <ng-container *ngIf="row.autoCampaignConfigured">
+                  <span [class]="chipClass(row.campaignStatus)">{{ row.campaignStatus }}</span>
+                  <div class="muted sub" *ngIf="row.generatedCampaignName">{{ row.generatedCampaignName }}</div>
+                </ng-container>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="lock">
+              <th mat-header-cell *matHeaderCellDef>Lock</th>
+              <td mat-cell *matCellDef="let row">
+                <span [class]="chipClass(row.lockStatus)">{{ row.lockStatus }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="started">
+              <th mat-header-cell *matHeaderCellDef>Started</th>
+              <td mat-cell *matCellDef="let row">{{ row.startedAtUtc | zonedDate: 'medium' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let row">
+                <button
+                  mat-icon-button
+                  *ngIf="row.canRetry"
+                  matTooltip="Retry — resumes only the unfinished work"
+                  [disabled]="retrying.has(row.id)"
+                  (click)="retry(row, $event)"
+                >
+                  <mat-icon>replay</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="['profile', 'status', 'customers', 'campaign', 'lock', 'started', 'actions']"></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: ['profile', 'status', 'customers', 'campaign', 'lock', 'started', 'actions']"
+              class="clickable-row"
+              (click)="viewExecution(row)"
+            ></tr>
+          </table>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">history</mat-icon>
+      <p *ngIf="failed">Lead discovery history could not be loaded.</p>
+      <p *ngIf="!failed">No lead discovery executions yet.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>
