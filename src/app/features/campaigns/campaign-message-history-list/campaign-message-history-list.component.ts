@@ -1,19 +1,27 @@
 import { ActivatedRoute } from '@angular/router';
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { Subject, of } from 'rxjs';
-import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
+import { Subject, merge, of } from 'rxjs';
+import { catchError, debounceTime, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
 import {
+  CampaignHistoryFilter,
   CampaignMessageHistoryEntry,
   CampaignMessageStatus,
   CampaignStatus,
+  CampaignStep,
   campaignMessageStatusChipClass,
   formatStepTypeName,
 } from '../../../core/models/campaign.model';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
+
+interface StepOption {
+  value: number;
+  label: string;
+}
 
 /** Every message a single campaign has sent — the per-send detail behind the audience roster's
  * status/step summary. Newest first. */
@@ -29,11 +37,21 @@ export class CampaignMessageHistoryListComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusChipClass = campaignMessageStatusChipClass;
   readonly formatStepTypeName = formatStepTypeName;
+  readonly statusOptions = Object.values(CampaignMessageStatus);
+
+  readonly searchControl = new FormControl<string>('', { nonNullable: true });
+  readonly statusControl = new FormControl<string>('', { nonNullable: true });
+  readonly stepControl = new FormControl<string>('', { nonNullable: true });
+  readonly templateControl = new FormControl<string>('', { nonNullable: true });
+  readonly fromControl = new FormControl<string>('', { nonNullable: true });
+  readonly toControl = new FormControl<string>('', { nonNullable: true });
 
   page: PagedResult<CampaignMessageHistoryEntry> = emptyPage<CampaignMessageHistoryEntry>();
   loading = true;
   failed = false;
   campaignStatus: string | null = null;
+  stepOptions: StepOption[] = [];
+  templateOptions: string[] = [];
 
   private campaignId = '';
   private pageIndex = 1;
@@ -54,9 +72,28 @@ export class CampaignMessageHistoryListComponent implements OnInit, OnDestroy {
     this.campaignId = this.route.snapshot.paramMap.get('id') ?? '';
 
     this.campaigns.getById(this.campaignId).subscribe({
-      next: (campaign) => (this.campaignStatus = campaign.status),
+      next: (campaign) => {
+        this.campaignStatus = campaign.status;
+        this.stepOptions = this.buildStepOptions(campaign.steps);
+        this.templateOptions = this.buildTemplateOptions(campaign.steps);
+      },
       error: () => (this.campaignStatus = null),
     });
+
+    merge(
+      this.searchControl.valueChanges.pipe(debounceTime(300)),
+      this.statusControl.valueChanges,
+      this.stepControl.valueChanges,
+      this.templateControl.valueChanges,
+      this.fromControl.valueChanges,
+      this.toControl.valueChanges
+    )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.pageIndex = 1;
+        this.paginator?.firstPage();
+        this.reload$.next();
+      });
 
     this.reload$
       .pipe(
@@ -64,7 +101,7 @@ export class CampaignMessageHistoryListComponent implements OnInit, OnDestroy {
         switchMap(() => {
           this.loading = true;
           this.failed = false;
-          return this.campaigns.getHistory(this.campaignId, this.buildQuery()).pipe(
+          return this.campaigns.getHistory(this.campaignId, this.buildQuery(), this.buildFilter()).pipe(
             catchError(() => {
               this.failed = true;
               return of(emptyPage<CampaignMessageHistoryEntry>(this.pageSize));
@@ -86,6 +123,26 @@ export class CampaignMessageHistoryListComponent implements OnInit, OnDestroy {
     this.pageIndex = event.pageIndex + 1;
     this.pageSize = event.pageSize;
     this.reload$.next();
+  }
+
+  clearFilters(): void {
+    this.searchControl.setValue('');
+    this.statusControl.setValue('');
+    this.stepControl.setValue('');
+    this.templateControl.setValue('');
+    this.fromControl.setValue('');
+    this.toControl.setValue('');
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(
+      this.searchControl.value ||
+      this.statusControl.value ||
+      this.stepControl.value ||
+      this.templateControl.value ||
+      this.fromControl.value ||
+      this.toControl.value
+    );
   }
 
   displayName(entry: CampaignMessageHistoryEntry): string {
@@ -125,7 +182,28 @@ export class CampaignMessageHistoryListComponent implements OnInit, OnDestroy {
       });
   }
 
+  private buildStepOptions(steps: CampaignStep[]): StepOption[] {
+    return [...steps]
+      .sort((a, b) => a.stepNumber - b.stepNumber)
+      .map((s) => ({ value: s.stepNumber, label: formatStepTypeName(s.stepNumber) }));
+  }
+
+  private buildTemplateOptions(steps: CampaignStep[]): string[] {
+    const names = steps.map((s) => s.messageTemplateName).filter((n): n is string => !!n);
+    return [...new Set(names)].sort();
+  }
+
   private buildQuery(): PagedQuery {
-    return { page: this.pageIndex, pageSize: this.pageSize };
+    return { page: this.pageIndex, pageSize: this.pageSize, search: this.searchControl.value || undefined };
+  }
+
+  private buildFilter(): CampaignHistoryFilter {
+    return {
+      status: this.statusControl.value || undefined,
+      stepNumber: this.stepControl.value ? Number(this.stepControl.value) : undefined,
+      templateName: this.templateControl.value || undefined,
+      from: this.fromControl.value || undefined,
+      to: this.toControl.value || undefined,
+    };
   }
 }

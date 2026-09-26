@@ -221,6 +221,18 @@ export interface CampaignMessageHistoryEntry {
   createdAt: string;
 }
 
+/** CampaignHistoryFilter — optional column filters for getHistory, additive with its Search
+ * (which matches the customer's name/phone, same as the audience roster's own Search). */
+export interface CampaignHistoryFilter {
+  status?: string;
+  stepNumber?: number;
+  templateName?: string;
+  /** "YYYY-MM-DD" — inclusive lower bound on when the message was created. */
+  from?: string;
+  /** "YYYY-MM-DD" — inclusive upper bound on when the message was created. */
+  to?: string;
+}
+
 /** RetryMessageResult — the outcome of manually retrying one failed message. */
 export interface RetryMessageResult {
   sent: boolean;

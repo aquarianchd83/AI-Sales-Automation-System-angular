@@ -3,13 +3,60 @@
     title="Message history"
     subtitle="Every message this campaign has sent, newest first."
   >
-    <a mat-button routerLink="..">
+    <a mat-button routerLink="/campaigns">
       <mat-icon>arrow_back</mat-icon>
-      Back to campaign
+      Back to campaigns
     </a>
   </app-page-header>
 
   <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Customer</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Name or phone" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>Status</mat-label>
+        <mat-select [formControl]="statusControl">
+          <mat-option value="">All</mat-option>
+          <mat-option *ngFor="let s of statusOptions" [value]="s">{{ s }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>Step</mat-label>
+        <mat-select [formControl]="stepControl">
+          <mat-option value="">All</mat-option>
+          <mat-option *ngFor="let s of stepOptions" [value]="s.value">{{ s.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>Template</mat-label>
+        <mat-select [formControl]="templateControl">
+          <mat-option value="">All</mat-option>
+          <mat-option *ngFor="let t of templateOptions" [value]="t">{{ t }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="filter-date" subscriptSizing="dynamic">
+        <mat-label>From</mat-label>
+        <input matInput type="date" [formControl]="fromControl" />
+      </mat-form-field>
+
+      <mat-form-field class="filter-date" subscriptSizing="dynamic">
+        <mat-label>To</mat-label>
+        <input matInput type="date" [formControl]="toControl" />
+      </mat-form-field>
+
+      <button mat-button type="button" *ngIf="hasActiveFilters" (click)="clearFilters()">
+        <mat-icon>clear</mat-icon>
+        Clear filters
+      </button>
+    </div>
+
     <div class="table-header">
       <span class="spacer"></span>
       <span class="muted" *ngIf="!loading">
