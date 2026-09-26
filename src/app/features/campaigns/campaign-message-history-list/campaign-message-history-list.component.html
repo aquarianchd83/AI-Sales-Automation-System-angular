@@ -128,7 +128,8 @@
     <div class="empty-state" *ngIf="!loading && !page.items.length">
       <mat-icon class="empty-icon">history</mat-icon>
       <p *ngIf="failed">Message history could not be loaded.</p>
-      <p *ngIf="!failed">No messages sent yet.</p>
+      <p *ngIf="!failed && hasActiveFilters">No messages match these filters.</p>
+      <p *ngIf="!failed && !hasActiveFilters">No messages sent yet.</p>
     </div>
 
     <mat-paginator
