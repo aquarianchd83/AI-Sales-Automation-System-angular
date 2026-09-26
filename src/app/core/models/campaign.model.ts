@@ -221,6 +221,13 @@ export interface CampaignMessageHistoryEntry {
   createdAt: string;
 }
 
+/** RetryMessageResult — the outcome of manually retrying one failed message. */
+export interface RetryMessageResult {
+  sent: boolean;
+  status: CampaignMessageStatus | string;
+  failureReason: string | null;
+}
+
 export function campaignMessageStatusChipClass(status: string): string {
   switch (status) {
     case CampaignMessageStatus.Delivered:

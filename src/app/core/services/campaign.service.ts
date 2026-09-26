@@ -9,6 +9,7 @@ import {
   CampaignMessageHistoryEntry,
   CampaignProgress,
   CreateCampaignRequest,
+  RetryMessageResult,
   RunJobsResult,
   SetCampaignAudienceRequest,
   SetCampaignAudienceResult,
@@ -119,6 +120,11 @@ export class CampaignService {
     return this.http.get<PagedResult<CampaignMessageHistoryEntry>>(`${this.baseUrl}/${campaignId}/history`, {
       params: toPagedParams(query),
     });
+  }
+
+  /** Manually retries one Failed message, regardless of how many times it already failed. */
+  retryMessage(campaignId: string, messageId: string): Observable<RetryMessageResult> {
+    return this.http.post<RetryMessageResult>(`${this.baseUrl}/${campaignId}/messages/${messageId}/retry`, null);
   }
 
   /**
