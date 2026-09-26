@@ -49,6 +49,7 @@ export class CampaignMessageHistoryListComponent implements OnInit, OnDestroy {
   page: PagedResult<CampaignMessageHistoryEntry> = emptyPage<CampaignMessageHistoryEntry>();
   loading = true;
   failed = false;
+  campaignName: string | null = null;
   campaignStatus: string | null = null;
   stepOptions: StepOption[] = [];
   templateOptions: string[] = [];
@@ -73,6 +74,7 @@ export class CampaignMessageHistoryListComponent implements OnInit, OnDestroy {
 
     this.campaigns.getById(this.campaignId).subscribe({
       next: (campaign) => {
+        this.campaignName = campaign.name;
         this.campaignStatus = campaign.status;
         this.stepOptions = this.buildStepOptions(campaign.steps);
         this.templateOptions = this.buildTemplateOptions(campaign.steps);

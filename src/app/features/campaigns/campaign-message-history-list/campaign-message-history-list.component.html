@@ -1,6 +1,6 @@
 <div class="page">
   <app-page-header
-    title="Message history"
+    [title]="campaignName ? campaignName + ' — Message history' : 'Message history'"
     subtitle="Every message this campaign has sent, newest first."
   >
     <a mat-button routerLink="/campaigns">
