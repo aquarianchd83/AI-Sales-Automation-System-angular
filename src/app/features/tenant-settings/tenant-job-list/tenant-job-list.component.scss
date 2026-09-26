@@ -1,0 +1,100 @@
+.ineligible-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff4e5;
+  color: #a15c00;
+  font-size: 13px;
+
+  mat-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+.load-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px !important;
+  border-radius: 14px !important;
+  color: rgba(0, 0, 0, 0.6);
+
+  mat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 40px;
+    opacity: 0.5;
+  }
+}
+
+.cron {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  white-space: nowrap;
+}
+
+.sub {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.summary {
+  max-width: 26ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.state-on {
+  color: #1b5e20;
+}
+
+.state-off {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.state-blocked,
+.failure,
+.outcome-failed {
+  color: #b71c1c;
+}
+
+.outcome {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.outcome-skipped {
+  color: #ef6c00;
+  font-weight: 500;
+}
+
+.row-failing td {
+  background: rgba(183, 28, 28, 0.04);
+}
+
+.actions-header,
+.actions-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.mat-mdc-table {
+  min-width: 780px;
+}
+
+.mat-column-nextRun,
+.mat-column-lastRun .sub {
+  white-space: nowrap;
+}

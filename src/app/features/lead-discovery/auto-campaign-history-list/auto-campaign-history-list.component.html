@@ -1,0 +1,75 @@
+<div class="page">
+  <app-page-header
+    title="Auto-campaign history"
+    subtitle="Whether each discovered customer's campaign enrollment started, was skipped, or failed. Newest first."
+  >
+    <a mat-button routerLink="..">
+      <mat-icon>arrow_back</mat-icon>
+      Discovered leads
+    </a>
+  </app-page-header>
+
+  <mat-card class="table-card">
+    <div class="table-header">
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">{{ page.totalCount }} entr{{ page.totalCount === 1 ? 'y' : 'ies' }}</span>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="page.items">
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>When</th>
+          <td mat-cell *matCellDef="let row">{{ row.createdAt | zonedDate: 'medium' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="businessName">
+          <th mat-header-cell *matHeaderCellDef>Customer</th>
+          <td mat-cell *matCellDef="let row">{{ row.businessName || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="sourceCampaign">
+          <th mat-header-cell *matHeaderCellDef>Source campaign</th>
+          <td mat-cell *matCellDef="let row">{{ row.sourceCampaignName || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="executionCampaign">
+          <th mat-header-cell *matHeaderCellDef>Execution campaign</th>
+          <td mat-cell *matCellDef="let row">
+            <a *ngIf="row.executionCampaignId" [routerLink]="['/campaigns', row.executionCampaignId]">
+              {{ row.executionCampaignName || row.executionCampaignId }}
+            </a>
+            <span *ngIf="!row.executionCampaignId">—</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span [class]="chipClass(row.status)">{{ row.status }}</span>
+            <div class="muted sub" *ngIf="row.reason" [matTooltip]="row.reason">{{ row.reason }}</div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">campaign</mat-icon>
+      <p *ngIf="failed">Auto-campaign history could not be loaded.</p>
+      <p *ngIf="!failed">No auto-campaign enrollments yet.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

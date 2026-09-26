@@ -1,9 +1,19 @@
 <div class="page">
   <app-page-header title="Lead discovery" subtitle="Businesses found on the web that match your lead discovery profile.">
-    <a mat-stroked-button color="primary" routerLink="profile" *appHasRole="adminRoles">
-      <mat-icon>tune</mat-icon>
-      Discovery profile
-    </a>
+    <ng-container *appHasRole="adminRoles">
+      <a mat-button routerLink="auto-campaign-history">
+        <mat-icon>campaign</mat-icon>
+        Auto-campaign history
+      </a>
+      <a mat-button routerLink="runs">
+        <mat-icon>history</mat-icon>
+        Run history
+      </a>
+      <a mat-stroked-button color="primary" routerLink="profile">
+        <mat-icon>tune</mat-icon>
+        Discovery profile
+      </a>
+    </ng-container>
   </app-page-header>
 
   <div class="consent-note" role="note">
