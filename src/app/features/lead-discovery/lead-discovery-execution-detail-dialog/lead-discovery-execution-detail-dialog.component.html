@@ -19,6 +19,11 @@
     <p class="field-message field-message--error" *ngIf="d.execution.errorMessage" role="alert">
       <mat-icon>error_outline</mat-icon>{{ d.execution.errorMessage }}
     </p>
+    <p class="field-message--error" *ngIf="d.execution.quotaExhausted">
+      <mat-icon>error_outline</mat-icon>
+      Lead-candidate quota ran out partway through, so fewer customers were created than the batch
+      size asked for. Buy credits or wait for the plan to renew.
+    </p>
     <p class="muted" *ngIf="d.execution.nextRetryInfo">{{ d.execution.nextRetryInfo }}</p>
 
     <mat-tab-group>

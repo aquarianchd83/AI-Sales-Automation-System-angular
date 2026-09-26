@@ -21,6 +21,7 @@ function summary(overrides: Partial<LeadDiscoveryHistoryDay['executions'][number
     startedAtUtc: '2026-09-26T09:00:00Z',
     endedAtUtc: '2026-09-26T09:05:00Z',
     lockStatus: 'Released',
+    quotaExhausted: false,
     customersDiscovered: 5,
     customersCreated: 3,
     customersDuplicate: 2,

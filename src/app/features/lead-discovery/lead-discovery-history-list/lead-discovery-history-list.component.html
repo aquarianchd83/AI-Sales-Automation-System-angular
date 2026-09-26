@@ -59,6 +59,13 @@
                 <span matTooltip="Created">{{ row.customersCreated }} created</span> ·
                 <span matTooltip="Duplicate">{{ row.customersDuplicate }} dup</span>
                 <span *ngIf="row.customersFailed" class="warn-text"> · {{ row.customersFailed }} failed</span>
+                <div
+                  class="warn-text sub"
+                  *ngIf="row.quotaExhausted"
+                  matTooltip="The lead-candidate quota ran out partway through, so fewer customers were created than the batch size asked for. Buy credits or wait for the plan to renew."
+                >
+                  Quota exhausted — stopped early
+                </div>
               </td>
             </ng-container>
 
