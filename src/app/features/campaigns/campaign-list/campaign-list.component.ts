@@ -119,6 +119,11 @@ export class CampaignListComponent implements OnInit, OnDestroy {
     void this.router.navigate([campaign.id], { relativeTo: this.route });
   }
 
+  viewHistory(campaign: Campaign, event: Event): void {
+    event.stopPropagation();
+    void this.router.navigate([campaign.id, 'history'], { relativeTo: this.route });
+  }
+
   delete(campaign: Campaign, event: Event): void {
     event.stopPropagation();
     const data: ConfirmDialogData = {

@@ -6,8 +6,11 @@ import { environment } from '../../../environments/environment';
 import {
   Campaign,
   CampaignAudienceMember,
+  CampaignHistoryFilter,
+  CampaignMessageHistoryEntry,
   CampaignProgress,
   CreateCampaignRequest,
+  RetryMessageResult,
   RunJobsResult,
   SetCampaignAudienceRequest,
   SetCampaignAudienceResult,
@@ -111,6 +114,39 @@ export class CampaignService {
     return this.http.get<PagedResult<CampaignAudienceMember>>(`${this.baseUrl}/${campaignId}/audience`, {
       params: toPagedParams(query),
     });
+  }
+
+  /** Every message this campaign has sent — the per-send detail behind getAudience's roster.
+   * `query.search` matches the customer's name/phone; `filter` narrows by status/step/template/date. */
+  getHistory(
+    campaignId: string,
+    query: PagedQuery,
+    filter?: CampaignHistoryFilter
+  ): Observable<PagedResult<CampaignMessageHistoryEntry>> {
+    const params: Record<string, string> = { ...toPagedParams(query) };
+    if (filter?.status) {
+      params['Status'] = filter.status;
+    }
+    if (filter?.stepNumber != null) {
+      params['StepNumber'] = String(filter.stepNumber);
+    }
+    if (filter?.templateName) {
+      params['TemplateName'] = filter.templateName;
+    }
+    if (filter?.from) {
+      params['From'] = filter.from;
+    }
+    if (filter?.to) {
+      params['To'] = filter.to;
+    }
+    return this.http.get<PagedResult<CampaignMessageHistoryEntry>>(`${this.baseUrl}/${campaignId}/history`, {
+      params,
+    });
+  }
+
+  /** Manually retries one Failed message, regardless of how many times it already failed. */
+  retryMessage(campaignId: string, messageId: string): Observable<RetryMessageResult> {
+    return this.http.post<RetryMessageResult>(`${this.baseUrl}/${campaignId}/messages/${messageId}/retry`, null);
   }
 
   /**

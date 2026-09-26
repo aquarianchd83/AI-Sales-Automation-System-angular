@@ -113,6 +113,14 @@
             <button
               mat-icon-button
               type="button"
+              matTooltip="Message history"
+              (click)="viewHistory(c, $event)"
+            >
+              <mat-icon>history</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
               matTooltip="Delete"
               [disabled]="!canDelete(c.status)"
               (click)="delete(c, $event)"
