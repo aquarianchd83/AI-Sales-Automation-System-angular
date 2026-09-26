@@ -4,6 +4,7 @@ import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { finalize } from 'rxjs/operators';
 
+import { Campaign, CampaignStatus, campaignStatusChipClass } from '../../../core/models/campaign.model';
 import {
   LEAD_DISCOVERY_CHECKBOX_FIELDS,
   LEAD_DISCOVERY_LIMITS,
@@ -11,6 +12,7 @@ import {
   SaveLeadDiscoveryProfileRequest,
   addListEntries,
 } from '../../../core/models/lead-discovery.model';
+import { CampaignService } from '../../../core/services/campaign.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -43,6 +45,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
   readonly keywordSeparators = [ENTER, COMMA] as const;
   readonly locationSeparators = [ENTER] as const;
   readonly checkboxFields = LEAD_DISCOVERY_CHECKBOX_FIELDS;
+  readonly campaignStatusChipClass = campaignStatusChipClass;
 
   readonly form = this.fb.nonNullable.group({
     isEnabled: [false],
@@ -59,6 +62,10 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       State: [false],
       Website: [false],
     }),
+    autoCampaignEnabled: [false],
+    // Nullable (not nonNullable-coerced to ''), so "nothing picked" is unambiguous - an empty string
+    // would collide with a real campaign id in mat-select's value comparison.
+    sourceCampaignId: this.fb.control<string | null>(null),
   });
 
   readonly keywordInput = new FormControl('', { nonNullable: true });
@@ -76,14 +83,36 @@ export class LeadDiscoveryProfileComponent implements OnInit {
 
   saved: LeadDiscoveryProfile | null = null;
 
+  /** Non-Stopped campaigns this tenant can pick as an auto-campaign source, name-sorted. Only
+   * existing campaigns are ever offered here - this screen never creates campaign content. */
+  campaigns: Campaign[] = [];
+  campaignsLoading = true;
+  campaignsLoadFailed = false;
+
+  /**
+   * The picker's options: eligible (non-Stopped) campaigns, plus the currently saved source
+   * campaign even if it is Stopped or missing from that list - otherwise an admin who already has
+   * an ineligible source configured would see a blank picker instead of what's actually saved.
+   *
+   * A plain field, recomputed explicitly by refreshSourceCampaignOptions() rather than a template
+   * getter: this array is bound via *ngFor, and a getter returning a brand-new array (and brand-new
+   * item objects) on every change-detection pass makes NgForOf tear down and rebuild every
+   * mat-option on every single check - Material's own listener churn from that then keeps
+   * re-triggering change detection, which live-locks the page. Recomputing only when campaigns or
+   * saved actually change keeps the reference (and the mat-options) stable in between.
+   */
+  sourceCampaignOptions: { id: string; name: string; status: string | null }[] = [];
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly leadDiscovery: LeadDiscoveryService,
+    private readonly campaignService: CampaignService,
     private readonly notify: NotificationService
   ) {}
 
   ngOnInit(): void {
     this.load();
+    this.loadCampaigns();
   }
 
   load(): void {
@@ -99,6 +128,63 @@ export class LeadDiscoveryProfileComponent implements OnInit {
         this.loadFailed = true;
       },
     });
+  }
+
+  loadCampaigns(): void {
+    this.campaignsLoading = true;
+    this.campaignsLoadFailed = false;
+    // A flat, generously-sized page rather than a search-as-you-type picker - existing campaigns
+    // are typically few, and this keeps the picker a plain dropdown like every other field here.
+    this.campaignService.getPaged({ page: 1, pageSize: 100 }).subscribe({
+      next: (result) => {
+        this.campaigns = result.items
+          .filter((c) => c.status !== CampaignStatus.Stopped)
+          .sort((a, b) => a.name.localeCompare(b.name));
+        this.campaignsLoading = false;
+        this.refreshSourceCampaignOptions();
+      },
+      error: () => {
+        this.campaignsLoading = false;
+        this.campaignsLoadFailed = true;
+      },
+    });
+  }
+
+  private refreshSourceCampaignOptions(): void {
+    const options: { id: string; name: string; status: string | null }[] = this.campaigns.map((c) => ({
+      id: c.id,
+      name: c.name,
+      status: c.status as string,
+    }));
+    const savedId = this.saved?.sourceCampaignId;
+    if (savedId && !options.some((o) => o.id === savedId)) {
+      options.push({ id: savedId, name: this.saved!.sourceCampaignName ?? '(deleted campaign)', status: this.saved!.sourceCampaignStatus });
+    }
+    this.sourceCampaignOptions = options;
+  }
+
+  /** True once the selected source campaign is known not to be eligible (Stopped, or no longer
+   * exists) - the UI's "pick another campaign" validation, checked against the actually-eligible
+   * `campaigns` list rather than the display-only sourceCampaignOptions above. */
+  get sourceCampaignIneligible(): boolean {
+    const id = this.form.controls.sourceCampaignId.value;
+    if (!this.form.controls.autoCampaignEnabled.value || !id) {
+      return false;
+    }
+    return !this.campaigns.some((c) => c.id === id);
+  }
+
+  /** The picked source campaign's status, for the small status chip next to the picker - looked up
+   * from sourceCampaignOptions so it works for the "currently saved but ineligible" entry too. */
+  sourceCampaignStatusOf(id: string): string | null {
+    return this.sourceCampaignOptions.find((o) => o.id === id)?.status ?? null;
+  }
+
+  /** Not gated by `submitted` like keywordsMissing/locationsMissing - this is one toggle plus one
+   * picker, so feedback the moment auto campaign is turned on without a selection is clearer than
+   * waiting for a save attempt. */
+  get sourceCampaignMissing(): boolean {
+    return this.form.controls.autoCampaignEnabled.value && !this.form.controls.sourceCampaignId.value;
   }
 
   /** The most the batch size field accepts: the plan's cap when there is one, never above the API's own. */
@@ -179,7 +265,13 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       return;
     }
     this.submitted = true;
-    if (this.form.invalid || !this.lists.keywords.length || !this.lists.locations.length) {
+    if (
+      this.form.invalid ||
+      !this.lists.keywords.length ||
+      !this.lists.locations.length ||
+      this.sourceCampaignMissing ||
+      this.sourceCampaignIneligible
+    ) {
       this.form.markAllAsTouched();
       return;
     }
@@ -197,6 +289,10 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       independentBusiness: v.independentBusiness,
       minimumLeadScore: v.minimumLeadScore,
       additionalCriteria: this.lists.additionalCriteria,
+      autoCampaignEnabled: v.autoCampaignEnabled,
+      // Sent as-is, even while the toggle above is off, so turning auto campaign off and back on
+      // remembers the last-picked source campaign instead of forcing a re-pick every time.
+      sourceCampaignId: v.sourceCampaignId,
     };
 
     this.saving = true;
@@ -223,6 +319,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
   private apply(profile: LeadDiscoveryProfile): void {
     this.saved = profile;
     this.submitted = false;
+    this.refreshSourceCampaignOptions();
 
     const required = (key: string) => profile.requiredFields.some((f) => f.toLowerCase() === key.toLowerCase());
     this.form.reset({
@@ -240,6 +337,8 @@ export class LeadDiscoveryProfileComponent implements OnInit {
         State: required('State'),
         Website: required('Website'),
       },
+      autoCampaignEnabled: profile.autoCampaignEnabled,
+      sourceCampaignId: profile.sourceCampaignId,
     });
 
     const batchSize = this.form.controls.batchSize;

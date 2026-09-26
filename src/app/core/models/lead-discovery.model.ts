@@ -1,7 +1,10 @@
 /** LeadDiscoveryProfileDto (verified against /swagger/v1/swagger.json) — what the tenant's
  * lead-discovery job looks for. GET returns a disabled profile with default values when none has been
  * saved yet, so updatedAt null means "never saved". planMaxBatchSize is the tenant's plan cap on new
- * leads per run; null when no plan applies. */
+ * leads per run; null when no plan applies. sourceCampaignName/sourceCampaignStatus are the selected
+ * auto-campaign source's current name/status, resolved server-side — both null when sourceCampaignId is
+ * unset or no longer resolves to an existing campaign (the cue to show a "campaign no longer exists"
+ * warning instead of a blank picker). */
 export interface LeadDiscoveryProfile {
   isEnabled: boolean;
   targetBusinessType: string;
@@ -15,10 +18,16 @@ export interface LeadDiscoveryProfile {
   independentBusiness: boolean;
   minimumLeadScore: number;
   additionalCriteria: string[];
+  autoCampaignEnabled: boolean;
+  sourceCampaignId: string | null;
+  sourceCampaignName: string | null;
+  sourceCampaignStatus: string | null;
   updatedAt: string | null;
 }
 
-/** Body of PUT /lead-discovery/profile — replaces the whole profile. */
+/** Body of PUT /lead-discovery/profile — replaces the whole profile. sourceCampaignId must reference
+ * an existing, non-Stopped campaign whenever autoCampaignEnabled is true — the API 409s/404s
+ * otherwise, but the UI should never let that request happen (see sourceCampaignIneligible). */
 export interface SaveLeadDiscoveryProfileRequest {
   isEnabled: boolean;
   targetBusinessType: string;
@@ -31,6 +40,39 @@ export interface SaveLeadDiscoveryProfileRequest {
   independentBusiness: boolean;
   minimumLeadScore: number;
   additionalCriteria: string[];
+  autoCampaignEnabled: boolean;
+  sourceCampaignId: string | null;
+}
+
+/** AutoCampaignEnrollmentDto — one auto-campaign enrollment outcome for one discovered customer, the
+ * admin-facing audit trail behind autoCampaignEnabled. status is "Started", "Skipped" or "Failed";
+ * reason explains a Skipped or Failed row. */
+export interface AutoCampaignEnrollment {
+  id: string;
+  discoveredLeadId: string;
+  businessName: string | null;
+  customerId: string;
+  sourceCampaignId: string | null;
+  sourceCampaignName: string | null;
+  executionCampaignId: string | null;
+  executionCampaignName: string | null;
+  executionDateLocal: string;
+  status: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+/** Status chip tone for one AutoCampaignEnrollment.status value — reuses the same status-chip classes
+ * as campaign/campaign-customer statuses elsewhere in this app. */
+export function autoCampaignEnrollmentChipClass(status: string): string {
+  switch (status) {
+    case 'Started':
+      return 'status-chip status-chip--running';
+    case 'Failed':
+      return 'status-chip status-chip--stopped';
+    default:
+      return 'status-chip status-chip--draft';
+  }
 }
 
 /** DiscoveredLeadDto. Every row passed the tenant's qualification rules (qualificationStatus is

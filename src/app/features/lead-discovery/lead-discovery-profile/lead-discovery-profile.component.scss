@@ -290,6 +290,24 @@ mat-icon[matPrefix] {
   }
 }
 
+/* ---------- auto campaign ---------- */
+
+.source-campaign-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+
+  .list-label {
+    margin-right: -2px;
+  }
+
+  a {
+    margin-left: auto;
+    font-size: 13px;
+  }
+}
+
 /* ---------- load failure ---------- */
 
 .load-failed {
