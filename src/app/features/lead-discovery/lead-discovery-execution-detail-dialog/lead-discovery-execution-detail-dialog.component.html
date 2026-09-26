@@ -1,0 +1,119 @@
+<ng-container *ngIf="detail as d">
+  <h2 mat-dialog-title>
+    {{ d.execution.profileName }}
+    <span class="muted">— {{ d.execution.processingDate | date: 'mediumDate' }}</span>
+  </h2>
+
+  <mat-dialog-content>
+    <div class="summary-row">
+      <span [class]="chipClass(d.execution.status)">{{ d.execution.status }}</span>
+      <span class="muted">{{ d.execution.trigger }}</span>
+      <span class="muted" *ngIf="d.execution.retryCount">retry attempt {{ d.execution.retryCount }}</span>
+    </div>
+
+    <p class="muted meta">
+      Started {{ d.execution.startedAtUtc | zonedDate: 'medium' }}
+      <span *ngIf="d.execution.endedAtUtc"> · Ended {{ d.execution.endedAtUtc | zonedDate: 'medium' }}</span>
+    </p>
+
+    <p class="field-message field-message--error" *ngIf="d.execution.errorMessage" role="alert">
+      <mat-icon>error_outline</mat-icon>{{ d.execution.errorMessage }}
+    </p>
+    <p class="muted" *ngIf="d.execution.nextRetryInfo">{{ d.execution.nextRetryInfo }}</p>
+
+    <mat-tab-group>
+      <mat-tab label="Customers ({{ d.customers.length }})">
+        <table mat-table [dataSource]="d.customers" class="detail-table">
+          <ng-container matColumnDef="customerName">
+            <th mat-header-cell *matHeaderCellDef>Business</th>
+            <td mat-cell *matCellDef="let row">{{ row.customerName }}</td>
+          </ng-container>
+          <ng-container matColumnDef="phone">
+            <th mat-header-cell *matHeaderCellDef>Phone</th>
+            <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row"><span [class]="chipClass(row.status)">{{ row.status }}</span></td>
+          </ng-container>
+          <ng-container matColumnDef="error">
+            <th mat-header-cell *matHeaderCellDef>Note</th>
+            <td mat-cell *matCellDef="let row" [matTooltip]="row.errorDetails || ''">{{ row.errorMessage || '—' }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="customerColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: customerColumns"></tr>
+        </table>
+        <p class="muted empty-tab" *ngIf="!d.customers.length">No customers were discovered in this execution.</p>
+      </mat-tab>
+
+      <mat-tab label="Templates ({{ d.templates.length }})">
+        <table mat-table [dataSource]="d.templates" class="detail-table">
+          <ng-container matColumnDef="sequence">
+            <th mat-header-cell *matHeaderCellDef>#</th>
+            <td mat-cell *matCellDef="let row">{{ row.sequence }}</td>
+          </ng-container>
+          <ng-container matColumnDef="templateName">
+            <th mat-header-cell *matHeaderCellDef>Template</th>
+            <td mat-cell *matCellDef="let row">{{ row.templateName }}</td>
+          </ng-container>
+          <ng-container matColumnDef="delay">
+            <th mat-header-cell *matHeaderCellDef>Delay</th>
+            <td mat-cell *matCellDef="let row">{{ row.delayDaysAfterPrevious }}d</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span [class]="chipClass(row.status)">{{ row.status }}</span>
+              <div class="muted sub" *ngIf="row.errorMessage">{{ row.errorMessage }}</div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="templateColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: templateColumns"></tr>
+        </table>
+        <p class="muted empty-tab" *ngIf="!d.templates.length">
+          {{ d.execution.autoCampaignConfigured ? 'No templates were processed in this execution.' : 'Auto-Campaign is not configured.' }}
+        </p>
+      </mat-tab>
+
+      <mat-tab label="Lock history ({{ d.lockTransitions.length }})">
+        <table mat-table [dataSource]="d.lockTransitions" class="detail-table">
+          <ng-container matColumnDef="transitionAtUtc">
+            <th mat-header-cell *matHeaderCellDef>When</th>
+            <td mat-cell *matCellDef="let row">{{ row.transitionAtUtc | zonedDate: 'medium' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="from">
+            <th mat-header-cell *matHeaderCellDef>From</th>
+            <td mat-cell *matCellDef="let row">{{ row.fromStatus }}</td>
+          </ng-container>
+          <ng-container matColumnDef="to">
+            <th mat-header-cell *matHeaderCellDef>To</th>
+            <td mat-cell *matCellDef="let row"><span [class]="chipClass(row.toStatus)">{{ row.toStatus }}</span></td>
+          </ng-container>
+          <ng-container matColumnDef="reason">
+            <th mat-header-cell *matHeaderCellDef>Reason</th>
+            <td mat-cell *matCellDef="let row" [matTooltip]="row.error || ''">{{ row.reason || '—' }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="lockColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: lockColumns"></tr>
+        </table>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="false">Close</button>
+    <button mat-flat-button color="primary" *ngIf="d.execution.canRetry" [disabled]="retrying" (click)="retry()">
+      <mat-icon>replay</mat-icon>
+      Retry
+    </button>
+  </mat-dialog-actions>
+</ng-container>
+
+<div class="dialog-status" *ngIf="loading">
+  <mat-progress-spinner mode="indeterminate" diameter="32"></mat-progress-spinner>
+</div>
+
+<div class="dialog-status" *ngIf="!loading && failed">
+  <p>This execution could not be loaded.</p>
+  <button mat-button (click)="load()">Retry</button>
+</div>

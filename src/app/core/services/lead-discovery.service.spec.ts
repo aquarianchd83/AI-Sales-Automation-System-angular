@@ -64,6 +64,38 @@ describe('LeadDiscoveryService', () => {
     expect(req.request.params.has('minScore')).toBeFalse();
     req.flush({ items: [], totalCount: 0, page: 1, pageSize: 25, totalPages: 0 });
   });
+
+  it('pages history with PascalCase paging plus From/To/Status', () => {
+    service.getHistory({ page: 1, pageSize: 25, from: '2026-09-01', to: '2026-09-30', status: 'RetryPending' }).subscribe();
+
+    const req = http.expectOne((r) => r.url === `${baseUrl}/history`);
+    expect(req.request.params.get('Page')).toBe('1');
+    expect(req.request.params.get('From')).toBe('2026-09-01');
+    expect(req.request.params.get('To')).toBe('2026-09-30');
+    expect(req.request.params.get('Status')).toBe('RetryPending');
+    req.flush({ items: [], totalCount: 0, page: 1, pageSize: 25, totalPages: 0 });
+  });
+
+  it('omits From/To/Status when unset', () => {
+    service.getHistory({ page: 1, pageSize: 25 }).subscribe();
+    const req = http.expectOne((r) => r.url === `${baseUrl}/history`);
+    expect(req.request.params.has('From')).toBeFalse();
+    expect(req.request.params.has('To')).toBeFalse();
+    expect(req.request.params.has('Status')).toBeFalse();
+    req.flush({ items: [], totalCount: 0, page: 1, pageSize: 25, totalPages: 0 });
+  });
+
+  it('gets one execution by id', () => {
+    service.getExecution('exec-1').subscribe();
+    http.expectOne({ url: `${baseUrl}/executions/exec-1`, method: 'GET' }).flush({});
+  });
+
+  it('posts a retry for one execution', () => {
+    service.retryExecution('exec-1').subscribe();
+    const req = http.expectOne({ url: `${baseUrl}/executions/exec-1/retry`, method: 'POST' });
+    expect(req.request.body).toEqual({});
+    req.flush({ executionId: 'exec-1', backgroundJobId: 'job-1' });
+  });
 });
 
 describe('addListEntries', () => {

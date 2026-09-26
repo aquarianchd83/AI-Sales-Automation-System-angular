@@ -8,6 +8,8 @@ import { AutoCampaignHistoryListComponent } from './auto-campaign-history-list/a
 import { DiscoveredLeadDetailDialogComponent } from './discovered-lead-detail-dialog/discovered-lead-detail-dialog.component';
 import { DiscoveredLeadListComponent } from './discovered-lead-list/discovered-lead-list.component';
 import { DiscoveryRunListComponent } from './discovery-run-list/discovery-run-list.component';
+import { LeadDiscoveryExecutionDetailDialogComponent } from './lead-discovery-execution-detail-dialog/lead-discovery-execution-detail-dialog.component';
+import { LeadDiscoveryHistoryListComponent } from './lead-discovery-history-list/lead-discovery-history-list.component';
 import { LeadDiscoveryProfileComponent } from './lead-discovery-profile/lead-discovery-profile.component';
 
 const routes: Routes = [
@@ -27,8 +29,15 @@ const routes: Routes = [
     data: { roles: TENANT_ADMIN_ROLES },
   },
   {
+    // Legacy per-customer enrollment log, kept readable — superseded by 'history' below.
     path: 'auto-campaign-history',
     component: AutoCampaignHistoryListComponent,
+    canActivate: [roleGuard],
+    data: { roles: TENANT_ADMIN_ROLES },
+  },
+  {
+    path: 'history',
+    component: LeadDiscoveryHistoryListComponent,
     canActivate: [roleGuard],
     data: { roles: TENANT_ADMIN_ROLES },
   },
@@ -41,6 +50,8 @@ const routes: Routes = [
     LeadDiscoveryProfileComponent,
     DiscoveryRunListComponent,
     AutoCampaignHistoryListComponent,
+    LeadDiscoveryHistoryListComponent,
+    LeadDiscoveryExecutionDetailDialogComponent,
   ],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })

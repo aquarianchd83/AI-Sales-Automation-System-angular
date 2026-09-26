@@ -1,8 +1,12 @@
 <div class="page">
   <app-page-header
-    title="Auto-campaign history"
-    subtitle="Whether each discovered customer's campaign enrollment started, was skipped, or failed. Newest first."
+    title="Auto-campaign history (legacy)"
+    subtitle="Enrollment outcomes recorded before Lead Discovery History replaced this screen. No new rows are written here — see Lead Discovery History for anything since."
   >
+    <a mat-button routerLink="../history">
+      <mat-icon>fact_check</mat-icon>
+      Lead discovery history
+    </a>
     <a mat-button routerLink="..">
       <mat-icon>arrow_back</mat-icon>
       Discovered leads
