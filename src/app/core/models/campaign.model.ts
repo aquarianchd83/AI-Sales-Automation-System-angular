@@ -104,6 +104,18 @@ export const CAMPAIGN_CUSTOMER_STATUS_ORDER: CampaignCustomerStatus[] = [
   CampaignCustomerStatus.Failed,
 ];
 
+/** One-line description for each customer status, mirroring CampaignCustomerStatus's own doc
+ * comments on the backend enum — shown as the audience legend chip's tooltip. */
+export const CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS: Record<CampaignCustomerStatus, string> = {
+  [CampaignCustomerStatus.Pending]: 'Attached to the campaign — the Initial message has not gone out yet.',
+  [CampaignCustomerStatus.AwaitingResponse]: 'A message has gone out; waiting for a reply or the next scheduled follow-up.',
+  [CampaignCustomerStatus.Responded]: 'The customer replied. Automation for this campaign stops here.',
+  [CampaignCustomerStatus.OptedOut]: 'Opted out during this campaign — no further messages will be sent. Terminal.',
+  [CampaignCustomerStatus.HandedOff]: 'Escalated to a human agent — automation for this campaign stops here. Terminal.',
+  [CampaignCustomerStatus.Completed]: 'Every configured step was sent with no reply. Terminal.',
+  [CampaignCustomerStatus.Failed]: 'Every send attempt for the current step exhausted its retries. Terminal.',
+};
+
 /**
  * Server defaults from CampaignOptions ("Campaigns" config section) — configurable there, so
  * these are a fast-fail hint for the form, not the authority. The server re-validates regardless.
@@ -435,4 +447,32 @@ export function campaignStatusChipClass(status: string): string {
     default:
       return 'status-chip status-chip--draft';
   }
+}
+
+/** Reuses the same status-chip palette as campaignStatusChipClass — OptedOut and Failed share
+ * the "stopped" (red) look since both are terminal and unfavorable; everything else gets its
+ * own color. */
+export function campaignCustomerStatusChipClass(status: string): string {
+  switch (status) {
+    case CampaignCustomerStatus.AwaitingResponse:
+      return 'status-chip status-chip--running';
+    case CampaignCustomerStatus.Responded:
+      return 'status-chip status-chip--scheduled';
+    case CampaignCustomerStatus.HandedOff:
+      return 'status-chip status-chip--paused';
+    case CampaignCustomerStatus.Completed:
+      return 'status-chip status-chip--completed';
+    case CampaignCustomerStatus.OptedOut:
+    case CampaignCustomerStatus.Failed:
+      return 'status-chip status-chip--stopped';
+    default:
+      return 'status-chip status-chip--draft';
+  }
+}
+
+/** Safe lookup for a value that's typed CampaignCustomerStatus | string at the call site (e.g.
+ * CampaignAudienceMember.status) — CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS itself can't be indexed
+ * by the wider string type under strictTemplates. */
+export function campaignCustomerStatusDescription(status: string): string {
+  return CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS[status as CampaignCustomerStatus] ?? '';
 }

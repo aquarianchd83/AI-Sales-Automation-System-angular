@@ -133,6 +133,17 @@
         once added, only to add more by tag or id.
       </p>
 
+      <div class="status-legend">
+        <span class="legend-label muted">Status:</span>
+        <span
+          *ngFor="let s of customerStatusOrder"
+          [class]="customerStatusClass(s)"
+          [matTooltip]="customerStatusDescription[s]"
+          matTooltipPosition="above"
+          >{{ s }}</span
+        >
+      </div>
+
       <div class="filters">
         <mat-form-field class="filter-search" subscriptSizing="dynamic">
           <mat-label>Search</mat-label>
@@ -160,7 +171,11 @@
                 <div class="member-name">{{ audienceDisplayName(member) }}</div>
                 <div class="muted member-phone">{{ member.phoneNumberE164 }}</div>
               </td>
-              <td>{{ member.status }}</td>
+              <td>
+                <span [class]="customerStatusClass(member.status)" [matTooltip]="customerStatusDescriptionFor(member.status)">{{
+                  member.status
+                }}</span>
+              </td>
               <td>{{ member.currentStepNumber < 0 ? 'Not sent yet' : member.currentStepNumber }}</td>
               <td>{{ (member.lastMessageSentAt | date: 'medium') || '—' }}</td>
               <td>{{ (member.nextFollowUpDueAt | date: 'medium') || '—' }}</td>

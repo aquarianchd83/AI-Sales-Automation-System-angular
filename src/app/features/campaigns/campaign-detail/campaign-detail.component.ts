@@ -7,11 +7,14 @@ import { Observable, Subject, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, switchMap, takeUntil } from 'rxjs/operators';
 
 import {
+  CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS,
   CAMPAIGN_CUSTOMER_STATUS_ORDER,
   Campaign,
   CampaignAudienceMember,
   CampaignProgress,
   CampaignStep,
+  campaignCustomerStatusChipClass,
+  campaignCustomerStatusDescription,
   campaignEndDate,
   campaignStatusChipClass,
   canDeleteCampaign,
@@ -45,6 +48,9 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) audiencePaginator?: MatPaginator;
 
   readonly customerStatusOrder = CAMPAIGN_CUSTOMER_STATUS_ORDER;
+  readonly customerStatusDescription = CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS;
+  readonly customerStatusClass = campaignCustomerStatusChipClass;
+  readonly customerStatusDescriptionFor = campaignCustomerStatusDescription;
   readonly statusClass = campaignStatusChipClass;
   readonly audiencePageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly audienceSearchControl = new FormControl<string>('', { nonNullable: true });
