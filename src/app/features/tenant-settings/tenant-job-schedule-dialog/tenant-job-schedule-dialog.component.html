@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>{{ data.job.displayName }}</h2>
+
+<mat-dialog-content>
+  <p class="muted description">{{ data.job.description }}</p>
+
+  <form [formGroup]="form" novalidate>
+    <mat-slide-toggle formControlName="isEnabled" color="primary">
+      {{ form.controls.isEnabled.value ? 'Enabled' : 'Paused' }}
+    </mat-slide-toggle>
+    <p class="muted hint">
+      Pausing removes this job from the schedule entirely — nothing queues up while it is off. The
+      schedule below is kept and restored when you re-enable it.
+    </p>
+
+    <mat-form-field class="full-width">
+      <mat-label>Schedule (cron)</mat-label>
+      <input matInput formControlName="cronExpression" autocomplete="off" spellcheck="false" placeholder="*/5 * * * *" />
+      <mat-hint>
+        Five fields: minute hour day-of-month month day-of-week. Times are UTC.
+        <ng-container *ngIf="!isDefaultCron"> Default is <code>{{ data.job.defaultCron }}</code>.</ng-container>
+      </mat-hint>
+      <mat-error *ngIf="form.controls.cronExpression.hasError('required')">Required.</mat-error>
+    </mat-form-field>
+
+    <div class="presets">
+      <button
+        mat-stroked-button
+        type="button"
+        class="preset"
+        *ngFor="let preset of presets"
+        [color]="form.controls.cronExpression.value === preset.cron ? 'primary' : undefined"
+        (click)="applyPreset(preset.cron)"
+      >
+        {{ preset.label }}
+      </button>
+      <button mat-button type="button" *ngIf="!isDefaultCron" (click)="resetToDefault()">
+        Reset to default
+      </button>
+    </div>
+
+    <p class="muted note" *ngIf="!data.runsBackgroundJobs">
+      <mat-icon inline>info</mat-icon>
+      Your workspace isn't currently eligible to run background jobs, so this stays unregistered
+      whatever you set here. It picks this schedule up as soon as that changes.
+    </p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Save' }}
+  </button>
+</mat-dialog-actions>
