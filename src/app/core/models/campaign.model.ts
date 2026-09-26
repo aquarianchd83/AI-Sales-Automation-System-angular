@@ -194,6 +194,46 @@ export interface CampaignProgress {
   byStatus: Record<string, number>;
 }
 
+/** Message.Status for a campaign-originated send. */
+export enum CampaignMessageStatus {
+  Queued = 'Queued',
+  Sent = 'Sent',
+  Delivered = 'Delivered',
+  Read = 'Read',
+  Failed = 'Failed',
+}
+
+/** CampaignMessageHistoryDto — one message this campaign has sent, newest first. */
+export interface CampaignMessageHistoryEntry {
+  messageId: string;
+  customerId: string;
+  phoneNumberE164: string;
+  firstName: string | null;
+  lastName: string | null;
+  stepNumber: number | null;
+  templateName: string | null;
+  text: string | null;
+  status: CampaignMessageStatus | string;
+  failureReason: string | null;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export function campaignMessageStatusChipClass(status: string): string {
+  switch (status) {
+    case CampaignMessageStatus.Delivered:
+    case CampaignMessageStatus.Read:
+    case CampaignMessageStatus.Sent:
+      return 'status-chip status-chip--running';
+    case CampaignMessageStatus.Failed:
+      return 'status-chip status-chip--stopped';
+    default:
+      return 'status-chip status-chip--draft';
+  }
+}
+
 export interface SendRunResult {
   considered: number;
   sent: number;

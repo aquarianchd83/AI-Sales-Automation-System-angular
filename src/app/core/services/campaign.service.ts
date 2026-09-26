@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import {
   Campaign,
   CampaignAudienceMember,
+  CampaignMessageHistoryEntry,
   CampaignProgress,
   CreateCampaignRequest,
   RunJobsResult,
@@ -109,6 +110,13 @@ export class CampaignService {
   /** The roster behind SetCampaignAudienceResult's counts — who is actually attached. */
   getAudience(campaignId: string, query: PagedQuery): Observable<PagedResult<CampaignAudienceMember>> {
     return this.http.get<PagedResult<CampaignAudienceMember>>(`${this.baseUrl}/${campaignId}/audience`, {
+      params: toPagedParams(query),
+    });
+  }
+
+  /** Every message this campaign has sent — the per-send detail behind getAudience's roster. */
+  getHistory(campaignId: string, query: PagedQuery): Observable<PagedResult<CampaignMessageHistoryEntry>> {
+    return this.http.get<PagedResult<CampaignMessageHistoryEntry>>(`${this.baseUrl}/${campaignId}/history`, {
       params: toPagedParams(query),
     });
   }

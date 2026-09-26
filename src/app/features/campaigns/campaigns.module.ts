@@ -5,6 +5,7 @@ import { CampaignAudienceDialogComponent } from './campaign-audience-dialog/camp
 import { CampaignDetailComponent } from './campaign-detail/campaign-detail.component';
 import { CampaignFormDialogComponent } from './campaign-form-dialog/campaign-form-dialog.component';
 import { CampaignListComponent } from './campaign-list/campaign-list.component';
+import { CampaignMessageHistoryListComponent } from './campaign-message-history-list/campaign-message-history-list.component';
 import { CampaignStepDialogComponent } from './campaign-step-dialog/campaign-step-dialog.component';
 import { RunJobsResultDialogComponent } from './run-jobs-result-dialog/run-jobs-result-dialog.component';
 import { SharedModule } from '../../shared/shared.module';
@@ -12,6 +13,7 @@ import { SharedModule } from '../../shared/shared.module';
 const routes: Routes = [
   { path: '', component: CampaignListComponent },
   { path: ':id', component: CampaignDetailComponent },
+  { path: ':id/history', component: CampaignMessageHistoryListComponent },
 ];
 
 @NgModule({
@@ -22,6 +24,7 @@ const routes: Routes = [
     CampaignStepDialogComponent,
     CampaignAudienceDialogComponent,
     RunJobsResultDialogComponent,
+    CampaignMessageHistoryListComponent,
   ],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })
