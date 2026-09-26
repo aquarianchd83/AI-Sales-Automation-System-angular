@@ -21,6 +21,9 @@ export interface LeadDiscoveryExecutionSummary {
   startedAtUtc: string;
   endedAtUtc: string | null;
   lockStatus: string;
+  /** The tenant's lead-candidate quota ran out mid-run, so discovery stopped before reaching the
+   * profile's batch size — fewer customers than requested is expected here, not a failure. */
+  quotaExhausted: boolean;
   customersDiscovered: number;
   customersCreated: number;
   customersDuplicate: number;
