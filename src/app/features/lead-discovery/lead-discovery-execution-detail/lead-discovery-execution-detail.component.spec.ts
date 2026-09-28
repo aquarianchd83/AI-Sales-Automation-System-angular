@@ -5,6 +5,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
 import { LeadDiscoveryExecutionDetail, LeadDiscoveryExecutionSummary } from '../../../core/models/lead-discovery-history.model';
+import { LeadDiscoveryRun } from '../../../core/models/lead-discovery.model';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { SharedModule } from '../../../shared/shared.module';
@@ -55,7 +56,35 @@ function execution(overrides: Partial<LeadDiscoveryExecutionSummary> = {}): Lead
   };
 }
 
-function detail(overrides: Partial<LeadDiscoveryExecutionSummary> = {}): LeadDiscoveryExecutionDetail {
+function run(overrides: Partial<LeadDiscoveryRun> = {}): LeadDiscoveryRun {
+  return {
+    id: 'r1',
+    ranAtUtc: '2026-09-27T00:57:15Z',
+    model: 'claude-sonnet-5',
+    rounds: 3,
+    candidatesConsidered: 14,
+    leadsSaved: 10,
+    duplicates: 2,
+    rejected: 2,
+    inputTokens: 1000,
+    outputTokens: 500,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    webSearches: 4,
+    webFetches: 6,
+    estimatedCostUsd: 0.42,
+    estimatedCostLocal: 35.28,
+    executionId: 'e1',
+    costPerLeadUsd: 0.042,
+    costPerLeadLocal: 3.528,
+    ...overrides,
+  };
+}
+
+function detail(
+  overrides: Partial<LeadDiscoveryExecutionSummary> = {},
+  research: LeadDiscoveryRun | null = run()
+): LeadDiscoveryExecutionDetail {
   return {
     execution: execution(overrides),
     lockKey: 'lead-discovery:p1',
@@ -69,6 +98,9 @@ function detail(overrides: Partial<LeadDiscoveryExecutionSummary> = {}): LeadDis
     customers: [],
     templates: [],
     lockTransitions: [],
+    research,
+    currencyCode: 'INR',
+    currencySymbol: '₹',
   };
 }
 
@@ -108,6 +140,16 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
     expect(text()).toContain('Found');
     expect(text()).toContain('Skipped');
     expect(text()).toContain('Auto-Campaign is not configured.');
+    expect(text()).toContain('₹35.28');
+    expect(text()).toContain('₹3.53/lead');
+    expect(text()).toContain('claude-sonnet-5');
+  });
+
+  it('explains an execution with no AI research', () => {
+    service.getExecution.and.returnValue(of(detail({}, null)));
+    create();
+
+    expect(text()).toContain('No AI research was recorded for this execution');
   });
 
   it('explains a quota-exhausted execution', () => {

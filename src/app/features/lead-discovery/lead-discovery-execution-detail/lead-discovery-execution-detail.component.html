@@ -80,30 +80,56 @@
       </mat-card>
     </div>
 
-    <mat-card class="detail-card">
-      <h2>Auto-Campaign</h2>
-      <p class="muted" *ngIf="!d.execution.autoCampaignConfigured">Auto-Campaign is not configured.</p>
-      <dl *ngIf="d.execution.autoCampaignConfigured">
-        <dt>Campaign</dt>
-        <dd>
-          <span [class]="chipClass(d.execution.campaignStatus)">{{ d.execution.campaignStatus }}</span>
-          <span *ngIf="d.execution.generatedCampaignName"> {{ d.execution.generatedCampaignName }}</span>
-          <div class="muted sub" *ngIf="d.execution.campaignNote">{{ d.execution.campaignNote }}</div>
-        </dd>
-        <dt>Based on</dt>
-        <dd>{{ d.execution.referredCampaignName || '—' }}</dd>
-        <dt>Templates</dt>
-        <dd><span [class]="chipClass(d.execution.templateStatus)">{{ d.execution.templateStatus }}</span></dd>
-        <dt>Mappings</dt>
-        <dd>
-          <span [class]="chipClass(d.execution.mappingStatus)">{{ d.execution.mappingStatus }}</span>
-          <span class="muted">
-            {{ d.execution.mappingsCreated }} created · {{ d.execution.mappingsExisting }} existing ·
-            {{ d.execution.mappingsFailed }} failed of {{ d.execution.mappingsEligible }} eligible
-          </span>
-        </dd>
-      </dl>
-    </mat-card>
+    <div class="detail-grid">
+      <mat-card class="detail-card">
+        <h2>Auto-Campaign</h2>
+        <p class="muted" *ngIf="!d.execution.autoCampaignConfigured">Auto-Campaign is not configured.</p>
+        <dl *ngIf="d.execution.autoCampaignConfigured">
+          <dt>Campaign</dt>
+          <dd>
+            <span [class]="chipClass(d.execution.campaignStatus)">{{ d.execution.campaignStatus }}</span>
+            <span *ngIf="d.execution.generatedCampaignName"> {{ d.execution.generatedCampaignName }}</span>
+            <div class="muted sub" *ngIf="d.execution.campaignNote">{{ d.execution.campaignNote }}</div>
+          </dd>
+          <dt>Based on</dt>
+          <dd>{{ d.execution.referredCampaignName || '—' }}</dd>
+          <dt>Templates</dt>
+          <dd><span [class]="chipClass(d.execution.templateStatus)">{{ d.execution.templateStatus }}</span></dd>
+          <dt>Mappings</dt>
+          <dd>
+            <span [class]="chipClass(d.execution.mappingStatus)">{{ d.execution.mappingStatus }}</span>
+            <span class="muted">
+              {{ d.execution.mappingsCreated }} created · {{ d.execution.mappingsExisting }} existing ·
+              {{ d.execution.mappingsFailed }} failed of {{ d.execution.mappingsEligible }} eligible
+            </span>
+          </dd>
+        </dl>
+      </mat-card>
+
+      <mat-card class="detail-card">
+        <h2>Research</h2>
+        <p class="muted" *ngIf="!d.research">
+          No AI research was recorded for this execution — a retry resumes stored candidates rather than
+          researching again, or this run was skipped before it started.
+        </p>
+        <dl *ngIf="d.research as r">
+          <dt>Spent</dt>
+          <dd>
+            <strong>{{ formatCharge(r.estimatedCostLocal, d.currencySymbol) }}</strong>
+            <span class="muted"> · {{ formatCharge(r.costPerLeadLocal, d.currencySymbol) }}/lead</span>
+          </dd>
+          <dt>Model</dt>
+          <dd><code>{{ r.model }}</code></dd>
+          <dt>Rounds</dt>
+          <dd>{{ r.rounds }}</dd>
+          <dt>Candidates</dt>
+          <dd>
+            {{ r.candidatesConsidered }} considered ·
+            {{ r.leadsSaved }} saved · {{ r.duplicates }} duplicate · {{ r.rejected }} rejected
+          </dd>
+        </dl>
+      </mat-card>
+    </div>
 
     <mat-card class="table-card">
       <mat-tab-group>

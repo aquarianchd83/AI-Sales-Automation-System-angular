@@ -60,9 +60,15 @@
   color: rgba(0, 0, 0, 0.54);
 }
 
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
 .detail-card {
   padding: 20px;
-  margin-bottom: 16px;
 
   h2 {
     margin: 0 0 12px;
@@ -73,6 +79,11 @@
   p {
     margin: 0;
     font-size: 13px;
+  }
+
+  code {
+    font-family: 'Roboto Mono', 'Consolas', monospace;
+    font-size: 12px;
   }
 }
 

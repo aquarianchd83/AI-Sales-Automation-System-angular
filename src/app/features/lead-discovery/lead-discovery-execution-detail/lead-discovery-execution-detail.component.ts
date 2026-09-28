@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { finalize, map, takeUntil } from 'rxjs/operators';
 
+import { formatCharge } from '../../../core/models/billing.model';
 import { LeadDiscoveryExecutionDetail, leadDiscoveryStatusChipClass } from '../../../core/models/lead-discovery-history.model';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -16,6 +17,7 @@ import { NotificationService } from '../../../core/services/notification.service
 })
 export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy {
   readonly chipClass = leadDiscoveryStatusChipClass;
+  readonly formatCharge = formatCharge;
 
   readonly customerColumns = ['customerName', 'phone', 'status', 'error'];
   readonly templateColumns = ['sequence', 'templateName', 'delay', 'status'];

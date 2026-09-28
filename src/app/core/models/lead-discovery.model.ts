@@ -101,7 +101,10 @@ export interface DiscoveredLead {
 }
 
 /** LeadDiscoveryRunDto — what one run cost and produced. estimatedCostLocal is estimatedCostUsd in the
- * tenant's own currency (LeadDiscoverySpend.currencyCode), the same treatment a plan price gets. */
+ * tenant's own currency (LeadDiscoverySpend.currencyCode), the same treatment a plan price gets.
+ * executionId is the Lead Discovery History execution that ran it — null for an old run recorded before
+ * runs were linked to executions. costPerLead* is the run's cost divided by leadsSaved — zero when it
+ * saved none. */
 export interface LeadDiscoveryRun {
   id: string;
   ranAtUtc: string;
@@ -119,6 +122,9 @@ export interface LeadDiscoveryRun {
   webFetches: number;
   estimatedCostUsd: number;
   estimatedCostLocal: number;
+  executionId: string | null;
+  costPerLeadUsd: number;
+  costPerLeadLocal: number;
 }
 
 /** costPerLeadUsd is zero when the period saved no leads. */
