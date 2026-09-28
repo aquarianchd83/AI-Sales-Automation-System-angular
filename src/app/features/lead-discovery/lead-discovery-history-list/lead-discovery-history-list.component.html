@@ -3,18 +3,18 @@
     title="Lead discovery history"
     subtitle="Every lead-discovery execution, grouped by processing date — customers, Auto-Campaign, templates, mapping, retry and lock status."
   >
+    <button mat-button type="button" [disabled]="runningNow" (click)="runNow()">
+      <mat-icon>play_arrow</mat-icon>
+      {{ runningNow ? 'Queuing…' : 'Run now' }}
+    </button>
     <a mat-button routerLink="..">
       <mat-icon>travel_explore</mat-icon>
       Discovered leads
     </a>
-    <a mat-button routerLink="/lead-discovery/profile">
+    <a mat-stroked-button color="primary" routerLink="/lead-discovery/profile">
       <mat-icon>tune</mat-icon>
       Discovery profile
     </a>
-    <button mat-stroked-button color="primary" type="button" [disabled]="runningNow" (click)="runNow()">
-      <mat-icon>play_arrow</mat-icon>
-      {{ runningNow ? 'Queuing…' : 'Run now' }}
-    </button>
   </app-page-header>
 
   <mat-card class="table-card">
