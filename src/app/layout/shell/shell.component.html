@@ -173,6 +173,23 @@
       </button>
     </div>
 
+    <div class="billing-alert-banner" *ngFor="let alert of urgentBillingAlerts">
+      <mat-icon>error_outline</mat-icon>
+      <span>
+        <strong>{{ alert.title }}</strong> — {{ alert.body }}
+      </span>
+      <a mat-stroked-button color="warn" routerLink="/billing/wallet">Buy credits</a>
+      <button
+        mat-icon-button
+        type="button"
+        aria-label="Dismiss"
+        matTooltip="Dismiss"
+        (click)="acknowledgeBillingAlert(alert)"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
     <div class="announcement-banner" *ngFor="let announcement of announcements">
       <mat-icon>campaign</mat-icon>
       <span>

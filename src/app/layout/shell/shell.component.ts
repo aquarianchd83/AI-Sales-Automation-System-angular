@@ -291,6 +291,13 @@ export class ShellComponent implements OnInit, OnDestroy {
     return isUrgentNotification(alert.kind);
   }
 
+  /** Urgent alerts (quota exhausted, near-exhausted, credits/plan about to lapse) as a banner on every
+   * page — not just the bell, which a tenant can go a whole session without opening. Stays until
+   * acknowledged or deleted; nothing here auto-dismisses. */
+  get urgentBillingAlerts(): TenantNotification[] {
+    return this.billingAlerts.filter((a) => this.urgentAlert(a));
+  }
+
   /** Marks one billing alert read without navigating anywhere - the bell's own "mark as read" action. */
   acknowledgeBillingAlert(alert: TenantNotification): void {
     this.billingAlerts = this.billingAlerts.filter((n) => n.id !== alert.id);
