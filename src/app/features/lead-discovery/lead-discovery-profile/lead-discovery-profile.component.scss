@@ -308,6 +308,12 @@ mat-icon[matPrefix] {
 
 /* ---------- auto campaign ---------- */
 
+.start-time-field {
+  display: block;
+  width: 200px;
+  max-width: 100%;
+}
+
 .source-campaign-status {
   display: flex;
   align-items: center;

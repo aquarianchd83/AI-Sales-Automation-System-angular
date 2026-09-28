@@ -6,6 +6,7 @@ import { finalize } from 'rxjs/operators';
 
 import { Campaign, CampaignStatus, campaignStatusChipClass } from '../../../core/models/campaign.model';
 import {
+  LEAD_DISCOVERY_CAMPAIGN_START_MODES,
   LEAD_DISCOVERY_CHECKBOX_FIELDS,
   LEAD_DISCOVERY_LIMITS,
   LeadDiscoveryProfile,
@@ -46,6 +47,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
   readonly locationSeparators = [ENTER] as const;
   readonly checkboxFields = LEAD_DISCOVERY_CHECKBOX_FIELDS;
   readonly campaignStatusChipClass = campaignStatusChipClass;
+  readonly campaignStartModes = LEAD_DISCOVERY_CAMPAIGN_START_MODES;
 
   readonly form = this.fb.nonNullable.group({
     isEnabled: [false],
@@ -67,6 +69,10 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     // would collide with a real campaign id in mat-select's value comparison.
     sourceCampaignId: this.fb.control<string | null>(null),
     autoConsentDiscoveredCustomers: [false],
+    autoCampaignStartMode: ['Immediate'],
+    // Native <input type="time"> value ("HH:mm") or null - nullable like sourceCampaignId, for the
+    // same reason: distinguishing "nothing picked" is only needed while start mode isn't NextDayWithTime.
+    autoCampaignStartTime: this.fb.control<string | null>(null),
   });
 
   readonly keywordInput = new FormControl('', { nonNullable: true });
@@ -188,6 +194,16 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     return this.form.controls.autoCampaignEnabled.value && !this.form.controls.sourceCampaignId.value;
   }
 
+  /** Same gating as sourceCampaignMissing - one field, so feedback the moment it's needed rather than
+   * waiting for a save attempt. */
+  get startTimeMissing(): boolean {
+    return (
+      this.form.controls.autoCampaignEnabled.value &&
+      this.form.controls.autoCampaignStartMode.value === 'NextDayWithTime' &&
+      !this.form.controls.autoCampaignStartTime.value
+    );
+  }
+
   /** The most the batch size field accepts: the plan's cap when there is one, never above the API's own. */
   get batchLimit(): number {
     const plan = this.saved?.planMaxBatchSize;
@@ -271,7 +287,8 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       !this.lists.keywords.length ||
       !this.lists.locations.length ||
       this.sourceCampaignMissing ||
-      this.sourceCampaignIneligible
+      this.sourceCampaignIneligible ||
+      this.startTimeMissing
     ) {
       this.form.markAllAsTouched();
       return;
@@ -295,6 +312,10 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       // remembers the last-picked source campaign instead of forcing a re-pick every time.
       sourceCampaignId: v.sourceCampaignId,
       autoConsentDiscoveredCustomers: v.autoConsentDiscoveredCustomers,
+      autoCampaignStartMode: v.autoCampaignStartMode,
+      // Sent as-is, even while start mode isn't NextDayWithTime, so switching back to it remembers the
+      // last-picked time. "HH:mm" from the native time input, widened to the backend's "HH:mm:ss".
+      autoCampaignStartTime: v.autoCampaignStartTime ? `${v.autoCampaignStartTime}:00` : null,
     };
 
     this.saving = true;
@@ -342,6 +363,9 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       autoCampaignEnabled: profile.autoCampaignEnabled,
       sourceCampaignId: profile.sourceCampaignId,
       autoConsentDiscoveredCustomers: profile.autoConsentDiscoveredCustomers,
+      autoCampaignStartMode: profile.autoCampaignStartMode,
+      // Backend "HH:mm:ss" narrowed to the native time input's "HH:mm".
+      autoCampaignStartTime: profile.autoCampaignStartTime?.slice(0, 5) ?? null,
     });
 
     const batchSize = this.form.controls.batchSize;

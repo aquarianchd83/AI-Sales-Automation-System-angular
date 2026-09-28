@@ -246,7 +246,7 @@
           <div class="switch-row">
             <div>
               <strong>Auto campaign enabled</strong>
-              <span>Clones the source campaign's content and schedule for every customer this job discovers.</span>
+              <span>Clones the source campaign's content for every customer this job discovers.</span>
             </div>
             <mat-slide-toggle formControlName="autoCampaignEnabled" aria-label="Auto campaign enabled"></mat-slide-toggle>
           </div>
@@ -280,6 +280,26 @@
             <span [class]="campaignStatusChipClass(sourceCampaignStatusOf(id) || '')">{{ sourceCampaignStatusOf(id) || 'Unknown' }}</span>
             <a [routerLink]="['/campaigns', id]">View campaign</a>
           </div>
+
+          <div class="list-head list-gap">
+            <span class="list-label">Start</span>
+          </div>
+          <mat-button-toggle-group formControlName="autoCampaignStartMode" aria-label="When the generated campaign starts">
+            <mat-button-toggle *ngFor="let mode of campaignStartModes" [value]="mode.value">{{ mode.label }}</mat-button-toggle>
+          </mat-button-toggle-group>
+
+          <mat-form-field
+            appearance="outline"
+            class="start-time-field list-gap"
+            *ngIf="form.controls.autoCampaignStartMode.value === 'NextDayWithTime'"
+          >
+            <mat-label>Time</mat-label>
+            <input matInput type="time" formControlName="autoCampaignStartTime" />
+            <mat-hint>Your workspace's own local time.</mat-hint>
+          </mat-form-field>
+          <p class="field-message field-message--error" *ngIf="startTimeMissing" role="alert">
+            <mat-icon>error_outline</mat-icon>Pick a time for the next-day start.
+          </p>
         </ng-container>
       </mat-card>
 

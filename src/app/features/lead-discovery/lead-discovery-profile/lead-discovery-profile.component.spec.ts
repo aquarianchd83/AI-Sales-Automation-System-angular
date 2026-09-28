@@ -30,6 +30,8 @@ const profile: LeadDiscoveryProfile = {
   sourceCampaignName: null,
   sourceCampaignStatus: null,
   autoConsentDiscoveredCustomers: false,
+  autoCampaignStartMode: 'Immediate',
+  autoCampaignStartTime: null,
   updatedAt: '2026-09-15T10:00:00Z',
 };
 
@@ -104,6 +106,8 @@ describe('LeadDiscoveryProfileComponent', () => {
       autoCampaignEnabled: false,
       sourceCampaignId: null,
       autoConsentDiscoveredCustomers: false,
+      autoCampaignStartMode: 'Immediate',
+      autoCampaignStartTime: null,
     });
     expect(notify.success).toHaveBeenCalled();
     expect(component.hasChanges).toBeFalse();
@@ -220,6 +224,50 @@ describe('LeadDiscoveryProfileComponent', () => {
       expect(service.saveProfile).toHaveBeenCalledWith(
         jasmine.objectContaining({ autoCampaignEnabled: true, sourceCampaignId: runningCampaign.id })
       );
+    });
+
+    it('blocks saving a next-day start with no time picked', () => {
+      campaigns.getPaged.and.returnValue(of({ items: [runningCampaign], totalCount: 1, page: 1, pageSize: 100, totalPages: 1 }));
+      create(profile);
+      fixture.detectChanges();
+
+      component.form.controls.autoCampaignEnabled.setValue(true);
+      component.form.controls.sourceCampaignId.setValue(runningCampaign.id);
+      component.form.controls.autoCampaignStartMode.setValue('NextDayWithTime');
+      component.form.markAsDirty();
+      fixture.detectChanges();
+      expect(component.startTimeMissing).toBeTrue();
+
+      component.save();
+      fixture.detectChanges();
+
+      expect(service.saveProfile).not.toHaveBeenCalled();
+      expect(text()).toContain('Pick a time for the next-day start.');
+    });
+
+    it('sends the next-day start time widened to HH:mm:ss', () => {
+      campaigns.getPaged.and.returnValue(of({ items: [runningCampaign], totalCount: 1, page: 1, pageSize: 100, totalPages: 1 }));
+      create(profile);
+      fixture.detectChanges();
+
+      component.form.controls.autoCampaignEnabled.setValue(true);
+      component.form.controls.sourceCampaignId.setValue(runningCampaign.id);
+      component.form.controls.autoCampaignStartMode.setValue('NextDayWithTime');
+      component.form.controls.autoCampaignStartTime.setValue('09:30');
+      component.form.markAsDirty();
+      expect(component.startTimeMissing).toBeFalse();
+
+      component.save();
+
+      expect(service.saveProfile).toHaveBeenCalledWith(
+        jasmine.objectContaining({ autoCampaignStartMode: 'NextDayWithTime', autoCampaignStartTime: '09:30:00' })
+      );
+    });
+
+    it('narrows a loaded HH:mm:ss start time to the native time input value', () => {
+      create({ ...profile, autoCampaignStartMode: 'NextDayWithTime', autoCampaignStartTime: '09:30:00' });
+
+      expect(component.form.controls.autoCampaignStartTime.value).toBe('09:30');
     });
 
     it('flags a saved source campaign that is no longer eligible (Stopped)', () => {

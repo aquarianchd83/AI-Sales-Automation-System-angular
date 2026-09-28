@@ -6,7 +6,11 @@
  * unset or no longer resolves to an existing campaign (the cue to show a "campaign no longer exists"
  * warning instead of a blank picker). autoConsentDiscoveredCustomers is off by default — when on, a
  * customer this job creates is written OptedIn instead of PendingOptIn, with no consent evidence beyond
- * having been found on the web; see the warning shown next to its toggle before turning it on. */
+ * having been found on the web; see the warning shown next to its toggle before turning it on.
+ * autoCampaignStartMode is "Immediate" (default — the generated campaign starts as soon as it is
+ * created) or "NextDayWithTime" (starts the day after the processing date, at
+ * autoCampaignStartTime — "HH:mm:ss", the tenant's own local time, required only in that mode). The
+ * referred (source) campaign's own schedule is never used for this. */
 export interface LeadDiscoveryProfile {
   isEnabled: boolean;
   targetBusinessType: string;
@@ -25,12 +29,15 @@ export interface LeadDiscoveryProfile {
   sourceCampaignName: string | null;
   sourceCampaignStatus: string | null;
   autoConsentDiscoveredCustomers: boolean;
+  autoCampaignStartMode: string;
+  autoCampaignStartTime: string | null;
   updatedAt: string | null;
 }
 
 /** Body of PUT /lead-discovery/profile — replaces the whole profile. sourceCampaignId must reference
  * an existing, non-Stopped campaign whenever autoCampaignEnabled is true — the API 409s/404s
- * otherwise, but the UI should never let that request happen (see sourceCampaignIneligible). */
+ * otherwise, but the UI should never let that request happen (see sourceCampaignIneligible).
+ * autoCampaignStartTime is required whenever autoCampaignStartMode is "NextDayWithTime". */
 export interface SaveLeadDiscoveryProfileRequest {
   isEnabled: boolean;
   targetBusinessType: string;
@@ -46,6 +53,8 @@ export interface SaveLeadDiscoveryProfileRequest {
   autoCampaignEnabled: boolean;
   sourceCampaignId: string | null;
   autoConsentDiscoveredCustomers: boolean;
+  autoCampaignStartMode: string;
+  autoCampaignStartTime: string | null;
 }
 
 /** AutoCampaignEnrollmentDto — one auto-campaign enrollment outcome for one discovered customer, the
@@ -149,6 +158,12 @@ export interface LeadDiscoverySpend {
   allTime: LeadDiscoverySpendPeriod;
   lastRunAtUtc: string | null;
 }
+
+/** LeadDiscoveryCampaignStartMode on the backend, for the Auto-Campaign start radio group. */
+export const LEAD_DISCOVERY_CAMPAIGN_START_MODES = [
+  { value: 'Immediate', label: 'Immediately' },
+  { value: 'NextDayWithTime', label: 'Next day, at a set time' },
+] as const;
 
 /** Mirrors LeadDiscoveryLimits on the backend (SaveLeadDiscoveryProfileRequestValidator). */
 export const LEAD_DISCOVERY_LIMITS = {
