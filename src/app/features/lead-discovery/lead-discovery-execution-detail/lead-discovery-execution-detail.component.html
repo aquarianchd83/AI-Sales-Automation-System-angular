@@ -48,8 +48,11 @@
     </p>
     <p class="field-message--warn" *ngIf="d.execution.quotaExhausted" role="note">
       <mat-icon>warning_amber</mat-icon>
-      Lead-candidate quota ran out partway through, so fewer customers were created than the batch size
-      asked for. Buy credits or wait for the plan to renew.
+      <span>
+        Lead-candidate quota ran out partway through, so fewer customers were created than the batch size
+        asked for. Buy credits or wait for the plan to renew.
+        <a mat-stroked-button color="primary" routerLink="/billing/wallet" class="buy-credits-link">Buy credits</a>
+      </span>
     </p>
     <p class="muted" *ngIf="d.execution.nextRetryInfo">{{ d.execution.nextRetryInfo }}</p>
 

@@ -160,4 +160,20 @@ describe('LeadDiscoveryHistoryListComponent', () => {
 
     expect(text()).toContain('No lead discovery executions yet.');
   });
+
+  it('offers to buy credits on a quota-exhausted row, without navigating to the execution', () => {
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ quotaExhausted: true })] }]);
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+    expect(text()).toContain('Buy credits');
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a[href="/billing/wallet"]')!.click();
+
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('hides the buy-credits link when the quota was not exhausted', () => {
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ quotaExhausted: false })] }]);
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/billing/wallet"]')).toBeNull();
+  });
 });

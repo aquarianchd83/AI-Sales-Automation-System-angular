@@ -155,12 +155,21 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
     expect(text()).toContain('No AI research was recorded for this execution');
   });
 
-  it('explains a quota-exhausted execution', () => {
+  it('explains a quota-exhausted execution and offers to buy credits', () => {
     service.getExecution.and.returnValue(of(detail({ quotaExhausted: true, customersDiscovered: 0 })));
     create();
 
     expect(text()).toContain('Lead-candidate quota ran out partway through');
     expect(text()).toContain('The quota ran out before any customers were discovered.');
+    const link = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a[href="/billing/wallet"]');
+    expect(link?.textContent).toContain('Buy credits');
+  });
+
+  it('has no buy-credits link when the quota was not exhausted', () => {
+    service.getExecution.and.returnValue(of(detail({ quotaExhausted: false })));
+    create();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/billing/wallet"]')).toBeNull();
   });
 
   it('shows an error state when the execution cannot be loaded', () => {

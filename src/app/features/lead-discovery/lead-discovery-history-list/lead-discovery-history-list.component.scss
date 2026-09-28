@@ -38,6 +38,22 @@
   color: #b3261e;
 }
 
+.quota-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  max-width: none;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+
+  a {
+    flex: none;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+}
+
 .clickable-row {
   cursor: pointer;
 }
