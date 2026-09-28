@@ -2,11 +2,13 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, of, throwError } from 'rxjs';
 
 import { DiscoveredLead } from '../../../core/models/lead-discovery.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
+import { NotificationService } from '../../../core/services/notification.service';
+import { TenantJobService } from '../../../core/services/tenant-job.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { DiscoveredLeadListComponent } from './discovered-lead-list.component';
 
@@ -35,6 +37,8 @@ describe('DiscoveredLeadListComponent', () => {
   let fixture: ComponentFixture<DiscoveredLeadListComponent>;
   let component: DiscoveredLeadListComponent;
   let service: jasmine.SpyObj<LeadDiscoveryService>;
+  let tenantJobs: jasmine.SpyObj<TenantJobService>;
+  let notify: jasmine.SpyObj<NotificationService>;
   let dialog: jasmine.SpyObj<MatDialog>;
   let roles: string[];
 
@@ -50,6 +54,8 @@ describe('DiscoveredLeadListComponent', () => {
   beforeEach(() => {
     roles = ['Admin'];
     service = jasmine.createSpyObj('LeadDiscoveryService', ['getLeads']);
+    tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger']);
+    notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
     TestBed.configureTestingModule({
@@ -57,6 +63,8 @@ describe('DiscoveredLeadListComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: LeadDiscoveryService, useValue: service },
+        { provide: TenantJobService, useValue: tenantJobs },
+        { provide: NotificationService, useValue: notify },
         {
           provide: AuthService,
           useValue: {
@@ -104,5 +112,29 @@ describe('DiscoveredLeadListComponent', () => {
     expect(text()).toContain('No leads discovered yet.');
     expect(text()).not.toContain('Discovery profile');
     expect(text()).not.toContain('Set up your discovery profile');
+    expect(text()).not.toContain('Run now');
+  });
+
+  it('queues a run now and shows the job id', () => {
+    tenantJobs.trigger.and.returnValue(of({ recurringJobId: 'lead-discovery', backgroundJobId: 'job-1' }));
+    create([]);
+
+    (Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Run now')
+    ) as HTMLButtonElement).click();
+
+    expect(tenantJobs.trigger).toHaveBeenCalledWith('lead-discovery');
+    expect(notify.success).toHaveBeenCalledWith('Lead discovery queued (job job-1).');
+  });
+
+  it('shows an error notification when the run cannot be queued', () => {
+    tenantJobs.trigger.and.returnValue(throwError(() => ({ error: { message: 'Lead discovery is disabled.' } })));
+    create([]);
+
+    (Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Run now')
+    ) as HTMLButtonElement).click();
+
+    expect(notify.error).toHaveBeenCalledWith('Lead discovery is disabled.');
   });
 });

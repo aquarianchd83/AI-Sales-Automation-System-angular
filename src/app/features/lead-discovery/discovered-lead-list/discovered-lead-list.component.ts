@@ -9,7 +9,12 @@ import { DiscoveredLead, MIN_SCORE_FILTERS, leadScoreChipClass } from '../../../
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { TENANT_ADMIN_ROLES } from '../../../core/models/user.model';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
+import { NotificationService } from '../../../core/services/notification.service';
+import { TenantJobService } from '../../../core/services/tenant-job.service';
 import { DiscoveredLeadDetailDialogComponent } from '../discovered-lead-detail-dialog/discovered-lead-detail-dialog.component';
+
+/** TenantJobCatalog.LeadDiscovery on the backend — the job key POST /jobs/{jobType}/trigger takes. */
+const LEAD_DISCOVERY_JOB_TYPE = 'lead-discovery';
 
 /** Businesses the lead-discovery job found and qualified, newest first. Read-only — there is no
  * endpoint to convert, dismiss or delete one — so a row opens a detail dialog rather than a page. */
@@ -32,6 +37,7 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
 
   page: PagedResult<DiscoveredLead> = emptyPage<DiscoveredLead>();
   loading = true;
+  runningNow = false;
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
@@ -39,6 +45,8 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly leadDiscovery: LeadDiscoveryService,
+    private readonly tenantJobs: TenantJobService,
+    private readonly notify: NotificationService,
     private readonly dialog: MatDialog
   ) {}
 
@@ -98,5 +106,24 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
 
   view(lead: DiscoveredLead): void {
     this.dialog.open(DiscoveredLeadDetailDialogComponent, { data: lead, width: '560px', maxWidth: '95vw' });
+  }
+
+  /** Queues today's lead-discovery run immediately, without waiting for its cron schedule. Refused
+   * (409) when the job is disabled or a run for this tenant is already in flight. */
+  runNow(): void {
+    if (this.runningNow) {
+      return;
+    }
+    this.runningNow = true;
+    this.tenantJobs
+      .trigger(LEAD_DISCOVERY_JOB_TYPE)
+      .pipe(finalize(() => (this.runningNow = false)))
+      .subscribe({
+        next: (result) => this.notify.success(`Lead discovery queued (job ${result.backgroundJobId}).`),
+        error: (err) => {
+          const message = err?.error?.message || err?.error?.detail || 'Lead discovery could not be queued.';
+          this.notify.error(message);
+        },
+      });
   }
 }
