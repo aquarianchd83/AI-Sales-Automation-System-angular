@@ -70,7 +70,14 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
         { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
-        { label: 'Lead Discovery', icon: 'travel_explore', route: '/lead-discovery', roles: [] },
+        {
+          label: 'Lead Discovery',
+          icon: 'travel_explore',
+          // An Admin lands straight on Lead Discovery History (Admin-only route); anyone else lands on
+          // Discovered Leads, since History would 403 them - see the lead-discovery route guard.
+          route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/lead-discovery/history' : '/lead-discovery',
+          roles: [],
+        },
         { label: 'Tags', icon: 'sell', route: '/tags', roles: [] },
       ],
     },
@@ -93,6 +100,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Audit Log', icon: 'history', route: '/audit-log', roles: TENANT_ADMIN_ONLY },
         { label: 'Billing', icon: 'payments', route: '/billing', roles: TENANT_ADMIN_ONLY, exact: true },
         { label: 'Usage & Credits', icon: 'data_usage', route: '/billing/wallet', roles: TENANT_ADMIN_ONLY },
+        { label: 'Test Notifications', icon: 'science', route: '/billing/notifications/test', roles: TENANT_ADMIN_ONLY },
       ],
     },
   ];
@@ -289,6 +297,13 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   urgentAlert(alert: TenantNotification): boolean {
     return isUrgentNotification(alert.kind);
+  }
+
+  /** Urgent alerts (quota exhausted, near-exhausted, credits/plan about to lapse) as a banner on every
+   * page — not just the bell, which a tenant can go a whole session without opening. Stays until
+   * acknowledged or deleted; nothing here auto-dismisses. */
+  get urgentBillingAlerts(): TenantNotification[] {
+    return this.billingAlerts.filter((a) => this.urgentAlert(a));
   }
 
   /** Marks one billing alert read without navigating anywhere - the bell's own "mark as read" action. */

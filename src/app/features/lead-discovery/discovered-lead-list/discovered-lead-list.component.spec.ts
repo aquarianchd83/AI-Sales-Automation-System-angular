@@ -77,7 +77,7 @@ describe('DiscoveredLeadListComponent', () => {
     expect(text()).toContain('Chandigarh, Punjab');
     expect(text()).toContain('+91 172 400 1234');
     expect(text()).toContain('84');
-    expect(text()).toContain('Discovery profile');
+    expect(text()).toContain('Back');
   });
 
   it('filters by minimum score from the first page', fakeAsync(() => {
@@ -97,12 +97,12 @@ describe('DiscoveredLeadListComponent', () => {
     expect(dialog.open).toHaveBeenCalledWith(jasmine.any(Function), jasmine.objectContaining({ data: lead }));
   });
 
-  it('hides the profile link from a sales agent', () => {
+  it('hides the back link from a sales agent', () => {
     roles = ['SalesAgent'];
     create([]);
 
     expect(text()).toContain('No leads discovered yet.');
-    expect(text()).not.toContain('Discovery profile');
+    expect(text()).not.toContain('Back');
     expect(text()).not.toContain('Set up your discovery profile');
   });
 });

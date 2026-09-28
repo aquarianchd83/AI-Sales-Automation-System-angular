@@ -20,8 +20,9 @@ import {
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
 
 /** The tenant's lead discovery profile (tenant Admin only — a run spends the tenant's AI credit) and
- * the leads the lead-discovery job has found (any tenant user). Runs themselves happen on the job's
- * schedule; there is no "run now" for a tenant. */
+ * the leads the lead-discovery job has found (any tenant user). This service has no "run now" of its
+ * own — triggering an off-schedule run is a job operation, not a lead-discovery one, so it goes through
+ * TenantJobService.trigger('lead-discovery') instead. */
 @Injectable({ providedIn: 'root' })
 export class LeadDiscoveryService {
   private readonly baseUrl = `${environment.apiBaseUrl}/lead-discovery`;

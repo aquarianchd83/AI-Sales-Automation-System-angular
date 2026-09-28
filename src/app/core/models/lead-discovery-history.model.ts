@@ -1,3 +1,4 @@
+import { LeadDiscoveryRun } from './lead-discovery.model';
 import { PagedQuery } from './paged-result.model';
 
 /** Query for GET /lead-discovery/history — paged by processing date, each date carrying every
@@ -10,7 +11,10 @@ export interface LeadDiscoveryHistoryQuery extends PagedQuery {
 
 /** LeadDiscoveryExecutionSummaryDto — one execution in Lead Discovery History. Every *Status field is
  * an enum name from the backend (LeadDiscoveryExecutionStatus, LeadDiscoveryLockStatus,
- * LeadDiscoveryCampaignStatus, LeadDiscoveryAssociationStatus) — see leadDiscoveryStatusChipClass. */
+ * LeadDiscoveryCampaignStatus, LeadDiscoveryAssociationStatus) — see leadDiscoveryStatusChipClass.
+ * estimatedCostLocal is the linked run's cost in the tenant's own currency — zero when the execution
+ * did no research (a retry, or a run skipped before it started); currencyCode/currencySymbol are the
+ * tenant's currency regardless, so a zero still reads correctly. */
 export interface LeadDiscoveryExecutionSummary {
   id: string;
   processingDate: string;
@@ -53,6 +57,9 @@ export interface LeadDiscoveryExecutionSummary {
   errorMessage: string | null;
   nextRetryInfo: string | null;
   canRetry: boolean;
+  estimatedCostLocal: number;
+  currencyCode: string;
+  currencySymbol: string;
 }
 
 /** LeadDiscoveryHistoryDayDto — one processing date and every execution that belongs to it. */
@@ -97,7 +104,10 @@ export interface LeadDiscoveryLockTransition {
   error: string | null;
 }
 
-/** LeadDiscoveryExecutionDetailDto — everything recorded about one execution. */
+/** LeadDiscoveryExecutionDetailDto — everything recorded about one execution. research is what this
+ * execution's AI research used and cost — null when it did no research: a retry, a skipped or blocked
+ * run, a run stopped before its first round, or one recorded before runs were linked to executions.
+ * currencyCode/currencySymbol are the tenant's currency, for research.estimatedCostLocal. */
 export interface LeadDiscoveryExecutionDetail {
   execution: LeadDiscoveryExecutionSummary;
   lockKey: string;
@@ -111,6 +121,9 @@ export interface LeadDiscoveryExecutionDetail {
   customers: LeadDiscoveryExecutionCustomer[];
   templates: LeadDiscoveryExecutionTemplate[];
   lockTransitions: LeadDiscoveryLockTransition[];
+  research: LeadDiscoveryRun | null;
+  currencyCode: string;
+  currencySymbol: string;
 }
 
 /** LeadDiscoveryRetryQueuedDto — a manual retry was queued; it runs as a new execution. */

@@ -61,11 +61,15 @@ describe('ShellComponent sidenav', () => {
       'text_snippetMessage Templates',
       'perm_mediaMedia Library',
       'menu_bookKnowledge Base',
+      'bar_chartReports',
+      'monitoringAgent Performance',
       'storefrontBusiness Profile',
       'manage_accountsUsers & Roles',
       'settingsSettings',
+      'historyAudit Log',
       'paymentsBilling',
       'data_usageUsage & Credits',
+      'scienceTest Notifications',
     ]);
   });
 
@@ -77,6 +81,20 @@ describe('ShellComponent sidenav', () => {
     expect(items(root).length).toBe(11);
   });
 
+  it('sends an Admin straight to Lead Discovery History - the Discovered Leads page would 403 nobody, but History is Admin-only', () => {
+    const root = render(['Admin']);
+
+    const link = Array.from(root.querySelectorAll<HTMLAnchorElement>('.nav-item')).find((a) => a.textContent?.trim() === 'travel_exploreLead Discovery');
+    expect(link?.getAttribute('href')).toBe('/lead-discovery/history');
+  });
+
+  it('keeps a sales agent on Discovered Leads, since History would refuse them', () => {
+    const root = render(['SalesAgent']);
+
+    const link = Array.from(root.querySelectorAll<HTMLAnchorElement>('.nav-item')).find((a) => a.textContent?.trim() === 'travel_exploreLead Discovery');
+    expect(link?.getAttribute('href')).toBe('/lead-discovery');
+  });
+
   it('groups the platform console nav the same way, with no tenant items', () => {
     const root = render(['PlatformSuperAdmin']);
 
@@ -86,6 +104,7 @@ describe('ShellComponent sidenav', () => {
       'businessTenants',
       'manage_accountsUsers',
       'campaignAnnouncements',
+      'menu_bookKnowledge Base',
       'paymentsPackage',
       'data_usageUsage & Quotas',
       'receipt_longPayments',

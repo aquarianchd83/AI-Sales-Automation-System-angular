@@ -1,0 +1,58 @@
+<div class="page">
+  <app-page-header
+    title="Test notifications"
+    subtitle="Send yourself a real test of any billing alert — the bell, the banner and email/WhatsApp — without waiting for the real trigger."
+  >
+    <a mat-stroked-button routerLink="/billing/wallet">
+      <mat-icon>data_usage</mat-icon>
+      Usage &amp; credits
+    </a>
+  </app-page-header>
+
+  <div class="notice" role="note">
+    <mat-icon>science</mat-icon>
+    <span>
+      Sending a test fires it through the real delivery path — your workspace's actual billing email and
+      WhatsApp number, if configured. Every test is tagged <strong>[Test]</strong> in its title so it's
+      never mistaken for a genuine alert.
+    </span>
+  </div>
+
+  <mat-card class="table-card">
+    <table class="kind-table">
+      <thead>
+        <tr>
+          <th>Alert</th>
+          <th class="quota-col">Quota</th>
+          <th class="status-col">Email</th>
+          <th class="status-col">WhatsApp</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let kind of kinds">
+          <td>{{ kindLabels[kind] }}</td>
+          <td class="quota-col">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="quota-select" *ngIf="needsQuotaType(kind)">
+              <mat-select [(ngModel)]="quotaTypeByKind[kind]" [attr.aria-label]="'Quota type for ' + kindLabels[kind]">
+                <mat-option *ngFor="let q of quotaTypeOptions" [value]="q">{{ quotaTypeLabels[q] }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <span class="muted" *ngIf="!needsQuotaType(kind)">—</span>
+          </td>
+          <td class="status-col">
+            <span *ngIf="lastResult[kind] as r" [class]="deliveryChipClass(r.emailStatus)">{{ deliveryLabel(r.emailStatus) }}</span>
+          </td>
+          <td class="status-col">
+            <span *ngIf="lastResult[kind] as r" [class]="deliveryChipClass(r.whatsAppStatus)">{{ deliveryLabel(r.whatsAppStatus) }}</span>
+          </td>
+          <td class="action-col">
+            <button mat-stroked-button color="primary" type="button" [disabled]="sending.has(kind)" (click)="send(kind)">
+              {{ sending.has(kind) ? 'Sending…' : 'Send test' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </mat-card>
+</div>

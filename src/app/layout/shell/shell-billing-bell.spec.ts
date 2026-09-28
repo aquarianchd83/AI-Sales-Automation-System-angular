@@ -175,4 +175,50 @@ describe('ShellComponent billing bell', () => {
     expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['2']);
     discardPeriodicTasks();
   }));
+
+  describe('urgent alert banner', () => {
+    it('shows a banner on the page itself for an urgent alert, not just the bell', fakeAsync(() => {
+      const { root } = render({
+        roles: ['Admin'],
+        notifications: [{ ...alert('1', TenantNotificationKind.QuotaExhausted), title: "You've used all your lead candidates" }],
+      });
+
+      const banner = root.querySelector('.billing-alert-banner');
+      expect(banner).not.toBeNull();
+      expect(banner?.textContent).toContain("You've used all your lead candidates");
+      expect(banner?.querySelector('a[href="/billing/wallet"]')).not.toBeNull();
+      discardPeriodicTasks();
+    }));
+
+    it('does not banner a non-urgent alert - the bell alone is enough for that', fakeAsync(() => {
+      const { root } = render({ roles: ['Admin'], notifications: [alert('1', TenantNotificationKind.QuotaLow20)] });
+
+      expect(root.querySelector('.billing-alert-banner')).toBeNull();
+      discardPeriodicTasks();
+    }));
+
+    it('stacks one banner per urgent alert until each is dismissed', fakeAsync(() => {
+      const { root } = render({
+        roles: ['Admin'],
+        notifications: [alert('1', TenantNotificationKind.QuotaExhausted), alert('2', TenantNotificationKind.QuotaLow5)],
+      });
+
+      expect(root.querySelectorAll('.billing-alert-banner').length).toBe(2);
+      discardPeriodicTasks();
+    }));
+
+    it('the banner\'s own dismiss button acknowledges just that alert and it disappears', fakeAsync(() => {
+      const { root, fixture, acknowledgeNotification } = render({
+        roles: ['Admin'],
+        notifications: [alert('1', TenantNotificationKind.QuotaExhausted), alert('2', TenantNotificationKind.QuotaLow5)],
+      });
+
+      root.querySelector<HTMLButtonElement>('.billing-alert-banner button[aria-label="Dismiss"]')!.click();
+      fixture.detectChanges();
+
+      expect(acknowledgeNotification).toHaveBeenCalledWith('1');
+      expect(root.querySelectorAll('.billing-alert-banner').length).toBe(1);
+      discardPeriodicTasks();
+    }));
+  });
 });

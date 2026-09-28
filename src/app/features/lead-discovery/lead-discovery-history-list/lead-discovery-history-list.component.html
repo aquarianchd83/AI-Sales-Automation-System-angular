@@ -1,11 +1,24 @@
 <div class="page">
   <app-page-header
     title="Lead discovery history"
-    subtitle="Every lead-discovery execution, grouped by processing date — customers, Auto-Campaign, templates, mapping, retry and lock status."
+    subtitle="Every execution, grouped by processing date."
   >
+    <span class="quota-chip" *ngIf="quotaLabel" matTooltip="Lead candidates left to spend this billing period">
+      <mat-icon>data_usage</mat-icon>
+      {{ quotaLabel }} lead candidates left
+      <a routerLink="/billing/wallet" class="quota-chip-topup" (click)="$event.stopPropagation()">Top up</a>
+    </span>
+    <button mat-button type="button" [disabled]="runningNow" (click)="runNow()">
+      <mat-icon>play_arrow</mat-icon>
+      {{ runningNow ? 'Queuing…' : 'Run now' }}
+    </button>
     <a mat-button routerLink="..">
-      <mat-icon>arrow_back</mat-icon>
+      <mat-icon>travel_explore</mat-icon>
       Discovered leads
+    </a>
+    <a mat-stroked-button color="primary" routerLink="/lead-discovery/profile">
+      <mat-icon>tune</mat-icon>
+      Discovery profile
     </a>
   </app-page-header>
 
@@ -45,14 +58,6 @@
               </td>
             </ng-container>
 
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let row">
-                <span [class]="chipClass(row.status)">{{ row.status }}</span>
-                <div class="muted sub" *ngIf="row.nextRetryInfo" [matTooltip]="row.nextRetryInfo">{{ row.nextRetryInfo }}</div>
-              </td>
-            </ng-container>
-
             <ng-container matColumnDef="customers">
               <th mat-header-cell *matHeaderCellDef>Customers</th>
               <td mat-cell *matCellDef="let row">
@@ -60,13 +65,19 @@
                 <span matTooltip="Duplicate">{{ row.customersDuplicate }} dup</span>
                 <span *ngIf="row.customersFailed" class="warn-text"> · {{ row.customersFailed }} failed</span>
                 <div
-                  class="warn-text sub"
+                  class="warn-text sub quota-row"
                   *ngIf="row.quotaExhausted"
                   matTooltip="The lead-candidate quota ran out partway through, so fewer customers were created than the batch size asked for. Buy credits or wait for the plan to renew."
                 >
-                  Quota exhausted — stopped early
+                  <span>Quota exhausted — stopped early</span>
+                  <a routerLink="/billing/wallet" (click)="$event.stopPropagation()">Buy credits</a>
                 </div>
               </td>
+            </ng-container>
+
+            <ng-container matColumnDef="spent">
+              <th mat-header-cell *matHeaderCellDef>Spent</th>
+              <td mat-cell *matCellDef="let row">{{ formatCharge(row.estimatedCostLocal, row.currencySymbol) }}</td>
             </ng-container>
 
             <ng-container matColumnDef="campaign">
@@ -92,6 +103,14 @@
               <td mat-cell *matCellDef="let row">{{ row.startedAtUtc | zonedDate: 'medium' }}</td>
             </ng-container>
 
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let row">
+                <span [class]="chipClass(row.status)">{{ row.status }}</span>
+                <div class="muted sub" *ngIf="row.nextRetryInfo" [matTooltip]="row.nextRetryInfo">{{ row.nextRetryInfo }}</div>
+              </td>
+            </ng-container>
+
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef></th>
               <td mat-cell *matCellDef="let row">
@@ -107,10 +126,10 @@
               </td>
             </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="['profile', 'status', 'customers', 'campaign', 'lock', 'started', 'actions']"></tr>
+            <tr mat-header-row *matHeaderRowDef="['profile', 'customers', 'spent', 'campaign', 'lock', 'started', 'status', 'actions']"></tr>
             <tr
               mat-row
-              *matRowDef="let row; columns: ['profile', 'status', 'customers', 'campaign', 'lock', 'started', 'actions']"
+              *matRowDef="let row; columns: ['profile', 'customers', 'spent', 'campaign', 'lock', 'started', 'status', 'actions']"
               class="clickable-row"
               (click)="viewExecution(row)"
             ></tr>

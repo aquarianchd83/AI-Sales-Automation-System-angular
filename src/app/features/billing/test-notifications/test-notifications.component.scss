@@ -1,0 +1,58 @@
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #e3f2fd;
+  color: #0d47a1;
+  font-size: 13px;
+
+  mat-icon {
+    flex: none;
+  }
+}
+
+.kind-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 13px;
+  }
+
+  thead th {
+    color: rgba(0, 0, 0, 0.54);
+    font-weight: 500;
+    border-bottom: 1px solid #eef0f2;
+  }
+
+  tbody tr + tr td {
+    border-top: 1px solid #eef0f2;
+  }
+}
+
+.quota-col {
+  width: 220px;
+}
+
+.quota-select {
+  width: 100%;
+}
+
+.status-col {
+  width: 110px;
+}
+
+.action-col {
+  width: 140px;
+  text-align: right;
+}
+
+.muted {
+  color: rgba(0, 0, 0, 0.4);
+}
