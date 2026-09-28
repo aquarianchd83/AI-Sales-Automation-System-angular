@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
+import { formatCharge } from '../../../core/models/billing.model';
 import {
   LEAD_DISCOVERY_EXECUTION_STATUSES,
   LeadDiscoveryExecutionSummary,
@@ -33,6 +34,7 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusOptions = LEAD_DISCOVERY_EXECUTION_STATUSES;
   readonly chipClass = leadDiscoveryStatusChipClass;
+  readonly formatCharge = formatCharge;
   readonly statusControl = new FormControl<string | null>(null);
 
   page: PagedResult<LeadDiscoveryHistoryDay> = emptyPage<LeadDiscoveryHistoryDay>();

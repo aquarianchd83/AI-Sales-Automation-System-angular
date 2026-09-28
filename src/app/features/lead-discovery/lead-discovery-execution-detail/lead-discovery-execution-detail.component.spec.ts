@@ -52,6 +52,9 @@ function execution(overrides: Partial<LeadDiscoveryExecutionSummary> = {}): Lead
     errorMessage: null,
     nextRetryInfo: null,
     canRetry: false,
+    estimatedCostLocal: 35.28,
+    currencyCode: 'INR',
+    currencySymbol: '₹',
     ...overrides,
   };
 }

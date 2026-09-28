@@ -51,6 +51,9 @@ function summary(overrides: Partial<LeadDiscoveryHistoryDay['executions'][number
     errorMessage: null,
     nextRetryInfo: null,
     canRetry: false,
+    estimatedCostLocal: 35.28,
+    currencyCode: 'INR',
+    currencySymbol: '₹',
     ...overrides,
   };
 }
@@ -91,6 +94,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(text()).toContain('Eye clinic');
     expect(text()).toContain('Completed');
     expect(text()).toContain('Welcome New Leads - 2026-09-26');
+    expect(text()).toContain('₹35.28');
   });
 
   it('re-queries with the chosen status filter', fakeAsync(() => {

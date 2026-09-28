@@ -11,7 +11,10 @@ export interface LeadDiscoveryHistoryQuery extends PagedQuery {
 
 /** LeadDiscoveryExecutionSummaryDto — one execution in Lead Discovery History. Every *Status field is
  * an enum name from the backend (LeadDiscoveryExecutionStatus, LeadDiscoveryLockStatus,
- * LeadDiscoveryCampaignStatus, LeadDiscoveryAssociationStatus) — see leadDiscoveryStatusChipClass. */
+ * LeadDiscoveryCampaignStatus, LeadDiscoveryAssociationStatus) — see leadDiscoveryStatusChipClass.
+ * estimatedCostLocal is the linked run's cost in the tenant's own currency — zero when the execution
+ * did no research (a retry, or a run skipped before it started); currencyCode/currencySymbol are the
+ * tenant's currency regardless, so a zero still reads correctly. */
 export interface LeadDiscoveryExecutionSummary {
   id: string;
   processingDate: string;
@@ -54,6 +57,9 @@ export interface LeadDiscoveryExecutionSummary {
   errorMessage: string | null;
   nextRetryInfo: string | null;
   canRetry: boolean;
+  estimatedCostLocal: number;
+  currencyCode: string;
+  currencySymbol: string;
 }
 
 /** LeadDiscoveryHistoryDayDto — one processing date and every execution that belongs to it. */
