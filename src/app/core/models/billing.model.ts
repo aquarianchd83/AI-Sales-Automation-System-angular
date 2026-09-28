@@ -285,6 +285,46 @@ export interface TenantNotification {
   acknowledged: boolean;
 }
 
+/** Body of POST /billing/notifications/test. quotaType is required for the three quota-threshold
+ * kinds (QuotaLow20/QuotaLow5/QuotaExhausted) and ignored otherwise. */
+export interface SendTestNotificationRequest {
+  kind: TenantNotificationKind;
+  quotaType: QuotaType | null;
+}
+
+/** Every kind a tenant Admin can trigger a real test of, for the Test notifications page. */
+export const TEST_NOTIFICATION_KINDS = [
+  TenantNotificationKind.QuotaLow20,
+  TenantNotificationKind.QuotaLow5,
+  TenantNotificationKind.QuotaExhausted,
+  TenantNotificationKind.CreditsExpiring14,
+  TenantNotificationKind.CreditsExpiring3,
+  TenantNotificationKind.RefundApproved,
+  TenantNotificationKind.RefundRejected,
+  TenantNotificationKind.RefundExpired,
+  TenantNotificationKind.PlanExpiring7,
+  TenantNotificationKind.PlanExpiring1,
+] as const;
+
+/** True for the three kinds SendTestNotificationRequest.quotaType is required for. */
+export function notificationKindNeedsQuotaType(kind: TenantNotificationKind): boolean {
+  return kind === TenantNotificationKind.QuotaLow20 || kind === TenantNotificationKind.QuotaLow5 || kind === TenantNotificationKind.QuotaExhausted;
+}
+
+/** A short label for each kind, for the Test notifications page's list. */
+export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = {
+  [TenantNotificationKind.QuotaLow20]: 'Quota running low (under 20%)',
+  [TenantNotificationKind.QuotaLow5]: 'Quota almost gone (under 5%)',
+  [TenantNotificationKind.QuotaExhausted]: 'Quota exhausted',
+  [TenantNotificationKind.CreditsExpiring14]: 'Purchased credits expiring in 14 days',
+  [TenantNotificationKind.CreditsExpiring3]: 'Purchased credits expiring in 3 days',
+  [TenantNotificationKind.RefundApproved]: 'Refund approved',
+  [TenantNotificationKind.RefundRejected]: 'Refund declined',
+  [TenantNotificationKind.RefundExpired]: 'Refund request expired',
+  [TenantNotificationKind.PlanExpiring7]: 'Plan renews in 7 days',
+  [TenantNotificationKind.PlanExpiring1]: 'Plan renews tomorrow',
+};
+
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */
 export function isUrgentNotification(kind: TenantNotificationKind): boolean {
   return (

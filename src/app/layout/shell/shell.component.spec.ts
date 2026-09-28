@@ -61,11 +61,15 @@ describe('ShellComponent sidenav', () => {
       'text_snippetMessage Templates',
       'perm_mediaMedia Library',
       'menu_bookKnowledge Base',
+      'bar_chartReports',
+      'monitoringAgent Performance',
       'storefrontBusiness Profile',
       'manage_accountsUsers & Roles',
       'settingsSettings',
+      'historyAudit Log',
       'paymentsBilling',
       'data_usageUsage & Credits',
+      'scienceTest Notifications',
     ]);
   });
 
@@ -86,6 +90,7 @@ describe('ShellComponent sidenav', () => {
       'businessTenants',
       'manage_accountsUsers',
       'campaignAnnouncements',
+      'menu_bookKnowledge Base',
       'paymentsPackage',
       'data_usageUsage & Quotas',
       'receipt_longPayments',

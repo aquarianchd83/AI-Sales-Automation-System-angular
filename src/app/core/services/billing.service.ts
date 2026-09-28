@@ -16,6 +16,7 @@ import {
   RefundRequest,
   IndianState,
   RegionOption,
+  SendTestNotificationRequest,
   Subscription,
   TenantNotification,
 } from '../models/billing.model';
@@ -112,6 +113,13 @@ export class BillingService {
 
   deleteNotification(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/notifications/${id}`);
+  }
+
+  /** Sends one real alert through the same in-app/email/WhatsApp path a genuine one would use, so
+   * it can be seen working without waiting for the real trigger. Never deduped against a real
+   * alert or an earlier test — see SendTestAsync's own doc comment on the backend. */
+  sendTestNotification(request: SendTestNotificationRequest): Observable<TenantNotification> {
+    return this.http.post<TenantNotification>(`${this.baseUrl}/notifications/test`, request);
   }
 
   getAlertSettings(): Observable<BillingAlertSettings> {
