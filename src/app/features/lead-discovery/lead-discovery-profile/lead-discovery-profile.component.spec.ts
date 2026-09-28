@@ -29,6 +29,7 @@ const profile: LeadDiscoveryProfile = {
   sourceCampaignId: null,
   sourceCampaignName: null,
   sourceCampaignStatus: null,
+  autoConsentDiscoveredCustomers: false,
   updatedAt: '2026-09-15T10:00:00Z',
 };
 
@@ -102,9 +103,25 @@ describe('LeadDiscoveryProfileComponent', () => {
       additionalCriteria: ['Open on weekends'],
       autoCampaignEnabled: false,
       sourceCampaignId: null,
+      autoConsentDiscoveredCustomers: false,
     });
     expect(notify.success).toHaveBeenCalled();
     expect(component.hasChanges).toBeFalse();
+  });
+
+  it('warns when auto-consent is turned on, and sends it on save', () => {
+    create(profile);
+    expect(text()).not.toContain('Skips manual opt-in.');
+
+    component.form.controls.autoConsentDiscoveredCustomers.setValue(true);
+    component.form.markAsDirty();
+    fixture.detectChanges();
+
+    expect(text()).toContain('Skips manual opt-in.');
+
+    component.save();
+
+    expect(service.saveProfile).toHaveBeenCalledWith(jasmine.objectContaining({ autoConsentDiscoveredCustomers: true }));
   });
 
   it('does not save without keywords and locations', () => {

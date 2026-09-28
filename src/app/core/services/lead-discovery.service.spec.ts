@@ -38,6 +38,7 @@ describe('LeadDiscoveryService', () => {
       additionalCriteria: [],
       autoCampaignEnabled: false,
       sourceCampaignId: null,
+      autoConsentDiscoveredCustomers: false,
     };
     service.saveProfile(request).subscribe();
 

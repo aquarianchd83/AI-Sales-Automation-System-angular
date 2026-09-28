@@ -4,7 +4,9 @@
  * leads per run; null when no plan applies. sourceCampaignName/sourceCampaignStatus are the selected
  * auto-campaign source's current name/status, resolved server-side — both null when sourceCampaignId is
  * unset or no longer resolves to an existing campaign (the cue to show a "campaign no longer exists"
- * warning instead of a blank picker). */
+ * warning instead of a blank picker). autoConsentDiscoveredCustomers is off by default — when on, a
+ * customer this job creates is written OptedIn instead of PendingOptIn, with no consent evidence beyond
+ * having been found on the web; see the warning shown next to its toggle before turning it on. */
 export interface LeadDiscoveryProfile {
   isEnabled: boolean;
   targetBusinessType: string;
@@ -22,6 +24,7 @@ export interface LeadDiscoveryProfile {
   sourceCampaignId: string | null;
   sourceCampaignName: string | null;
   sourceCampaignStatus: string | null;
+  autoConsentDiscoveredCustomers: boolean;
   updatedAt: string | null;
 }
 
@@ -42,6 +45,7 @@ export interface SaveLeadDiscoveryProfileRequest {
   additionalCriteria: string[];
   autoCampaignEnabled: boolean;
   sourceCampaignId: string | null;
+  autoConsentDiscoveredCustomers: boolean;
 }
 
 /** AutoCampaignEnrollmentDto — one auto-campaign enrollment outcome for one discovered customer, the

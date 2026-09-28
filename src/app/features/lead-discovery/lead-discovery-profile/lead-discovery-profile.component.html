@@ -283,6 +283,35 @@
         </ng-container>
       </mat-card>
 
+      <!-- Consent -->
+      <mat-card class="section consent-card">
+        <div class="section-head">
+          <span class="section-icon tone-amber"><mat-icon>gavel</mat-icon></span>
+          <div>
+            <h2>Consent</h2>
+            <p>Whether a customer this job creates needs manual opt-in before it can be messaged.</p>
+          </div>
+        </div>
+
+        <div class="switch-list">
+          <div class="switch-row">
+            <div>
+              <strong>Auto-consent discovered customers</strong>
+              <span>Off by default. Skips manual opt-in for every customer this job creates.</span>
+            </div>
+            <mat-slide-toggle formControlName="autoConsentDiscoveredCustomers" aria-label="Auto-consent discovered customers"></mat-slide-toggle>
+          </div>
+        </div>
+
+        <p class="field-message field-message--warn" *ngIf="form.controls.autoConsentDiscoveredCustomers.value" role="alert">
+          <mat-icon>warning_amber</mat-icon>
+          Skips manual opt-in. Customers this job creates are marked OptedIn immediately, with no
+          confirmation from the business itself. Only enable this if you already have a lawful basis to
+          message these numbers without their direct consent — this can risk your WhatsApp number and
+          carries legal exposure in some jurisdictions.
+        </p>
+      </mat-card>
+
       <!-- Volume -->
       <mat-card class="section">
         <div class="section-head">

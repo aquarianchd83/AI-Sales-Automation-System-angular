@@ -7,6 +7,7 @@ $tones: (
   'blue': (#1e88e5, #e3f2fd),
   'green': (#1e7e34, #e6f4ea),
   'grey': (#546e7a, #eceff1),
+  'amber': (#a15c00, #fff4e5),
 );
 
 @each $name, $pair in $tones {
@@ -121,6 +122,21 @@ mat-icon[matPrefix] {
 
 .field-message--error {
   color: #b3261e;
+}
+
+/* Not a dismissible hint - stays visible the whole time the toggle above it is on, so its background
+   gives it more weight than the plain-text --error variant. */
+.field-message--warn {
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff4e5;
+  color: #a15c00;
+}
+
+.consent-card {
+  border-top: 4px solid #cfd8dc;
 }
 
 /* ---------- qualification ---------- */

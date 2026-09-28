@@ -66,6 +66,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     // Nullable (not nonNullable-coerced to ''), so "nothing picked" is unambiguous - an empty string
     // would collide with a real campaign id in mat-select's value comparison.
     sourceCampaignId: this.fb.control<string | null>(null),
+    autoConsentDiscoveredCustomers: [false],
   });
 
   readonly keywordInput = new FormControl('', { nonNullable: true });
@@ -293,6 +294,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       // Sent as-is, even while the toggle above is off, so turning auto campaign off and back on
       // remembers the last-picked source campaign instead of forcing a re-pick every time.
       sourceCampaignId: v.sourceCampaignId,
+      autoConsentDiscoveredCustomers: v.autoConsentDiscoveredCustomers,
     };
 
     this.saving = true;
@@ -339,6 +341,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       },
       autoCampaignEnabled: profile.autoCampaignEnabled,
       sourceCampaignId: profile.sourceCampaignId,
+      autoConsentDiscoveredCustomers: profile.autoConsentDiscoveredCustomers,
     });
 
     const batchSize = this.form.controls.batchSize;
