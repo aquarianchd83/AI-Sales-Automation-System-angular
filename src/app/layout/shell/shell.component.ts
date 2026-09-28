@@ -70,7 +70,14 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
         { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
-        { label: 'Lead Discovery', icon: 'travel_explore', route: '/lead-discovery', roles: [] },
+        {
+          label: 'Lead Discovery',
+          icon: 'travel_explore',
+          // An Admin lands straight on Lead Discovery History (Admin-only route); anyone else lands on
+          // Discovered Leads, since History would 403 them - see the lead-discovery route guard.
+          route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/lead-discovery/history' : '/lead-discovery',
+          roles: [],
+        },
         { label: 'Tags', icon: 'sell', route: '/tags', roles: [] },
       ],
     },

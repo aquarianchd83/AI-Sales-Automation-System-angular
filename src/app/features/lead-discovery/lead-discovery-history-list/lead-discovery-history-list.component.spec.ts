@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -8,6 +9,7 @@ import { LeadDiscoveryHistoryDay } from '../../../core/models/lead-discovery-his
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { SharedModule } from '../../../shared/shared.module';
+import { CustomerFormDialogComponent } from '../../customers/customer-form-dialog/customer-form-dialog.component';
 import { LeadDiscoveryHistoryListComponent } from './lead-discovery-history-list.component';
 
 function summary(overrides: Partial<LeadDiscoveryHistoryDay['executions'][number]> = {}): LeadDiscoveryHistoryDay['executions'][number] {
@@ -63,6 +65,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   let component: LeadDiscoveryHistoryListComponent;
   let service: jasmine.SpyObj<LeadDiscoveryService>;
   let notify: jasmine.SpyObj<NotificationService>;
+  let dialog: jasmine.SpyObj<MatDialog>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
 
@@ -76,6 +79,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
+    dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
     TestBed.configureTestingModule({
       declarations: [LeadDiscoveryHistoryListComponent],
@@ -85,6 +89,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
         { provide: NotificationService, useValue: notify },
       ],
     });
+    TestBed.overrideProvider(MatDialog, { useValue: dialog });
   });
 
   it('groups executions by processing date and shows their status', () => {
@@ -175,5 +180,19 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ quotaExhausted: false })] }]);
 
     expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/billing/wallet"]')).toBeNull();
+  });
+
+  it('opens the new-customer dialog from the page header', () => {
+    create([]);
+
+    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('New customer')
+    ) as HTMLButtonElement;
+    button.click();
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      CustomerFormDialogComponent,
+      jasmine.objectContaining({ data: { mode: 'create' } })
+    );
   });
 });
