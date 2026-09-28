@@ -3,6 +3,11 @@
     title="Lead discovery history"
     subtitle="Every execution, grouped by processing date."
   >
+    <span class="quota-chip" *ngIf="quotaLabel" matTooltip="Lead candidates left to spend this billing period">
+      <mat-icon>data_usage</mat-icon>
+      {{ quotaLabel }} lead candidates left
+      <a routerLink="/billing/wallet" class="quota-chip-topup" (click)="$event.stopPropagation()">Top up</a>
+    </span>
     <button mat-button type="button" [disabled]="runningNow" (click)="runNow()">
       <mat-icon>play_arrow</mat-icon>
       {{ runningNow ? 'Queuing…' : 'Run now' }}

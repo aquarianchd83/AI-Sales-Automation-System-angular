@@ -1,10 +1,12 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
+import { QuotaBalance, QuotaType } from '../../../core/models/billing.model';
 import { LeadDiscoveryHistoryDay } from '../../../core/models/lead-discovery-history.model';
+import { BillingService } from '../../../core/services/billing.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantJobService } from '../../../core/services/tenant-job.service';
@@ -65,6 +67,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   let service: jasmine.SpyObj<LeadDiscoveryService>;
   let notify: jasmine.SpyObj<NotificationService>;
   let tenantJobs: jasmine.SpyObj<TenantJobService>;
+  let billing: jasmine.SpyObj<BillingService>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
 
@@ -79,6 +82,8 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
     tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger']);
+    billing = jasmine.createSpyObj('BillingService', ['getQuota']);
+    billing.getQuota.and.returnValue(of([]));
 
     TestBed.configureTestingModule({
       declarations: [LeadDiscoveryHistoryListComponent],
@@ -87,6 +92,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
         { provide: LeadDiscoveryService, useValue: service },
         { provide: NotificationService, useValue: notify },
         { provide: TenantJobService, useValue: tenantJobs },
+        { provide: BillingService, useValue: billing },
       ],
     });
   });
@@ -99,6 +105,32 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(text()).toContain('Completed');
     expect(text()).toContain('Welcome New Leads - 2026-09-26');
     expect(text()).toContain('₹35.28');
+  });
+
+  it('shows how much lead-candidate quota is left in the header, not used/all, with Top up alongside it', () => {
+    const balances: QuotaBalance[] = [
+      { quotaType: QuotaType.LeadCandidates, balance: 180, capacity: 1000, grants: [] },
+      { quotaType: QuotaType.WhatsAppMessages, balance: 50, capacity: 500, grants: [] },
+    ];
+    billing.getQuota.and.returnValue(of(balances));
+
+    create([]);
+
+    expect(component.quotaLabel).toBe('180');
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.quota-chip');
+    // Labelled, not a bare number, so it reads on its own rather than as a stray parenthetical.
+    expect(chip?.textContent).toContain('180 lead candidates left');
+    // Top up lives inside the quota chip, not as a separate header button.
+    expect(chip?.querySelector<HTMLAnchorElement>('a[href="/billing/wallet"]')?.textContent).toContain('Top up');
+  });
+
+  it('hides the quota chip - and its Top up link - when the tenant has never had any lead-candidate quota', () => {
+    billing.getQuota.and.returnValue(of([{ quotaType: QuotaType.LeadCandidates, balance: 0, capacity: 0, grants: [] }]));
+
+    create([]);
+
+    expect(component.quotaLabel).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.quota-chip')).toBeNull();
   });
 
   it('re-queries with the chosen status filter', fakeAsync(() => {
@@ -170,15 +202,15 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
 
     expect(text()).toContain('Buy credits');
-    (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a[href="/billing/wallet"]')!.click();
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('.quota-row a[href="/billing/wallet"]')!.click();
 
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('hides the buy-credits link when the quota was not exhausted', () => {
+  it('hides the row-level buy-credits link when the quota was not exhausted', () => {
     create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ quotaExhausted: false })] }]);
 
-    expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/billing/wallet"]')).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.quota-row a[href="/billing/wallet"]')).toBeNull();
   });
 
   it('links to Discovery profile from the page header, and has no Customers link', () => {
@@ -211,4 +243,41 @@ describe('LeadDiscoveryHistoryListComponent', () => {
 
     expect(notify.error).toHaveBeenCalledWith('Lead discovery is disabled.');
   });
+
+  it('re-polls the list a few times after a successful run now, so the new execution shows up on its own', fakeAsync(() => {
+    tenantJobs.trigger.and.returnValue(of({ recurringJobId: 'lead-discovery', backgroundJobId: 'job-1' }));
+    create([]);
+    const callsBeforeRun = service.getHistory.calls.count();
+
+    (Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Run now')
+    ) as HTMLButtonElement).click();
+
+    tick(5000);
+    expect(service.getHistory.calls.count()).toBe(callsBeforeRun + 1);
+    tick(5000);
+    expect(service.getHistory.calls.count()).toBe(callsBeforeRun + 2);
+
+    tick(4 * 5000); // the remaining scheduled polls (6 total)
+    const callsAfterAllPolls = service.getHistory.calls.count();
+    expect(callsAfterAllPolls).toBe(callsBeforeRun + 6);
+
+    tick(5000); // polling has stopped - no further reload
+    expect(service.getHistory.calls.count()).toBe(callsAfterAllPolls);
+
+    discardPeriodicTasks();
+  }));
+
+  it('does not poll after a failed run now', fakeAsync(() => {
+    tenantJobs.trigger.and.returnValue(throwError(() => ({ error: { message: 'Lead discovery is disabled.' } })));
+    create([]);
+    const callsBeforeRun = service.getHistory.calls.count();
+
+    (Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Run now')
+    ) as HTMLButtonElement).click();
+
+    tick(30000);
+    expect(service.getHistory.calls.count()).toBe(callsBeforeRun);
+  }));
 });
