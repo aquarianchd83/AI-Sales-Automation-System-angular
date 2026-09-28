@@ -7,9 +7,17 @@
       <mat-icon>arrow_back</mat-icon>
       Discovered leads
     </a>
-    <button mat-flat-button color="primary" type="button" (click)="createCustomer()">
-      <mat-icon>person_add</mat-icon>
-      New customer
+    <a mat-button routerLink="/customers">
+      <mat-icon>groups</mat-icon>
+      Customers
+    </a>
+    <a mat-button routerLink="/lead-discovery/profile">
+      <mat-icon>tune</mat-icon>
+      Discovery profile
+    </a>
+    <button mat-stroked-button color="primary" type="button" [disabled]="runningNow" (click)="runNow()">
+      <mat-icon>play_arrow</mat-icon>
+      {{ runningNow ? 'Queuing…' : 'Run now' }}
     </button>
   </app-page-header>
 

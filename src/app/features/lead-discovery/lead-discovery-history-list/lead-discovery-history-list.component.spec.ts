@@ -1,5 +1,4 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -8,8 +7,8 @@ import { of, throwError } from 'rxjs';
 import { LeadDiscoveryHistoryDay } from '../../../core/models/lead-discovery-history.model';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { TenantJobService } from '../../../core/services/tenant-job.service';
 import { SharedModule } from '../../../shared/shared.module';
-import { CustomerFormDialogComponent } from '../../customers/customer-form-dialog/customer-form-dialog.component';
 import { LeadDiscoveryHistoryListComponent } from './lead-discovery-history-list.component';
 
 function summary(overrides: Partial<LeadDiscoveryHistoryDay['executions'][number]> = {}): LeadDiscoveryHistoryDay['executions'][number] {
@@ -65,7 +64,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   let component: LeadDiscoveryHistoryListComponent;
   let service: jasmine.SpyObj<LeadDiscoveryService>;
   let notify: jasmine.SpyObj<NotificationService>;
-  let dialog: jasmine.SpyObj<MatDialog>;
+  let tenantJobs: jasmine.SpyObj<TenantJobService>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
 
@@ -79,7 +78,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
-    dialog = jasmine.createSpyObj('MatDialog', ['open']);
+    tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger']);
 
     TestBed.configureTestingModule({
       declarations: [LeadDiscoveryHistoryListComponent],
@@ -87,9 +86,9 @@ describe('LeadDiscoveryHistoryListComponent', () => {
       providers: [
         { provide: LeadDiscoveryService, useValue: service },
         { provide: NotificationService, useValue: notify },
+        { provide: TenantJobService, useValue: tenantJobs },
       ],
     });
-    TestBed.overrideProvider(MatDialog, { useValue: dialog });
   });
 
   it('groups executions by processing date and shows their status', () => {
@@ -182,17 +181,34 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/billing/wallet"]')).toBeNull();
   });
 
-  it('opens the new-customer dialog from the page header', () => {
+  it('links to Customers and Discovery profile from the page header', () => {
     create([]);
 
-    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
-      b.textContent?.includes('New customer')
-    ) as HTMLButtonElement;
-    button.click();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector<HTMLAnchorElement>('a[href="/customers"]')).not.toBeNull();
+    expect(root.querySelector<HTMLAnchorElement>('a[href="/lead-discovery/profile"]')).not.toBeNull();
+  });
 
-    expect(dialog.open).toHaveBeenCalledWith(
-      CustomerFormDialogComponent,
-      jasmine.objectContaining({ data: { mode: 'create' } })
-    );
+  it('queues a run now and shows the job id', () => {
+    tenantJobs.trigger.and.returnValue(of({ recurringJobId: 'lead-discovery', backgroundJobId: 'job-1' }));
+    create([]);
+
+    (Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Run now')
+    ) as HTMLButtonElement).click();
+
+    expect(tenantJobs.trigger).toHaveBeenCalledWith('lead-discovery');
+    expect(notify.success).toHaveBeenCalledWith('Lead discovery queued (job job-1).');
+  });
+
+  it('shows an error notification when the run cannot be queued', () => {
+    tenantJobs.trigger.and.returnValue(throwError(() => ({ error: { message: 'Lead discovery is disabled.' } })));
+    create([]);
+
+    (Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Run now')
+    ) as HTMLButtonElement).click();
+
+    expect(notify.error).toHaveBeenCalledWith('Lead discovery is disabled.');
   });
 });
