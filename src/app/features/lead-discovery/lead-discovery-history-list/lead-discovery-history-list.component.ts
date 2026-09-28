@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { catchError, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
@@ -15,7 +15,6 @@ import {
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
-import { LeadDiscoveryExecutionDetailDialogComponent } from '../lead-discovery-execution-detail-dialog/lead-discovery-execution-detail-dialog.component';
 
 /**
  * Lead Discovery History: every lead-discovery execution, grouped by processing date (newest date
@@ -50,7 +49,8 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   constructor(
     private readonly leadDiscovery: LeadDiscoveryService,
     private readonly notify: NotificationService,
-    private readonly dialog: MatDialog
+    private readonly router: Router,
+    private readonly route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -90,11 +90,7 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   }
 
   viewExecution(execution: LeadDiscoveryExecutionSummary): void {
-    this.dialog.open(LeadDiscoveryExecutionDetailDialogComponent, {
-      data: { executionId: execution.id },
-      width: '760px',
-      maxWidth: '95vw',
-    });
+    this.router.navigate([execution.id], { relativeTo: this.route });
   }
 
   retry(execution: LeadDiscoveryExecutionSummary, event: Event): void {

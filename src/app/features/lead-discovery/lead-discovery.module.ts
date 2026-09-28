@@ -8,7 +8,7 @@ import { AutoCampaignHistoryListComponent } from './auto-campaign-history-list/a
 import { DiscoveredLeadDetailDialogComponent } from './discovered-lead-detail-dialog/discovered-lead-detail-dialog.component';
 import { DiscoveredLeadListComponent } from './discovered-lead-list/discovered-lead-list.component';
 import { DiscoveryRunListComponent } from './discovery-run-list/discovery-run-list.component';
-import { LeadDiscoveryExecutionDetailDialogComponent } from './lead-discovery-execution-detail-dialog/lead-discovery-execution-detail-dialog.component';
+import { LeadDiscoveryExecutionDetailComponent } from './lead-discovery-execution-detail/lead-discovery-execution-detail.component';
 import { LeadDiscoveryHistoryListComponent } from './lead-discovery-history-list/lead-discovery-history-list.component';
 import { LeadDiscoveryProfileComponent } from './lead-discovery-profile/lead-discovery-profile.component';
 
@@ -41,6 +41,12 @@ const routes: Routes = [
     canActivate: [roleGuard],
     data: { roles: TENANT_ADMIN_ROLES },
   },
+  {
+    path: 'history/:id',
+    component: LeadDiscoveryExecutionDetailComponent,
+    canActivate: [roleGuard],
+    data: { roles: TENANT_ADMIN_ROLES },
+  },
 ];
 
 @NgModule({
@@ -51,7 +57,7 @@ const routes: Routes = [
     DiscoveryRunListComponent,
     AutoCampaignHistoryListComponent,
     LeadDiscoveryHistoryListComponent,
-    LeadDiscoveryExecutionDetailDialogComponent,
+    LeadDiscoveryExecutionDetailComponent,
   ],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
@@ -60,7 +60,6 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   let component: LeadDiscoveryHistoryListComponent;
   let service: jasmine.SpyObj<LeadDiscoveryService>;
   let notify: jasmine.SpyObj<NotificationService>;
-  let dialog: jasmine.SpyObj<MatDialog>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
 
@@ -74,7 +73,6 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
-    dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
     TestBed.configureTestingModule({
       declarations: [LeadDiscoveryHistoryListComponent],
@@ -84,7 +82,6 @@ describe('LeadDiscoveryHistoryListComponent', () => {
         { provide: NotificationService, useValue: notify },
       ],
     });
-    TestBed.overrideProvider(MatDialog, { useValue: dialog });
   });
 
   it('groups executions by processing date and shows their status', () => {
@@ -105,15 +102,23 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(service.getHistory).toHaveBeenCalledWith({ page: 1, pageSize: 25, status: 'Failed' });
   }));
 
-  it('opens the execution detail dialog for a row', () => {
+  it('navigates to the execution detail page for a row', () => {
     create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary()] }]);
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
 
     (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('tr.clickable-row')!.click();
 
-    expect(dialog.open).toHaveBeenCalledWith(
-      jasmine.any(Function),
-      jasmine.objectContaining({ data: { executionId: 'e1' } })
-    );
+    expect(navigate).toHaveBeenCalledWith(['e1'], jasmine.objectContaining({ relativeTo: jasmine.anything() }));
+  });
+
+  it('does not navigate when the retry button is clicked', () => {
+    service.retryExecution.and.returnValue(of({ executionId: 'e1', backgroundJobId: 'job-1' }));
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ canRetry: true })] }]);
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('button[matTooltip*="Retry"]')!.click();
+
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it('retries a retryable execution and reloads', () => {

@@ -1,0 +1,197 @@
+<div class="page">
+  <a mat-button routerLink=".." class="back-link">
+    <mat-icon>arrow_back</mat-icon>
+    Lead discovery history
+  </a>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="empty-state" *ngIf="!loading && failed">
+    <mat-icon class="empty-icon">history</mat-icon>
+    <p>This execution could not be loaded.</p>
+    <button mat-button color="primary" type="button" (click)="load()">Try again</button>
+  </div>
+
+  <ng-container *ngIf="detail as d">
+    <app-page-header
+      [title]="d.execution.profileName"
+      [subtitle]="(d.execution.processingDate | date: 'mediumDate') + ' · ' + d.execution.trigger"
+    >
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        *ngIf="d.execution.canRetry"
+        [disabled]="retrying"
+        (click)="retry()"
+      >
+        <mat-icon>replay</mat-icon>
+        Retry
+      </button>
+    </app-page-header>
+
+    <div class="summary-row">
+      <span [class]="chipClass(d.execution.status)">{{ d.execution.status }}</span>
+      <span class="muted" *ngIf="d.execution.retryCount">Retry attempt {{ d.execution.retryCount }}</span>
+      <span class="muted">
+        Started {{ d.execution.startedAtUtc | zonedDate: 'medium' }}
+        <span *ngIf="d.execution.endedAtUtc"> · Ended {{ d.execution.endedAtUtc | zonedDate: 'medium' }}</span>
+      </span>
+    </div>
+
+    <p class="field-message--error" *ngIf="d.execution.errorMessage" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>
+        {{ d.execution.errorMessage }}
+        <span class="muted" *ngIf="d.execution.failedStep">(step: {{ d.execution.failedStep }})</span>
+      </span>
+    </p>
+    <p class="field-message--warn" *ngIf="d.execution.quotaExhausted" role="note">
+      <mat-icon>warning_amber</mat-icon>
+      Lead-candidate quota ran out partway through, so fewer customers were created than the batch size
+      asked for. Buy credits or wait for the plan to renew.
+    </p>
+    <p class="muted" *ngIf="d.execution.nextRetryInfo">{{ d.execution.nextRetryInfo }}</p>
+
+    <div class="stat-grid">
+      <mat-card class="stat">
+        <span class="stat-value">{{ d.execution.customersDiscovered }}</span>
+        <span class="stat-label">Found</span>
+      </mat-card>
+      <mat-card class="stat">
+        <span class="stat-value">{{ d.execution.customersCreated }}</span>
+        <span class="stat-label">Created</span>
+      </mat-card>
+      <mat-card class="stat">
+        <span class="stat-value">{{ d.execution.customersDuplicate }}</span>
+        <span class="stat-label">Duplicate</span>
+      </mat-card>
+      <mat-card class="stat">
+        <span class="stat-value">{{ d.execution.customersSkipped }}</span>
+        <span class="stat-label">Skipped</span>
+      </mat-card>
+      <mat-card class="stat">
+        <span class="stat-value">{{ d.execution.customersInvalid }}</span>
+        <span class="stat-label">Invalid</span>
+      </mat-card>
+      <mat-card class="stat">
+        <span class="stat-value" [class.warn-text]="d.execution.customersFailed">{{ d.execution.customersFailed }}</span>
+        <span class="stat-label">Failed</span>
+      </mat-card>
+    </div>
+
+    <mat-card class="detail-card">
+      <h2>Auto-Campaign</h2>
+      <p class="muted" *ngIf="!d.execution.autoCampaignConfigured">Auto-Campaign is not configured.</p>
+      <dl *ngIf="d.execution.autoCampaignConfigured">
+        <dt>Campaign</dt>
+        <dd>
+          <span [class]="chipClass(d.execution.campaignStatus)">{{ d.execution.campaignStatus }}</span>
+          <span *ngIf="d.execution.generatedCampaignName"> {{ d.execution.generatedCampaignName }}</span>
+          <div class="muted sub" *ngIf="d.execution.campaignNote">{{ d.execution.campaignNote }}</div>
+        </dd>
+        <dt>Based on</dt>
+        <dd>{{ d.execution.referredCampaignName || '—' }}</dd>
+        <dt>Templates</dt>
+        <dd><span [class]="chipClass(d.execution.templateStatus)">{{ d.execution.templateStatus }}</span></dd>
+        <dt>Mappings</dt>
+        <dd>
+          <span [class]="chipClass(d.execution.mappingStatus)">{{ d.execution.mappingStatus }}</span>
+          <span class="muted">
+            {{ d.execution.mappingsCreated }} created · {{ d.execution.mappingsExisting }} existing ·
+            {{ d.execution.mappingsFailed }} failed of {{ d.execution.mappingsEligible }} eligible
+          </span>
+        </dd>
+      </dl>
+    </mat-card>
+
+    <mat-card class="table-card">
+      <mat-tab-group>
+        <mat-tab label="Customers ({{ d.customers.length }})">
+          <div class="table-scroll">
+            <table mat-table [dataSource]="d.customers">
+              <ng-container matColumnDef="customerName">
+                <th mat-header-cell *matHeaderCellDef>Business</th>
+                <td mat-cell *matCellDef="let row">{{ row.customerName }}</td>
+              </ng-container>
+              <ng-container matColumnDef="phone">
+                <th mat-header-cell *matHeaderCellDef>Phone</th>
+                <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let row"><span [class]="chipClass(row.status)">{{ row.status }}</span></td>
+              </ng-container>
+              <ng-container matColumnDef="error">
+                <th mat-header-cell *matHeaderCellDef>Note</th>
+                <td mat-cell *matCellDef="let row" [matTooltip]="row.errorDetails || ''">{{ row.errorMessage || '—' }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="customerColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: customerColumns"></tr>
+            </table>
+          </div>
+          <p class="muted empty-tab" *ngIf="!d.customers.length">
+            {{ d.execution.quotaExhausted ? 'The quota ran out before any customers were discovered.' : 'No customers were discovered in this execution.' }}
+          </p>
+        </mat-tab>
+
+        <mat-tab label="Templates ({{ d.templates.length }})">
+          <div class="table-scroll">
+            <table mat-table [dataSource]="d.templates">
+              <ng-container matColumnDef="sequence">
+                <th mat-header-cell *matHeaderCellDef>#</th>
+                <td mat-cell *matCellDef="let row">{{ row.sequence }}</td>
+              </ng-container>
+              <ng-container matColumnDef="templateName">
+                <th mat-header-cell *matHeaderCellDef>Template</th>
+                <td mat-cell *matCellDef="let row">{{ row.templateName }}</td>
+              </ng-container>
+              <ng-container matColumnDef="delay">
+                <th mat-header-cell *matHeaderCellDef>Delay</th>
+                <td mat-cell *matCellDef="let row">{{ row.delayDaysAfterPrevious }}d</td>
+              </ng-container>
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let row">
+                  <span [class]="chipClass(row.status)">{{ row.status }}</span>
+                  <div class="muted sub" *ngIf="row.errorMessage">{{ row.errorMessage }}</div>
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="templateColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: templateColumns"></tr>
+            </table>
+          </div>
+          <p class="muted empty-tab" *ngIf="!d.templates.length">
+            {{ d.execution.autoCampaignConfigured ? 'No templates were processed in this execution.' : 'Auto-Campaign is not configured.' }}
+          </p>
+        </mat-tab>
+
+        <mat-tab label="Lock history ({{ d.lockTransitions.length }})">
+          <div class="table-scroll">
+            <table mat-table [dataSource]="d.lockTransitions">
+              <ng-container matColumnDef="transitionAtUtc">
+                <th mat-header-cell *matHeaderCellDef>When</th>
+                <td mat-cell *matCellDef="let row">{{ row.transitionAtUtc | zonedDate: 'medium' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="from">
+                <th mat-header-cell *matHeaderCellDef>From</th>
+                <td mat-cell *matCellDef="let row">{{ row.fromStatus }}</td>
+              </ng-container>
+              <ng-container matColumnDef="to">
+                <th mat-header-cell *matHeaderCellDef>To</th>
+                <td mat-cell *matCellDef="let row"><span [class]="chipClass(row.toStatus)">{{ row.toStatus }}</span></td>
+              </ng-container>
+              <ng-container matColumnDef="reason">
+                <th mat-header-cell *matHeaderCellDef>Reason</th>
+                <td mat-cell *matCellDef="let row" [matTooltip]="row.error || ''">{{ row.reason || '—' }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="lockColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: lockColumns"></tr>
+            </table>
+          </div>
+          <p class="muted empty-tab" *ngIf="!d.lockTransitions.length">No lock transitions were recorded.</p>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card>
+  </ng-container>
+</div>
