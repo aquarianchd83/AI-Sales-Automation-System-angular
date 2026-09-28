@@ -181,12 +181,12 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/billing/wallet"]')).toBeNull();
   });
 
-  it('links to Customers and Discovery profile from the page header', () => {
+  it('links to Discovery profile from the page header, and has no Customers link', () => {
     create([]);
 
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelector<HTMLAnchorElement>('a[href="/customers"]')).not.toBeNull();
     expect(root.querySelector<HTMLAnchorElement>('a[href="/lead-discovery/profile"]')).not.toBeNull();
+    expect(root.querySelector<HTMLAnchorElement>('a[href="/customers"]')).toBeNull();
   });
 
   it('queues a run now and shows the job id', () => {

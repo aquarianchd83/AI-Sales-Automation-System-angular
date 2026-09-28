@@ -1,14 +1,14 @@
 <div class="page">
   <app-page-header title="Lead discovery" subtitle="Businesses found on the web that match your lead discovery profile.">
     <ng-container *appHasRole="adminRoles">
+      <a mat-button routerLink="history">
+        <mat-icon>arrow_back</mat-icon>
+        Back
+      </a>
       <button mat-button type="button" [disabled]="runningNow" (click)="runNow()">
         <mat-icon>play_arrow</mat-icon>
         {{ runningNow ? 'Queuing…' : 'Run now' }}
       </button>
-      <a mat-button routerLink="history">
-        <mat-icon>fact_check</mat-icon>
-        Lead History
-      </a>
       <a mat-stroked-button color="primary" routerLink="profile">
         <mat-icon>tune</mat-icon>
         Discovery profile
