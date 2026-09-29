@@ -35,6 +35,8 @@ import { CampaignService } from '../../../core/services/campaign.service';
 import { CampaignStepDialogComponent, CampaignStepDialogData } from '../campaign-step-dialog/campaign-step-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
+import { CAMPAIGN_JOB_TYPES } from '../../../core/models/tenant-job.model';
+import { NotificationHubService } from '../../../core/services/notification-hub.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
 @Component({
@@ -73,10 +75,24 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly campaigns: CampaignService,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly notificationHub: NotificationHubService
   ) {}
 
   ngOnInit(): void {
+    // A campaign job just ran: this campaign's status, audience and progress (and, through progress, the
+    // step delivery card) may have moved, so refetch in place instead of making the user reload.
+    this.notificationHub
+      .jobFinished(CAMPAIGN_JOB_TYPES)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (this.campaign) {
+          this.reload();
+          this.refreshProgress();
+          this.reloadAudience$.next();
+        }
+      });
+
     this.route.paramMap
       .pipe(
         switchMap((params) => {

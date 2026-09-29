@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { Observable, Subject } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import { TokenStorageService } from './token-storage.service';
@@ -18,8 +19,16 @@ import { TokenStorageService } from './token-storage.service';
 export class NotificationHubService {
   private connection: signalR.HubConnection | null = null;
   private readonly received$ = new Subject<unknown>();
+  private readonly jobFinished$ = new Subject<string>();
 
   constructor(private readonly tokenStorage: TokenStorageService) {}
+
+  /** Emits the job type each time one of the tenant's background jobs finishes a run (any outcome),
+   * already recorded server-side — so a page showing what that job changes can simply refetch. Only
+   * `types` are passed through; pass none to hear every job. */
+  jobFinished(types?: readonly string[]): Observable<string> {
+    return this.jobFinished$.pipe(filter((jobType) => !types || types.includes(jobType)));
+  }
 
   /** Emits the same DTO shape the REST list endpoint already returns for that bell — a
    * TenantNotification or a PlatformNotification, depending on which group delivered it. */
@@ -42,6 +51,11 @@ export class NotificationHubService {
       .build();
 
     connection.on('NotificationReceived', (payload: unknown) => this.received$.next(payload));
+    connection.on('JobFinished', (payload: { jobType?: string } | null) => {
+      if (payload?.jobType) {
+        this.jobFinished$.next(payload.jobType);
+      }
+    });
     this.connection = connection;
     connection.start().catch(() => undefined);
   }

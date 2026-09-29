@@ -1,9 +1,10 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { Observable, of } from 'rxjs';
-import { catchError, filter, finalize } from 'rxjs/operators';
+import { Observable, Subject, of } from 'rxjs';
+import { catchError, filter, finalize, takeUntil } from 'rxjs/operators';
 
 import { TENANT_JOB_RUN_OUTCOME_LABELS, TenantJob, TenantJobRunOutcome } from '../../../core/models/tenant-job.model';
+import { NotificationHubService } from '../../../core/services/notification-hub.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantJobService } from '../../../core/services/tenant-job.service';
 import {
@@ -19,7 +20,7 @@ import {
   templateUrl: './tenant-job-list.component.html',
   styleUrls: ['./tenant-job-list.component.scss'],
 })
-export class TenantJobListComponent implements OnInit {
+export class TenantJobListComponent implements OnInit, OnDestroy {
   /** Only list these job types (e.g. CAMPAIGN_JOB_TYPES); null lists every job the tenant can manage. */
   @Input() jobTypes: readonly string[] | null = null;
   /** Drop the page chrome (header, back link, page padding) so the table can sit inside another page. */
@@ -36,20 +37,36 @@ export class TenantJobListComponent implements OnInit {
 
   /** Job types with an action in flight, so a slow "Run now" only disables its own row's buttons. */
   private readonly busy = new Set<string>();
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly jobService: TenantJobService,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly notificationHub: NotificationHubService
   ) {}
 
   ngOnInit(): void {
     this.load();
+
+    // A job in this list just finished a run, so its last-run and next-run cells are stale: refresh the
+    // rows in place, without the spinner or the error card, so the table doesn't flash.
+    this.notificationHub
+      .jobFinished(this.jobTypes ?? undefined)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.load(true));
   }
 
-  load(): void {
-    this.loading = true;
-    this.loadFailed = false;
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  load(silent = false): void {
+    if (!silent) {
+      this.loading = true;
+      this.loadFailed = false;
+    }
     this.jobService.getJobs().subscribe({
       next: (result) => {
         const wanted = this.jobTypes;
@@ -59,7 +76,9 @@ export class TenantJobListComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.loadFailed = true;
+        if (!silent) {
+          this.loadFailed = true;
+        }
       },
     });
   }
