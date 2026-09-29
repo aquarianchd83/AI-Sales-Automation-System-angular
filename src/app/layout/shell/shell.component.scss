@@ -252,10 +252,17 @@
   text-align: center;
 }
 
+// Both bells (tenant billing and platform) share this class, so widening it here widens both at once.
+// !important overrides Material's own mat-menu-panel max-width, which would otherwise clip a row
+// wider than its default.
+::ng-deep .alerts-menu.mat-menu-panel {
+  max-width: 460px !important;
+}
+
 .alert-row {
   display: flex;
   align-items: stretch;
-  max-width: 340px;
+  max-width: 440px;
 }
 
 .alert-item {

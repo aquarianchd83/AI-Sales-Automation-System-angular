@@ -10,6 +10,7 @@ import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { TenantNotification, isUrgentNotification } from '../../core/models/billing.model';
 import { BillingService } from '../../core/services/billing.service';
+import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 
 interface NavItem {
@@ -197,6 +198,15 @@ export class ShellComponent implements OnInit, OnDestroy {
       shareReplay({ bufferSize: 1, refCount: true })
     );
 
+  /** Whether the sidenav is open - the toggle button (shown on every screen size, not just
+   * handset) flips this via drawer.toggle(), and MatSidenav's own openedChange (backdrop click,
+   * Esc, a nav item's own close on mobile) writes back through the [(opened)] binding in the
+   * template, so this always reflects what's actually on screen. Reset to the sensible default
+   * for the viewport - open on desktop, closed on handset - only when the breakpoint itself
+   * changes (a resize across it), never on every change-detection pass, so a manual toggle isn't
+   * fought back open/closed between resizes. */
+  sidenavOpened = true;
+
   /** Read once, not as an Observable — it never changes mid-session (a fresh tab per
    * ImpersonationSessionService is required to start one at all). */
   readonly isImpersonating = this.auth.isImpersonating;
@@ -225,10 +235,17 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly announcementService: AnnouncementService,
     private readonly account: AccountService,
     private readonly billing: BillingService,
-    private readonly platformNotifications: PlatformNotificationService
+    private readonly platformNotifications: PlatformNotificationService,
+    private readonly notificationHub: NotificationHubService
   ) {}
 
   ngOnInit(): void {
+    // Unconditional - the sidenav's open/close toggle works the same in a support session as
+    // anywhere else, so it isn't gated behind the isImpersonating early return below.
+    this.isHandset$.pipe(takeUntil(this.destroy$)).subscribe((isHandset) => {
+      this.sidenavOpened = !isHandset;
+    });
+
     if (this.isImpersonating) {
       return;
     }
@@ -273,11 +290,39 @@ export class ShellComponent implements OnInit, OnDestroy {
       },
       error: () => (this.announcements = []),
     });
+
+    // Live push on top of the polling above, so a new alert shows up the moment it's raised rather
+    // than on the next tick — the poll stays as the fallback for a connection that never came up.
+    if (this.showBillingBell || this.showPlatformBell) {
+      this.notificationHub.connect();
+      this.notificationHub.notificationReceived$.pipe(takeUntil(this.destroy$)).subscribe((payload) => {
+        this.onLiveNotification(payload);
+      });
+    }
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.notificationHub.disconnect();
+  }
+
+  /** Prepends a live push into whichever bell's list is active on this session — a signed-in user is
+   * either a tenant user or a platform operator, never both, so only one of the two branches below
+   * ever actually runs for a given connection. Deduped against the id in case the next poll tick
+   * already picked the same notification up first. */
+  private onLiveNotification(payload: unknown): void {
+    if (this.showBillingBell) {
+      const notification = payload as TenantNotification;
+      if (!notification.acknowledged && !this.billingAlerts.some((a) => a.id === notification.id)) {
+        this.billingAlerts = [notification, ...this.billingAlerts];
+      }
+    } else if (this.showPlatformBell) {
+      const notification = payload as PlatformNotification;
+      if (!notification.acknowledged && !this.platformAlerts.some((a) => a.id === notification.id)) {
+        this.platformAlerts = [notification, ...this.platformAlerts];
+      }
+    }
   }
 
   platformAlertUrgent(alert: PlatformNotification): boolean {
@@ -294,6 +339,14 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.platformAlerts = [];
     this.platformNotifications.acknowledgeAll().subscribe({ error: () => undefined });
   }
+
+  /** Placeholder for the bell's "More notifications" action - a full notification list/history
+   * screen is planned separately; for now the button is visible whenever the bell is truncating the
+   * list but does nothing when clicked. */
+  viewMoreBillingAlerts(): void {}
+
+  /** See viewMoreBillingAlerts - same placeholder for the platform bell. */
+  viewMorePlatformAlerts(): void {}
 
   urgentAlert(alert: TenantNotification): boolean {
     return isUrgentNotification(alert.kind);

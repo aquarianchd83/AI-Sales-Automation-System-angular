@@ -271,6 +271,10 @@ export enum TenantNotificationKind {
   PlanExpiring7 = 8,
   /** ...and the day before. */
   PlanExpiring1 = 9,
+  /** A self-service background job (campaign sending, lead discovery) has started running. */
+  JobStarted = 10,
+  /** ...and finished. */
+  JobCompleted = 11,
 }
 
 export interface TenantNotification {
@@ -323,6 +327,8 @@ export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = 
   [TenantNotificationKind.RefundExpired]: 'Refund request expired',
   [TenantNotificationKind.PlanExpiring7]: 'Plan renews in 7 days',
   [TenantNotificationKind.PlanExpiring1]: 'Plan renews tomorrow',
+  [TenantNotificationKind.JobStarted]: 'Background job started',
+  [TenantNotificationKind.JobCompleted]: 'Background job completed',
 };
 
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */

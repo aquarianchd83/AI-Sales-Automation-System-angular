@@ -10,4 +10,7 @@ export const environment = {
   apiBaseUrl: '/api/v1',
   /** Refresh the access token this many seconds before it expires. */
   tokenRefreshLeewaySeconds: 60,
+  /** SignalR notification bell channel - root-relative (not under apiBaseUrl), proxied by
+   * proxy.conf.json's own "/hubs" entry in dev. */
+  notificationsHubUrl: '/hubs/notifications',
 };
