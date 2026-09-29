@@ -275,6 +275,8 @@ export enum TenantNotificationKind {
   JobStarted = 10,
   /** ...and finished. */
   JobCompleted = 11,
+  /** A platform operator added units to one of your quotas. */
+  CreditsAdded = 12,
 }
 
 export interface TenantNotification {
@@ -329,6 +331,7 @@ export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = 
   [TenantNotificationKind.PlanExpiring1]: 'Plan renews tomorrow',
   [TenantNotificationKind.JobStarted]: 'Background job started',
   [TenantNotificationKind.JobCompleted]: 'Background job completed',
+  [TenantNotificationKind.CreditsAdded]: 'Credits added',
 };
 
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */
