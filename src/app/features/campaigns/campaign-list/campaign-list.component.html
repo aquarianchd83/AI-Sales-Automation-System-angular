@@ -21,6 +21,16 @@
     </button>
   </app-page-header>
 
+  <mat-expansion-panel class="jobs-panel" expanded *appHasRole="['Admin']">
+    <mat-expansion-panel-header>
+      <mat-panel-title>Campaign jobs</mat-panel-title>
+      <mat-panel-description>
+        The scheduled jobs that send, follow up, retry and close your campaigns
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+    <app-tenant-job-list [embedded]="true" [jobTypes]="campaignJobTypes"></app-tenant-job-list>
+  </mat-expansion-panel>
+
   <mat-card class="table-card">
     <div class="filters">
       <mat-form-field class="filter-search" subscriptSizing="dynamic">

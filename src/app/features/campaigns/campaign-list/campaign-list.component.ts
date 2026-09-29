@@ -1,6 +1,7 @@
 import { ActivatedRoute, Router } from '@angular/router';
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
+import { CAMPAIGN_JOB_TYPES } from '../../../core/models/tenant-job.model';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, of } from 'rxjs';
@@ -52,6 +53,7 @@ export class CampaignListComponent implements OnInit, OnDestroy {
   readonly canDelete = canDeleteCampaign;
   readonly endDate = campaignEndDate;
   readonly statusLegend = CAMPAIGN_STATUS_ORDER;
+  readonly campaignJobTypes = CAMPAIGN_JOB_TYPES;
   readonly statusDescription = CAMPAIGN_STATUS_DESCRIPTIONS;
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });

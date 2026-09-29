@@ -2,8 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { SharedModule } from '../../shared/shared.module';
-import { TenantJobListComponent } from './tenant-job-list/tenant-job-list.component';
-import { TenantJobScheduleDialogComponent } from './tenant-job-schedule-dialog/tenant-job-schedule-dialog.component';
+import { TenantJobListComponent } from '../../shared/components/tenant-job-list/tenant-job-list.component';
 import { TenantSettingsListComponent } from './tenant-settings-list/tenant-settings-list.component';
 
 const routes: Routes = [
@@ -12,7 +11,7 @@ const routes: Routes = [
 ];
 
 @NgModule({
-  declarations: [TenantSettingsListComponent, TenantJobListComponent, TenantJobScheduleDialogComponent],
+  declarations: [TenantSettingsListComponent],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })
 export class TenantSettingsModule {}

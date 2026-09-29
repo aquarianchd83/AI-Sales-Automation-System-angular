@@ -11,6 +11,8 @@ import { ModuleFlowsDialogComponent } from './components/module-flows/module-flo
 import { HasRoleDirective } from './directives/has-role.directive';
 import { MaterialModule } from './material.module';
 import { ZonedDatePipe } from './pipes/zoned-date.pipe';
+import { TenantJobListComponent } from './components/tenant-job-list/tenant-job-list.component';
+import { TenantJobScheduleDialogComponent } from './components/tenant-job-schedule-dialog/tenant-job-schedule-dialog.component';
 
 const DECLARATIONS = [
   ConfirmDialogComponent,
@@ -20,6 +22,8 @@ const DECLARATIONS = [
   ModuleFlowsButtonComponent,
   ModuleFlowsDialogComponent,
   ZonedDatePipe,
+  TenantJobListComponent,
+  TenantJobScheduleDialogComponent,
 ];
 
 /** Re-exported building blocks for feature modules. Holds no providers. */
