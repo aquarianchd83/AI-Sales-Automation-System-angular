@@ -20,8 +20,15 @@ export class NotificationHubService {
   private connection: signalR.HubConnection | null = null;
   private readonly received$ = new Subject<unknown>();
   private readonly jobFinished$ = new Subject<string>();
+  private readonly jobStarted$ = new Subject<string>();
 
   constructor(private readonly tokenStorage: TokenStorageService) {}
+
+  /** Emits the job type each time one of the tenant's background jobs begins a run — the counterpart of
+   * jobFinished, so a screen can show it as in progress in between. */
+  jobStarted(types?: readonly string[]): Observable<string> {
+    return this.jobStarted$.pipe(filter((jobType) => !types || types.includes(jobType)));
+  }
 
   /** Emits the job type each time one of the tenant's background jobs finishes a run (any outcome),
    * already recorded server-side — so a page showing what that job changes can simply refetch. Only
@@ -51,6 +58,11 @@ export class NotificationHubService {
       .build();
 
     connection.on('NotificationReceived', (payload: unknown) => this.received$.next(payload));
+    connection.on('JobStarted', (payload: { jobType?: string } | null) => {
+      if (payload?.jobType) {
+        this.jobStarted$.next(payload.jobType);
+      }
+    });
     connection.on('JobFinished', (payload: { jobType?: string } | null) => {
       if (payload?.jobType) {
         this.jobFinished$.next(payload.jobType);

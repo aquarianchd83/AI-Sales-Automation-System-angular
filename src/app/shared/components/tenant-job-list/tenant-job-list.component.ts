@@ -15,6 +15,9 @@ import {
 /** Background jobs your own workspace runs — campaign sending and lead discovery. WhatsApp
  * integration jobs (template sync, token refresh) aren't here: they're platform-managed, since a wrong
  * schedule there can silently break your WhatsApp connection rather than just your own campaigns. */
+/** How long a triggered run is treated as in progress if no finished event ever arrives. */
+const RUN_NOW_FALLBACK_MS = 2 * 60 * 1000;
+
 @Component({
   selector: 'app-tenant-job-list',
   templateUrl: './tenant-job-list.component.html',
@@ -37,6 +40,8 @@ export class TenantJobListComponent implements OnInit, OnDestroy {
 
   /** Job types with an action in flight, so a slow "Run now" only disables its own row's buttons. */
   private readonly busy = new Set<string>();
+  /** Job types whose run is executing right now (started event, or just triggered here and not yet finished). */
+  private readonly running = new Set<string>();
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -54,7 +59,15 @@ export class TenantJobListComponent implements OnInit, OnDestroy {
     this.notificationHub
       .jobFinished(this.jobTypes ?? undefined)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.load(true));
+      .subscribe((jobType) => {
+        this.running.delete(jobType);
+        this.load(true);
+      });
+
+    this.notificationHub
+      .jobStarted(this.jobTypes ?? undefined)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((jobType) => this.running.add(jobType));
   }
 
   ngOnDestroy(): void {
@@ -81,6 +94,12 @@ export class TenantJobListComponent implements OnInit, OnDestroy {
         }
       },
     });
+  }
+
+  /** A run of this job is in flight: "Run now" would only queue a second one on top of it. Not to be confused with
+   * the State column's "Running", which just means the job is scheduled and active. */
+  isRunning(job: TenantJob): boolean {
+    return this.running.has(job.jobType) || job.hangfireLastJobState === 'Processing';
   }
 
   isBusy(job: TenantJob): boolean {
@@ -130,6 +149,10 @@ export class TenantJobListComponent implements OnInit, OnDestroy {
   runNow(job: TenantJob): void {
     this.runAction(job, () => this.jobService.trigger(job.jobType)).subscribe((result) => {
       this.notify.success(`${job.displayName} queued (job ${result.backgroundJobId}).`);
+      // Held as in progress until the finished event arrives; the timer is only a fallback for a dropped
+      // live connection, so the button cannot stay greyed out forever.
+      this.running.add(job.jobType);
+      setTimeout(() => this.running.delete(job.jobType), RUN_NOW_FALLBACK_MS);
       // The run is asynchronous, so this row's last-run fields won't be current for a few seconds -
       // refresh (or wait for the next scheduled run) to see the outcome.
     });

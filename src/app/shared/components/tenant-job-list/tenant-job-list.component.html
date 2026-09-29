@@ -48,7 +48,7 @@
           <th mat-header-cell *matHeaderCellDef>State</th>
           <td mat-cell *matCellDef="let row">
             <ng-container *ngIf="row.isEnabled; else paused">
-              <span class="state state-on" *ngIf="row.isRegistered">Running</span>
+              <span class="state state-on" *ngIf="row.isRegistered">{{ isRunning(row) ? 'Running now' : 'Scheduled' }}</span>
               <span
                 class="state state-blocked"
                 *ngIf="!row.isRegistered"
@@ -106,8 +106,8 @@
             <button
               mat-icon-button
               type="button"
-              matTooltip="Run now"
-              [disabled]="isBusy(row) || !row.isEnabled || !runsBackgroundJobs"
+              [matTooltip]="isRunning(row) ? 'Running now — wait for it to finish' : 'Run now'"
+              [disabled]="isBusy(row) || isRunning(row) || !row.isEnabled || !runsBackgroundJobs"
               (click)="runNow(row)"
             >
               <mat-icon>play_arrow</mat-icon>
