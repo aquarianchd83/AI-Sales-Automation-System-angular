@@ -476,3 +476,90 @@ export function campaignCustomerStatusChipClass(status: string): string {
 export function campaignCustomerStatusDescription(status: string): string {
   return CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS[status as CampaignCustomerStatus] ?? '';
 }
+
+/** CampaignStepOutcome — one audience member's delivery state for one step. Message statuses,
+ * plus Upcoming (still due the step) and WillNotReceive (finished/stopped before it). */
+export enum CampaignStepOutcome {
+  Queued = 'Queued',
+  Sent = 'Sent',
+  Delivered = 'Delivered',
+  Read = 'Read',
+  Failed = 'Failed',
+  Upcoming = 'Upcoming',
+  WillNotReceive = 'WillNotReceive',
+}
+
+export const CAMPAIGN_STEP_OUTCOME_LABELS: Record<CampaignStepOutcome, string> = {
+  [CampaignStepOutcome.Queued]: 'Queued',
+  [CampaignStepOutcome.Sent]: 'Sent',
+  [CampaignStepOutcome.Delivered]: 'Delivered',
+  [CampaignStepOutcome.Read]: 'Read',
+  [CampaignStepOutcome.Failed]: 'Failed',
+  [CampaignStepOutcome.Upcoming]: 'Will receive',
+  [CampaignStepOutcome.WillNotReceive]: 'Will not receive',
+};
+
+/** CampaignStepDeliverySummaryDto — a step's outcome counts across the whole audience. */
+export interface CampaignStepDeliverySummary {
+  stepNumber: number;
+  stepType: string;
+  templateName: string | null;
+  isActive: boolean;
+  recipients: number;
+  queued: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  upcoming: number;
+  willNotReceive: number;
+}
+
+/** CampaignStepRecipientDto — one audience member's outcome for one step. */
+export interface CampaignStepRecipient {
+  customerId: string;
+  phoneNumberE164: string;
+  firstName: string | null;
+  lastName: string | null;
+  outcome: CampaignStepOutcome | string;
+  /** Set once a message exists for the step; the id to resend when the outcome is Failed. */
+  messageId: string | null;
+  failureReason: string | null;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  readAt: string | null;
+  /** When an Upcoming step becomes eligible; null means the next send run. */
+  dueAt: string | null;
+  /** Why a WillNotReceive recipient will not get the step. */
+  note: string | null;
+}
+
+/** SendRunResult — the outcome of a bulk resend. */
+export interface ResendFailedResult {
+  considered: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+}
+
+/** "Received" means the phone got it: Delivered or Read. Sent only means WhatsApp accepted it. */
+export function stepOutcomeChipClass(outcome: string): string {
+  switch (outcome) {
+    case CampaignStepOutcome.Delivered:
+    case CampaignStepOutcome.Read:
+      return 'status-chip status-chip--running';
+    case CampaignStepOutcome.Sent:
+    case CampaignStepOutcome.Upcoming:
+      return 'status-chip status-chip--scheduled';
+    case CampaignStepOutcome.Failed:
+      return 'status-chip status-chip--stopped';
+    case CampaignStepOutcome.Queued:
+      return 'status-chip status-chip--paused';
+    default:
+      return 'status-chip status-chip--draft';
+  }
+}
+
+export function stepOutcomeLabel(outcome: string): string {
+  return CAMPAIGN_STEP_OUTCOME_LABELS[outcome as CampaignStepOutcome] ?? outcome;
+}

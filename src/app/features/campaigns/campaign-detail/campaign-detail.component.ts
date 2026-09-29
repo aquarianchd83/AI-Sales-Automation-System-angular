@@ -61,6 +61,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   loadingProgress = false;
   actionInFlight = false;
   runningJob = false;
+  /** Bumped whenever progress reloads, so the step-delivery card refetches with it. */
+  deliveryRefresh = 0;
 
   audiencePage: PagedResult<CampaignAudienceMember> = emptyPage<CampaignAudienceMember>();
   loadingAudience = true;
@@ -403,7 +405,11 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
       .getProgress(campaignId)
       .pipe(finalize(() => (this.loadingProgress = false)))
       .subscribe({
-        next: (progress) => (this.progress = progress),
+        next: (progress) => {
+          this.progress = progress;
+          // Whatever moved progress (a run, a status change, the refresh button) moved delivery too.
+          this.deliveryRefresh++;
+        },
         error: () => (this.progress = null),
       });
   }

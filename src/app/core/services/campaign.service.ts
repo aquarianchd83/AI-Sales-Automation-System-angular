@@ -9,7 +9,10 @@ import {
   CampaignHistoryFilter,
   CampaignMessageHistoryEntry,
   CampaignProgress,
+  CampaignStepDeliverySummary,
+  CampaignStepRecipient,
   CreateCampaignRequest,
+  ResendFailedResult,
   RetryMessageResult,
   RunJobsResult,
   SetCampaignAudienceRequest,
@@ -147,6 +150,34 @@ export class CampaignService {
   /** Manually retries one Failed message, regardless of how many times it already failed. */
   retryMessage(campaignId: string, messageId: string): Observable<RetryMessageResult> {
     return this.http.post<RetryMessageResult>(`${this.baseUrl}/${campaignId}/messages/${messageId}/retry`, null);
+  }
+
+  /** Per-step outcome counts across the audience. */
+  getStepDelivery(campaignId: string): Observable<CampaignStepDeliverySummary[]> {
+    return this.http.get<CampaignStepDeliverySummary[]>(`${this.baseUrl}/${campaignId}/steps/delivery`);
+  }
+
+  /** Every audience member's outcome for one step — received, failed, still to come, or never.
+   * `outcome` narrows to one CampaignStepOutcome. */
+  getStepRecipients(
+    campaignId: string,
+    stepNumber: number,
+    query: PagedQuery,
+    outcome?: string
+  ): Observable<PagedResult<CampaignStepRecipient>> {
+    const params: Record<string, string> = { ...toPagedParams(query) };
+    if (outcome) {
+      params['Outcome'] = outcome;
+    }
+    return this.http.get<PagedResult<CampaignStepRecipient>>(
+      `${this.baseUrl}/${campaignId}/steps/${stepNumber}/recipients`,
+      { params }
+    );
+  }
+
+  /** Resends every Failed message of one step. The campaign must be Running (409 otherwise). */
+  resendFailedForStep(campaignId: string, stepNumber: number): Observable<ResendFailedResult> {
+    return this.http.post<ResendFailedResult>(`${this.baseUrl}/${campaignId}/steps/${stepNumber}/resend-failed`, null);
   }
 
   /**

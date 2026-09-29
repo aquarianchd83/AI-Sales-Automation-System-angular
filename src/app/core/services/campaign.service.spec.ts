@@ -73,6 +73,40 @@ describe('CampaignService', () => {
     req.flush({ items: [], page: 1, pageSize: 25, totalCount: 0, totalPages: 0 });
   });
 
+  it('fetches per-step delivery counts', () => {
+    service.getStepDelivery('camp-1').subscribe();
+
+    const req = http.expectOne(`${baseUrl}/camp-1/steps/delivery`);
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
+  it('fetches a step\'s recipients with the outcome filter', () => {
+    service.getStepRecipients('camp-1', 2, { page: 1, pageSize: 10 }, 'Failed').subscribe();
+
+    const req = http.expectOne((r) => r.url === `${baseUrl}/camp-1/steps/2/recipients`);
+    expect(req.request.params.get('Outcome')).toBe('Failed');
+    expect(req.request.params.get('Page')).toBe('1');
+    req.flush({ items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0 });
+  });
+
+  it('omits the Outcome param when no filter is set', () => {
+    service.getStepRecipients('camp-1', 0, { page: 1, pageSize: 10 }).subscribe();
+
+    const req = http.expectOne((r) => r.url === `${baseUrl}/camp-1/steps/0/recipients`);
+    expect(req.request.params.has('Outcome')).toBeFalse();
+    req.flush({ items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0 });
+  });
+
+  it('posts a bulk resend for one step with no body', () => {
+    service.resendFailedForStep('camp-1', 1).subscribe();
+
+    const req = http.expectOne(`${baseUrl}/camp-1/steps/1/resend-failed`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toBeNull();
+    req.flush({ considered: 0, sent: 0, failed: 0, skipped: 0 });
+  });
+
   it('calls the global ops/run-jobs endpoint with no campaign id', () => {
     service.runJobsNow().subscribe();
 
