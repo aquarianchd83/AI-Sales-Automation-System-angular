@@ -25,7 +25,7 @@ export const CAMPAIGN_STATUS_DESCRIPTIONS: Record<CampaignStatus, string> = {
   [CampaignStatus.Running]: 'Actively sending Initial messages and follow-ups to its audience right now.',
   [CampaignStatus.Paused]: 'Temporarily halted — sending stops, but steps stay editable and it can be resumed from where it left off.',
   [CampaignStatus.Stopped]: 'Manually stopped. Everyone still awaiting a follow-up was force-completed. Can be resumed or deleted (deleting also erases its message history).',
-  [CampaignStatus.Completed]: 'Every step in the sequence has finished for the whole audience.',
+  [CampaignStatus.Completed]: 'Closed automatically — everyone in the audience finished, or the end date passed. View only; history stays available and it can be deleted.',
 };
 
 /**
@@ -296,14 +296,18 @@ export function canEditCampaign(status: string): boolean {
 }
 
 /**
- * CampaignService.DeleteAsync: Draft or Stopped only, hard delete. A Draft campaign never
+ * CampaignService.DeleteAsync: Draft, Stopped or Completed only, hard delete. A Draft campaign never
  * has Messages (nothing sends before Start), so there's nothing to lose; a Stopped one
  * usually does, and DeleteAsync removes those right along with it — there is no way to
  * keep a record of what was sent once the campaign itself is gone. Anything still live
  * (Scheduled/Running/Paused) must be Stopped first.
  */
 export function canDeleteCampaign(status: string): boolean {
-  return status === CampaignStatus.Draft || status === CampaignStatus.Stopped;
+  return (
+    status === CampaignStatus.Draft ||
+    status === CampaignStatus.Stopped ||
+    status === CampaignStatus.Completed
+  );
 }
 
 export function canEditSteps(status: string): boolean {
@@ -331,17 +335,6 @@ export function canStopCampaign(status: string): boolean {
 }
 
 /**
- * Mirrors what the send pipeline can actually do for a campaign right now:
- * CampaignSendService promotes a due Scheduled campaign and sends its Initial step, or
- * sends follow-ups/retries for a Running one — nothing else (Draft, Paused, Stopped,
- * Completed) has anything eligible, so running the per-campaign job there is a
- * guaranteed no-op. Hidden rather than offered as a dead click.
- */
-export function canRunCampaignJobs(status: string): boolean {
-  return status === CampaignStatus.Scheduled || status === CampaignStatus.Running;
-}
-
-/**
  * Not a field the API returns — CampaignDto has no end-date concept server-side (see
  * CampaignDtos.cs). This projects one client-side:
  *  - A Stopped campaign's real end is StoppedAt — it actually stopped there, so this is
@@ -362,7 +355,7 @@ export function canRunCampaignJobs(status: string): boolean {
  */
 export interface CampaignEndDate {
   date: Date;
-  /** false only for a Stopped campaign's actual StoppedAt. */
+  /** false only for a Stopped or Completed campaign's actual StoppedAt. */
   isEstimate: boolean;
 }
 
@@ -373,7 +366,8 @@ export function campaignEndDate(campaign: {
   stoppedAt?: string | null;
   steps: { isActive: boolean; delayDaysAfterPrevious: number }[];
 }): CampaignEndDate | null {
-  if (campaign.status === CampaignStatus.Stopped && campaign.stoppedAt) {
+  // A Completed campaign closes itself and records when in StoppedAt, same as a manual Stop.
+  if ((campaign.status === CampaignStatus.Stopped || campaign.status === CampaignStatus.Completed) && campaign.stoppedAt) {
     return { date: new Date(campaign.stoppedAt), isEstimate: false };
   }
 

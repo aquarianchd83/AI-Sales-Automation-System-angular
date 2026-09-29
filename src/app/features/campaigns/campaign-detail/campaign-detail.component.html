@@ -62,17 +62,6 @@
         <mat-icon>stop</mat-icon>
         Stop
       </button>
-      <button
-        mat-stroked-button
-        type="button"
-        *ngIf="canRunJobsNow"
-        [disabled]="runningJob"
-        matTooltip="Runs the send pipeline immediately for this campaign, instead of waiting for the next scheduled tick"
-        (click)="runJobNow()"
-      >
-        <mat-icon>bolt</mat-icon>
-        {{ runningJob ? 'Running…' : 'Run job now' }}
-      </button>
       <button mat-icon-button type="button" [matMenuTriggerFor]="menu" aria-label="More">
         <mat-icon>more_vert</mat-icon>
       </button>
@@ -86,6 +75,13 @@
 
     <mat-card class="detail-card">
       <h2>Overview</h2>
+      <p class="status-note muted" *ngIf="c.status === 'Running'">
+        Closes automatically once everyone in the audience has finished, or after the expected end date passes.
+      </p>
+      <p class="status-note muted" *ngIf="c.status === 'Completed'">
+        <mat-icon inline>lock</mat-icon>
+        This campaign is closed and view only. Its history stays available below.
+      </p>
       <dl>
         <dt>Description</dt>
         <dd>{{ c.description || '—' }}</dd>
@@ -96,13 +92,13 @@
         <dt>Started</dt>
         <dd>{{ (c.startedAt | date: 'full') || '—' }}</dd>
 
-        <dt>Stopped</dt>
+        <dt>{{ c.status === 'Completed' ? 'Completed' : 'Stopped' }}</dt>
         <dd>{{ (c.stoppedAt | date: 'full') || '—' }}</dd>
 
-        <dt>End date</dt>
+        <dt>{{ endDate?.isEstimate === false ? 'Ended' : 'Expected end' }}</dt>
         <dd>
           <ng-container *ngIf="endDate as e; else noEndDate">
-            {{ e.date | date: 'full' }}<span *ngIf="e.isEstimate" class="muted"> (estimated)</span>
+            {{ e.date | date: 'full' }}<span *ngIf="e.isEstimate" class="muted"> (start + step delays)</span>
           </ng-container>
           <ng-template #noEndDate>—</ng-template>
         </dd>

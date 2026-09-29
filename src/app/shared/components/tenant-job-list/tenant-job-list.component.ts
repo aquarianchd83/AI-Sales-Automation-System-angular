@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Observable, of } from 'rxjs';
 import { catchError, filter, finalize } from 'rxjs/operators';
@@ -20,6 +20,11 @@ import {
   styleUrls: ['./tenant-job-list.component.scss'],
 })
 export class TenantJobListComponent implements OnInit {
+  /** Only list these job types (e.g. CAMPAIGN_JOB_TYPES); null lists every job the tenant can manage. */
+  @Input() jobTypes: readonly string[] | null = null;
+  /** Drop the page chrome (header, back link, page padding) so the table can sit inside another page. */
+  @Input() embedded = false;
+
   readonly displayedColumns = ['job', 'schedule', 'state', 'lastRun', 'nextRun', 'actions'];
   readonly outcomeLabels = TENANT_JOB_RUN_OUTCOME_LABELS;
   readonly TenantJobRunOutcome = TenantJobRunOutcome;
@@ -47,7 +52,8 @@ export class TenantJobListComponent implements OnInit {
     this.loadFailed = false;
     this.jobService.getJobs().subscribe({
       next: (result) => {
-        this.jobs = result.jobs;
+        const wanted = this.jobTypes;
+        this.jobs = wanted ? result.jobs.filter((job) => wanted.includes(job.jobType)) : result.jobs;
         this.runsBackgroundJobs = result.runsBackgroundJobs;
         this.loading = false;
       },

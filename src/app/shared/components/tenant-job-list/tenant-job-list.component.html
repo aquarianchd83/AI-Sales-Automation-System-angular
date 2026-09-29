@@ -1,5 +1,6 @@
-<div class="page">
+<div [class.page]="!embedded">
   <app-page-header
+    *ngIf="!embedded"
     title="Background jobs"
     subtitle="Your campaign sending and lead discovery jobs. Pause, reschedule or run one on demand."
   >
