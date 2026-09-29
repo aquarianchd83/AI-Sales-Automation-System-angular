@@ -1,13 +1,14 @@
 import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { of } from 'rxjs';
+import { NEVER, of, Subject } from 'rxjs';
 
 import { QuotaType, TenantNotification, TenantNotificationKind } from '../../core/models/billing.model';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
+import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
@@ -25,7 +26,12 @@ const alert = (id: string, kind: TenantNotificationKind, acknowledged = false): 
 });
 
 describe('ShellComponent billing bell', () => {
-  function render(options: { roles: string[]; impersonating?: boolean; notifications?: TenantNotification[] }) {
+  function render(options: {
+    roles: string[];
+    impersonating?: boolean;
+    notifications?: TenantNotification[];
+    liveNotifications$?: Subject<unknown>;
+  }) {
     const getNotifications = jasmine.createSpy('getNotifications').and.returnValue(of(options.notifications ?? []));
     const acknowledgeNotification = jasmine.createSpy('acknowledgeNotification').and.returnValue(of(undefined));
     const acknowledgeAllNotifications = jasmine.createSpy('acknowledgeAllNotifications').and.returnValue(of(undefined));
@@ -45,6 +51,14 @@ describe('ShellComponent billing bell', () => {
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications, acknowledgeNotification, acknowledgeAllNotifications, deleteNotification } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },
+        {
+          provide: NotificationHubService,
+          useValue: {
+            connect: () => undefined,
+            disconnect: () => undefined,
+            notificationReceived$: options.liveNotifications$ ?? NEVER,
+          },
+        },
       ],
     });
 
@@ -60,6 +74,16 @@ describe('ShellComponent billing bell', () => {
       acknowledgeAllNotifications,
       deleteNotification,
     };
+  }
+
+  /** The bell's list lives in a CDK overlay portal attached to the document body, not under the
+   * component's own root element - opening the trigger renders it (NoopAnimationsModule makes this
+   * synchronous). */
+  function openMenu(root: HTMLElement, fixture: { detectChanges: () => void }): HTMLElement {
+    root.querySelector<HTMLButtonElement>('[aria-label="Billing alerts"]')!.click();
+    fixture.detectChanges();
+    tick(500); // CDK overlay schedules a one-off timer (focus/backdrop setup) opening the panel
+    return document.querySelector('.cdk-overlay-container') as HTMLElement;
   }
 
   it('shows a tenant admin how many billing alerts are unread', fakeAsync(() => {
@@ -218,6 +242,65 @@ describe('ShellComponent billing bell', () => {
 
       expect(acknowledgeNotification).toHaveBeenCalledWith('1');
       expect(root.querySelectorAll('.billing-alert-banner').length).toBe(1);
+      discardPeriodicTasks();
+    }));
+  });
+
+  describe('panel size and the More notifications button', () => {
+    it('shows at most 6 notifications, with a More notifications button once there are more', fakeAsync(() => {
+      const notifications = Array.from({ length: 8 }, (_, i) => alert(String(i + 1), TenantNotificationKind.QuotaLow20));
+      const { root, fixture } = render({ roles: ['Admin'], notifications });
+
+      const overlay = openMenu(root, fixture);
+
+      expect(overlay.querySelectorAll('.alert-row').length).toBe(6);
+      expect(overlay.querySelector('.more-notifications')).not.toBeNull();
+      discardPeriodicTasks();
+    }));
+
+    it('hides the More notifications button when 6 or fewer are unread', fakeAsync(() => {
+      const notifications = Array.from({ length: 3 }, (_, i) => alert(String(i + 1), TenantNotificationKind.QuotaLow20));
+      const { root, fixture } = render({ roles: ['Admin'], notifications });
+
+      const overlay = openMenu(root, fixture);
+
+      expect(overlay.querySelectorAll('.alert-row').length).toBe(3);
+      expect(overlay.querySelector('.more-notifications')).toBeNull();
+      discardPeriodicTasks();
+    }));
+  });
+
+  describe('live push', () => {
+    it('prepends a notification pushed over the live channel without waiting for the next poll', fakeAsync(() => {
+      const live$ = new Subject<unknown>();
+      const { fixture } = render({ roles: ['Admin'], notifications: [alert('1', TenantNotificationKind.QuotaLow20)], liveNotifications$: live$ });
+
+      live$.next(alert('2', TenantNotificationKind.QuotaExhausted));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['2', '1']);
+      discardPeriodicTasks();
+    }));
+
+    it('never double-adds a push for a notification the poll already has', fakeAsync(() => {
+      const live$ = new Subject<unknown>();
+      const { fixture } = render({ roles: ['Admin'], notifications: [alert('1', TenantNotificationKind.QuotaLow20)], liveNotifications$: live$ });
+
+      live$.next(alert('1', TenantNotificationKind.QuotaLow20));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['1']);
+      discardPeriodicTasks();
+    }));
+
+    it('ignores a push that arrives already acknowledged', fakeAsync(() => {
+      const live$ = new Subject<unknown>();
+      const { fixture } = render({ roles: ['Admin'], notifications: [], liveNotifications$: live$ });
+
+      live$.next(alert('1', TenantNotificationKind.QuotaLow20, true));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.billingAlerts).toEqual([]);
       discardPeriodicTasks();
     }));
   });

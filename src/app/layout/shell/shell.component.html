@@ -60,7 +60,7 @@
 
         <mat-menu #alertsMenu="matMenu" class="alerts-menu">
           <div class="alerts-empty" mat-menu-item disabled *ngIf="!billingAlerts.length">No new billing alerts</div>
-          <div class="alert-row" *ngFor="let alert of billingAlerts.slice(0, 5)">
+          <div class="alert-row" *ngFor="let alert of billingAlerts.slice(0, 6)">
             <a mat-menu-item class="alert-item" routerLink="/billing/wallet" [class.alert-item--urgent]="urgentAlert(alert)">
               <span class="alert-title">{{ alert.title }}</span>
               <span class="alert-body">{{ alert.body }}</span>
@@ -83,6 +83,10 @@
             <mat-icon>data_usage</mat-icon>
             <span>Usage &amp; credits</span>
           </a>
+          <button mat-menu-item type="button" class="more-notifications" *ngIf="billingAlerts.length > 6" (click)="viewMoreBillingAlerts()">
+            <mat-icon>more_horiz</mat-icon>
+            <span>More notifications</span>
+          </button>
         </mat-menu>
       </ng-container>
 
@@ -94,7 +98,7 @@
 
         <mat-menu #platformAlertsMenu="matMenu" class="alerts-menu">
           <div class="alerts-empty" mat-menu-item disabled *ngIf="!platformAlerts.length">No new platform alerts</div>
-          <div class="alert-row" *ngFor="let alert of platformAlerts.slice(0, 5)">
+          <div class="alert-row" *ngFor="let alert of platformAlerts.slice(0, 6)">
             <a
               mat-menu-item
               class="alert-item"
@@ -123,6 +127,10 @@
             <mat-icon>schedule</mat-icon>
             <span>Background jobs</span>
           </a>
+          <button mat-menu-item type="button" class="more-notifications" *ngIf="platformAlerts.length > 6" (click)="viewMorePlatformAlerts()">
+            <mat-icon>more_horiz</mat-icon>
+            <span>More notifications</span>
+          </button>
         </mat-menu>
       </ng-container>
 

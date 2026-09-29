@@ -5,6 +5,13 @@
     "changeOrigin": true,
     "logLevel": "debug"
   },
+  "/hubs": {
+    "target": "https://localhost:7080",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "debug"
+  },
   "/media": {
     "target": "https://localhost:7080",
     "secure": false,

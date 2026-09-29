@@ -1,13 +1,14 @@
 import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { of } from 'rxjs';
+import { NEVER, of, Subject } from 'rxjs';
 
 import { PlatformNotification } from '../../core/models/platform.model';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
+import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
@@ -26,7 +27,7 @@ const alert = (id: string, acknowledged = false): PlatformNotification => ({
 });
 
 describe('ShellComponent platform bell', () => {
-  function render(notifications: PlatformNotification[] = []) {
+  function render(notifications: PlatformNotification[] = [], liveNotifications$?: Subject<unknown>) {
     const getRecent = jasmine.createSpy('getRecent').and.returnValue(of(notifications));
     const acknowledge = jasmine.createSpy('acknowledge').and.returnValue(of(undefined));
     const acknowledgeAll = jasmine.createSpy('acknowledgeAll').and.returnValue(of(undefined));
@@ -46,6 +47,10 @@ describe('ShellComponent platform bell', () => {
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: PlatformNotificationService, useValue: { getRecent, acknowledge, acknowledgeAll, delete: deleteSpy } },
+        {
+          provide: NotificationHubService,
+          useValue: { connect: () => undefined, disconnect: () => undefined, notificationReceived$: liveNotifications$ ?? NEVER },
+        },
       ],
     });
 
@@ -54,6 +59,13 @@ describe('ShellComponent platform bell', () => {
     tick(1); // the poll's first tick
     fixture.detectChanges();
     return { fixture, root: fixture.nativeElement as HTMLElement, getRecent, acknowledge, acknowledgeAll, deleteSpy };
+  }
+
+  function openMenu(root: HTMLElement, fixture: { detectChanges: () => void }): HTMLElement {
+    root.querySelector<HTMLButtonElement>('[aria-label="Platform alerts"]')!.click();
+    fixture.detectChanges();
+    tick(500); // CDK overlay schedules a one-off timer (focus/backdrop setup) opening the panel
+    return document.querySelector('.cdk-overlay-container') as HTMLElement;
   }
 
   it('shows the operator how many platform alerts are unread', fakeAsync(() => {
@@ -91,6 +103,39 @@ describe('ShellComponent platform bell', () => {
 
     expect(deleteSpy).toHaveBeenCalledWith('1');
     expect(fixture.componentInstance.platformAlerts.map((a) => a.id)).toEqual(['2']);
+    discardPeriodicTasks();
+  }));
+
+  it('shows at most 6 notifications, with a More notifications button once there are more', fakeAsync(() => {
+    const notifications = Array.from({ length: 8 }, (_, i) => alert(String(i + 1)));
+    const { root, fixture } = render(notifications);
+
+    const overlay = openMenu(root, fixture);
+
+    expect(overlay.querySelectorAll('.alert-row').length).toBe(6);
+    expect(overlay.querySelector('.more-notifications')).not.toBeNull();
+    discardPeriodicTasks();
+  }));
+
+  it('hides the More notifications button when 6 or fewer are unread', fakeAsync(() => {
+    const notifications = Array.from({ length: 3 }, (_, i) => alert(String(i + 1)));
+    const { root, fixture } = render(notifications);
+
+    const overlay = openMenu(root, fixture);
+
+    expect(overlay.querySelectorAll('.alert-row').length).toBe(3);
+    expect(overlay.querySelector('.more-notifications')).toBeNull();
+    discardPeriodicTasks();
+  }));
+
+  it('prepends a notification pushed over the live channel without waiting for the next poll', fakeAsync(() => {
+    const live$ = new Subject<unknown>();
+    const { fixture } = render([alert('1')], live$);
+
+    live$.next(alert('2'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.platformAlerts.map((a) => a.id)).toEqual(['2', '1']);
     discardPeriodicTasks();
   }));
 });
