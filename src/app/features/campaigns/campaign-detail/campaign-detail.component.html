@@ -114,6 +114,17 @@
         <span class="audience-count">{{ c.audienceCount }}</span>
         <span class="spacer"></span>
         <button
+          mat-stroked-button
+          type="button"
+          *ngIf="canForceNext"
+          [disabled]="isForcingAll"
+          matTooltip="Send everyone still Pending or awaiting a follow-up their next message right now, without waiting for its delay"
+          (click)="forceNextStepForAll()"
+        >
+          <mat-icon>fast_forward</mat-icon>
+          {{ isForcingAll ? 'Sending…' : 'Send next step now' }}
+        </button>
+        <button
           mat-button
           type="button"
           [disabled]="!canSetAudienceNow"
@@ -159,6 +170,7 @@
               <th>Step</th>
               <th>Last message sent</th>
               <th>Next follow-up due</th>
+              <th aria-label="Actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -175,6 +187,18 @@
               <td>{{ member.currentStepNumber < 0 ? 'Not sent yet' : member.currentStepNumber }}</td>
               <td>{{ (member.lastMessageSentAt | date: 'medium') || '—' }}</td>
               <td>{{ (member.nextFollowUpDueAt | date: 'medium') || '—' }}</td>
+              <td class="member-actions">
+                <button
+                  mat-icon-button
+                  type="button"
+                  *ngIf="canForceMember(member)"
+                  [disabled]="isForcing(member.customerId)"
+                  [matTooltip]="member.currentStepNumber < 0 ? 'Send the first message now' : 'Send the next step now'"
+                  (click)="forceNextStepFor(member)"
+                >
+                  <mat-icon>fast_forward</mat-icon>
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>

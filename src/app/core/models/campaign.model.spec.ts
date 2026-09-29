@@ -1,12 +1,15 @@
 import {
+  CampaignCustomerStatus,
   CampaignStatus,
   campaignEndDate,
   canDeleteCampaign,
+  canForceNextStep,
   canPauseCampaign,
   canResumeCampaign,
   canStartCampaign,
   canStopCampaign,
   formatStepTypeName,
+  isAwaitingNextStep,
   isLastStep,
   nextStepNumber,
   parseStepTypeName,
@@ -270,5 +273,22 @@ describe('campaignEndDate', () => {
       ],
     });
     expect(result!.date.toISOString()).toBe('2026-01-06T00:00:00.000Z');
+  });
+});
+
+describe('force next step', () => {
+  it('is offered only while the campaign is Running', () => {
+    expect(canForceNextStep(CampaignStatus.Running)).toBeTrue();
+    for (const status of [CampaignStatus.Draft, CampaignStatus.Scheduled, CampaignStatus.Paused, CampaignStatus.Stopped, CampaignStatus.Completed]) {
+      expect(canForceNextStep(status)).toBeFalse();
+    }
+  });
+
+  it('acts only on customers who are Pending or awaiting a follow-up', () => {
+    expect(isAwaitingNextStep(CampaignCustomerStatus.Pending)).toBeTrue();
+    expect(isAwaitingNextStep(CampaignCustomerStatus.AwaitingResponse)).toBeTrue();
+    for (const status of [CampaignCustomerStatus.Responded, CampaignCustomerStatus.OptedOut, CampaignCustomerStatus.HandedOff, CampaignCustomerStatus.Completed, CampaignCustomerStatus.Failed]) {
+      expect(isAwaitingNextStep(status)).toBeFalse();
+    }
   });
 });

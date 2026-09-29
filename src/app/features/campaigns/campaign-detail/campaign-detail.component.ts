@@ -19,6 +19,7 @@ import {
   campaignStatusChipClass,
   canDeleteCampaign,
   canEditCampaign,
+  canForceNextStep,
   canEditSteps,
   canPauseCampaign,
   canResumeCampaign,
@@ -26,6 +27,7 @@ import {
   canStartCampaign,
   canStopCampaign,
   formatStepTypeName,
+  isAwaitingNextStep,
   isLastStep,
   nextStepNumber,
 } from '../../../core/models/campaign.model';
@@ -38,6 +40,9 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPag
 import { CAMPAIGN_JOB_TYPES } from '../../../core/models/tenant-job.model';
 import { NotificationHubService } from '../../../core/services/notification-hub.service';
 import { NotificationService } from '../../../core/services/notification.service';
+
+/** Busy key for the whole-campaign "send next step now" call. */
+const ALL_FORCING = '*';
 
 @Component({
   selector: 'app-campaign-detail',
@@ -67,6 +72,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   loadingAudience = true;
 
   private audienceQuery: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
+  /** Customer ids (or ALL_FORCING) with a force-next-step call in flight, so one slow send only disables its own button. */
+  private readonly forcingIds = new Set<string>();
   private readonly reloadAudience$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
 
@@ -347,6 +354,81 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
     if (this.campaign) {
       this.loadProgress(this.campaign.id);
     }
+  }
+
+  get canForceNext(): boolean {
+    return !!this.campaign && canForceNextStep(this.campaign.status);
+  }
+
+  canForceMember(member: CampaignAudienceMember): boolean {
+    return this.canForceNext && isAwaitingNextStep(member.status);
+  }
+
+  get isForcingAll(): boolean {
+    return this.forcingIds.has(ALL_FORCING);
+  }
+
+  isForcing(customerId: string): boolean {
+    return this.forcingIds.has(customerId);
+  }
+
+  /** Sends one customer their next step now, without waiting for its delay. */
+  forceNextStepFor(member: CampaignAudienceMember): void {
+    this.runForce([member.customerId], member.customerId);
+  }
+
+  /** Sends everyone still Pending or awaiting a follow-up their next step now. Asks first: it spends quota
+   * on every eligible customer at once. */
+  forceNextStepForAll(): void {
+    if (!this.campaign) {
+      return;
+    }
+    const data: ConfirmDialogData = {
+      title: 'Send the next step to everyone now?',
+      message:
+        'Every customer who is still Pending or waiting on a follow-up gets their next message right away, ' +
+        'without waiting for its delay. Each message uses your prepaid quota.',
+      confirmLabel: 'Send now',
+    };
+    this.dialog
+      .open(ConfirmDialogComponent, { data, width: '460px' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.runForce(undefined, ALL_FORCING);
+        }
+      });
+  }
+
+  private runForce(customerIds: string[] | undefined, busyKey: string): void {
+    if (!this.campaign) {
+      return;
+    }
+    this.forcingIds.add(busyKey);
+    this.campaigns
+      .forceNextStep(this.campaign.id, customerIds)
+      .pipe(finalize(() => this.forcingIds.delete(busyKey)))
+      .subscribe({
+        next: (result) => {
+          if (result.considered === 0) {
+            this.notify.info('Nobody is waiting for a next step.');
+          } else if (result.sent === 0) {
+            this.notify.error(
+              `Nothing was sent (${result.skipped} skipped, ${result.failed} failed). Check the customer is opted in, ` +
+                'the step has an approved template and you have quota left.'
+            );
+          } else {
+            const rest = result.considered - result.sent;
+            this.notify.success(`Sent ${result.sent} message${result.sent === 1 ? '' : 's'}${rest ? `, ${rest} not sent` : ''}.`);
+          }
+          this.reload();
+          this.refreshProgress();
+          this.reloadAudience$.next();
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
   }
 
   private runAction(call: () => Observable<Campaign>, successMessage: string): void {
