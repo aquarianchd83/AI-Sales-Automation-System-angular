@@ -40,8 +40,9 @@ stateDiagram-v2
   and clears `StoppedAt`.
 - **Stop** force-completes every customer still `AwaitingResponse` with reason "Campaign stopped". Resuming
   does not revive them; it only reopens the campaign to `Pending` and newly attached customers.
-- **`Completed` is never set** by any code path today. A campaign whose whole audience has finished stays
-  `Running`.
+- **Completed is set automatically** by the follow-up job (`CampaignSendService.CompleteFinishedCampaignsAsync`): a
+  Running campaign closes when no audience member is `Pending` or `AwaitingResponse`, or when now is past
+  `StartedAt` + the active steps' delays. `StoppedAt` records when. Completed is view-only and can be deleted.
 
 | Action | Allowed from (API) |
 | --- | --- |
@@ -51,7 +52,7 @@ stateDiagram-v2
 | Start / Resume | Draft, Paused, Stopped |
 | Pause | Running, Scheduled |
 | Stop | Draft, Scheduled, Running, Paused |
-| Delete | Draft, Stopped |
+| Delete | Draft, Stopped, Completed |
 | Run jobs now (per campaign) | Scheduled, Running (UI only; elsewhere it's a no-op) |
 
 ## 2. Setting up and starting a campaign
