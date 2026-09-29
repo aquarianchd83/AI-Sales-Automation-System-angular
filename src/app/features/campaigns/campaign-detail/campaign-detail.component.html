@@ -281,6 +281,12 @@
       </div>
     </mat-card>
 
+    <app-campaign-step-delivery
+      [campaignId]="c.id"
+      [campaignStatus]="c.status"
+      [refreshToken]="deliveryRefresh"
+    ></app-campaign-step-delivery>
+
     <mat-card class="progress-card">
       <div class="card-header">
         <h2>Progress</h2>
