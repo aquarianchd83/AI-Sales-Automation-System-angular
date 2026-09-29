@@ -12,6 +12,7 @@ import { TenantNotification, isUrgentNotification } from '../../core/models/bill
 import { BillingService } from '../../core/services/billing.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { TenantProfileService } from '../../core/services/tenant-profile.service';
 
 interface NavItem {
   label: string;
@@ -222,6 +223,9 @@ export class ShellComponent implements OnInit, OnDestroy {
    * never mark them read. */
   readonly showBillingBell = !this.isPlatformSuperAdmin && !this.auth.isImpersonating && this.auth.hasAnyRole(TENANT_ADMIN_ONLY);
   billingAlerts: TenantNotification[] = [];
+  /** The tenant's own IANA timezone — billing notification times are shown in it, whoever is reading. Null
+   * until loaded, when the pipe falls back to the user's own zone. */
+  tenantTimezone: string | null = null;
 
   /** Background-job alerts for the platform operator (a tenant's job failing repeatedly, or recovering). Shared
    * across operators, and skipped in a support session for the same reason the billing bell is. */
@@ -236,7 +240,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly account: AccountService,
     private readonly billing: BillingService,
     private readonly platformNotifications: PlatformNotificationService,
-    private readonly notificationHub: NotificationHubService
+    private readonly notificationHub: NotificationHubService,
+    private readonly tenantProfile: TenantProfileService
   ) {}
 
   ngOnInit(): void {
@@ -257,6 +262,11 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.account.getProfile().subscribe({ error: () => undefined });
 
     if (this.showBillingBell) {
+      this.tenantProfile.getProfile().subscribe({
+        next: (profile) => (this.tenantTimezone = profile.timezone ?? null),
+        error: () => undefined,
+      });
+
       // Now and every few minutes after: quota alerts are raised by a job every 15 minutes, so polling faster
       // than this would only ask the same question twice.
       timer(0, 3 * 60 * 1000)
@@ -265,7 +275,7 @@ export class ShellComponent implements OnInit, OnDestroy {
           takeUntil(this.destroy$)
         )
         .subscribe({
-          next: (all) => (this.billingAlerts = all.filter((n) => !n.acknowledged)),
+          next: (all) => (this.billingAlerts = this.newestFirst(all)),
           error: () => undefined,
         });
     }
@@ -278,7 +288,7 @@ export class ShellComponent implements OnInit, OnDestroy {
           takeUntil(this.destroy$)
         )
         .subscribe({
-          next: (all) => (this.platformAlerts = all.filter((n) => !n.acknowledged)),
+          next: (all) => (this.platformAlerts = this.newestFirst(all)),
           error: () => undefined,
         });
     }
@@ -314,13 +324,13 @@ export class ShellComponent implements OnInit, OnDestroy {
   private onLiveNotification(payload: unknown): void {
     if (this.showBillingBell) {
       const notification = payload as TenantNotification;
-      if (!notification.acknowledged && !this.billingAlerts.some((a) => a.id === notification.id)) {
-        this.billingAlerts = [notification, ...this.billingAlerts];
+      if (!this.billingAlerts.some((a) => a.id === notification.id)) {
+        this.billingAlerts = this.newestFirst([notification, ...this.billingAlerts]);
       }
     } else if (this.showPlatformBell) {
       const notification = payload as PlatformNotification;
-      if (!notification.acknowledged && !this.platformAlerts.some((a) => a.id === notification.id)) {
-        this.platformAlerts = [notification, ...this.platformAlerts];
+      if (!this.platformAlerts.some((a) => a.id === notification.id)) {
+        this.platformAlerts = this.newestFirst([notification, ...this.platformAlerts]);
       }
     }
   }
@@ -329,24 +339,49 @@ export class ShellComponent implements OnInit, OnDestroy {
     return alert.severity === 'Critical';
   }
 
-  /** Clears the alert as it is opened — the click is the operator seeing it — and leaves the list to the poll. */
+  /** The bells keep read notifications (greyed out) so the list is a history; only the delete action removes one. */
+  get unreadBillingCount(): number {
+    return this.billingAlerts.filter((n) => !n.acknowledged).length;
+  }
+
+  get unreadPlatformCount(): number {
+    return this.platformAlerts.filter((n) => !n.acknowledged).length;
+  }
+
+  private newestFirst<T extends { createdAt: string }>(list: T[]): T[] {
+    return [...list].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  /** Marks the alert read as it is opened — the click is the operator seeing it. It stays in the list, greyed. */
   openPlatformAlert(alert: PlatformNotification): void {
-    this.platformAlerts = this.platformAlerts.filter((n) => n.id !== alert.id);
+    if (alert.acknowledged) {
+      return;
+    }
+    this.platformAlerts = this.platformAlerts.map((n) => (n.id === alert.id ? { ...n, acknowledged: true } : n));
     this.platformNotifications.acknowledge(alert.id).subscribe({ error: () => undefined });
   }
 
   acknowledgeAllPlatformAlerts(): void {
-    this.platformAlerts = [];
+    this.platformAlerts = this.platformAlerts.map((n) => ({ ...n, acknowledged: true }));
     this.platformNotifications.acknowledgeAll().subscribe({ error: () => undefined });
   }
 
-  /** Placeholder for the bell's "More notifications" action - a full notification list/history
-   * screen is planned separately; for now the button is visible whenever the bell is truncating the
-   * list but does nothing when clicked. */
-  viewMoreBillingAlerts(): void {}
+  /** The bell's "More notifications" action expands the capped list in place; a full history
+   * screen is planned separately. The button shows whenever the bell is truncating the list;
+   * the panel stays open so the rest can be read. */
+  showAllBilling = false;
+  showAllPlatform = false;
 
-  /** See viewMoreBillingAlerts - same placeholder for the platform bell. */
-  viewMorePlatformAlerts(): void {}
+  viewMoreBillingAlerts(event: Event): void {
+    event.stopPropagation();
+    this.showAllBilling = true;
+  }
+
+  /** See viewMoreBillingAlerts - same for the platform bell. */
+  viewMorePlatformAlerts(event: Event): void {
+    event.stopPropagation();
+    this.showAllPlatform = true;
+  }
 
   urgentAlert(alert: TenantNotification): boolean {
     return isUrgentNotification(alert.kind);
@@ -356,17 +391,17 @@ export class ShellComponent implements OnInit, OnDestroy {
    * page — not just the bell, which a tenant can go a whole session without opening. Stays until
    * acknowledged or deleted; nothing here auto-dismisses. */
   get urgentBillingAlerts(): TenantNotification[] {
-    return this.billingAlerts.filter((a) => this.urgentAlert(a));
+    return this.billingAlerts.filter((a) => !a.acknowledged && this.urgentAlert(a));
   }
 
   /** Marks one billing alert read without navigating anywhere - the bell's own "mark as read" action. */
   acknowledgeBillingAlert(alert: TenantNotification): void {
-    this.billingAlerts = this.billingAlerts.filter((n) => n.id !== alert.id);
+    this.billingAlerts = this.billingAlerts.map((n) => (n.id === alert.id ? { ...n, acknowledged: true } : n));
     this.billing.acknowledgeNotification(alert.id).subscribe({ error: () => undefined });
   }
 
   acknowledgeAllBillingAlerts(): void {
-    this.billingAlerts = [];
+    this.billingAlerts = this.billingAlerts.map((n) => ({ ...n, acknowledged: true }));
     this.billing.acknowledgeAllNotifications().subscribe({ error: () => undefined });
   }
 

@@ -53,28 +53,29 @@
 
       <ng-container *ngIf="showBillingBell">
         <button mat-icon-button type="button" class="bell" [matMenuTriggerFor]="alertsMenu" aria-label="Billing alerts">
-          <mat-icon>{{ billingAlerts.length ? 'notifications_active' : 'notifications_none' }}</mat-icon>
-          <span class="bell-count" *ngIf="billingAlerts.length">{{ billingAlerts.length > 9 ? '9+' : billingAlerts.length }}</span>
+          <mat-icon>{{ unreadBillingCount ? 'notifications_active' : 'notifications_none' }}</mat-icon>
+          <span class="bell-count" *ngIf="unreadBillingCount">{{ unreadBillingCount > 9 ? '9+' : unreadBillingCount }}</span>
         </button>
 
+        <!-- The wrapper swallows clicks so mat-menu's own click-to-close never fires: the panel stays open until a
+             click lands outside it (the backdrop) or Escape is pressed. -->
         <mat-menu #alertsMenu="matMenu" class="alerts-menu">
-          <div class="alerts-empty" mat-menu-item disabled *ngIf="!billingAlerts.length">No new billing alerts</div>
-          <div class="alert-row" *ngFor="let alert of billingAlerts.slice(0, 6)">
-            <a mat-menu-item class="alert-item" routerLink="/billing/wallet" [class.alert-item--urgent]="urgentAlert(alert)">
+          <div (click)="$event.stopPropagation()">
+          <div class="alerts-empty" mat-menu-item disabled *ngIf="!billingAlerts.length">No billing alerts</div>
+          <div class="alert-row" *ngFor="let alert of (showAllBilling ? billingAlerts : billingAlerts.slice(0, 6))">
+            <a mat-menu-item class="alert-item" routerLink="/billing/wallet" [class.alert-item--urgent]="urgentAlert(alert)" [class.alert-item--read]="alert.acknowledged">
               <span class="alert-title">{{ alert.title }}</span>
               <span class="alert-body">{{ alert.body }}</span>
+              <span class="alert-time">{{ alert.createdAt | zonedDate: 'medium' : tenantTimezone }}</span>
             </a>
-            <div class="alert-actions">
-              <button mat-icon-button type="button" class="alert-action" (click)="acknowledgeBillingAlert(alert)" aria-label="Mark as read">
-                <mat-icon>done</mat-icon>
-              </button>
+            <div class="alert-actions" (click)="$event.stopPropagation()">
               <button mat-icon-button type="button" class="alert-action" (click)="deleteBillingAlert(alert)" aria-label="Delete notification">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
           </div>
           <mat-divider></mat-divider>
-          <button mat-menu-item type="button" *ngIf="billingAlerts.length" (click)="acknowledgeAllBillingAlerts()">
+          <button mat-menu-item type="button" *ngIf="unreadBillingCount" (click)="acknowledgeAllBillingAlerts()">
             <mat-icon>done_all</mat-icon>
             <span>Mark all as read</span>
           </button>
@@ -82,43 +83,44 @@
             <mat-icon>data_usage</mat-icon>
             <span>Usage &amp; credits</span>
           </a>
-          <button mat-menu-item type="button" class="more-notifications" *ngIf="billingAlerts.length > 6" (click)="viewMoreBillingAlerts()">
+          <button mat-menu-item type="button" class="more-notifications" *ngIf="billingAlerts.length > 6 && !showAllBilling" (click)="viewMoreBillingAlerts($event)">
             <mat-icon>more_horiz</mat-icon>
             <span>More notifications</span>
           </button>
+          </div>
         </mat-menu>
       </ng-container>
 
       <ng-container *ngIf="showPlatformBell">
         <button mat-icon-button type="button" class="bell" [matMenuTriggerFor]="platformAlertsMenu" aria-label="Platform alerts">
-          <mat-icon>{{ platformAlerts.length ? 'notifications_active' : 'notifications_none' }}</mat-icon>
-          <span class="bell-count" *ngIf="platformAlerts.length">{{ platformAlerts.length > 9 ? '9+' : platformAlerts.length }}</span>
+          <mat-icon>{{ unreadPlatformCount ? 'notifications_active' : 'notifications_none' }}</mat-icon>
+          <span class="bell-count" *ngIf="unreadPlatformCount">{{ unreadPlatformCount > 9 ? '9+' : unreadPlatformCount }}</span>
         </button>
 
         <mat-menu #platformAlertsMenu="matMenu" class="alerts-menu">
-          <div class="alerts-empty" mat-menu-item disabled *ngIf="!platformAlerts.length">No new platform alerts</div>
-          <div class="alert-row" *ngFor="let alert of platformAlerts.slice(0, 6)">
+          <div (click)="$event.stopPropagation()">
+          <div class="alerts-empty" mat-menu-item disabled *ngIf="!platformAlerts.length">No platform alerts</div>
+          <div class="alert-row" *ngFor="let alert of (showAllPlatform ? platformAlerts : platformAlerts.slice(0, 6))">
             <a
               mat-menu-item
               class="alert-item"
               routerLink="/platform/jobs"
               [class.alert-item--urgent]="platformAlertUrgent(alert)"
+              [class.alert-item--read]="alert.acknowledged"
               (click)="openPlatformAlert(alert)"
             >
               <span class="alert-title">{{ alert.title }}</span>
               <span class="alert-body">{{ alert.body }}</span>
+              <span class="alert-time">{{ alert.createdAt | zonedDate: 'medium' }}</span>
             </a>
-            <div class="alert-actions">
-              <button mat-icon-button type="button" class="alert-action" (click)="openPlatformAlert(alert)" aria-label="Mark as read">
-                <mat-icon>done</mat-icon>
-              </button>
+            <div class="alert-actions" (click)="$event.stopPropagation()">
               <button mat-icon-button type="button" class="alert-action" (click)="deletePlatformAlert(alert)" aria-label="Delete notification">
                 <mat-icon>close</mat-icon>
               </button>
             </div>
           </div>
           <mat-divider></mat-divider>
-          <button mat-menu-item type="button" *ngIf="platformAlerts.length" (click)="acknowledgeAllPlatformAlerts()">
+          <button mat-menu-item type="button" *ngIf="unreadPlatformCount" (click)="acknowledgeAllPlatformAlerts()">
             <mat-icon>done_all</mat-icon>
             <span>Mark all as read</span>
           </button>
@@ -126,10 +128,11 @@
             <mat-icon>schedule</mat-icon>
             <span>Background jobs</span>
           </a>
-          <button mat-menu-item type="button" class="more-notifications" *ngIf="platformAlerts.length > 6" (click)="viewMorePlatformAlerts()">
+          <button mat-menu-item type="button" class="more-notifications" *ngIf="platformAlerts.length > 6 && !showAllPlatform" (click)="viewMorePlatformAlerts($event)">
             <mat-icon>more_horiz</mat-icon>
             <span>More notifications</span>
           </button>
+          </div>
         </mat-menu>
       </ng-container>
 

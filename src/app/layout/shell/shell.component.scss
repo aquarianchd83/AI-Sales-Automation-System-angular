@@ -253,16 +253,17 @@
 }
 
 // Both bells (tenant billing and platform) share this class, so widening it here widens both at once.
-// !important overrides Material's own mat-menu-panel max-width, which would otherwise clip a row
+// !important overrides Material's own mat-mdc-menu-panel max-width, which would otherwise clip a row
 // wider than its default.
-::ng-deep .alerts-menu.mat-menu-panel {
-  max-width: 460px !important;
+::ng-deep .alerts-menu.mat-mdc-menu-panel {
+  min-width: min(432px, 92vw) !important;
+  max-width: min(461px, 92vw) !important;
 }
 
 .alert-row {
   display: flex;
   align-items: stretch;
-  max-width: 440px;
+  max-width: 446px;
 }
 
 .alert-item {
@@ -274,8 +275,35 @@
   padding-bottom: 8px;
   white-space: normal !important;
 
+  // Unread: black and bold. Read: grey background and muted, regular-weight text.
+  .alert-title,
+  .alert-body {
+    display: block;
+    color: #000;
+    font-weight: 700;
+  }
+
+  .alert-time {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 16px;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
   &--urgent .alert-title {
     color: #b3261e;
+  }
+
+  &--read {
+    background: #eeeeee;
+
+    .alert-title,
+    .alert-body,
+    .alert-time {
+      color: #757575;
+      font-weight: 400;
+    }
   }
 }
 

@@ -10,6 +10,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
@@ -51,6 +52,7 @@ describe('ShellComponent billing bell', () => {
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications, acknowledgeNotification, acknowledgeAllNotifications, deleteNotification } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },
+        { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'America/New_York' }) } },
         {
           provide: NotificationHubService,
           useValue: {
@@ -98,7 +100,7 @@ describe('ShellComponent billing bell', () => {
 
     expect(root.querySelector('.bell')).not.toBeNull();
     expect(root.querySelector('.bell-count')?.textContent?.trim()).toBe('2');
-    expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['1', '2']);
+    expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['1', '2', '3']);
     expect(root.querySelector('.bell mat-icon')?.textContent?.trim()).toBe('notifications_active');
     discardPeriodicTasks();
   }));
@@ -170,11 +172,43 @@ describe('ShellComponent billing bell', () => {
     fixture.componentInstance.acknowledgeBillingAlert(alert('1', TenantNotificationKind.QuotaLow20));
 
     expect(acknowledgeNotification).toHaveBeenCalledWith('1');
-    expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['2']);
+    expect(fixture.componentInstance.billingAlerts.map((a) => [a.id, a.acknowledged])).toEqual([
+      ['1', true],
+      ['2', false],
+    ]);
+    expect(fixture.componentInstance.unreadBillingCount).toBe(1);
     discardPeriodicTasks();
   }));
 
-  it('clears every unread alert at once', fakeAsync(() => {
+  it('lists the newest notification first, with its date and time', fakeAsync(() => {
+    const { root, fixture } = render({
+      roles: ['Admin'],
+      notifications: [
+        { ...alert('old', TenantNotificationKind.QuotaLow20), createdAt: '2026-09-18T00:00:00Z' },
+        { ...alert('new', TenantNotificationKind.QuotaLow20), createdAt: '2026-09-20T00:00:00Z' },
+      ],
+    });
+
+    expect(fixture.componentInstance.billingAlerts.map((a) => a.id)).toEqual(['new', 'old']);
+    const overlay = openMenu(root, fixture);
+    expect(overlay.querySelectorAll('.alert-time').length).toBe(2);
+    discardPeriodicTasks();
+  }));
+
+  it('greys out a read notification and keeps an unread one bold', fakeAsync(() => {
+    const { root, fixture } = render({
+      roles: ['Admin'],
+      notifications: [alert('1', TenantNotificationKind.QuotaLow20), alert('2', TenantNotificationKind.QuotaLow20, true)],
+    });
+
+    const overlay = openMenu(root, fixture);
+
+    expect(overlay.querySelectorAll('.alert-item--read').length).toBe(1);
+    expect(overlay.querySelectorAll('.alert-row').length).toBe(2);
+    discardPeriodicTasks();
+  }));
+
+  it('marks every alert read at once but keeps them in the list', fakeAsync(() => {
     const { fixture, acknowledgeAllNotifications } = render({
       roles: ['Admin'],
       notifications: [alert('1', TenantNotificationKind.QuotaLow20), alert('2', TenantNotificationKind.QuotaExhausted)],
@@ -183,7 +217,8 @@ describe('ShellComponent billing bell', () => {
     fixture.componentInstance.acknowledgeAllBillingAlerts();
 
     expect(acknowledgeAllNotifications).toHaveBeenCalled();
-    expect(fixture.componentInstance.billingAlerts).toEqual([]);
+    expect(fixture.componentInstance.billingAlerts.length).toBe(2);
+    expect(fixture.componentInstance.unreadBillingCount).toBe(0);
     discardPeriodicTasks();
   }));
 
@@ -293,14 +328,15 @@ describe('ShellComponent billing bell', () => {
       discardPeriodicTasks();
     }));
 
-    it('ignores a push that arrives already acknowledged', fakeAsync(() => {
+    it('keeps a push that arrives already acknowledged, but does not count it as unread', fakeAsync(() => {
       const live$ = new Subject<unknown>();
       const { fixture } = render({ roles: ['Admin'], notifications: [], liveNotifications$: live$ });
 
       live$.next(alert('1', TenantNotificationKind.QuotaLow20, true));
       fixture.detectChanges();
 
-      expect(fixture.componentInstance.billingAlerts).toEqual([]);
+      expect(fixture.componentInstance.billingAlerts.length).toBe(1);
+      expect(fixture.componentInstance.unreadBillingCount).toBe(0);
       discardPeriodicTasks();
     }));
   });

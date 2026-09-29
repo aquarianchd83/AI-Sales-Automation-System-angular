@@ -10,6 +10,7 @@ import { BillingService } from '../../core/services/billing.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotification } from '../../core/models/platform.model';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
@@ -30,6 +31,7 @@ describe('ShellComponent sidenav', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
+        { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of(platformAlerts) } },
         { provide: NotificationHubService, useValue: { connect: () => undefined, disconnect: () => undefined, notificationReceived$: NEVER } },
       ],

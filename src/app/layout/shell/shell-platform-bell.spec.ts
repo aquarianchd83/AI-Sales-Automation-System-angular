@@ -10,6 +10,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
@@ -46,6 +47,7 @@ describe('ShellComponent platform bell', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
+        { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent, acknowledge, acknowledgeAll, delete: deleteSpy } },
         {
           provide: NotificationHubService,
@@ -72,27 +74,54 @@ describe('ShellComponent platform bell', () => {
     const { root, fixture } = render([alert('1'), alert('2'), alert('3', true)]);
 
     expect(root.querySelector('.bell-count')?.textContent?.trim()).toBe('2');
-    expect(fixture.componentInstance.platformAlerts.map((a) => a.id)).toEqual(['1', '2']);
+    expect(fixture.componentInstance.platformAlerts.map((a) => a.id)).toEqual(['1', '2', '3']);
     discardPeriodicTasks();
   }));
 
-  it('acknowledges one alert on open without touching the others', fakeAsync(() => {
+  it('lists the newest notification first, with its date and time', fakeAsync(() => {
+    const { root, fixture } = render([
+      { ...alert('old'), createdAt: '2026-09-18T00:00:00Z' },
+      { ...alert('new'), createdAt: '2026-09-20T00:00:00Z' },
+    ]);
+
+    expect(fixture.componentInstance.platformAlerts.map((a) => a.id)).toEqual(['new', 'old']);
+    const overlay = openMenu(root, fixture);
+    expect(overlay.querySelectorAll('.alert-time').length).toBe(2);
+    discardPeriodicTasks();
+  }));
+
+  it('greys out a read notification and keeps an unread one bold', fakeAsync(() => {
+    const { root, fixture } = render([alert('1'), alert('2', true)]);
+
+    const overlay = openMenu(root, fixture);
+
+    expect(overlay.querySelectorAll('.alert-item--read').length).toBe(1);
+    expect(overlay.querySelectorAll('.alert-row').length).toBe(2);
+    discardPeriodicTasks();
+  }));
+
+  it('marks one alert read on open but keeps it in the list', fakeAsync(() => {
     const { fixture, acknowledge } = render([alert('1'), alert('2')]);
 
     fixture.componentInstance.openPlatformAlert(alert('1'));
 
     expect(acknowledge).toHaveBeenCalledWith('1');
-    expect(fixture.componentInstance.platformAlerts.map((a) => a.id)).toEqual(['2']);
+    expect(fixture.componentInstance.platformAlerts.map((a) => [a.id, a.acknowledged])).toEqual([
+      ['1', true],
+      ['2', false],
+    ]);
+    expect(fixture.componentInstance.unreadPlatformCount).toBe(1);
     discardPeriodicTasks();
   }));
 
-  it('clears every unread alert at once', fakeAsync(() => {
+  it('marks every alert read at once but keeps them in the list', fakeAsync(() => {
     const { fixture, acknowledgeAll } = render([alert('1'), alert('2')]);
 
     fixture.componentInstance.acknowledgeAllPlatformAlerts();
 
     expect(acknowledgeAll).toHaveBeenCalled();
-    expect(fixture.componentInstance.platformAlerts).toEqual([]);
+    expect(fixture.componentInstance.platformAlerts.length).toBe(2);
+    expect(fixture.componentInstance.unreadPlatformCount).toBe(0);
     discardPeriodicTasks();
   }));
 

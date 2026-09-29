@@ -31,7 +31,13 @@ const FORMATS: Record<string, Intl.DateTimeFormatOptions> = {
 export class ZonedDatePipe implements PipeTransform {
   constructor(private readonly preferences: UserPreferencesService) {}
 
-  transform(value: string | Date | null | undefined, format: keyof typeof FORMATS | string = 'medium'): string {
+  /** `timezoneOverride` (an IANA id) wins over the user's own preference — for a timestamp that belongs to the
+   * tenant, such as its billing notifications, rather than to the person reading it. */
+  transform(
+    value: string | Date | null | undefined,
+    format: keyof typeof FORMATS | string = 'medium',
+    timezoneOverride?: string | null
+  ): string {
     if (!value) {
       return '';
     }
@@ -42,7 +48,7 @@ export class ZonedDatePipe implements PipeTransform {
     }
 
     const options = FORMATS[format] ?? FORMATS['medium'];
-    const timeZone = this.preferences.timezone;
+    const timeZone = timezoneOverride || this.preferences.timezone;
 
     try {
       return new Intl.DateTimeFormat(undefined, timeZone ? { ...options, timeZone } : options).format(date);
