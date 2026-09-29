@@ -22,7 +22,6 @@ import {
   canEditSteps,
   canPauseCampaign,
   canResumeCampaign,
-  canRunCampaignJobs,
   canSetAudience,
   canStartCampaign,
   canStopCampaign,
@@ -37,7 +36,6 @@ import { CampaignStepDialogComponent, CampaignStepDialogData } from '../campaign
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
-import { RunJobsResultDialogComponent } from '../run-jobs-result-dialog/run-jobs-result-dialog.component';
 
 @Component({
   selector: 'app-campaign-detail',
@@ -60,7 +58,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   loading = true;
   loadingProgress = false;
   actionInFlight = false;
-  runningJob = false;
+  /** Bumped whenever progress reloads, so the step-delivery card refetches with it. */
+  deliveryRefresh = 0;
 
   audiencePage: PagedResult<CampaignAudienceMember> = emptyPage<CampaignAudienceMember>();
   loadingAudience = true;
@@ -162,9 +161,6 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   }
   get canStop(): boolean {
     return !!this.campaign && canStopCampaign(this.campaign.status);
-  }
-  get canRunJobsNow(): boolean {
-    return !!this.campaign && canRunCampaignJobs(this.campaign.status);
   }
 
   /** See campaignEndDate — null (renders as "—") until there's a start date to project from. */
@@ -337,28 +333,6 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Runs the send pipeline immediately for just this campaign, instead of waiting for the
-   * next scheduled tick — same underlying pipeline as the global "Run jobs now", scoped. */
-  runJobNow(): void {
-    if (!this.campaign) {
-      return;
-    }
-    this.runningJob = true;
-    this.campaigns
-      .runJobsForCampaign(this.campaign.id)
-      .pipe(finalize(() => (this.runningJob = false)))
-      .subscribe({
-        next: (result) => {
-          this.dialog.open(RunJobsResultDialogComponent, { data: { result }, width: '480px' });
-          this.reload();
-          this.refreshProgress();
-        },
-        error: () => {
-          // ErrorInterceptor toasts it.
-        },
-      });
-  }
-
   private runAction(call: () => Observable<Campaign>, successMessage: string): void {
     this.actionInFlight = true;
     call()
@@ -403,7 +377,11 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
       .getProgress(campaignId)
       .pipe(finalize(() => (this.loadingProgress = false)))
       .subscribe({
-        next: (progress) => (this.progress = progress),
+        next: (progress) => {
+          this.progress = progress;
+          // Whatever moved progress (a run, a status change, the refresh button) moved delivery too.
+          this.deliveryRefresh++;
+        },
         error: () => (this.progress = null),
       });
   }

@@ -45,3 +45,11 @@ export interface TenantJobTriggerResult {
   recurringJobId: string;
   backgroundJobId: string;
 }
+
+/** Every recurring job that belongs to campaigns — shown together on the Campaigns page. */
+export const CAMPAIGN_JOB_TYPES: readonly string[] = [
+  'campaign-initial-sends',
+  'campaign-follow-ups',
+  'campaign-send-retries',
+  'campaign-completion',
+];
