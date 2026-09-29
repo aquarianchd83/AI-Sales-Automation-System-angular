@@ -198,6 +198,15 @@ export class ShellComponent implements OnInit, OnDestroy {
       shareReplay({ bufferSize: 1, refCount: true })
     );
 
+  /** Whether the sidenav is open - the toggle button (shown on every screen size, not just
+   * handset) flips this via drawer.toggle(), and MatSidenav's own openedChange (backdrop click,
+   * Esc, a nav item's own close on mobile) writes back through the [(opened)] binding in the
+   * template, so this always reflects what's actually on screen. Reset to the sensible default
+   * for the viewport - open on desktop, closed on handset - only when the breakpoint itself
+   * changes (a resize across it), never on every change-detection pass, so a manual toggle isn't
+   * fought back open/closed between resizes. */
+  sidenavOpened = true;
+
   /** Read once, not as an Observable — it never changes mid-session (a fresh tab per
    * ImpersonationSessionService is required to start one at all). */
   readonly isImpersonating = this.auth.isImpersonating;
@@ -231,6 +240,12 @@ export class ShellComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Unconditional - the sidenav's open/close toggle works the same in a support session as
+    // anywhere else, so it isn't gated behind the isImpersonating early return below.
+    this.isHandset$.pipe(takeUntil(this.destroy$)).subscribe((isHandset) => {
+      this.sidenavOpened = !isHandset;
+    });
+
     if (this.isImpersonating) {
       return;
     }
