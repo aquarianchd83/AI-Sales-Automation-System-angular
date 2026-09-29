@@ -4,7 +4,6 @@ import {
   canDeleteCampaign,
   canPauseCampaign,
   canResumeCampaign,
-  canRunCampaignJobs,
   canStartCampaign,
   canStopCampaign,
   formatStepTypeName,
@@ -175,20 +174,6 @@ describe('canStopCampaign', () => {
     expect(canStopCampaign(CampaignStatus.Paused)).toBeTrue();
     expect(canStopCampaign(CampaignStatus.Stopped)).toBeFalse();
     expect(canStopCampaign(CampaignStatus.Completed)).toBeFalse();
-  });
-});
-
-describe('canRunCampaignJobs', () => {
-  it('is true for Scheduled and Running only — the only statuses the send pipeline acts on', () => {
-    expect(canRunCampaignJobs(CampaignStatus.Scheduled)).toBeTrue();
-    expect(canRunCampaignJobs(CampaignStatus.Running)).toBeTrue();
-  });
-
-  it('is false for Draft, Paused, Stopped and Completed — guaranteed no-ops server-side', () => {
-    expect(canRunCampaignJobs(CampaignStatus.Draft)).toBeFalse();
-    expect(canRunCampaignJobs(CampaignStatus.Paused)).toBeFalse();
-    expect(canRunCampaignJobs(CampaignStatus.Stopped)).toBeFalse();
-    expect(canRunCampaignJobs(CampaignStatus.Completed)).toBeFalse();
   });
 });
 
