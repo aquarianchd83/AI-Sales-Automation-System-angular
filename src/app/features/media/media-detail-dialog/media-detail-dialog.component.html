@@ -1,0 +1,59 @@
+<div class="detail-head">
+  <h2 mat-dialog-title>{{ asset.fileName }}</h2>
+  <button mat-icon-button type="button" aria-label="Close" (click)="close()"><mat-icon>close</mat-icon></button>
+</div>
+
+<mat-dialog-content>
+  <div class="preview">
+    <img *ngIf="isImage" [src]="publicUrl" [alt]="asset.fileName" />
+    <video *ngIf="!isImage" [src]="publicUrl" controls preload="metadata"></video>
+  </div>
+
+  <div class="link-block">
+    <div class="link-label">Public access URL</div>
+    <div class="link-row">
+      <input class="link-input" readonly [value]="publicUrl" (focus)="$any($event.target).select()" aria-label="Public access URL" />
+      <button mat-flat-button color="primary" type="button" (click)="copy()">
+        <mat-icon>content_copy</mat-icon>
+        Copy
+      </button>
+      <a mat-stroked-button [href]="publicUrl" target="_blank" rel="noopener">
+        <mat-icon>open_in_new</mat-icon>
+        Open
+      </a>
+    </div>
+    <p class="link-warning" *ngIf="!reachableByMeta">
+      <mat-icon inline>warning</mat-icon>
+      This link is not public yet, so WhatsApp/Meta cannot fetch it. Set the API's media storage
+      <strong>PublicBaseUrl</strong> to its public address, then upload the file again.
+    </p>
+    <p class="link-ok muted" *ngIf="reachableByMeta">
+      <mat-icon inline>public</mat-icon>
+      Anyone with this link can view the file.
+    </p>
+  </div>
+
+  <dl class="facts">
+    <dt>Type</dt>
+    <dd>{{ kind }} ({{ asset.contentType }})</dd>
+    <dt>Size</dt>
+    <dd>{{ size }} ({{ asset.sizeBytes | number }} bytes)</dd>
+    <dt>Uploaded</dt>
+    <dd>{{ asset.createdAt | date: 'medium' }}</dd>
+    <dt>ID</dt>
+    <dd class="mono">{{ asset.id }}</dd>
+  </dl>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button color="warn" type="button" (click)="delete()">
+    <mat-icon>delete</mat-icon>
+    Delete
+  </button>
+  <span class="spacer"></span>
+  <a mat-button [href]="publicUrl" [attr.download]="asset.fileName" target="_blank" rel="noopener">
+    <mat-icon>download</mat-icon>
+    Download
+  </a>
+  <button mat-flat-button type="button" (click)="close()">Close</button>
+</mat-dialog-actions>
