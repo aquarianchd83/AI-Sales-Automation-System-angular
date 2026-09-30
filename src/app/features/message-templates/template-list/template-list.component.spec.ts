@@ -54,7 +54,7 @@ describe('TemplateListComponent review vs Meta sync', () => {
 
   afterEach(() => http.verify());
 
-  it('syncs a template that is on Meta instead of letting it be approved by hand', () => {
+  it('offers Sync on every template, and Review only on one that is not on Meta yet', () => {
     const rows = Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('tr.mat-mdc-row'));
     const visible = (row: HTMLElement, label: string) =>
       Array.from<HTMLElement>(row.querySelectorAll('button.review-button')).some(
@@ -63,8 +63,20 @@ describe('TemplateListComponent review vs Meta sync', () => {
 
     expect(visible(rows[0], 'Sync')).toBeTrue();
     expect(visible(rows[0], 'Review')).toBeFalse();
+    // Not on Meta yet: Sync is how it gets submitted, so it must be there too.
+    expect(visible(rows[1], 'Sync')).toBeTrue();
     expect(visible(rows[1], 'Review')).toBeTrue();
-    expect(visible(rows[1], 'Sync')).toBeFalse();
+  });
+
+  it('says a template was submitted to Meta after its first sync', () => {
+    const notify = spyOn(TestBed.inject(NotificationService), 'success');
+    fixture.componentInstance.sync(template('local_only', null));
+
+    const req = http.expectOne(`${environment.apiBaseUrl}/message-templates/id-local_only/sync`);
+    req.flush({ template: template('local_only', '1234567890', 'Pending'), pushError: null });
+
+    expect(notify).toHaveBeenCalledWith(jasmine.stringContaining('was submitted to Meta'));
+    http.expectOne((r) => r.url === `${environment.apiBaseUrl}/message-templates`).flush({ items: [], page: 1, pageSize: 25, totalCount: 0, totalPages: 0 });
   });
 
   it('reports what Meta says after a sync, and refreshes the list', () => {

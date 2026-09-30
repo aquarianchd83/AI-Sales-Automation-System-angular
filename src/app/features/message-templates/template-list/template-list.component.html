@@ -87,17 +87,17 @@
               <mat-icon>edit</mat-icon>
             </button>
 
-            <!-- A template that is on Meta has its status decided by Meta: the sync overwrites any manual
-                 change, and the API refuses one. So it gets a Sync button that fetches Meta's current
-                 review status; only a template never pushed to Meta can be reviewed by hand. -->
+            <!-- Every template gets Sync: for one not on Meta yet it submits the template (the only way to get
+                 it there before the hourly job runs), and for one already on Meta it fetches Meta's current
+                 review status. A template on Meta has its status decided by Meta - the sync overwrites any
+                 manual change and the API refuses one - so only a template never pushed can be reviewed by hand. -->
             <button
               mat-stroked-button
               type="button"
               class="review-button"
               *appHasRole="['Admin']"
               [disabled]="isSyncing(t)"
-              [hidden]="!t.metaTemplateId"
-              matTooltip="Ask Meta for this template's current review status"
+              [matTooltip]="t.metaTemplateId ? 'Ask Meta for this template\'s current review status' : 'Submit this template to Meta for review, then bring back its status'"
               (click)="sync(t)"
             >
               <mat-icon>sync</mat-icon>
