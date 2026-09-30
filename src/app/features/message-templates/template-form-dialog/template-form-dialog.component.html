@@ -34,8 +34,23 @@
         <dt>WhatsApp template name</dt>
         <dd>{{ t.whatsAppTemplateName }}</dd>
         <ng-container *ngIf="!canEditLanguageAndCategory">
-          <dt>Language / Category</dt>
-          <dd>{{ languageLabel(t.language) }} ({{ t.language }}) · {{ t.category }}</dd>
+          <dt>Language</dt>
+          <dd>{{ languageLabel(t.language) }} ({{ t.language }})</dd>
+          <dt>Category</dt>
+          <dd>
+            <span class="category-now">{{ shownCategory }}</span>
+            <button
+              mat-stroked-button
+              type="button"
+              class="category-sync"
+              [disabled]="syncingCategory"
+              matTooltip="Ask Meta which category it has this template in, and bring it here"
+              (click)="updateCategoryFromMeta()"
+            >
+              <mat-icon>sync</mat-icon>
+              {{ syncingCategory ? 'Checking Meta…' : 'Update category from Meta' }}
+            </button>
+          </dd>
         </ng-container>
       </dl>
 
@@ -43,8 +58,10 @@
         <ng-container *ngTemplateOutlet="languageAndCategory"></ng-container>
       </div>
       <p class="muted create-note" *ngIf="!canEditLanguageAndCategory">
-        This template has already been created on Meta, so its language and category can no longer
-        be changed. Create a new template instead.
+        This template is on Meta, and Meta assigns its category — it may move a template to another one on
+        review (for example Utility to Marketing when the wording is promotional). Use
+        <strong>Update category from Meta</strong> to bring its current category here. For a different
+        category, create a new template in it; language can't be changed either.
       </p>
     </ng-container>
 

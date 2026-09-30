@@ -119,6 +119,11 @@ export class TemplateListComponent implements OnInit, OnDestroy {
         next: (result) => {
           if (result.pushError) {
             this.notify.error(`Meta did not accept "${template.name}": ${result.pushError}`);
+          } else if (result.template.category !== template.category) {
+            // Meta reclassified it on review; the sync already moved the local copy to match.
+            this.notify.info(
+              `Meta moved "${template.name}" from ${template.category} to ${result.template.category}. The category here now matches Meta.`
+            );
           } else if (result.template.whatsAppTemplateStatus === WhatsAppTemplateStatus.Approved) {
             this.notify.success(`Meta has approved "${template.name}".`);
           } else {

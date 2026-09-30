@@ -60,6 +60,11 @@ export class TemplateFormDialogComponent {
   });
 
   saving = false;
+  syncingCategory = false;
+  /** The category shown for a template on Meta - starts as the row's, and follows Meta after an update. */
+  shownCategory: string = this.data.template?.category ?? '';
+  /** True once Meta's data was pulled here, so closing the dialog refreshes the list behind it. */
+  private pulledFromMeta = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public readonly data: TemplateFormDialogData,
@@ -128,7 +133,37 @@ export class TemplateFormDialogComponent {
     });
   }
 
+  /** Pulls Meta's current category (and review status) for this template and shows what Meta says. */
+  updateCategoryFromMeta(): void {
+    const template = this.data.template;
+    if (!template || this.syncingCategory) {
+      return;
+    }
+
+    this.syncingCategory = true;
+    this.templates
+      .syncOne(template.id)
+      .pipe(finalize(() => (this.syncingCategory = false)))
+      .subscribe({
+        next: (result) => {
+          this.pulledFromMeta = true;
+          const before = this.shownCategory;
+          this.shownCategory = result.template.category;
+          if (result.pushError) {
+            this.notify.error(`Meta did not accept the template: ${result.pushError}`);
+          } else if (before !== this.shownCategory) {
+            this.notify.success(`Meta has this template in ${this.shownCategory} (it was ${before}). Category updated.`);
+          } else {
+            this.notify.info(`Meta still has this template in ${this.shownCategory}.`);
+          }
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
+  }
+
   cancel(): void {
-    this.dialogRef.close(false);
+    this.dialogRef.close(this.pulledFromMeta);
   }
 }
