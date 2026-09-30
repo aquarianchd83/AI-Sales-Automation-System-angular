@@ -53,6 +53,7 @@
         </div>
 
         <div class="chat-bubble">
+          <img class="chat-bubble__image" *ngIf="headerImageUrl" [src]="headerImageUrl" alt="Template image" />
           <div class="chat-bubble__text">
             <ng-container *ngFor="let part of previewParts(t.bodyText)"
               ><span *ngIf="part.token; else plain" class="chat-token" [matTooltip]="tokenHint(part.token)">{{ part.text }}</span
@@ -83,49 +84,6 @@
           </div>
         </div>
       </ng-template>
-    </section>
-
-    <section class="step-section">
-      <h3 class="step-section__title"><mat-icon>image</mat-icon> Media <span class="muted">(optional)</span></h3>
-      <p class="muted step-section__hint">
-        The first item is sent as the message header. The number required is set server-side, so
-        it's checked when you save.
-      </p>
-
-      <div class="media-chips" *ngIf="selectedMedia.length">
-        <span class="media-chip" *ngFor="let asset of selectedMedia">
-          <mat-icon class="media-chip__icon">attach_file</mat-icon>
-          {{ asset.fileName }}
-          <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
-          <button
-            type="button"
-            class="chip-remove"
-            [attr.aria-label]="'Remove ' + asset.fileName"
-            (click)="removeMedia(asset)"
-          >
-            <mat-icon>cancel</mat-icon>
-          </button>
-        </span>
-      </div>
-
-      <p class="muted" *ngIf="resolvingExistingMedia">Loading attached media…</p>
-
-      <mat-form-field class="full-width">
-        <mat-label>Add media</mat-label>
-        <mat-icon matPrefix>search</mat-icon>
-        <input
-          matInput
-          [formControl]="mediaSearchControl"
-          [matAutocomplete]="mediaAuto"
-          placeholder="Search the media library…"
-        />
-        <mat-autocomplete #mediaAuto="matAutocomplete" (optionSelected)="onMediaSelected($event)">
-          <mat-option *ngIf="loadingMediaOptions" disabled>Searching…</mat-option>
-          <mat-option *ngFor="let asset of mediaOptions" [value]="asset">
-            {{ asset.fileName }} <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
-          </mat-option>
-        </mat-autocomplete>
-      </mat-form-field>
     </section>
 
     <div class="active-row">

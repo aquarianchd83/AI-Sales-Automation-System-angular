@@ -23,6 +23,8 @@ function template(name: string, metaTemplateId: string | null, status = 'Pending
     isActive: true,
     createdAt: '2026-09-01T00:00:00Z',
     metaTemplateId,
+    headerMediaAssetId: null,
+    headerOnMeta: false,
   };
 }
 

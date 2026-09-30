@@ -1,13 +1,11 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
-import { Observable, forkJoin, of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
 import { Campaign, CampaignStep, formatStepTypeName, nextStepNumber } from '../../../core/models/campaign.model';
 import { CampaignService } from '../../../core/services/campaign.service';
-import { MediaAsset, formatFileSize } from '../../../core/models/media.model';
 import { MediaService } from '../../../core/services/media.service';
 import {
   MessageTemplate,
@@ -47,23 +45,11 @@ export class CampaignStepDialogComponent implements OnInit {
     delayDaysAfterPrevious: [this.data.step?.delayDaysAfterPrevious ?? 0, [Validators.required]],
     messageTemplateId: [this.data.step?.messageTemplateId ?? (null as string | null)],
     isActive: [this.data.step?.isActive ?? true],
-    // No client-side min/max validator: the server's CampaignOptions.MinStepMedia/
-    // MaxStepMedia is configurable (and already overridden to 0 in this dev environment
-    // per appsettings.Development.json), so a hardcoded client range would drift out of
-    // sync with whatever the API is actually enforcing. minMedia/maxMedia below stay as
-    // a non-blocking hint; the API's own 400 is what's authoritative, surfaced by
-    // ErrorInterceptor if the count it currently requires isn't met.
-    mediaAssetIds: [[...(this.data.step?.mediaAssetIds ?? [])]],
+    // A step no longer carries media: a message's picture belongs to its template, and the API ignores step media.
   });
-
-  readonly mediaSearchControl = this.fb.nonNullable.control('');
-  mediaOptions: MediaAsset[] = [];
-  selectedMedia: MediaAsset[] = [];
-  loadingMediaOptions = false;
 
   templates: MessageTemplate[] = [];
   loadingTemplates = true;
-  resolvingExistingMedia = this.isEdit;
   saving = false;
 
   constructor(
@@ -81,57 +67,40 @@ export class CampaignStepDialogComponent implements OnInit {
     // needs to run once — no valueChanges subscription to keep it in sync.
     this.applyDelayRuleFor(this.fixedStepType);
 
-    this.mediaSearchControl.valueChanges
-      .pipe(
-        debounceTime(250),
-        distinctUntilChanged(),
-        switchMap((search) => {
-          this.loadingMediaOptions = true;
-          return this.media.getPaged({ page: 1, pageSize: 10, search: search || undefined }).pipe(
-            map((page) => page.items),
-            finalize(() => (this.loadingMediaOptions = false))
-          );
-        })
-      )
-      .subscribe((items) => (this.mediaOptions = items));
-
     // Admin-panel-scale assumption: one page is enough to populate a select, same as the
     // roles list in UserRolesDialog. Templates are typically a small, curated set.
     this.templateService
       .getPaged({ page: 1, pageSize: 100 })
       .pipe(finalize(() => (this.loadingTemplates = false)))
       .subscribe({
-        next: (page) => (this.templates = page.items),
+        next: (page) => {
+          this.templates = page.items;
+          this.refreshHeaderImage();
+        },
         error: () => (this.templates = []),
       });
 
-    if (this.isEdit && this.data.step) {
-      this.resolveExistingMedia(this.data.step.mediaAssetIds);
-    }
-  }
-
-  onMediaSelected(event: MatAutocompleteSelectedEvent): void {
-    const asset = event.option.value as MediaAsset;
-    if (!this.selectedMedia.some((m) => m.id === asset.id)) {
-      this.selectedMedia = [...this.selectedMedia, asset];
-      this.form.controls.mediaAssetIds.setValue(this.selectedMedia.map((m) => m.id));
-      this.form.controls.mediaAssetIds.markAsTouched();
-    }
-    this.mediaSearchControl.setValue('');
-  }
-
-  removeMedia(asset: MediaAsset): void {
-    this.selectedMedia = this.selectedMedia.filter((m) => m.id !== asset.id);
-    this.form.controls.mediaAssetIds.setValue(this.selectedMedia.map((m) => m.id));
-    this.form.controls.mediaAssetIds.markAsTouched();
-  }
-
-  formatSize(bytes: number): string {
-    return formatFileSize(bytes);
+    this.form.controls.messageTemplateId.valueChanges.subscribe(() => this.refreshHeaderImage());
   }
 
   readonly templateStatusClass = templateStatusChipClass;
   readonly languageLabel = templateLanguageLabel;
+
+  /** The selected template's image, shown at the top of the preview bubble; null when it has none. */
+  headerImageUrl: string | null = null;
+
+  /** Looks up the selected template's image (a media library file) so the preview shows what customers get. */
+  private refreshHeaderImage(): void {
+    const id = this.selectedTemplate?.headerMediaAssetId;
+    if (!id) {
+      this.headerImageUrl = null;
+      return;
+    }
+    this.media
+      .getById(id)
+      .pipe(catchError(() => of(null)))
+      .subscribe((asset) => (this.headerImageUrl = asset?.url ?? null));
+  }
 
   previewParts(body: string): PlaceholderPart[] {
     return splitPlaceholders(body);
@@ -170,7 +139,7 @@ export class CampaignStepDialogComponent implements OnInit {
         stepType: raw.stepType,
         delayDaysAfterPrevious: raw.delayDaysAfterPrevious,
         messageTemplateId: raw.messageTemplateId || null,
-        mediaAssetIds: raw.mediaAssetIds,
+        mediaAssetIds: [],
         isActive: raw.isActive,
       })
       .pipe(finalize(() => (this.saving = false)))
@@ -201,18 +170,4 @@ export class CampaignStepDialogComponent implements OnInit {
     }
   }
 
-  /** Bounded by however many media ids the step already had — cheap even as N individual GETs. */
-  private resolveExistingMedia(ids: string[]): void {
-    // A media asset could have been deleted since this step was saved — drop it from the
-    // chip list rather than fail the whole dialog.
-    const lookups: Observable<MediaAsset | null>[] = ids.map((id) =>
-      this.media.getById(id).pipe(catchError(() => of(null)))
-    );
-
-    (lookups.length ? forkJoin(lookups) : of([]))
-      .pipe(finalize(() => (this.resolvingExistingMedia = false)))
-      .subscribe((assets) => {
-        this.selectedMedia = assets.filter((a): a is MediaAsset => a !== null);
-      });
-  }
 }

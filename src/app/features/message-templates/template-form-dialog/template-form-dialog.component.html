@@ -121,6 +121,62 @@
       </button>
     </div>
 
+    <section class="image-section">
+      <h3 class="image-section__title">
+        <mat-icon>image</mat-icon> Image <span class="muted">(optional)</span>
+      </h3>
+
+      <p class="muted image-section__hint" *ngIf="imageMode !== 'locked'">
+        Shown above the message, from the media library — JPEG or PNG, up to {{ imageLimitMb }} MB. It is sent to Meta
+        with the template when you press <strong>Sync</strong>, and every message sent with this template then carries it.
+      </p>
+      <p class="muted image-section__hint" *ngIf="imageMode === 'swap'">
+        Meta already has this template with an image, so you can replace the picture but not remove it.
+      </p>
+      <p class="muted image-section__hint" *ngIf="imageMode === 'locked'">
+        This template is on Meta without an image, and Meta fixes that when a template is created. To send a picture
+        with the message, create a new template with an image.
+      </p>
+
+      <p class="muted" *ngIf="resolvingHeader">Loading the image…</p>
+
+      <div class="image-preview" *ngIf="headerAsset as asset">
+        <img [src]="asset.url" [alt]="asset.fileName" />
+        <div class="image-preview__meta">
+          <strong>{{ asset.fileName }}</strong>
+          <span class="muted">{{ formatSize(asset.sizeBytes) }}</span>
+        </div>
+        <button
+          mat-icon-button
+          type="button"
+          *ngIf="imageMode === 'free'"
+          matTooltip="Remove the image"
+          aria-label="Remove the image"
+          (click)="removeImage()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <mat-form-field class="full-width" *ngIf="imageMode !== 'locked'">
+        <mat-label>{{ headerAsset ? 'Replace image' : 'Add image' }}</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          [formControl]="imageSearchControl"
+          [matAutocomplete]="imageAuto"
+          placeholder="Search the media library…"
+        />
+        <mat-autocomplete #imageAuto="matAutocomplete" (optionSelected)="onImageSelected($event)">
+          <mat-option *ngIf="loadingImageOptions" disabled>Searching…</mat-option>
+          <mat-option *ngFor="let asset of imageOptions" [value]="asset">
+            {{ asset.fileName }} <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
+          </mat-option>
+        </mat-autocomplete>
+        <mat-hint>Only JPEG or PNG files up to {{ imageLimitMb }} MB are listed.</mat-hint>
+      </mat-form-field>
+    </section>
+
     <mat-slide-toggle *ngIf="isEdit" formControlName="isActive" class="active-toggle">
       Template is active
     </mat-slide-toggle>

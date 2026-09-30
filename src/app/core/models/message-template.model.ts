@@ -120,6 +120,10 @@ export interface MessageTemplate {
   createdAt: string;
   /** Meta's own template id — null until the template has been created on Meta by a sync. */
   metaTemplateId: string | null;
+  /** The image shown above the message (a media library file), or null. */
+  headerMediaAssetId: string | null;
+  /** True once Meta holds the template with an image header - from then on the image can be swapped, not added or removed. */
+  headerOnMeta: boolean;
 }
 
 export interface CreateMessageTemplateRequest {
@@ -128,6 +132,8 @@ export interface CreateMessageTemplateRequest {
   category: string;
   whatsAppTemplateName: string;
   bodyText: string;
+  /** Optional image (JPEG or PNG, up to 5 MB) from the media library. */
+  headerMediaAssetId?: string | null;
 }
 
 /**
@@ -142,6 +148,10 @@ export interface UpdateMessageTemplateRequest {
   isActive: boolean;
   language?: string;
   category?: string;
+  /** Set to swap the image. */
+  headerMediaAssetId?: string | null;
+  /** Set to take the image off (only before the template is on Meta). */
+  removeHeaderImage?: boolean;
 }
 
 export interface ReviewMessageTemplateRequest {
@@ -271,3 +281,7 @@ export const TEMPLATE_RULE_GROUPS: TemplateRuleGroup[] = [
     ],
   },
 ];
+
+/** What Meta accepts for a template's image header. */
+export const TEMPLATE_IMAGE_CONTENT_TYPES = ['image/jpeg', 'image/png'];
+export const TEMPLATE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;

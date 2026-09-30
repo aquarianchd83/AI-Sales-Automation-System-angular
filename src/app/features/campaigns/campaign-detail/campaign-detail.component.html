@@ -252,7 +252,6 @@
               <th>Step</th>
               <th>Delay</th>
               <th>Template</th>
-              <th>Media</th>
               <th>Active</th>
               <th></th>
             </tr>
@@ -265,7 +264,6 @@
                 <span *ngIf="step.messageTemplateName">{{ step.messageTemplateName }}</span>
                 <span class="muted" *ngIf="!step.messageTemplateName">None assigned</span>
               </td>
-              <td>{{ step.mediaAssetIds.length }}</td>
               <td>
                 <mat-icon *ngIf="step.isActive" color="primary" matTooltip="Active">check_circle</mat-icon>
                 <mat-icon *ngIf="!step.isActive" class="muted" matTooltip="Inactive">radio_button_unchecked</mat-icon>
