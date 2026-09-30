@@ -18,6 +18,7 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPag
 import {
   MessageTemplate,
   WhatsAppTemplateStatus,
+  templateCategoryInfo,
   templateStatusChipClass,
 } from '../../../core/models/message-template.model';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
@@ -42,6 +43,7 @@ export class TemplateListComponent implements OnInit, OnDestroy {
   ];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusClass = templateStatusChipClass;
+  readonly categoryInfo = templateCategoryInfo;
   readonly WhatsAppTemplateStatus = WhatsAppTemplateStatus;
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
