@@ -107,6 +107,19 @@ describe('CampaignService', () => {
     req.flush({ considered: 0, sent: 0, failed: 0, skipped: 0 });
   });
 
+  it('forces the next step for named customers, or for everyone when none are named', () => {
+    service.forceNextStep('camp-1', ['c1', 'c2']).subscribe();
+    const named = http.expectOne(`${baseUrl}/camp-1/force-next-step`);
+    expect(named.request.method).toBe('POST');
+    expect(named.request.body).toEqual({ customerIds: ['c1', 'c2'] });
+    named.flush({ considered: 2, sent: 2, failed: 0, skipped: 0 });
+
+    service.forceNextStep('camp-1').subscribe();
+    const everyone = http.expectOne(`${baseUrl}/camp-1/force-next-step`);
+    expect(everyone.request.body).toEqual({ customerIds: null });
+    everyone.flush({ considered: 0, sent: 0, failed: 0, skipped: 0 });
+  });
+
   it('calls the global ops/run-jobs endpoint with no campaign id', () => {
     service.runJobsNow().subscribe();
 

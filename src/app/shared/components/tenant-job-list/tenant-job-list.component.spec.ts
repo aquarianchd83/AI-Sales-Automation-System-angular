@@ -2,9 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Subject } from 'rxjs';
 
 import { TenantJobListComponent } from './tenant-job-list.component';
 import { TenantJob } from '../../../core/models/tenant-job.model';
+import { NotificationHubService } from '../../../core/services/notification-hub.service';
 import { SharedModule } from '../../shared.module';
 import { environment } from '../../../../environments/environment';
 
@@ -73,5 +75,71 @@ describe('TenantJobListComponent', () => {
     expect(text).toContain('Campaign completion');
     expect(text).not.toContain('Lead discovery');
     expect(fixture.nativeElement.querySelector('app-page-header')).toBeNull();
+  });
+});
+
+describe('TenantJobListComponent live refresh', () => {
+  it('refetches its rows quietly when one of its jobs finishes', () => {
+    const finished$ = new Subject<string>();
+    TestBed.configureTestingModule({
+      imports: [SharedModule, HttpClientTestingModule, NoopAnimationsModule, RouterTestingModule],
+      providers: [{ provide: NotificationHubService, useValue: { jobStarted: () => new Subject<string>().asObservable(), jobFinished: () => finished$.asObservable() } }],
+    });
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(TenantJobListComponent);
+    fixture.componentInstance.jobTypes = ['campaign-completion'];
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiBaseUrl}/jobs`).flush({ runsBackgroundJobs: true, jobs: [job('campaign-completion', 'Campaign completion')] });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.jobs[0].lastRunAtUtc).toBeNull();
+
+    finished$.next('campaign-completion');
+    const refetch = http.expectOne(`${environment.apiBaseUrl}/jobs`);
+    expect(fixture.componentInstance.loading).toBeFalse(); // no spinner for a live refresh
+    refetch.flush({
+      runsBackgroundJobs: true,
+      jobs: [{ ...job('campaign-completion', 'Campaign completion'), lastRunAtUtc: '2026-09-29T10:00:00Z' }],
+    });
+
+    expect(fixture.componentInstance.jobs[0].lastRunAtUtc).toBe('2026-09-29T10:00:00Z');
+    http.verify();
+  });
+});
+
+describe('TenantJobListComponent run-now guard', () => {
+  it('greys out Run now while the job is executing and frees it when it finishes', () => {
+    const started$ = new Subject<string>();
+    const finished$ = new Subject<string>();
+    TestBed.configureTestingModule({
+      imports: [SharedModule, HttpClientTestingModule, NoopAnimationsModule, RouterTestingModule],
+      providers: [
+        {
+          provide: NotificationHubService,
+          useValue: { jobStarted: () => started$.asObservable(), jobFinished: () => finished$.asObservable() },
+        },
+      ],
+    });
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(TenantJobListComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiBaseUrl}/jobs`).flush({ runsBackgroundJobs: true, jobs: [job('campaign-initial-sends', 'Campaign initial sends')] });
+    const row = component.jobs[0];
+    expect(component.isRunning(row)).toBeFalse();
+
+    started$.next('campaign-initial-sends');
+    expect(component.isRunning(row)).toBeTrue();
+
+    finished$.next('campaign-initial-sends');
+    expect(component.isRunning(row)).toBeFalse();
+    http.expectOne(`${environment.apiBaseUrl}/jobs`).flush({ runsBackgroundJobs: true, jobs: [row] });
+    http.verify();
+  });
+
+  it('treats a job Hangfire reports as Processing as running', () => {
+    TestBed.configureTestingModule({ imports: [SharedModule, HttpClientTestingModule, NoopAnimationsModule, RouterTestingModule] });
+    const component = TestBed.createComponent(TenantJobListComponent).componentInstance;
+    expect(component.isRunning({ ...job('campaign-follow-ups', 'x'), hangfireLastJobState: 'Processing' })).toBeTrue();
+    expect(component.isRunning({ ...job('campaign-follow-ups', 'x'), hangfireLastJobState: 'Succeeded' })).toBeFalse();
   });
 });

@@ -326,6 +326,17 @@ export function canResumeCampaign(status: string): boolean {
   return status === CampaignStatus.Paused || status === CampaignStatus.Stopped;
 }
 
+/** POST /campaigns/{id}/force-next-step is refused unless the campaign is Running. */
+export function canForceNextStep(status: string): boolean {
+  return status === CampaignStatus.Running;
+}
+
+/** Who force-next-step acts on: customers not yet sent the Initial step, or awaiting a follow-up. Anyone
+ * who replied, opted out, was handed off or finished has nothing left to send. */
+export function isAwaitingNextStep(customerStatus: string): boolean {
+  return customerStatus === CampaignCustomerStatus.Pending || customerStatus === CampaignCustomerStatus.AwaitingResponse;
+}
+
 export function canPauseCampaign(status: string): boolean {
   return status === CampaignStatus.Running || status === CampaignStatus.Scheduled;
 }

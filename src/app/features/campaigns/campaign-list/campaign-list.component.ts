@@ -2,6 +2,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { CAMPAIGN_JOB_TYPES } from '../../../core/models/tenant-job.model';
+import { NotificationHubService } from '../../../core/services/notification-hub.service';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, of } from 'rxjs';
@@ -71,10 +72,18 @@ export class CampaignListComponent implements OnInit, OnDestroy {
     private readonly dialog: MatDialog,
     private readonly notify: NotificationService,
     private readonly router: Router,
-    private readonly route: ActivatedRoute
+    private readonly route: ActivatedRoute,
+    private readonly notificationHub: NotificationHubService
   ) {}
 
   ngOnInit(): void {
+    // A campaign job just ran (sends, follow-ups, retries or the completion job): statuses and counts on
+    // this grid may have moved, so refetch in place rather than making the user reload the page.
+    this.notificationHub
+      .jobFinished(CAMPAIGN_JOB_TYPES)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.reload$.next());
+
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((search) => {

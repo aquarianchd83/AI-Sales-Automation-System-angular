@@ -175,6 +175,18 @@ export class CampaignService {
     );
   }
 
+  /**
+   * Sends the next step now, skipping the follow-up delay: the Initial step for a Pending customer, the
+   * next follow-up for one awaiting it. `customerIds` limits it to those customers; omit for everyone
+   * eligible. Same opt-in / template / quota checks as a scheduled send, so some may come back skipped.
+   * The campaign must be Running (409 otherwise).
+   */
+  forceNextStep(campaignId: string, customerIds?: string[]): Observable<ResendFailedResult> {
+    return this.http.post<ResendFailedResult>(`${this.baseUrl}/${campaignId}/force-next-step`, {
+      customerIds: customerIds ?? null,
+    });
+  }
+
   /** Resends every Failed message of one step. The campaign must be Running (409 otherwise). */
   resendFailedForStep(campaignId: string, stepNumber: number): Observable<ResendFailedResult> {
     return this.http.post<ResendFailedResult>(`${this.baseUrl}/${campaignId}/steps/${stepNumber}/resend-failed`, null);
