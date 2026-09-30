@@ -17,6 +17,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/compo
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import {
   MessageTemplate,
+  TEMPLATE_RULE_GROUPS,
   WhatsAppTemplateStatus,
   templateCategoryInfo,
   templateStatusChipClass,
@@ -24,6 +25,17 @@ import {
 import { MessageTemplateService } from '../../../core/services/message-template.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TemplateFormDialogComponent, TemplateFormDialogData } from '../template-form-dialog/template-form-dialog.component';
+
+const RULES_OPEN_KEY = 'templates.rulesOpen';
+
+/** Storage can be unavailable (private window, blocked site data), so this must never throw. */
+function readRulesOpen(): boolean {
+  try {
+    return localStorage.getItem(RULES_OPEN_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
 
 @Component({
   selector: 'app-template-list',
@@ -45,6 +57,10 @@ export class TemplateListComponent implements OnInit, OnDestroy {
   readonly statusClass = templateStatusChipClass;
   readonly categoryInfo = templateCategoryInfo;
   readonly WhatsAppTemplateStatus = WhatsAppTemplateStatus;
+  readonly ruleGroups = TEMPLATE_RULE_GROUPS;
+
+  /** Open the first time, then stays as the user left it. */
+  rulesOpen = readRulesOpen();
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
 
@@ -95,6 +111,15 @@ export class TemplateListComponent implements OnInit, OnDestroy {
   onPage(event: PageEvent): void {
     this.query = { ...this.query, page: event.pageIndex + 1, pageSize: event.pageSize };
     this.reload$.next();
+  }
+
+  setRulesOpen(open: boolean): void {
+    this.rulesOpen = open;
+    try {
+      localStorage.setItem(RULES_OPEN_KEY, String(open));
+    } catch {
+      // Remembering the panel's state is a convenience; the page works without it.
+    }
   }
 
   create(): void {

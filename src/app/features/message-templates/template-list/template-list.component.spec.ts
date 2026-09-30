@@ -79,6 +79,20 @@ describe('TemplateListComponent review vs Meta sync', () => {
     http.expectOne((r) => r.url === `${environment.apiBaseUrl}/message-templates`).flush({ items: [], page: 1, pageSize: 25, totalCount: 0, totalPages: 0 });
   });
 
+  it('shows the template rules and remembers whether the panel was closed', () => {
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('Template rules');
+    expect(text).toContain('lower-case letters, digits and underscores');
+    expect(text).toContain('Only Meta approves a template');
+
+    localStorage.removeItem('templates.rulesOpen');
+    fixture.componentInstance.setRulesOpen(false);
+    expect(localStorage.getItem('templates.rulesOpen')).toBe('false');
+    fixture.componentInstance.setRulesOpen(true);
+    expect(localStorage.getItem('templates.rulesOpen')).toBe('true');
+    localStorage.removeItem('templates.rulesOpen');
+  });
+
   it('reports what Meta says after a sync, and refreshes the list', () => {
     const notify = spyOn(TestBed.inject(NotificationService), 'info');
     fixture.componentInstance.sync(template('on_meta', '1387908590149880'));

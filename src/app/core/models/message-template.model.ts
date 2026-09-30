@@ -230,3 +230,43 @@ export interface MessageTemplateSyncOneResult {
   template: MessageTemplate;
   pushError: string | null;
 }
+
+/** A short reminder of the rules for writing and managing templates, shown on the Message Templates page.
+ * Each line mirrors something the API or Meta actually enforces - keep them in step with the validators
+ * (MessageTemplateValidators) and the sync (MessageTemplateService). */
+export interface TemplateRuleGroup {
+  title: string;
+  icon: string;
+  rules: string[];
+}
+
+export const TEMPLATE_RULE_GROUPS: TemplateRuleGroup[] = [
+  {
+    title: 'Writing a template',
+    icon: 'edit_note',
+    rules: [
+      'WhatsApp name: lower-case letters, digits and underscores only (e.g. order_confirmation). It must be unique per language.',
+      'Body: up to 2000 characters, and it cannot be empty.',
+      'Placeholders: only {{FirstName}}, {{LastName}} and {{PhoneNumber}}. Each one is filled in per customer, in the order it first appears.',
+      'Pick the category that matches the wording — Meta reclassifies (and bills) a template by what it actually says. See the Category guide.',
+    ],
+  },
+  {
+    title: 'Sending it to Meta',
+    icon: 'cloud_upload',
+    rules: [
+      'A new template starts Pending and exists only in the portal until it is synced. Click Sync on its row to submit it to Meta; otherwise the hourly job does it (active templates only).',
+      'Name, language and category are sent once. After Meta has the template they cannot be changed — create a new template instead.',
+      'Editing the body of an Approved template sends it back to Pending for a fresh Meta review, and Meta limits how often an approved template can be edited.',
+    ],
+  },
+  {
+    title: 'Approval and use',
+    icon: 'verified',
+    rules: [
+      'Only Meta approves a template. The portal copies its status on the hourly sync or when you click Sync; a manual Approve is refused for a template that is on Meta.',
+      'A campaign step can only send an Approved, active template. Rejected, Paused or Disabled on Meta also makes it inactive here.',
+      'A template used by a campaign step cannot be deleted — remove it from the step first.',
+    ],
+  },
+];
