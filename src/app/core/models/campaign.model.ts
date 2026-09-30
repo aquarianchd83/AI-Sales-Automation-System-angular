@@ -162,7 +162,9 @@ export type UpdateCampaignRequest = CreateCampaignRequest;
 export interface UpsertCampaignStepRequest {
   stepType: string;
   delayDaysAfterPrevious: number;
-  messageText: string;
+  /** No longer sent by the step form: customers see the approved Meta template body, and the API fills the
+   * template's variables from that template's own body. Still accepted (and optional) for older callers. */
+  messageText?: string;
   messageTemplateId?: string | null;
   mediaAssetIds: string[];
   isActive: boolean;

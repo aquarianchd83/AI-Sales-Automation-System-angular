@@ -35,3 +35,28 @@ export const placeholderTokenValidator: ValidatorFn = (
   );
   return unknown.length ? { unknownPlaceholder: unknown.join(', ') } : null;
 };
+
+export interface PlaceholderPart {
+  /** Literal text, or the raw `{{Token}}` when `token` is set. */
+  text: string;
+  token?: string;
+}
+
+/** Splits a body into plain text and `{{Token}}` parts, in order, so a preview can style the placeholders. */
+export function splitPlaceholders(bodyText: string): PlaceholderPart[] {
+  const parts: PlaceholderPart[] = [];
+  let last = 0;
+  TOKEN_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = TOKEN_PATTERN.exec(bodyText))) {
+    if (match.index > last) {
+      parts.push({ text: bodyText.slice(last, match.index) });
+    }
+    parts.push({ text: match[0], token: match[1] });
+    last = match.index + match[0].length;
+  }
+  if (last < bodyText.length) {
+    parts.push({ text: bodyText.slice(last) });
+  }
+  return parts;
+}

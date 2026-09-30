@@ -1,73 +1,100 @@
-<h2 mat-dialog-title>{{ isEdit ? 'Edit step' : 'Add step' }}</h2>
+<h2 mat-dialog-title class="step-title">
+  <mat-icon class="step-title__icon">{{ isEdit ? 'edit_note' : 'playlist_add' }}</mat-icon>
+  <span>{{ isEdit ? 'Edit step' : 'Add step' }}</span>
+  <span class="step-title__type">{{ fixedStepType }}</span>
+</h2>
 
-<mat-dialog-content>
+<mat-dialog-content class="step-content">
   <form [formGroup]="form" novalidate>
-    <div class="form-grid">
-      <mat-form-field>
-        <mat-label>Step</mat-label>
-        <mat-select formControlName="stepType">
-          <mat-option [value]="fixedStepType">{{ fixedStepType }}</mat-option>
+    <section class="step-section">
+      <h3 class="step-section__title"><mat-icon>schedule</mat-icon> When it goes out</h3>
+
+      <div class="form-grid">
+        <mat-form-field>
+          <mat-label>Step</mat-label>
+          <mat-select formControlName="stepType">
+            <mat-option [value]="fixedStepType">{{ fixedStepType }}</mat-option>
+          </mat-select>
+          <mat-hint *ngIf="isEdit">A step's type cannot be changed — remove and re-add instead.</mat-hint>
+          <mat-hint *ngIf="!isEdit">Steps attach in order — this is the next one in sequence.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Delay after previous step (days)</mat-label>
+          <input matInput type="number" min="0" formControlName="delayDaysAfterPrevious" />
+          <mat-hint *ngIf="form.controls.stepType.value === 'Initial'">
+            The Initial step has no delay — it sends when the campaign starts.
+          </mat-hint>
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="step-section">
+      <h3 class="step-section__title"><mat-icon>chat</mat-icon> What customers receive</h3>
+
+      <mat-form-field class="full-width">
+        <mat-label>Message template</mat-label>
+        <mat-select formControlName="messageTemplateId">
+          <mat-option [value]="null">No template</mat-option>
+          <mat-option *ngFor="let t of templates" [value]="t.id">
+            {{ t.name }} — {{ t.whatsAppTemplateStatus }}
+          </mat-option>
         </mat-select>
-        <mat-hint *ngIf="isEdit">A step's type cannot be changed — remove and re-add instead.</mat-hint>
-        <mat-hint *ngIf="!isEdit">
-          Steps attach in order — this is the next one in sequence for this campaign.
+        <mat-hint *ngIf="loadingTemplates">Loading templates…</mat-hint>
+        <mat-hint *ngIf="!loadingTemplates">
+          Starting the campaign needs an Approved, active template on every active step.
         </mat-hint>
       </mat-form-field>
 
-      <mat-form-field>
-        <mat-label>Delay after previous step (days)</mat-label>
-        <input matInput type="number" min="0" formControlName="delayDaysAfterPrevious" />
-        <mat-hint *ngIf="form.controls.stepType.value === 'Initial'">
-          The Initial step has no delay — it sends when the campaign starts.
-        </mat-hint>
-      </mat-form-field>
-    </div>
+      <div class="chat-preview" *ngIf="selectedTemplate as t; else noTemplateYet">
+        <div class="chat-preview__meta">
+          <span [class]="templateStatusClass(t.whatsAppTemplateStatus)">{{ t.whatsAppTemplateStatus }}</span>
+          <span class="muted">{{ t.category }} · {{ languageLabel(t.language) }}</span>
+        </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Message text</mat-label>
-      <textarea matInput formControlName="messageText" rows="3" maxlength="2000"></textarea>
-      <mat-hint>{{ form.controls.messageText.value.length }}/2000</mat-hint>
-      <mat-error *ngIf="form.controls.messageText.hasError('required')">
-        Message text is required.
-      </mat-error>
-      <mat-error *ngIf="form.controls.messageText.hasError('unknownPlaceholder')">
-        Unknown placeholder: {{ form.controls.messageText.getError('unknownPlaceholder') }}.
-      </mat-error>
-    </mat-form-field>
+        <div class="chat-bubble">
+          <div class="chat-bubble__text">
+            <ng-container *ngFor="let part of previewParts(t.bodyText)"
+              ><span *ngIf="part.token; else plain" class="chat-token" [matTooltip]="tokenHint(part.token)">{{ part.text }}</span
+              ><ng-template #plain>{{ part.text }}</ng-template></ng-container
+            >
+          </div>
+          <div class="chat-bubble__foot">
+            <mat-icon>done_all</mat-icon>
+          </div>
+        </div>
 
-    <div class="token-buttons">
-      <button
-        mat-stroked-button
-        type="button"
-        *ngFor="let token of knownTokens"
-        (click)="insertToken(token)"
-      >
-        {{ '{{' }}{{ token }}{{ '}}' }}
-      </button>
-    </div>
+        <p class="chat-preview__note muted">
+          <mat-icon>info_outline</mat-icon>
+          This is the exact text Meta approved. The highlighted placeholders are filled in for each customer.
+        </p>
+        <p class="chat-preview__warn" *ngIf="t.whatsAppTemplateStatus !== 'Approved'">
+          <mat-icon>warning_amber</mat-icon>
+          Not approved yet — the campaign can't start until Meta approves this template.
+        </p>
+      </div>
 
-    <mat-form-field class="full-width">
-      <mat-label>Template</mat-label>
-      <mat-select formControlName="messageTemplateId">
-        <mat-option [value]="null">No template</mat-option>
-        <mat-option *ngFor="let t of templates" [value]="t.id">
-          {{ t.name }} — {{ t.whatsAppTemplateStatus }}
-        </mat-option>
-      </mat-select>
-      <mat-hint *ngIf="loadingTemplates">Loading templates…</mat-hint>
-      <mat-hint *ngIf="!loadingTemplates">
-        Starting the campaign requires an Approved, active template on every active step.
-      </mat-hint>
-    </mat-form-field>
+      <ng-template #noTemplateYet>
+        <div class="chat-empty" *ngIf="!loadingTemplates">
+          <mat-icon>forum</mat-icon>
+          <div>
+            <strong>Pick a template to preview the message</strong>
+            <span class="muted">Customers receive the approved template text; you don't type it here.</span>
+          </div>
+        </div>
+      </ng-template>
+    </section>
 
-    <div class="media-section">
-      <label class="media-label">
-        Media
-        <span class="muted">— the count required is configured server-side; a step with too few or too many is rejected on save, not pre-checked here</span>
-      </label>
+    <section class="step-section">
+      <h3 class="step-section__title"><mat-icon>image</mat-icon> Media <span class="muted">(optional)</span></h3>
+      <p class="muted step-section__hint">
+        The first item is sent as the message header. The number required is set server-side, so
+        it's checked when you save.
+      </p>
 
       <div class="media-chips" *ngIf="selectedMedia.length">
         <span class="media-chip" *ngFor="let asset of selectedMedia">
+          <mat-icon class="media-chip__icon">attach_file</mat-icon>
           {{ asset.fileName }}
           <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
           <button
@@ -85,6 +112,7 @@
 
       <mat-form-field class="full-width">
         <mat-label>Add media</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
         <input
           matInput
           [formControl]="mediaSearchControl"
@@ -98,15 +126,17 @@
           </mat-option>
         </mat-autocomplete>
       </mat-form-field>
+    </section>
 
+    <div class="active-row">
+      <div>
+        <div class="active-row__title">Step is active</div>
+        <div class="muted active-row__note">
+          An inactive step is skipped when sending and when the campaign is checked at start.
+        </div>
+      </div>
+      <mat-slide-toggle formControlName="isActive" aria-label="Step is active"></mat-slide-toggle>
     </div>
-
-    <mat-slide-toggle formControlName="isActive" class="active-toggle">
-      Step is active
-    </mat-slide-toggle>
-    <p class="muted active-note">
-      An inactive step is skipped by the send pipeline and by the start-time check.
-    </p>
   </form>
 </mat-dialog-content>
 
