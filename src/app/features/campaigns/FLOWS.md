@@ -9,7 +9,8 @@ code, not the design docs. Index of every module's charts: [docs/MODULE-FLOWS.md
 | HTTP calls | [campaign.service.ts](../../core/services/campaign.service.ts) |
 | Lifecycle rules (API) | `AI-Sales-Automation-System-api/.../Application/Campaigns/CampaignService.cs` |
 | Send pipeline (API) | `AI-Sales-Automation-System-api/.../Application/Messaging/CampaignSendService.cs` |
-| Recurring jobs (API) | `.../Infrastructure/BackgroundJobs/CampaignInitialSenderJob.cs`, `FollowUpSchedulerJob.cs`, `MessageStatusRetryJob.cs` |
+| Recurring jobs (API) | `.../Infrastructure/BackgroundJobs/CampaignInitialSenderJob.cs`, `FollowUpSchedulerJob.cs`, `MessageStatusRetryJob.cs`, `CampaignCompletionJob.cs` |
+| Reply handling (API) | `.../Application/Webhooks/InboundWebhookProcessor.cs` — `MarkCampaignRepliesAsync` |
 
 ---
 
@@ -32,8 +33,10 @@ stateDiagram-v2
     Paused --> Stopped : stop
     Stopped --> Running : resume
     Stopped --> Scheduled : resume, date still in future
+    Running --> Completed : completion job, everyone finished or end date passed
     Draft --> [*] : delete
     Stopped --> [*] : delete, also erases its messages
+    Completed --> [*] : delete, also erases its messages
 ```
 
 - **Resume is Start.** `ResumeAsync` calls `StartAsync`, so resuming re-runs the same validation (section 2)
@@ -53,6 +56,8 @@ stateDiagram-v2
 | Pause | Running, Scheduled |
 | Stop | Draft, Scheduled, Running, Paused |
 | Delete | Draft, Stopped, Completed |
+| Send next step now (force, skips the delay) | Running |
+| Resend failed message(s) of a step | Running |
 
 ## 2. Setting up and starting a campaign
 
@@ -83,15 +88,23 @@ pipeline skips inactive steps rather than stopping at them.
 
 ## 3. Send pipeline (background jobs)
 
-Three Hangfire jobs run per tenant: initial sends every minute, follow-ups every minute, retries every
-5 minutes. `TenantJobRunner` skips the run if the tenant is gone, suspended, or the job is disabled in
-the Platform Admin Console.
+Four Hangfire jobs run per tenant. Default schedules (UTC, editable by the tenant Admin from the
+Campaign jobs panel on the Campaigns page): initial sends 06:00, follow-ups 07:00, retries 08:00, and
+the completion job twice a day at 06:00 and 18:00. `TenantJobRunner` skips the run if the tenant is gone,
+suspended, or the job is paused, and pushes live `JobStarted` / `JobFinished` events so the campaign
+pages refresh themselves and grey out "Run now" while a run is in progress.
+
+Two manual paths use the same "process one customer" logic below: **Send next step now** on the
+campaign detail page (everyone eligible, or one customer) skips the follow-up delay, and **Resend** on
+the step delivery card retries Failed messages. Both need the campaign to be Running.
 
 ```mermaid
 flowchart TD
     J1["Initial-send job"] --> P["Promote due Scheduled campaigns to Running"]
     P --> Q1["Pick Pending customers of Running campaigns<br/>oldest first, up to MaxSendsPerRun"]
     J2["Follow-up job"] --> Q2["Pick AwaitingResponse customers<br/>whose NextFollowUpDueAt has passed"]
+    J3["Send next step now<br/>(manual)"] --> Q3["Pick Pending or AwaitingResponse<br/>customers, ignoring the delay"]
+    Q3 --> O2
     Q1 --> O["Process one customer<br/>from step 0"]
     Q2 --> O2["Process one customer<br/>from CurrentStep + 1"]
     O --> K1
@@ -149,8 +162,26 @@ stateDiagram-v2
     AwaitingResponse --> OptedOut : no longer OptedIn at send time
     Pending --> Failed : retries exhausted
     AwaitingResponse --> Failed : retries exhausted
+    AwaitingResponse --> Responded : customer replied
+    AwaitingResponse --> OptedOut : customer replied STOP
 ```
 
-> **Known gap:** `Responded` and `HandedOff` exist in the enum and the progress legend, but nothing sets
-> them. A customer who replies to a campaign keeps receiving its follow-ups; only an opt-out keyword
-> (see [conversations/FLOWS.md](../conversations/FLOWS.md)) stops them.
+A reply (`InboundWebhookProcessor`) moves every campaign membership that is `AwaitingResponse` to
+`Responded`, records `LastCustomerResponseAt` and clears `NextFollowUpDueAt`, so no further follow-ups go
+out. A `Pending` customer was never contacted, so a message from them changes nothing.
+
+## 5. Closing a campaign
+
+```mermaid
+flowchart TD
+    CJ["Completion job<br/>06:00 and 18:00 UTC"] --> L["Each Running campaign"]
+    L --> E1{"Now past StartedAt +<br/>active steps' delays?"}
+    E1 -- yes --> C["Status = Completed<br/>StoppedAt = now"]
+    E1 -- no --> E2{"Has an audience and nobody<br/>Pending or AwaitingResponse?"}
+    E2 -- yes --> C
+    E2 -- no --> KEEP["Stays Running"]
+    C --> V["Detail page is view only;<br/>history stays, can be deleted"]
+```
+
+> **Known gap:** `HandedOff` exists in the enum and the progress legend, but nothing sets it for a
+> campaign customer yet.

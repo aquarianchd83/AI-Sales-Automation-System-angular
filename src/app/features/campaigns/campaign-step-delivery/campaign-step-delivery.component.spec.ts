@@ -128,3 +128,19 @@ describe('CampaignStepDeliveryComponent', () => {
     req.flush(page([recipient('Failed', 'm1')]));
   });
 });
+
+describe('CampaignStepDeliveryComponent status info', () => {
+  it('explains the selected status filter under the chips', () => {
+    TestBed.configureTestingModule({
+      declarations: [CampaignStepDeliveryComponent],
+      imports: [SharedModule, HttpClientTestingModule, NoopAnimationsModule],
+    });
+    const component = TestBed.createComponent(CampaignStepDeliveryComponent).componentInstance;
+
+    expect(component.outcomeFilters.every((f) => !!f.info)).toBeTrue();
+    expect(component.selectedFilterInfo).toContain('Everyone attached');
+
+    component.setOutcomeFilter('Failed');
+    expect(component.selectedFilterInfo).toContain('resent');
+  });
+});

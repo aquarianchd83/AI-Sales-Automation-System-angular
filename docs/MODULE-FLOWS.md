@@ -19,7 +19,7 @@ The charts are Mermaid. They render on GitHub and in VS Code with a Mermaid prev
 ```mermaid
 flowchart LR
     subgraph Outbound
-        CAMP["Campaigns<br/>steps + audience"] --> JOBS["Per-tenant jobs<br/>initial, follow-up, retry"]
+        CAMP["Campaigns<br/>steps + audience"] --> JOBS["Per-tenant jobs<br/>initial, follow-up, retry, completion"]
     end
     JOBS -- "template messages" --> WA(("WhatsApp<br/>Cloud API"))
     WA -- "webhook" --> WH["Inbound processor"]
@@ -40,9 +40,11 @@ flowchart LR
 
 | Job | Default schedule | Does |
 | --- | --- | --- |
-| Campaign initial sends | every minute | promotes due Scheduled campaigns, sends step 0 |
-| Campaign follow-ups | every minute | sends the next step to customers whose delay has passed |
-| Campaign send retries | every 5 minutes | retries failed or stuck sends with backoff |
+| Campaign initial sends | daily 06:00 UTC | promotes due Scheduled campaigns, sends step 0 |
+| Campaign follow-ups | daily 07:00 UTC | sends the next step to customers whose delay has passed |
+| Campaign send retries | daily 08:00 UTC | retries failed or stuck sends with backoff |
+| Campaign completion | 06:00 and 18:00 UTC | closes Running campaigns that are finished or past their end date |
+| Lead discovery | daily 02:00 UTC | finds and saves new leads from the tenant's discovery profile |
 | WhatsApp template sync | hourly | pushes templates to Meta, pulls review status |
 | WhatsApp token refresh | daily | refreshes the tenant's Meta access token |
 | Inbound webhook processing | on each webhook | one job per event, reschedules itself for status races |
@@ -54,9 +56,9 @@ the job is disabled in the Platform Admin Console.
 
 These are behaviours the charts show as they are today. None are fixed by these docs.
 
-1. **Campaigns never reach `Completed`.** Nothing sets it, so a finished campaign stays `Running`.
-2. **Campaign replies don't stop follow-ups.** `Responded` and `HandedOff` customer statuses are never set;
-   only an opt-out keyword stops the sequence.
+1. ~~Campaigns never reach `Completed`~~ — fixed: the campaign completion job closes them.
+2. ~~Campaign replies don't stop follow-ups~~ — fixed: a reply marks the customer `Responded`. The
+   `HandedOff` campaign customer status is still never set.
 3. **Escalated conversations stay Escalated.** Resolving a handoff doesn't return the conversation to
    `Open`, and the AI keeps replying unless the Mode is switched to `Human`.
 4. **Unused statuses.** Handoff `InProgress` and article `Archived` are never set. Trigger reasons
