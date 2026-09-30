@@ -122,11 +122,17 @@ export class ModuleFlowsDialogComponent implements OnInit, OnDestroy {
     // 2100px wide, so in a 1000px dialog every label shrank to an unreadable smear and the chart
     // read as blank. Explicit pixel dimensions keep the text at its intended size and let
     // .flow-chart's overflow-x scroll a wide chart instead.
+    //
+    // htmlLabels false: by default Mermaid draws every label as HTML inside an SVG <foreignObject>, and
+    // in 'strict' mode it runs the finished SVG through DOMPurify. The DOMPurify release installed here
+    // (3.4.x) removes HTML nested in <foreignObject>, so every node and edge label came out as an empty
+    // grey box. Plain SVG <text> labels survive sanitizing untouched.
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'strict',
       theme: 'neutral',
-      flowchart: { useMaxWidth: false },
+      htmlLabels: false,
+      flowchart: { useMaxWidth: false, htmlLabels: false },
       sequence: { useMaxWidth: false },
       state: { useMaxWidth: false },
     });
