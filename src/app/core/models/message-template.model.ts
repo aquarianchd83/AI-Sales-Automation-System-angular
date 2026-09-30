@@ -247,7 +247,7 @@ export const TEMPLATE_RULE_GROUPS: TemplateRuleGroup[] = [
     rules: [
       'WhatsApp name: lower-case letters, digits and underscores only (e.g. order_confirmation). It must be unique per language.',
       'Body: up to 2000 characters, and it cannot be empty.',
-      'Placeholders: only {{FirstName}}, {{LastName}} and {{PhoneNumber}}. Each one is filled in per customer, in the order it first appears.',
+      'Placeholders: only {{FirstName}}, {{LastName}} and {{PhoneNumber}}. Each one is filled in per customer, in the order it first appears. A customer with no first name gets "there" and one with no last name gets "customer", because Meta rejects an empty value.',
       'Pick the category that matches the wording — Meta reclassifies (and bills) a template by what it actually says. See the Category guide.',
     ],
   },
