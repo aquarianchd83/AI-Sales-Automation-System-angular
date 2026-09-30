@@ -55,6 +55,12 @@
           <th mat-header-cell *matHeaderCellDef>Name</th>
           <td mat-cell *matCellDef="let t">
             <span class="primary-cell">{{ t.name }}</span>
+            <mat-icon
+              *ngIf="t.headerMediaAssetId"
+              class="name-image"
+              [matTooltip]="t.headerOnMeta ? 'Sent with an image' : 'Has an image - it is sent to Meta with the template on Sync'"
+              >image</mat-icon
+            >
           </td>
         </ng-container>
 

@@ -101,9 +101,14 @@ export class CampaignStepDialogComponent implements OnInit {
       .getPaged({ page: 1, pageSize: 100 })
       .pipe(finalize(() => (this.loadingTemplates = false)))
       .subscribe({
-        next: (page) => (this.templates = page.items),
+        next: (page) => {
+          this.templates = page.items;
+          this.refreshHeaderImage();
+        },
         error: () => (this.templates = []),
       });
+
+    this.form.controls.messageTemplateId.valueChanges.subscribe(() => this.refreshHeaderImage());
 
     if (this.isEdit && this.data.step) {
       this.resolveExistingMedia(this.data.step.mediaAssetIds);
@@ -132,6 +137,22 @@ export class CampaignStepDialogComponent implements OnInit {
 
   readonly templateStatusClass = templateStatusChipClass;
   readonly languageLabel = templateLanguageLabel;
+
+  /** The selected template's image, shown at the top of the preview bubble; null when it has none. */
+  headerImageUrl: string | null = null;
+
+  /** Looks up the selected template's image (a media library file) so the preview shows what customers get. */
+  private refreshHeaderImage(): void {
+    const id = this.selectedTemplate?.headerMediaAssetId;
+    if (!id) {
+      this.headerImageUrl = null;
+      return;
+    }
+    this.media
+      .getById(id)
+      .pipe(catchError(() => of(null)))
+      .subscribe((asset) => (this.headerImageUrl = asset?.url ?? null));
+  }
 
   previewParts(body: string): PlaceholderPart[] {
     return splitPlaceholders(body);

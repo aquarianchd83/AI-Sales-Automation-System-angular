@@ -5,6 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { CampaignStepDialogComponent, CampaignStepDialogData } from './campaign-step-dialog.component';
 import { SharedModule } from '../../../shared/shared.module';
+import { MessageTemplateService } from '../../../core/services/message-template.service';
 import { environment } from '../../../../environments/environment';
 
 const template = {
@@ -18,6 +19,8 @@ const template = {
   isActive: true,
   createdAt: '2026-09-01T00:00:00Z',
   metaTemplateId: 'm1',
+  headerMediaAssetId: null,
+  headerOnMeta: false,
 };
 
 describe('CampaignStepDialogComponent', () => {
@@ -66,6 +69,21 @@ describe('CampaignStepDialogComponent', () => {
     expect(preview.textContent).toContain('Approved');
     // The placeholder is picked out so it reads as "filled in per customer".
     expect(preview.querySelector('.chat-token')?.textContent).toBe('{{FirstName}}');
+  });
+
+  it("shows the selected template's image at the top of the preview", () => {
+    const service = TestBed.inject(MessageTemplateService);
+    expect(service).toBeTruthy();
+    fixture.componentInstance.templates = [{ ...template, headerMediaAssetId: 'a1', headerOnMeta: true }];
+    fixture.componentInstance.form.controls.messageTemplateId.setValue('t1');
+
+    http
+      .expectOne(`${environment.apiBaseUrl}/media/a1`)
+      .flush({ id: 'a1', fileName: 'hero.png', contentType: 'image/png', sizeBytes: 10, url: 'https://cdn.example.test/hero.png', createdAt: '' });
+    fixture.detectChanges();
+
+    const img: HTMLImageElement = fixture.nativeElement.querySelector('.chat-bubble__image');
+    expect(img.src).toBe('https://cdn.example.test/hero.png');
   });
 
   it('saves a step without sending any message text', () => {

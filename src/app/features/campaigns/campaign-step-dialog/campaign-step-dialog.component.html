@@ -53,6 +53,7 @@
         </div>
 
         <div class="chat-bubble">
+          <img class="chat-bubble__image" *ngIf="headerImageUrl" [src]="headerImageUrl" alt="Template image" />
           <div class="chat-bubble__text">
             <ng-container *ngFor="let part of previewParts(t.bodyText)"
               ><span *ngIf="part.token; else plain" class="chat-token" [matTooltip]="tokenHint(part.token)">{{ part.text }}</span
@@ -86,10 +87,10 @@
     </section>
 
     <section class="step-section">
-      <h3 class="step-section__title"><mat-icon>image</mat-icon> Media <span class="muted">(optional)</span></h3>
+      <h3 class="step-section__title"><mat-icon>image</mat-icon> Media <span class="muted">(not sent with the message)</span></h3>
       <p class="muted step-section__hint">
-        The first item is sent as the message header. The number required is set server-side, so
-        it's checked when you save.
+        The picture now belongs to the message template (Message Templates page → the template's Image), which sends it
+        with every message. Files added here are no longer attached to the message.
       </p>
 
       <div class="media-chips" *ngIf="selectedMedia.length">

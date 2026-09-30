@@ -1,8 +1,9 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
-import { finalize } from 'rxjs/operators';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { Observable, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap } from 'rxjs/operators';
 
 import { KNOWN_PLACEHOLDER_TOKENS, placeholderTokenValidator } from '../../../core/utils/placeholder-tokens';
 import {
@@ -10,10 +11,14 @@ import {
   TEMPLATE_CATEGORIES,
   TEMPLATE_LANGUAGES,
   templateCategoryInfo,
+  TEMPLATE_IMAGE_CONTENT_TYPES,
+  TEMPLATE_IMAGE_MAX_BYTES,
   templateLanguageLabel,
   WhatsAppTemplateStatus,
 } from '../../../core/models/message-template.model';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
+import { MediaService } from '../../../core/services/media.service';
+import { MediaAsset, formatFileSize } from '../../../core/models/media.model';
 import { NotificationService } from '../../../core/services/notification.service';
 
 export interface TemplateFormDialogData {
@@ -26,7 +31,7 @@ export interface TemplateFormDialogData {
   templateUrl: './template-form-dialog.component.html',
   styleUrls: ['./template-form-dialog.component.scss'],
 })
-export class TemplateFormDialogComponent {
+export class TemplateFormDialogComponent implements OnInit {
   readonly isEdit = this.data.mode === 'edit';
   readonly categories = TEMPLATE_CATEGORIES;
   readonly languages = TEMPLATE_LANGUAGES;
@@ -70,9 +75,84 @@ export class TemplateFormDialogComponent {
     @Inject(MAT_DIALOG_DATA) public readonly data: TemplateFormDialogData,
     private readonly fb: FormBuilder,
     private readonly templates: MessageTemplateService,
+    private readonly media: MediaService,
     private readonly notify: NotificationService,
     private readonly dialogRef: MatDialogRef<TemplateFormDialogComponent, boolean>
   ) {}
+
+  // ---- optional image ---------------------------------------------------------------------------
+
+  /** The image chosen for this template, shown as a thumbnail; null when there is none. */
+  headerAsset: MediaAsset | null = null;
+  resolvingHeader = !!this.data.template?.headerMediaAssetId;
+  readonly imageSearchControl = this.fb.nonNullable.control('');
+  imageOptions: MediaAsset[] = [];
+  loadingImageOptions = false;
+  readonly formatSize = formatFileSize;
+  readonly imageLimitMb = TEMPLATE_IMAGE_MAX_BYTES / (1024 * 1024);
+
+  /** What the image field allows: anything before the template is on Meta; once it is, Meta has fixed whether it
+   * has an image, so an existing one can be swapped but none can be added or removed. */
+  get imageMode(): 'free' | 'swap' | 'locked' {
+    const t = this.data.template;
+    if (!this.isEdit || !t?.metaTemplateId) {
+      return 'free';
+    }
+    return t.headerOnMeta ? 'swap' : 'locked';
+  }
+
+  ngOnInit(): void {
+    const id = this.data.template?.headerMediaAssetId;
+    if (id) {
+      this.media
+        .getById(id)
+        .pipe(
+          catchError(() => of(null)),
+          finalize(() => (this.resolvingHeader = false))
+        )
+        .subscribe((asset) => (this.headerAsset = asset));
+    }
+
+    this.imageSearchControl.valueChanges
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((search) => {
+          this.loadingImageOptions = true;
+          return this.media.getPaged({ page: 1, pageSize: 20, search: search || undefined }).pipe(
+            map((page) => page.items.filter((a) => this.isUsableImage(a))),
+            catchError(() => of([] as MediaAsset[])),
+            finalize(() => (this.loadingImageOptions = false))
+          );
+        })
+      )
+      .subscribe((items) => (this.imageOptions = items));
+  }
+
+  /** Meta accepts only JPEG or PNG, up to 5 MB, for a message header. */
+  isUsableImage(asset: MediaAsset): boolean {
+    return TEMPLATE_IMAGE_CONTENT_TYPES.includes(asset.contentType.toLowerCase()) && asset.sizeBytes <= TEMPLATE_IMAGE_MAX_BYTES;
+  }
+
+  onImageSelected(event: MatAutocompleteSelectedEvent): void {
+    this.headerAsset = event.option.value as MediaAsset;
+    this.imageSearchControl.setValue('', { emitEvent: false });
+    this.imageOptions = [];
+  }
+
+  removeImage(): void {
+    this.headerAsset = null;
+  }
+
+  /** The image field's change, as the update request wants it. */
+  private imagePatch(): { headerMediaAssetId?: string; removeHeaderImage?: boolean } {
+    const before = this.data.template?.headerMediaAssetId ?? null;
+    const now = this.headerAsset?.id ?? null;
+    if (now === before) {
+      return {};
+    }
+    return now ? { headerMediaAssetId: now } : { removeHeaderImage: true };
+  }
 
   tokenLabel(token: string): string {
     return `{{${token}}}`;
@@ -109,6 +189,7 @@ export class TemplateFormDialogComponent {
         ? this.templates.update(this.data.template.id, {
             bodyText: raw.bodyText.trim(),
             isActive: raw.isActive,
+            ...this.imagePatch(),
             ...(this.canEditLanguageAndCategory
               ? { language: raw.language, category: raw.category }
               : {}),
@@ -119,6 +200,7 @@ export class TemplateFormDialogComponent {
             category: raw.category,
             whatsAppTemplateName: raw.whatsAppTemplateName.trim(),
             bodyText: raw.bodyText.trim(),
+            ...(this.headerAsset ? { headerMediaAssetId: this.headerAsset.id } : {}),
           });
 
     this.saving = true;
