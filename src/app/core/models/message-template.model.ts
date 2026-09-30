@@ -256,7 +256,8 @@ export const TEMPLATE_RULE_GROUPS: TemplateRuleGroup[] = [
     icon: 'cloud_upload',
     rules: [
       'A new template starts Pending and exists only in the portal until it is synced. Click Sync on its row to submit it to Meta; otherwise the hourly job does it (active templates only).',
-      'Name, language and category are sent once. After Meta has the template they cannot be changed — create a new template instead.',
+      'Name and language are sent once; after Meta has the template they cannot be changed — create a new template instead.',
+      'Meta assigns the category and may move a template to another one on review (e.g. Utility to Marketing). Sync, or Update category from Meta in the edit dialog, brings its category here.',
       'Editing the body of an Approved template sends it back to Pending for a fresh Meta review, and Meta limits how often an approved template can be edited.',
     ],
   },
