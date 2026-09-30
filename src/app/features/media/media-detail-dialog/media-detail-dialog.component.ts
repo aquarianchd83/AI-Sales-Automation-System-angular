@@ -7,7 +7,9 @@ import {
   formatFileSize,
   isImageContentType,
   mediaKindLabel,
+  mediaPreviewUrl,
 } from '../../../core/models/media.model';
+import { environment } from '../../../../environments/environment';
 import { NotificationService } from '../../../core/services/notification.service';
 
 /** What the dialog hands back: the caller owns the delete flow (it knows about the in-use confirmation). */
@@ -23,6 +25,7 @@ export class MediaDetailDialogComponent {
   readonly kind = mediaKindLabel(this.asset.contentType);
   readonly size = formatFileSize(this.asset.sizeBytes);
   readonly publicUrl = absoluteMediaUrl(this.asset.url);
+  readonly previewUrl = mediaPreviewUrl(this.asset.url, environment.apiBaseUrl);
   /** False when Meta could not fetch the link (MediaStorage:PublicBaseUrl is not set, or points at localhost). */
   readonly reachableByMeta = this.asset.isPublicUrl;
 

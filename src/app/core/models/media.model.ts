@@ -53,3 +53,18 @@ export function mediaKindLabel(contentType: string): string {
   }
   return contentType.startsWith('video/') ? 'Video' : 'File';
 }
+
+/**
+ * Where the portal itself loads a file from for previews: the API's own address (or the dev proxy) rather than the
+ * public link. A tunnel such as ngrok's free plan answers browsers with an interstitial page instead of the file, which
+ * would leave every thumbnail broken; Meta's servers are not affected, so the public link stays what we show to copy.
+ */
+export function mediaPreviewUrl(url: string, apiBaseUrl: string, origin: string = window.location.origin): string {
+  try {
+    const path = new URL(url, origin);
+    const apiOrigin = new URL(apiBaseUrl, origin).origin;
+    return `${apiOrigin}${path.pathname}${path.search}`;
+  } catch {
+    return url;
+  }
+}

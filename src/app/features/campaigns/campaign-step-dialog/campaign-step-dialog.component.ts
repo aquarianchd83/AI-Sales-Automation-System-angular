@@ -6,6 +6,8 @@ import { catchError, finalize } from 'rxjs/operators';
 
 import { Campaign, CampaignStep, formatStepTypeName, nextStepNumber } from '../../../core/models/campaign.model';
 import { CampaignService } from '../../../core/services/campaign.service';
+import { environment } from '../../../../environments/environment';
+import { mediaPreviewUrl } from '../../../core/models/media.model';
 import { MediaService } from '../../../core/services/media.service';
 import {
   MessageTemplate,
@@ -99,7 +101,7 @@ export class CampaignStepDialogComponent implements OnInit {
     this.media
       .getById(id)
       .pipe(catchError(() => of(null)))
-      .subscribe((asset) => (this.headerImageUrl = asset?.url ?? null));
+      .subscribe((asset) => (this.headerImageUrl = asset ? mediaPreviewUrl(asset.url, environment.apiBaseUrl) : null));
   }
 
   previewParts(body: string): PlaceholderPart[] {

@@ -5,8 +5,8 @@
 
 <mat-dialog-content>
   <div class="preview">
-    <img *ngIf="isImage" [src]="publicUrl" [alt]="asset.fileName" />
-    <video *ngIf="!isImage" [src]="publicUrl" controls preload="metadata"></video>
+    <img *ngIf="isImage" [src]="previewUrl" [alt]="asset.fileName" />
+    <video *ngIf="!isImage" [src]="previewUrl" controls preload="metadata"></video>
   </div>
 
   <div class="link-block">

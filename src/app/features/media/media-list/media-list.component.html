@@ -36,7 +36,7 @@
     <div class="media-grid" *ngIf="page.items.length">
       <mat-card class="media-card" *ngFor="let asset of page.items" tabindex="0" (click)="view(asset)" (keydown.enter)="view(asset)">
         <div class="thumb">
-          <img *ngIf="isImage(asset.contentType)" [src]="asset.url" [alt]="asset.fileName" loading="lazy" />
+          <img *ngIf="isImage(asset.contentType)" [src]="preview(asset.url)" [alt]="asset.fileName" loading="lazy" />
           <mat-icon *ngIf="!isImage(asset.contentType)" class="thumb-icon">movie</mat-icon>
           <span class="kind-badge">{{ kindLabel(asset.contentType) }}</span>
           <div class="thumb-actions" (click)="$event.stopPropagation()">
