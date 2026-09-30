@@ -120,15 +120,4 @@ describe('CampaignService', () => {
     everyone.flush({ considered: 0, sent: 0, failed: 0, skipped: 0 });
   });
 
-  it('calls the global ops/run-jobs endpoint with no campaign id', () => {
-    service.runJobsNow().subscribe();
-
-    const req = http.expectOne(`${baseUrl}/ops/run-jobs`);
-    expect(req.request.method).toBe('POST');
-    req.flush({
-      initialSends: { considered: 0, sent: 0, failed: 0, skipped: 0 },
-      followUps: { considered: 0, sent: 0, failed: 0, skipped: 0 },
-      retries: { considered: 0, sent: 0, failed: 0, skipped: 0 },
-    });
-  });
 });

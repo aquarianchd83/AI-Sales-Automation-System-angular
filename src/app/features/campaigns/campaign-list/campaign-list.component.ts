@@ -29,7 +29,6 @@ import { CampaignService } from '../../../core/services/campaign.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
-import { RunJobsResultDialogComponent } from '../run-jobs-result-dialog/run-jobs-result-dialog.component';
 
 @Component({
   selector: 'app-campaign-list',
@@ -61,7 +60,6 @@ export class CampaignListComponent implements OnInit, OnDestroy {
 
   page: PagedResult<Campaign> = emptyPage<Campaign>();
   loading = true;
-  runningJobs = false;
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
@@ -150,24 +148,6 @@ export class CampaignListComponent implements OnInit, OnDestroy {
           this.notify.success('Campaign deleted.');
           this.reload$.next();
         });
-      });
-  }
-
-  /** Admin only, matching [Authorize(Roles = AppRoles.Admin)] on POST /campaigns/ops/run-jobs —
-   * the button is hidden for anyone else via *appHasRole. */
-  runJobsNow(): void {
-    this.runningJobs = true;
-    this.campaigns
-      .runJobsNow()
-      .pipe(finalize(() => (this.runningJobs = false)))
-      .subscribe({
-        next: (result) => {
-          this.dialog.open(RunJobsResultDialogComponent, { data: { result }, width: '480px' });
-          this.reload$.next();
-        },
-        error: () => {
-          // ErrorInterceptor toasts it.
-        },
       });
   }
 

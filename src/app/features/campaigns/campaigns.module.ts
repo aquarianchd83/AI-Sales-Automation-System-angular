@@ -8,7 +8,6 @@ import { CampaignListComponent } from './campaign-list/campaign-list.component';
 import { CampaignMessageHistoryListComponent } from './campaign-message-history-list/campaign-message-history-list.component';
 import { CampaignStepDeliveryComponent } from './campaign-step-delivery/campaign-step-delivery.component';
 import { CampaignStepDialogComponent } from './campaign-step-dialog/campaign-step-dialog.component';
-import { RunJobsResultDialogComponent } from './run-jobs-result-dialog/run-jobs-result-dialog.component';
 import { SharedModule } from '../../shared/shared.module';
 
 const routes: Routes = [
@@ -24,7 +23,6 @@ const routes: Routes = [
     CampaignFormDialogComponent,
     CampaignStepDialogComponent,
     CampaignAudienceDialogComponent,
-    RunJobsResultDialogComponent,
     CampaignMessageHistoryListComponent,
     CampaignStepDeliveryComponent,
   ],
