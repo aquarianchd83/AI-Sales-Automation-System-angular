@@ -158,3 +158,9 @@ export function templateStatusChipClass(status: string): string {
       return 'status-chip status-chip--pending';
   }
 }
+
+/** MessageTemplateSyncOneResultDto — POST /message-templates/{id}/sync. */
+export interface MessageTemplateSyncOneResult {
+  template: MessageTemplate;
+  pushError: string | null;
+}

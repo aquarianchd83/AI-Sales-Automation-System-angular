@@ -46,7 +46,10 @@
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let t">
-            <span [class]="statusClass(t.whatsAppTemplateStatus)">
+            <span
+              [class]="statusClass(t.whatsAppTemplateStatus)"
+              [matTooltip]="t.metaTemplateId ? 'Decided by Meta — refreshed by the hourly sync or the Sync button.' : 'Not on Meta yet — set by hand.'"
+            >
               {{ t.whatsAppTemplateStatus }}
             </span>
           </td>
@@ -67,6 +70,23 @@
               <mat-icon>edit</mat-icon>
             </button>
 
+            <!-- A template that is on Meta has its status decided by Meta: the sync overwrites any manual
+                 change, and the API refuses one. So it gets a Sync button that fetches Meta's current
+                 review status; only a template never pushed to Meta can be reviewed by hand. -->
+            <button
+              mat-stroked-button
+              type="button"
+              class="review-button"
+              *appHasRole="['Admin']"
+              [disabled]="isSyncing(t)"
+              [hidden]="!t.metaTemplateId"
+              matTooltip="Ask Meta for this template's current review status"
+              (click)="sync(t)"
+            >
+              <mat-icon>sync</mat-icon>
+              {{ isSyncing(t) ? 'Syncing…' : 'Sync' }}
+            </button>
+
             <!-- A labeled button, not hidden inside the overflow menu: approving a
                  template is what lets a campaign use it at all, so it needs to be a
                  first-class action for the roles that can do it, not a buried menu item. -->
@@ -75,6 +95,7 @@
               type="button"
               class="review-button"
               *appHasRole="['Admin']"
+              [hidden]="!!t.metaTemplateId"
               [matMenuTriggerFor]="reviewMenu"
               [matTooltip]="'Review — currently ' + t.whatsAppTemplateStatus"
             >

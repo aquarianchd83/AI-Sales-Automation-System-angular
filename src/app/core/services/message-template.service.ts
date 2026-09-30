@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import {
   CreateMessageTemplateRequest,
   MessageTemplate,
+  MessageTemplateSyncOneResult,
   ReviewMessageTemplateRequest,
   UpdateMessageTemplateRequest,
 } from '../models/message-template.model';
@@ -39,6 +40,12 @@ export class MessageTemplateService {
   /** Stands in for Meta's real review process. Admin only — the API 403s otherwise. */
   review(id: string, request: ReviewMessageTemplateRequest): Observable<MessageTemplate> {
     return this.http.post<MessageTemplate>(`${this.baseUrl}/${id}/review`, request);
+  }
+
+  /** Pushes the template to Meta if needed, then pulls Meta's current review status back. `pushError` is set
+   * when Meta rejected the push (the template is still returned, unchanged). */
+  syncOne(id: string): Observable<MessageTemplateSyncOneResult> {
+    return this.http.post<MessageTemplateSyncOneResult>(`${this.baseUrl}/${id}/sync`, null);
   }
 
   /** 409s if any campaign step still references this template — no force option. */
