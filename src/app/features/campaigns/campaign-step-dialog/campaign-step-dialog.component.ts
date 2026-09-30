@@ -9,7 +9,13 @@ import { Campaign, CampaignStep, formatStepTypeName, nextStepNumber } from '../.
 import { CampaignService } from '../../../core/services/campaign.service';
 import { MediaAsset, formatFileSize } from '../../../core/models/media.model';
 import { MediaService } from '../../../core/services/media.service';
-import { MessageTemplate, WhatsAppTemplateStatus } from '../../../core/models/message-template.model';
+import {
+  MessageTemplate,
+  WhatsAppTemplateStatus,
+  templateLanguageLabel,
+  templateStatusChipClass,
+} from '../../../core/models/message-template.model';
+import { PlaceholderPart, splitPlaceholders } from '../../../core/utils/placeholder-tokens';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -122,6 +128,27 @@ export class CampaignStepDialogComponent implements OnInit {
 
   formatSize(bytes: number): string {
     return formatFileSize(bytes);
+  }
+
+  readonly templateStatusClass = templateStatusChipClass;
+  readonly languageLabel = templateLanguageLabel;
+
+  previewParts(body: string): PlaceholderPart[] {
+    return splitPlaceholders(body);
+  }
+
+  /** What a highlighted placeholder turns into at send time, for its tooltip. */
+  tokenHint(token: string): string {
+    switch (token.toLowerCase()) {
+      case 'firstname':
+        return "Filled in with each customer's first name";
+      case 'lastname':
+        return "Filled in with each customer's last name";
+      case 'phonenumber':
+        return "Filled in with each customer's phone number";
+      default:
+        return 'Filled in for each customer';
+    }
   }
 
   /** The template picked for this step - its approved text is what customers actually receive. */

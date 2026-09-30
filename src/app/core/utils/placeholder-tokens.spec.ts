@@ -1,6 +1,6 @@
 import { FormControl } from '@angular/forms';
 
-import { extractPlaceholderTokens, placeholderTokenValidator } from './placeholder-tokens';
+import { extractPlaceholderTokens, placeholderTokenValidator, splitPlaceholders } from './placeholder-tokens';
 
 describe('extractPlaceholderTokens', () => {
   it('extracts tokens in first-occurrence order, de-duplicated', () => {
@@ -42,5 +42,27 @@ describe('placeholderTokenValidator', () => {
 
   it('leaves emptiness to Validators.required', () => {
     expect(placeholderTokenValidator(new FormControl(''))).toBeNull();
+  });
+});
+
+describe('splitPlaceholders', () => {
+  it('splits a body into plain text and placeholder parts, in order', () => {
+    expect(splitPlaceholders('Hi {{FirstName}}, call {{PhoneNumber}}!')).toEqual([
+      { text: 'Hi ' },
+      { text: '{{FirstName}}', token: 'FirstName' },
+      { text: ', call ' },
+      { text: '{{PhoneNumber}}', token: 'PhoneNumber' },
+      { text: '!' },
+    ]);
+  });
+
+  it('keeps every occurrence of a repeated placeholder', () => {
+    const parts = splitPlaceholders('{{FirstName}} {{FirstName}}');
+    expect(parts.filter((p) => p.token).length).toBe(2);
+  });
+
+  it('returns a single plain part for text with no placeholders, and nothing for empty text', () => {
+    expect(splitPlaceholders('Hello')).toEqual([{ text: 'Hello' }]);
+    expect(splitPlaceholders('')).toEqual([]);
   });
 });

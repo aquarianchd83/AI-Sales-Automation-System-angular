@@ -54,14 +54,18 @@ describe('CampaignStepDialogComponent', () => {
   });
 
   it('previews the selected template as the text customers receive', () => {
-    expect(fixture.nativeElement.querySelector('.template-preview')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.chat-preview')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.chat-empty')).not.toBeNull();
 
     fixture.componentInstance.form.controls.messageTemplateId.setValue('t1');
     fixture.detectChanges();
 
-    const preview: HTMLElement = fixture.nativeElement.querySelector('.template-preview');
-    expect(preview.textContent).toContain('What customers receive');
+    const preview: HTMLElement = fixture.nativeElement.querySelector('.chat-preview');
+    expect(fixture.nativeElement.textContent).toContain('What customers receive');
     expect(preview.textContent).toContain('Hi {{FirstName}}, welcome aboard!');
+    expect(preview.textContent).toContain('Approved');
+    // The placeholder is picked out so it reads as "filled in per customer".
+    expect(preview.querySelector('.chat-token')?.textContent).toBe('{{FirstName}}');
   });
 
   it('saves a step without sending any message text', () => {
