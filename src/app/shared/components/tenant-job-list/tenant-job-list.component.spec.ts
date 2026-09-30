@@ -142,4 +142,26 @@ describe('TenantJobListComponent run-now guard', () => {
     expect(component.isRunning({ ...job('campaign-follow-ups', 'x'), hangfireLastJobState: 'Processing' })).toBeTrue();
     expect(component.isRunning({ ...job('campaign-follow-ups', 'x'), hangfireLastJobState: 'Succeeded' })).toBeFalse();
   });
+
+  it('gives every row an Execute forcefully icon and says why it is disabled', () => {
+    TestBed.configureTestingModule({ imports: [SharedModule, HttpClientTestingModule, NoopAnimationsModule, RouterTestingModule] });
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(TenantJobListComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiBaseUrl}/jobs`).flush({
+      runsBackgroundJobs: true,
+      jobs: [job('campaign-follow-ups', 'Campaign follow-ups'), { ...job('campaign-send-retries', 'Campaign send retries'), isEnabled: false }],
+    });
+    fixture.detectChanges();
+
+    const buttons = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('.run-now button'));
+    expect(buttons.length).toBe(2);
+    expect(buttons.every((b) => b.getAttribute('aria-label') === 'Execute forcefully')).toBeTrue();
+    expect(buttons.every((b) => b.textContent?.trim() === 'bolt')).toBeTrue();
+    expect(buttons[0].disabled).toBeFalse();
+    expect(buttons[1].disabled).toBeTrue();
+    expect(component.runNowTooltip(component.jobs[1])).toContain('paused');
+    expect(component.runNowTooltip(component.jobs[0])).toContain('Execute forcefully');
+  });
 });

@@ -102,6 +102,20 @@ export class TenantJobListComponent implements OnInit, OnDestroy {
     return this.running.has(job.jobType) || job.hangfireLastJobState === 'Processing';
   }
 
+  /** Why "Execute forcefully" is greyed out, or what it does when it isn't. */
+  runNowTooltip(job: TenantJob): string {
+    if (!this.runsBackgroundJobs) {
+      return 'Your workspace is not currently eligible to run background jobs.';
+    }
+    if (!job.isEnabled) {
+      return 'This job is paused — resume it first, then it can be run.';
+    }
+    if (this.isRunning(job)) {
+      return 'Running now — wait for it to finish.';
+    }
+    return 'Execute forcefully — runs this job once, right now, without waiting for its schedule. The schedule itself is not changed.';
+  }
+
   isBusy(job: TenantJob): boolean {
     return this.busy.has(job.jobType);
   }
