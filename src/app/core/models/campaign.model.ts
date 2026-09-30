@@ -267,20 +267,6 @@ export function campaignMessageStatusChipClass(status: string): string {
   }
 }
 
-export interface SendRunResult {
-  considered: number;
-  sent: number;
-  failed: number;
-  skipped: number;
-}
-
-/** RunJobsResultDto — response of the global (not per-campaign) ops/run-jobs trigger. */
-export interface RunJobsResult {
-  initialSends: SendRunResult;
-  followUps: SendRunResult;
-  retries: SendRunResult;
-}
-
 /**
  * CampaignService.RequireStatus rules, mirrored so the UI never offers an action the API
  * refuses. Edit is Draft, Scheduled, or Paused — a Scheduled campaign hasn't sent anything

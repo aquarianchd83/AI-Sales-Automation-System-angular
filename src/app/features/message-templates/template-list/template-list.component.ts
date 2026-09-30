@@ -52,6 +52,8 @@ export class TemplateListComponent implements OnInit, OnDestroy {
   loading = true;
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
+  /** Template ids with a Sync in flight, so one slow sync only disables its own row's button. */
+  private readonly syncing = new Set<string>();
   private readonly reload$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
 
@@ -101,6 +103,35 @@ export class TemplateListComponent implements OnInit, OnDestroy {
 
   edit(template: MessageTemplate): void {
     this.openForm({ mode: 'edit', template });
+  }
+
+  isSyncing(template: MessageTemplate): boolean {
+    return this.syncing.has(template.id);
+  }
+
+  /** Asks Meta for this template's current review status. Meta decides it; nothing here can override it. */
+  sync(template: MessageTemplate): void {
+    this.syncing.add(template.id);
+    this.templates
+      .syncOne(template.id)
+      .pipe(finalize(() => this.syncing.delete(template.id)))
+      .subscribe({
+        next: (result) => {
+          if (result.pushError) {
+            this.notify.error(`Meta did not accept "${template.name}": ${result.pushError}`);
+          } else if (result.template.whatsAppTemplateStatus === WhatsAppTemplateStatus.Approved) {
+            this.notify.success(`Meta has approved "${template.name}".`);
+          } else {
+            this.notify.info(
+              `Meta says "${template.name}" is ${result.template.whatsAppTemplateStatus}. It can be used in a campaign once Meta approves it.`
+            );
+          }
+          this.reload$.next();
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
   }
 
   review(template: MessageTemplate, status: WhatsAppTemplateStatus): void {

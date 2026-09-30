@@ -14,7 +14,6 @@ import {
   CreateCampaignRequest,
   ResendFailedResult,
   RetryMessageResult,
-  RunJobsResult,
   SetCampaignAudienceRequest,
   SetCampaignAudienceResult,
   UpdateCampaignRequest,
@@ -190,14 +189,5 @@ export class CampaignService {
   /** Resends every Failed message of one step. The campaign must be Running (409 otherwise). */
   resendFailedForStep(campaignId: string, stepNumber: number): Observable<ResendFailedResult> {
     return this.http.post<ResendFailedResult>(`${this.baseUrl}/${campaignId}/steps/${stepNumber}/resend-failed`, null);
-  }
-
-  /**
-   * Runs the send pipeline (initial sends, follow-ups, retries) immediately across every
-   * eligible campaign, rather than waiting for the next scheduled tick. Admin only —
-   * the API 403s for anyone else.
-   */
-  runJobsNow(): Observable<RunJobsResult> {
-    return this.http.post<RunJobsResult>(`${this.baseUrl}/ops/run-jobs`, null);
   }
 }

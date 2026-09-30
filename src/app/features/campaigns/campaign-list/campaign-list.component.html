@@ -4,17 +4,6 @@
     subtitle="Initial message plus any number of follow-ups, sent on a schedule to a chosen audience."
   >
     <app-module-flows-button module="campaigns"></app-module-flows-button>
-    <button
-      mat-stroked-button
-      type="button"
-      *appHasRole="['Admin']"
-      [disabled]="runningJobs"
-      matTooltip="Runs the send pipeline immediately across every eligible campaign, instead of waiting for the next scheduled tick"
-      (click)="runJobsNow()"
-    >
-      <mat-icon>bolt</mat-icon>
-      {{ runningJobs ? 'Running…' : 'Run jobs now' }}
-    </button>
     <button mat-flat-button color="primary" type="button" (click)="create()">
       <mat-icon>add</mat-icon>
       New campaign

@@ -92,7 +92,7 @@ Four Hangfire jobs run per tenant. Default schedules (UTC, editable by the tenan
 Campaign jobs panel on the Campaigns page): initial sends 06:00, follow-ups 07:00, retries 08:00, and
 the completion job twice a day at 06:00 and 18:00. `TenantJobRunner` skips the run if the tenant is gone,
 suspended, or the job is paused, and pushes live `JobStarted` / `JobFinished` events so the campaign
-pages refresh themselves and grey out "Run now" while a run is in progress.
+pages refresh themselves and grey out "Execute forcefully" while a run is in progress.
 
 Two manual paths use the same "process one customer" logic below: **Send next step now** on the
 campaign detail page (everyone eligible, or one customer) skips the follow-up delay, and **Resend** on

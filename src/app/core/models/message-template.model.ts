@@ -224,3 +224,9 @@ export const TEMPLATE_CATEGORY_INFO: Record<TemplateCategory, TemplateCategoryIn
 export function templateCategoryInfo(category: string): TemplateCategoryInfo | null {
   return TEMPLATE_CATEGORY_INFO[category as TemplateCategory] ?? null;
 }
+
+/** MessageTemplateSyncOneResultDto — POST /message-templates/{id}/sync. */
+export interface MessageTemplateSyncOneResult {
+  template: MessageTemplate;
+  pushError: string | null;
+}

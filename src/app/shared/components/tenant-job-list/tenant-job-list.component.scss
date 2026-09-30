@@ -94,6 +94,11 @@ table.mat-mdc-table {
   min-width: 780px;
 }
 
+.run-now {
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .mat-column-nextRun,
 .mat-column-lastRun .sub {
   white-space: nowrap;
