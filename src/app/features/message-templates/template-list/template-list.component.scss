@@ -35,3 +35,49 @@
   height: 40px;
   opacity: 0.5;
 }
+
+.rules-panel {
+  margin-bottom: 16px;
+}
+
+.rules-icon {
+  margin-right: 6px;
+  color: #128c7e;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px 24px;
+  padding-bottom: 8px;
+}
+
+.rules-group {
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.72);
+
+    mat-icon {
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+      color: #128c7e;
+    }
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  li + li {
+    margin-top: 4px;
+  }
+}
