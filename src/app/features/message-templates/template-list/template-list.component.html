@@ -13,6 +13,27 @@
     </button>
   </app-page-header>
 
+  <mat-expansion-panel
+    class="rules-panel"
+    [expanded]="rulesOpen"
+    (opened)="setRulesOpen(true)"
+    (closed)="setRulesOpen(false)"
+  >
+    <mat-expansion-panel-header>
+      <mat-panel-title><mat-icon class="rules-icon">rule</mat-icon> Template rules</mat-panel-title>
+      <mat-panel-description>A quick reminder of what Meta and the portal enforce</mat-panel-description>
+    </mat-expansion-panel-header>
+
+    <div class="rules-grid">
+      <section class="rules-group" *ngFor="let group of ruleGroups">
+        <h3><mat-icon>{{ group.icon }}</mat-icon> {{ group.title }}</h3>
+        <ul>
+          <li *ngFor="let rule of group.rules">{{ rule }}</li>
+        </ul>
+      </section>
+    </div>
+  </mat-expansion-panel>
+
   <mat-card class="table-card">
     <div class="filters">
       <mat-form-field class="filter-search" subscriptSizing="dynamic">
