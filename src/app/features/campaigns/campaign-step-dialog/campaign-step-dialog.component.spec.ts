@@ -79,7 +79,7 @@ describe('CampaignStepDialogComponent', () => {
 
     http
       .expectOne(`${environment.apiBaseUrl}/media/a1`)
-      .flush({ id: 'a1', fileName: 'hero.png', contentType: 'image/png', sizeBytes: 10, url: 'https://cdn.example.test/hero.png', createdAt: '' });
+      .flush({ id: 'a1', fileName: 'hero.png', contentType: 'image/png', sizeBytes: 10, url: 'https://cdn.example.test/hero.png', createdAt: '', isPublicUrl: true });
     fixture.detectChanges();
 
     const img: HTMLImageElement = fixture.nativeElement.querySelector('.chat-bubble__image');

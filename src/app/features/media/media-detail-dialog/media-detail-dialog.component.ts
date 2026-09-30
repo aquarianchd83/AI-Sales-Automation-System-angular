@@ -6,7 +6,6 @@ import {
   absoluteMediaUrl,
   formatFileSize,
   isImageContentType,
-  isPublicMediaUrl,
   mediaKindLabel,
 } from '../../../core/models/media.model';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -24,8 +23,8 @@ export class MediaDetailDialogComponent {
   readonly kind = mediaKindLabel(this.asset.contentType);
   readonly size = formatFileSize(this.asset.sizeBytes);
   readonly publicUrl = absoluteMediaUrl(this.asset.url);
-  /** False when Meta could not fetch the link (relative, or a localhost address). */
-  readonly reachableByMeta = isPublicMediaUrl(this.publicUrl);
+  /** False when Meta could not fetch the link (MediaStorage:PublicBaseUrl is not set, or points at localhost). */
+  readonly reachableByMeta = this.asset.isPublicUrl;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public readonly asset: MediaAsset,

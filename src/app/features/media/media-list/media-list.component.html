@@ -10,6 +10,15 @@
   </app-page-header>
 
   <mat-card class="table-card">
+
+    <div class="public-url-banner" *ngIf="hasNonPublicLinks">
+      <mat-icon>warning</mat-icon>
+      <div>
+        <strong>Public links are not set up.</strong>
+        Meta cannot download these files, so template images will fail to sync or send. Ask your administrator to set
+        <code>MediaStorage:PublicBaseUrl</code> to the API's public address (e.g. https://api.yourdomain.com) and restart the service.
+      </div>
+    </div>
     <div class="filters">
       <mat-form-field class="filter-search" subscriptSizing="dynamic">
         <mat-label>Search</mat-label>

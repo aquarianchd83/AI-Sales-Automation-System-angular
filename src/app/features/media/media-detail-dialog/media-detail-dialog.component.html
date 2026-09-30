@@ -24,8 +24,8 @@
     </div>
     <p class="link-warning" *ngIf="!reachableByMeta">
       <mat-icon inline>warning</mat-icon>
-      This link is not public yet, so WhatsApp/Meta cannot fetch it. Set the API's media storage
-      <strong>PublicBaseUrl</strong> to its public address, then upload the file again.
+      This link is not public, so WhatsApp/Meta cannot fetch it. The server's
+      <strong>MediaStorage &rarr; PublicBaseUrl</strong> setting is empty or points at this machine. Ask your administrator to set it to the API's public address and restart the service.
     </p>
     <p class="link-ok muted" *ngIf="reachableByMeta">
       <mat-icon inline>public</mat-icon>

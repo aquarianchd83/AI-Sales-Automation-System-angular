@@ -158,6 +158,12 @@
         </button>
       </div>
 
+      <p class="image-warning" *ngIf="headerAsset && !headerAsset.isPublicUrl">
+        <mat-icon inline>warning</mat-icon>
+        This image's link is not public, so Meta cannot fetch it. Ask your administrator to set the server's
+        MediaStorage PublicBaseUrl before syncing this template.
+      </p>
+
       <mat-form-field class="full-width" *ngIf="imageMode !== 'locked'">
         <mat-label>{{ headerAsset ? 'Replace image' : 'Add image' }}</mat-label>
         <mat-icon matPrefix>search</mat-icon>

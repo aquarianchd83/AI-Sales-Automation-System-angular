@@ -115,3 +115,20 @@
   height: 40px;
   opacity: 0.5;
 }
+
+.public-url-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 16px 16px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff4e0;
+  border: 1px solid #f0c987;
+  color: #7a4a00;
+  font-size: 13px;
+
+  code {
+    font-size: 12px;
+  }
+}

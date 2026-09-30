@@ -84,7 +84,7 @@ describe('TemplateFormDialogComponent category from Meta', () => {
 });
 
 describe('TemplateFormDialogComponent image', () => {
-  const asset = { id: 'a1', fileName: 'hero.png', contentType: 'image/png', sizeBytes: 2048, url: 'https://cdn.example.test/hero.png', createdAt: '' };
+  const asset = { id: 'a1', fileName: 'hero.png', contentType: 'image/png', sizeBytes: 2048, url: 'https://cdn.example.test/hero.png', createdAt: '', isPublicUrl: true };
   let http: HttpTestingController;
   const close = jasmine.createSpy('close');
 

@@ -6,6 +6,8 @@ export interface MediaAsset {
   sizeBytes: number;
   url: string;
   createdAt: string;
+  /** True when the API's MediaStorage PublicBaseUrl makes the link reachable by Meta; false means it is not configured. */
+  isPublicUrl: boolean;
 }
 
 /**
@@ -42,22 +44,6 @@ export function absoluteMediaUrl(url: string, origin: string = window.location.o
     return new URL(url, origin).toString();
   } catch {
     return url;
-  }
-}
-
-/**
- * True when Meta could fetch the link: stored as an absolute http(s) URL on a host that isn't
- * this machine. A relative URL means the API's MediaStorage PublicBaseUrl isn't set.
- */
-export function isPublicMediaUrl(url: string): boolean {
-  if (!/^https?:\/\//i.test(url)) {
-    return false;
-  }
-  try {
-    const host = new URL(url).hostname;
-    return !(host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host.endsWith('.localhost'));
-  } catch {
-    return false;
   }
 }
 

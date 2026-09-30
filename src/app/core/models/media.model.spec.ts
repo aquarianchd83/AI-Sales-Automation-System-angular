@@ -1,4 +1,4 @@
-import { absoluteMediaUrl, isPublicMediaUrl, mediaKindLabel } from './media.model';
+import { absoluteMediaUrl, mediaKindLabel } from './media.model';
 
 describe('media model helpers', () => {
   it('makes a relative url absolute against the given origin', () => {
@@ -7,13 +7,6 @@ describe('media model helpers', () => {
 
   it('keeps an absolute url as is', () => {
     expect(absoluteMediaUrl('https://cdn.example.com/a.png', 'https://x.test')).toBe('https://cdn.example.com/a.png');
-  });
-
-  it('treats only absolute non-local urls as public', () => {
-    expect(isPublicMediaUrl('https://api.example.com/media/a.png')).toBeTrue();
-    expect(isPublicMediaUrl('/media/a.png')).toBeFalse();
-    expect(isPublicMediaUrl('http://localhost:5000/media/a.png')).toBeFalse();
-    expect(isPublicMediaUrl('https://127.0.0.1/media/a.png')).toBeFalse();
   });
 
   it('labels the kind of file', () => {

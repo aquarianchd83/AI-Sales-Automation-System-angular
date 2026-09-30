@@ -39,6 +39,11 @@ export class MediaListComponent implements OnInit, OnDestroy {
   page: PagedResult<MediaAsset> = emptyPage<MediaAsset>();
   loading = true;
 
+  /** Any file whose link Meta could not fetch: the server's MediaStorage PublicBaseUrl is not set. */
+  get hasNonPublicLinks(): boolean {
+    return this.page.items.some((a) => !a.isPublicUrl);
+  }
+
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
