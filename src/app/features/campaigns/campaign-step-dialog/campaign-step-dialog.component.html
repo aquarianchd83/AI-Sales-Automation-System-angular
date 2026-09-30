@@ -86,49 +86,6 @@
       </ng-template>
     </section>
 
-    <section class="step-section">
-      <h3 class="step-section__title"><mat-icon>image</mat-icon> Media <span class="muted">(not sent with the message)</span></h3>
-      <p class="muted step-section__hint">
-        The picture now belongs to the message template (Message Templates page → the template's Image), which sends it
-        with every message. Files added here are no longer attached to the message.
-      </p>
-
-      <div class="media-chips" *ngIf="selectedMedia.length">
-        <span class="media-chip" *ngFor="let asset of selectedMedia">
-          <mat-icon class="media-chip__icon">attach_file</mat-icon>
-          {{ asset.fileName }}
-          <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
-          <button
-            type="button"
-            class="chip-remove"
-            [attr.aria-label]="'Remove ' + asset.fileName"
-            (click)="removeMedia(asset)"
-          >
-            <mat-icon>cancel</mat-icon>
-          </button>
-        </span>
-      </div>
-
-      <p class="muted" *ngIf="resolvingExistingMedia">Loading attached media…</p>
-
-      <mat-form-field class="full-width">
-        <mat-label>Add media</mat-label>
-        <mat-icon matPrefix>search</mat-icon>
-        <input
-          matInput
-          [formControl]="mediaSearchControl"
-          [matAutocomplete]="mediaAuto"
-          placeholder="Search the media library…"
-        />
-        <mat-autocomplete #mediaAuto="matAutocomplete" (optionSelected)="onMediaSelected($event)">
-          <mat-option *ngIf="loadingMediaOptions" disabled>Searching…</mat-option>
-          <mat-option *ngFor="let asset of mediaOptions" [value]="asset">
-            {{ asset.fileName }} <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
-          </mat-option>
-        </mat-autocomplete>
-      </mat-form-field>
-    </section>
-
     <div class="active-row">
       <div>
         <div class="active-row__title">Step is active</div>
