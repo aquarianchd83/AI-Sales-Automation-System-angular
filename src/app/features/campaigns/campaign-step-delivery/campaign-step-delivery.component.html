@@ -61,11 +61,16 @@
         type="button"
         class="filter-chip"
         [class.filter-chip--active]="f.value === outcomeFilter"
+        [matTooltip]="f.info"
         (click)="setOutcomeFilter(f.value)"
       >
         {{ f.label }}
       </button>
     </div>
+    <p class="filter-info muted">
+      <mat-icon inline>info_outline</mat-icon>
+      <span>{{ selectedFilterInfo }}</span>
+    </p>
 
     <div class="table-scroll" *ngIf="page.items.length">
       <table mat-table [dataSource]="page.items">

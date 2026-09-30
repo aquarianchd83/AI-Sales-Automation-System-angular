@@ -504,6 +504,17 @@ export const CAMPAIGN_STEP_OUTCOME_LABELS: Record<CampaignStepOutcome, string> =
   [CampaignStepOutcome.WillNotReceive]: 'Will not receive',
 };
 
+/** One-line meaning of each step outcome, shown as the filter chips' tooltips and the line under them. */
+export const CAMPAIGN_STEP_OUTCOME_DESCRIPTIONS: Record<CampaignStepOutcome, string> = {
+  [CampaignStepOutcome.Queued]: 'Accepted for sending and waiting to go out to WhatsApp.',
+  [CampaignStepOutcome.Sent]: 'Handed to WhatsApp, but not confirmed on the customer’s phone yet.',
+  [CampaignStepOutcome.Delivered]: 'Reached the customer’s phone; not opened yet.',
+  [CampaignStepOutcome.Read]: 'The customer opened the message.',
+  [CampaignStepOutcome.Failed]: 'WhatsApp did not accept it or delivery failed. Can be resent while the campaign is Running.',
+  [CampaignStepOutcome.Upcoming]: 'Not sent yet, but still due this step — it goes out when the earlier steps and delay are done.',
+  [CampaignStepOutcome.WillNotReceive]: 'Will never get this step — they replied, opted out, were handed off or the campaign ended first.',
+};
+
 /** CampaignStepDeliverySummaryDto — a step's outcome counts across the whole audience. */
 export interface CampaignStepDeliverySummary {
   stepNumber: number;

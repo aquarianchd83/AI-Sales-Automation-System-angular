@@ -4,6 +4,7 @@ import { Subject, of } from 'rxjs';
 import { catchError, finalize, switchMap, takeUntil } from 'rxjs/operators';
 
 import {
+  CAMPAIGN_STEP_OUTCOME_DESCRIPTIONS,
   CampaignStatus,
   CampaignStepDeliverySummary,
   CampaignStepOutcome,
@@ -19,6 +20,7 @@ import { NotificationService } from '../../../core/services/notification.service
 interface OutcomeFilter {
   value: string;
   label: string;
+  info: string;
 }
 
 /** Per-step delivery history for one campaign: pick a step, see who received it, who it failed
@@ -42,13 +44,19 @@ export class CampaignStepDeliveryComponent implements OnInit, OnChanges, OnDestr
   readonly outcomeLabel = stepOutcomeLabel;
   readonly formatStepTypeName = formatStepTypeName;
   readonly outcomeFilters: OutcomeFilter[] = [
-    { value: '', label: 'All' },
-    { value: CampaignStepOutcome.Failed, label: 'Failed' },
-    { value: CampaignStepOutcome.Upcoming, label: 'Will receive' },
-    { value: CampaignStepOutcome.Sent, label: 'Sent' },
-    { value: CampaignStepOutcome.Delivered, label: 'Delivered' },
-    { value: CampaignStepOutcome.Read, label: 'Read' },
-    { value: CampaignStepOutcome.WillNotReceive, label: 'Will not receive' },
+    { value: '', label: 'All', info: 'Everyone attached to the campaign, whatever has happened with this step.' },
+    ...[
+      [CampaignStepOutcome.Failed, 'Failed'],
+      [CampaignStepOutcome.Upcoming, 'Will receive'],
+      [CampaignStepOutcome.Sent, 'Sent'],
+      [CampaignStepOutcome.Delivered, 'Delivered'],
+      [CampaignStepOutcome.Read, 'Read'],
+      [CampaignStepOutcome.WillNotReceive, 'Will not receive'],
+    ].map(([value, label]) => ({
+      value,
+      label,
+      info: CAMPAIGN_STEP_OUTCOME_DESCRIPTIONS[value as CampaignStepOutcome],
+    })),
   ];
 
   summaries: CampaignStepDeliverySummary[] = [];
@@ -112,6 +120,11 @@ export class CampaignStepDeliveryComponent implements OnInit, OnChanges, OnDestr
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** What the currently selected status filter means, shown under the chips. */
+  get selectedFilterInfo(): string {
+    return this.outcomeFilters.find((f) => f.value === this.outcomeFilter)?.info ?? '';
   }
 
   get selectedSummary(): CampaignStepDeliverySummary | null {
