@@ -121,7 +121,7 @@ flowchart TD
     K5 -- yes --> K6{"Template Approved and active?"}
     K6 -- no --> SK3["Skip, customer left as is<br/>so fixing the template resumes it"]
     K6 -- yes --> M["Get or create conversation<br/>Save Message as Queued"]
-    M --> W["Send template via WhatsApp<br/>with first media item"]
+    M --> W["Send template via WhatsApp<br/>variables filled from the template's own body,<br/>with first media item"]
     W --> WR{"Success?"}
     WR -- yes --> OK["Message = Sent<br/>CurrentStep = this step"]
     OK --> NX{"Another active step later?"}

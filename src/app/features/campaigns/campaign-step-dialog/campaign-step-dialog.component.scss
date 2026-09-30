@@ -1,8 +1,25 @@
-.token-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.template-preview {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f1f4f6;
+  border-left: 3px solid #128c7e;
+}
+
+.template-preview__label {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.template-preview__body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.template-preview__hint {
   margin: -4px 0 14px;
+  font-size: 12px;
 }
 
 .media-section {

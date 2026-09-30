@@ -24,29 +24,6 @@
     </div>
 
     <mat-form-field class="full-width">
-      <mat-label>Message text</mat-label>
-      <textarea matInput formControlName="messageText" rows="3" maxlength="2000"></textarea>
-      <mat-hint>{{ form.controls.messageText.value.length }}/2000</mat-hint>
-      <mat-error *ngIf="form.controls.messageText.hasError('required')">
-        Message text is required.
-      </mat-error>
-      <mat-error *ngIf="form.controls.messageText.hasError('unknownPlaceholder')">
-        Unknown placeholder: {{ form.controls.messageText.getError('unknownPlaceholder') }}.
-      </mat-error>
-    </mat-form-field>
-
-    <div class="token-buttons">
-      <button
-        mat-stroked-button
-        type="button"
-        *ngFor="let token of knownTokens"
-        (click)="insertToken(token)"
-      >
-        {{ '{{' }}{{ token }}{{ '}}' }}
-      </button>
-    </div>
-
-    <mat-form-field class="full-width">
       <mat-label>Template</mat-label>
       <mat-select formControlName="messageTemplateId">
         <mat-option [value]="null">No template</mat-option>
@@ -59,6 +36,15 @@
         Starting the campaign requires an Approved, active template on every active step.
       </mat-hint>
     </mat-form-field>
+
+    <div class="template-preview" *ngIf="selectedTemplate as t">
+      <div class="template-preview__label muted">What customers receive — the approved template text</div>
+      <div class="template-preview__body">{{ t.bodyText }}</div>
+    </div>
+    <p class="muted template-preview__hint" *ngIf="!selectedTemplate && !loadingTemplates">
+      Pick a template: its text is what customers receive, and the {{ '{{' }}FirstName{{ '}}' }}-style
+      placeholders in it are filled in for each customer automatically.
+    </p>
 
     <div class="media-section">
       <label class="media-label">

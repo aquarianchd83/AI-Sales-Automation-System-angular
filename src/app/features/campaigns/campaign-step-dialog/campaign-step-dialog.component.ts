@@ -7,7 +7,6 @@ import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMa
 
 import { Campaign, CampaignStep, formatStepTypeName, nextStepNumber } from '../../../core/models/campaign.model';
 import { CampaignService } from '../../../core/services/campaign.service';
-import { KNOWN_PLACEHOLDER_TOKENS, placeholderTokenValidator } from '../../../core/utils/placeholder-tokens';
 import { MediaAsset, formatFileSize } from '../../../core/models/media.model';
 import { MediaService } from '../../../core/services/media.service';
 import { MessageTemplate, WhatsAppTemplateStatus } from '../../../core/models/message-template.model';
@@ -27,7 +26,6 @@ export interface CampaignStepDialogData {
 })
 export class CampaignStepDialogComponent implements OnInit {
   readonly isEdit = !!this.data.step;
-  readonly knownTokens = KNOWN_PLACEHOLDER_TOKENS;
   readonly WhatsAppTemplateStatus = WhatsAppTemplateStatus;
 
   /**
@@ -41,10 +39,6 @@ export class CampaignStepDialogComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     stepType: [{ value: this.fixedStepType, disabled: true }, [Validators.required]],
     delayDaysAfterPrevious: [this.data.step?.delayDaysAfterPrevious ?? 0, [Validators.required]],
-    messageText: [
-      this.data.step?.messageText ?? '',
-      [Validators.required, Validators.maxLength(2000), placeholderTokenValidator],
-    ],
     messageTemplateId: [this.data.step?.messageTemplateId ?? (null as string | null)],
     isActive: [this.data.step?.isActive ?? true],
     // No client-side min/max validator: the server's CampaignOptions.MinStepMedia/
@@ -130,10 +124,10 @@ export class CampaignStepDialogComponent implements OnInit {
     return formatFileSize(bytes);
   }
 
-  insertToken(token: string): void {
-    const control = this.form.controls.messageText;
-    control.setValue(`${control.value}{{${token}}}`);
-    control.markAsDirty();
+  /** The template picked for this step - its approved text is what customers actually receive. */
+  get selectedTemplate(): MessageTemplate | null {
+    const id = this.form.controls.messageTemplateId.value;
+    return (id && this.templates.find((t) => t.id === id)) || null;
   }
 
   save(): void {
@@ -148,7 +142,6 @@ export class CampaignStepDialogComponent implements OnInit {
       .upsertStep(this.data.campaignId, {
         stepType: raw.stepType,
         delayDaysAfterPrevious: raw.delayDaysAfterPrevious,
-        messageText: raw.messageText.trim(),
         messageTemplateId: raw.messageTemplateId || null,
         mediaAssetIds: raw.mediaAssetIds,
         isActive: raw.isActive,
