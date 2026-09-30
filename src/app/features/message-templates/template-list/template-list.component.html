@@ -3,6 +3,10 @@
     title="Message Templates"
     subtitle="WhatsApp templates a campaign step can send. Every campaign send must use an Approved, active template."
   >
+    <a mat-stroked-button routerLink="categories" matTooltip="What Marketing, Utility and Authentication mean, and what each costs">
+      <mat-icon>category</mat-icon>
+      Category guide
+    </a>
     <button mat-flat-button color="primary" type="button" (click)="create()">
       <mat-icon>add</mat-icon>
       New template
@@ -40,7 +44,20 @@
 
         <ng-container matColumnDef="category">
           <th mat-header-cell *matHeaderCellDef>Category</th>
-          <td mat-cell *matCellDef="let t">{{ t.category }}</td>
+          <td mat-cell *matCellDef="let t">
+            <ng-container *ngIf="categoryInfo(t.category) as info; else plainCategory">
+              <a
+                class="category-chip"
+                [ngClass]="'category-chip--' + info.tone"
+                routerLink="categories"
+                [matTooltip]="info.summary + ' Click for the full guide.'"
+              >
+                <mat-icon>{{ info.icon }}</mat-icon>
+                {{ t.category }}
+              </a>
+            </ng-container>
+            <ng-template #plainCategory>{{ t.category }}</ng-template>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="status">

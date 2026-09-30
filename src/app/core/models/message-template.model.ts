@@ -159,6 +159,72 @@ export function templateStatusChipClass(status: string): string {
   }
 }
 
+/** Everything the UI says about one template category: a one-line intro for lists, and the fuller guide
+ * shown on the categories page. Meta assigns and bills by these three; the wording follows Meta's own
+ * definitions, kept short and practical. */
+export interface TemplateCategoryInfo {
+  category: TemplateCategory;
+  icon: string;
+  /** Chip / accent class suffix, e.g. `marketing`. */
+  tone: 'marketing' | 'utility' | 'authentication';
+  /** One line, used in the template list and as the category's tooltip. */
+  summary: string;
+  /** Two or three sentences for the categories page. */
+  description: string;
+  goodFor: string[];
+  examples: string[];
+  notFor: string;
+  /** How it counts against the tenant's WhatsApp quota, relative to the others. */
+  billing: string;
+}
+
+export const TEMPLATE_CATEGORY_INFO: Record<TemplateCategory, TemplateCategoryInfo> = {
+  [TemplateCategory.Marketing]: {
+    category: TemplateCategory.Marketing,
+    icon: 'campaign',
+    tone: 'marketing',
+    summary: 'Promotions, offers and announcements that aim to sell or re-engage.',
+    description:
+      'The catch-all category: any message that promotes a product, service or brand, or tries to bring a customer back. ' +
+      'If a template mixes an update with a sales pitch, Meta treats it as Marketing. Customers must have opted in to receive it.',
+    goodFor: ['Discounts and seasonal offers', 'New product or feature announcements', 'Win-back and re-engagement nudges', 'Invitations to events or sales'],
+    examples: ['Hi {{FirstName}}, our festive sale is live — 20% off until Sunday!', 'We miss you, {{FirstName}}. Here is an exclusive offer just for you.'],
+    notFor: 'Order updates or one-time codes — use Utility or Authentication, which are cheaper and delivered more reliably.',
+    billing: 'The highest rate. One send counts as one full quota unit; the other categories use a fraction of that.',
+  },
+  [TemplateCategory.Utility]: {
+    category: TemplateCategory.Utility,
+    icon: 'receipt_long',
+    tone: 'utility',
+    summary: 'Updates about something the customer already asked for or did — orders, bookings, follow-ups.',
+    description:
+      'Specific, expected messages tied to a customer’s own action or an existing transaction. They must be relevant to that ' +
+      'action and must not carry promotional content — adding a sales pitch gets the template reclassified as Marketing.',
+    goodFor: ['Order, delivery and payment confirmations', 'Appointment and booking reminders', 'Account or service status changes', 'Follow-ups on a request the customer made'],
+    examples: ['Hi {{FirstName}}, your order has shipped and will arrive on Friday.', 'Reminder: your appointment is tomorrow at 4 PM.'],
+    notFor: 'Anything promotional. Cold outreach to a lead who has not interacted with you is Marketing, even if it is worded as an update.',
+    billing: 'A lower rate than Marketing: each send uses only a fraction of a quota unit (the ratio follows the platform’s per-category prices).',
+  },
+  [TemplateCategory.Authentication]: {
+    category: TemplateCategory.Authentication,
+    icon: 'verified_user',
+    tone: 'authentication',
+    summary: 'One-time passcodes and identity checks — verification and login codes only.',
+    description:
+      'For confirming a customer’s identity: a one-time password or verification code, usually with a copy-code button. Meta fixes ' +
+      'the wording and forbids extra content such as links, media or emojis, so these templates are very restricted.',
+    goodFor: ['One-time passwords (OTP)', 'Sign-in and account recovery codes', 'Transaction or identity verification'],
+    examples: ['{{1}} is your verification code. For your security, do not share it.'],
+    notFor: 'Anything that is not a code — including welcome messages, receipts or reminders.',
+    billing: 'Billed at its own rate, generally well below Marketing, so each send uses a fraction of a quota unit.',
+  },
+};
+
+/** Safe lookup for a value typed `TemplateCategory | string` at the call site (MessageTemplate.category). */
+export function templateCategoryInfo(category: string): TemplateCategoryInfo | null {
+  return TEMPLATE_CATEGORY_INFO[category as TemplateCategory] ?? null;
+}
+
 /** MessageTemplateSyncOneResultDto — POST /message-templates/{id}/sync. */
 export interface MessageTemplateSyncOneResult {
   template: MessageTemplate;

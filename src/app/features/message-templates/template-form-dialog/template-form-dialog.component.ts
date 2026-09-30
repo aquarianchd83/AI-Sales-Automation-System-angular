@@ -9,6 +9,7 @@ import {
   MessageTemplate,
   TEMPLATE_CATEGORIES,
   TEMPLATE_LANGUAGES,
+  templateCategoryInfo,
   templateLanguageLabel,
   WhatsAppTemplateStatus,
 } from '../../../core/models/message-template.model';
@@ -30,6 +31,7 @@ export class TemplateFormDialogComponent {
   readonly categories = TEMPLATE_CATEGORIES;
   readonly languages = TEMPLATE_LANGUAGES;
   readonly languageLabel = templateLanguageLabel;
+  readonly categoryInfo = templateCategoryInfo;
   readonly knownTokens = KNOWN_PLACEHOLDER_TOKENS;
   readonly bodyTextPlaceholderExample = 'Hi {{FirstName}}, your order is on its way.';
 

@@ -1,0 +1,53 @@
+<div class="page">
+  <app-page-header
+    title="Template categories"
+    subtitle="Every WhatsApp template belongs to one category. It decides what the template may say and what each send costs."
+  >
+    <a mat-button routerLink="..">
+      <mat-icon>arrow_back</mat-icon>
+      Back to templates
+    </a>
+  </app-page-header>
+
+  <mat-card class="intro-card">
+    <mat-icon class="intro-card__icon">lightbulb</mat-icon>
+    <div>
+      <strong>Choosing the right one matters.</strong>
+      Meta reviews the wording and may reassign a template to a different category — usually Marketing — if it does not
+      match what you picked. The category also fixes how many quota units a send uses, so a Utility or Authentication template
+      is cheaper than the same message sent as Marketing.
+    </div>
+  </mat-card>
+
+  <div class="category-grid">
+    <mat-card class="category-card" *ngFor="let c of categories" [ngClass]="'category-card--' + c.tone">
+      <header class="category-card__head">
+        <span class="category-card__badge"><mat-icon>{{ c.icon }}</mat-icon></span>
+        <div>
+          <h2>{{ c.category }}</h2>
+          <p class="muted">{{ c.summary }}</p>
+        </div>
+      </header>
+
+      <p class="category-card__desc">{{ c.description }}</p>
+
+      <h3>Good for</h3>
+      <ul>
+        <li *ngFor="let item of c.goodFor">{{ item }}</li>
+      </ul>
+
+      <h3>Example wording</h3>
+      <div class="example" *ngFor="let e of c.examples">{{ e }}</div>
+
+      <div class="category-card__note">
+        <mat-icon>block</mat-icon>
+        <span><strong>Not for:</strong> {{ c.notFor }}</span>
+      </div>
+
+      <div class="category-card__note category-card__note--billing">
+        <mat-icon>toll</mat-icon>
+        <span><strong>Quota:</strong> {{ c.billing }}</span>
+      </div>
+    </mat-card>
+  </div>
+</div>

@@ -67,6 +67,7 @@
             {{ category }}
           </mat-option>
         </mat-select>
+        <mat-hint *ngIf="categoryInfo(form.controls.category.value) as info">{{ info.summary }}</mat-hint>
       </mat-form-field>
     </ng-template>
 
