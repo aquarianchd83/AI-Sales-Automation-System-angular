@@ -1,9 +1,15 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpEventType } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
-import { TemplateFormDialogComponent, TemplateFormDialogData } from './template-form-dialog.component';
+import {
+  duplicateName,
+  duplicateWhatsAppName,
+  TemplateFormDialogComponent,
+  TemplateFormDialogData,
+} from './template-form-dialog.component';
 import { MessageTemplate } from '../../../core/models/message-template.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { SharedModule } from '../../../shared/shared.module';
@@ -155,7 +161,7 @@ describe('TemplateFormDialogComponent image', () => {
     const fixture = open('edit', onMeta);
 
     expect(fixture.componentInstance.imageMode).toBe('locked');
-    expect(fixture.nativeElement.textContent).toContain('create a new template with an image');
+    expect(fixture.nativeElement.textContent).toContain('make a copy of this template and add the image there');
     expect(fixture.nativeElement.querySelector('input[placeholder="Search the media library…"]')).toBeNull();
   });
 
@@ -170,5 +176,154 @@ describe('TemplateFormDialogComponent image', () => {
     const req = http.expectOne(`${environment.apiBaseUrl}/message-templates/t1`);
     expect(req.request.body.removeHeaderImage).toBeTrue();
     req.flush({ ...onMeta, metaTemplateId: null });
+  });
+});
+
+describe('template copy names', () => {
+  it('names a copy, and a copy of a copy, so they never collide', () => {
+    expect(duplicateName('Order confirmation')).toBe('Order confirmation (copy)');
+    expect(duplicateName('Order confirmation (copy)')).toBe('Order confirmation (copy 2)');
+    expect(duplicateName('Order confirmation (copy 2)')).toBe('Order confirmation (copy 3)');
+  });
+
+  it('gives a copy its own WhatsApp name, because Meta identifies a template by name and language', () => {
+    expect(duplicateWhatsAppName('order_confirmation')).toBe('order_confirmation_v2');
+    expect(duplicateWhatsAppName('order_confirmation_v2')).toBe('order_confirmation_v3');
+    expect(duplicateWhatsAppName('offer_v9')).toBe('offer_v10');
+  });
+});
+
+describe('TemplateFormDialogComponent duplicate and image upload', () => {
+  const asset = { id: 'a1', fileName: 'hero.png', contentType: 'image/png', sizeBytes: 2048, url: 'https://cdn.example.test/hero.png', createdAt: '', isPublicUrl: true };
+  const source: MessageTemplate = {
+    ...onMeta,
+    name: 'Welcome',
+    whatsAppTemplateName: 'welcome_offer',
+    category: 'Marketing',
+    bodyText: 'Hi {{FirstName}}, welcome!',
+    headerMediaAssetId: 'a1',
+    headerOnMeta: true,
+  };
+  let http: HttpTestingController;
+  const close = jasmine.createSpy('close');
+
+  function open(mode: TemplateFormDialogData['mode'], template?: MessageTemplate): ComponentFixture<TemplateFormDialogComponent> {
+    TestBed.configureTestingModule({
+      declarations: [TemplateFormDialogComponent],
+      imports: [SharedModule, HttpClientTestingModule, NoopAnimationsModule],
+      providers: [
+        { provide: MAT_DIALOG_DATA, useValue: { mode, template } as TemplateFormDialogData },
+        { provide: MatDialogRef, useValue: { close } },
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(TemplateFormDialogComponent);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  const file = (name: string, type: string, size = 1024): File => new File([new Uint8Array(size)], name, { type });
+
+  beforeEach(() => close.calls.reset());
+
+  it('a duplicate is the create form pre-filled from the source, with names of its own', () => {
+    const fixture = open('duplicate', source);
+    http.expectOne(`${environment.apiBaseUrl}/media/a1`).flush(asset);
+    fixture.detectChanges();
+    const c = fixture.componentInstance;
+
+    expect(c.isEdit).toBeFalse();
+    expect(c.form.getRawValue()).toEqual(
+      jasmine.objectContaining({ name: 'Welcome (copy)', whatsAppTemplateName: 'welcome_offer_v2', category: 'Marketing', bodyText: 'Hi {{FirstName}}, welcome!', language: 'en' })
+    );
+    expect(fixture.nativeElement.textContent).toContain('Duplicate template');
+    expect(fixture.nativeElement.textContent).toContain('goes through review again');
+    // The copy is a new template, so its image is free to change even though the original's is fixed on Meta.
+    expect(c.imageMode).toBe('free');
+    expect(c.headerAsset?.id).toBe('a1');
+    http.verify();
+  });
+
+  it('saving a duplicate creates a NEW template carrying the image - it never edits the original', () => {
+    const fixture = open('duplicate', source);
+    http.expectOne(`${environment.apiBaseUrl}/media/a1`).flush(asset);
+    fixture.detectChanges();
+
+    fixture.componentInstance.save();
+
+    const req = http.expectOne(`${environment.apiBaseUrl}/message-templates`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(
+      jasmine.objectContaining({ name: 'Welcome (copy)', whatsAppTemplateName: 'welcome_offer_v2', headerMediaAssetId: 'a1', bodyText: 'Hi {{FirstName}}, welcome!' })
+    );
+    req.flush({ ...source, id: 'new', metaTemplateId: null });
+    expect(close).toHaveBeenCalledWith(true);
+    http.verify();
+  });
+
+  it('a duplicate of a template with no image can get one - the way round Meta fixing it at creation', () => {
+    const fixture = open('duplicate', onMeta);
+
+    expect(fixture.componentInstance.imageMode).toBe('free');
+    expect(fixture.nativeElement.querySelector('input[placeholder="Search the media library…"]')).not.toBeNull();
+    http.verify();
+  });
+
+  it('a template on Meta without an image offers to duplicate it, and hands that back to the list', () => {
+    const fixture = open('edit', onMeta);
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button.image-duplicate');
+
+    expect(button.textContent).toContain('Duplicate as a new template');
+    button.click();
+
+    expect(close).toHaveBeenCalledWith('duplicate');
+  });
+
+  it('uploads a picture from the dialog and attaches it in one step', () => {
+    const fixture = open('create');
+    const c = fixture.componentInstance;
+
+    c.uploadImage(file('hero.png', 'image/png'));
+    expect(c.uploadingImage).toBeTrue();
+    const req = http.expectOne(`${environment.apiBaseUrl}/media/upload`);
+    expect(req.request.method).toBe('POST');
+    expect((req.request.body as FormData).get('file')).toEqual(jasmine.any(File));
+    req.event({ type: HttpEventType.UploadProgress, loaded: 50, total: 100 });
+    expect(c.uploadProgress).toBe(50);
+    req.flush(asset);
+
+    expect(c.uploadingImage).toBeFalse();
+    expect(c.headerAsset?.id).toBe('a1');
+    http.verify();
+  });
+
+  it('refuses a file Meta would reject before uploading anything', () => {
+    const fixture = open('create');
+    const error = spyOn(TestBed.inject(NotificationService), 'error');
+
+    fixture.componentInstance.uploadImage(file('clip.mp4', 'video/mp4'));
+    fixture.componentInstance.uploadImage(file('huge.png', 'image/png', 5 * 1024 * 1024 + 1));
+
+    expect(error).toHaveBeenCalledTimes(2);
+    expect(fixture.componentInstance.uploadingImage).toBeFalse();
+    http.verify(); // no request was made
+  });
+
+  it('keeps nothing attached when the upload fails, so it can be retried', () => {
+    const fixture = open('create');
+    const c = fixture.componentInstance;
+
+    c.uploadImage(file('hero.png', 'image/png'));
+    http.expectOne(`${environment.apiBaseUrl}/media/upload`).flush({ title: 'Storage unavailable' }, { status: 503, statusText: 'Service Unavailable' });
+
+    expect(c.uploadingImage).toBeFalse();
+    expect(c.headerAsset).toBeNull();
+  });
+
+  it('a template on Meta without an image has no upload button (Meta fixes that at creation)', () => {
+    const fixture = open('edit', onMeta);
+
+    expect(fixture.nativeElement.querySelector('.image-upload')).toBeNull();
+    http.verify();
   });
 });

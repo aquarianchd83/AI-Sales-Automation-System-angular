@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{ isEdit ? 'Edit template' : 'New template' }}</h2>
+<h2 mat-dialog-title>{{ isEdit ? 'Edit template' : isDuplicate ? 'Duplicate template' : 'New template' }}</h2>
 
 <mat-dialog-content>
   <form [formGroup]="form" novalidate>
@@ -22,6 +22,10 @@
         <ng-container *ngTemplateOutlet="languageAndCategory"></ng-container>
       </div>
 
+      <p class="muted create-note" *ngIf="isDuplicate">
+        A copy of <strong>{{ data.template?.name }}</strong>: its wording, language, category and image are carried over.
+        It is a separate template on Meta, so it needs its own WhatsApp name and goes through review again.
+      </p>
       <p class="muted create-note">
         New templates always start <strong>Pending</strong> review, regardless of category.
       </p>
@@ -135,8 +139,12 @@
       </p>
       <p class="muted image-section__hint" *ngIf="imageMode === 'locked'">
         This template is on Meta without an image, and Meta fixes that when a template is created. To send a picture
-        with the message, create a new template with an image.
+        with the message, make a copy of this template and add the image there.
       </p>
+      <button mat-stroked-button type="button" *ngIf="imageMode === 'locked'" class="image-duplicate" (click)="duplicateInstead()">
+        <mat-icon>content_copy</mat-icon>
+        Duplicate as a new template
+      </button>
 
       <p class="muted" *ngIf="resolvingHeader">Loading the image…</p>
 
@@ -181,6 +189,16 @@
         </mat-autocomplete>
         <mat-hint>Only JPEG or PNG files up to {{ imageLimitMb }} MB are listed.</mat-hint>
       </mat-form-field>
+
+      <div class="image-upload" *ngIf="imageMode !== 'locked'">
+        <input #imageFile type="file" hidden accept="image/jpeg,image/png" (change)="onImageFileSelected($event)" />
+        <button mat-stroked-button type="button" [disabled]="uploadingImage" (click)="imageFile.click()">
+          <mat-icon>upload</mat-icon>
+          {{ uploadingImage ? 'Uploading… ' + uploadProgress + '%' : headerAsset ? 'Upload a different image' : 'Upload an image' }}
+        </button>
+        <span class="muted">or pick one that is already in the media library.</span>
+        <mat-progress-bar *ngIf="uploadingImage" class="image-upload__progress" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+      </div>
     </section>
 
     <mat-slide-toggle *ngIf="isEdit" formControlName="isActive" class="active-toggle">

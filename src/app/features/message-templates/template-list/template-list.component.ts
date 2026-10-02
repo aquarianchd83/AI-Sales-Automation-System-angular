@@ -134,6 +134,11 @@ export class TemplateListComponent implements OnInit, OnDestroy {
     this.openForm({ mode: 'edit', template });
   }
 
+  /** The create form, pre-filled from this template - how to "change" what Meta will not let you change on the original. */
+  duplicate(template: MessageTemplate): void {
+    this.openForm({ mode: 'duplicate', template });
+  }
+
   isSyncing(template: MessageTemplate): boolean {
     return this.syncing.has(template.id);
   }
@@ -230,8 +235,11 @@ export class TemplateListComponent implements OnInit, OnDestroy {
     this.dialog
       .open(TemplateFormDialogComponent, { data, width: '620px', disableClose: true })
       .afterClosed()
-      .subscribe((saved) => {
-        if (saved) {
+      .subscribe((result) => {
+        if (result === 'duplicate' && data.template) {
+          // The edit dialog offered a copy instead; nothing was saved, so there is nothing to reload.
+          this.duplicate(data.template);
+        } else if (result) {
           this.reload$.next();
         }
       });

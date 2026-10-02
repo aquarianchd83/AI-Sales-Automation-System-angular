@@ -204,6 +204,10 @@
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #rowMenu="matMenu">
+              <button mat-menu-item type="button" (click)="duplicate(t)">
+                <mat-icon>content_copy</mat-icon>
+                <span>Duplicate as new template</span>
+              </button>
               <button mat-menu-item type="button" (click)="delete(t)">
                 <mat-icon color="warn">delete</mat-icon>
                 <span>Delete</span>
