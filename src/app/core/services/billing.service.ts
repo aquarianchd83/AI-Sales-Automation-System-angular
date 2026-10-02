@@ -20,7 +20,7 @@ import {
   Subscription,
   TenantNotification,
 } from '../models/billing.model';
-import { PagedResult, toPagedParams } from '../models/paged-result.model';
+import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
 
 /**
  * Tenant-facing billing (SaaS conversion Phase D). Payments are simulated for now — see
@@ -101,6 +101,13 @@ export class BillingService {
 
   getNotifications(): Observable<TenantNotification[]> {
     return this.http.get<TenantNotification[]>(`${this.baseUrl}/notifications`);
+  }
+
+  /** The tenant's whole notification list, newest first, a page at a time - what the bell's "More notifications" screen reads. */
+  getNotificationHistory(query: PagedQuery, unreadOnly: boolean): Observable<PagedResult<TenantNotification>> {
+    return this.http.get<PagedResult<TenantNotification>>(`${this.baseUrl}/notifications/history`, {
+      params: { ...toPagedParams(query), unreadOnly: String(unreadOnly) },
+    });
   }
 
   acknowledgeNotification(id: string): Observable<void> {

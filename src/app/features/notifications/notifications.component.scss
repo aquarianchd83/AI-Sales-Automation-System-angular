@@ -1,0 +1,114 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  width: min(360px, 100%);
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+
+  // Read notifications recede; unread ones are bold, urgent ones red - the same cues the bell uses.
+  &--read {
+    background: #f5f5f5;
+
+    .notification-title,
+    .notification-body,
+    .notification-meta {
+      color: #757575;
+      font-weight: 400;
+    }
+  }
+
+  &--urgent:not(.notification--read) .notification-title {
+    color: #b3261e;
+  }
+}
+
+.notification-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary, #00796b);
+    outline-offset: -2px;
+  }
+}
+
+.notification-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--mat-sys-primary, #00796b);
+}
+
+.notification-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.notification-title,
+.notification-body {
+  color: #000;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.notification-body {
+  font-weight: 500;
+}
+
+.notification-meta {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+  flex: none;
+  padding-right: 8px;
+}
+
+.load-failed,
+.empty-state {
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.4;
+}

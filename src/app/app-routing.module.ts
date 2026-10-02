@@ -149,6 +149,14 @@ const routes: Routes = [
           import('./features/settings/settings.module').then((m) => m.SettingsModule),
       },
       {
+        // The bell's "More notifications" screen - a tenant Admin's billing alerts, or the platform operator's job alerts.
+        path: 'notifications',
+        canActivate: [roleGuard],
+        data: { roles: [...TENANT_ADMIN_ROLES, ...PLATFORM_ADMIN_ROLES] },
+        loadChildren: () =>
+          import('./features/notifications/notifications.module').then((m) => m.NotificationsModule),
+      },
+      {
         path: 'tenant-settings',
         canActivate: [roleGuard],
         data: { roles: TENANT_ADMIN_ROLES },

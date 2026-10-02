@@ -10,6 +10,7 @@ import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { TenantNotification, isUrgentNotification } from '../../core/models/billing.model';
 import { BillingService } from '../../core/services/billing.service';
+import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
@@ -242,7 +243,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly billing: BillingService,
     private readonly platformNotifications: PlatformNotificationService,
     private readonly notificationHub: NotificationHubService,
-    private readonly tenantProfile: TenantProfileService
+    private readonly tenantProfile: TenantProfileService,
+    private readonly notificationsChanged: NotificationsChangedService
   ) {}
 
   ngOnInit(): void {
@@ -293,6 +295,16 @@ export class ShellComponent implements OnInit, OnDestroy {
           error: () => undefined,
         });
     }
+
+    // The full Notifications screen reads and deletes too; refresh the bell the moment it does, not on the next poll.
+    this.notificationsChanged.changed$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      if (this.showBillingBell) {
+        this.billing.getNotifications().subscribe({ next: (all) => (this.billingAlerts = this.newestFirst(all)), error: () => undefined });
+      }
+      if (this.showPlatformBell) {
+        this.platformNotifications.getRecent().subscribe({ next: (all) => (this.platformAlerts = this.newestFirst(all)), error: () => undefined });
+      }
+    });
 
     this.announcementService.getActive().subscribe({
       next: (announcements) => {
@@ -365,23 +377,6 @@ export class ShellComponent implements OnInit, OnDestroy {
   acknowledgeAllPlatformAlerts(): void {
     this.platformAlerts = this.platformAlerts.map((n) => ({ ...n, acknowledged: true }));
     this.platformNotifications.acknowledgeAll().subscribe({ error: () => undefined });
-  }
-
-  /** The bell's "More notifications" action expands the capped list in place; a full history
-   * screen is planned separately. The button shows whenever the bell is truncating the list;
-   * the panel stays open so the rest can be read. */
-  showAllBilling = false;
-  showAllPlatform = false;
-
-  viewMoreBillingAlerts(event: Event): void {
-    event.stopPropagation();
-    this.showAllBilling = true;
-  }
-
-  /** See viewMoreBillingAlerts - same for the platform bell. */
-  viewMorePlatformAlerts(event: Event): void {
-    event.stopPropagation();
-    this.showAllPlatform = true;
   }
 
   urgentAlert(alert: TenantNotification): boolean {
