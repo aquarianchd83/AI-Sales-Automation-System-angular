@@ -163,6 +163,31 @@ describe('NotificationsComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/billing/wallet');
   });
 
+  it('a template that needs attention opens Message Templates', () => {
+    const fixture = create(false);
+    billing.getNotificationHistory.and.returnValue(
+      of(page([tenantNotice({ id: 'n9', kind: TenantNotificationKind.TemplateNeedsAttention, acknowledged: true })]))
+    );
+    fixture.componentInstance.retry();
+
+    fixture.componentInstance.open(fixture.componentInstance.page.items[0]);
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/message-templates');
+  });
+
+  it('a refund request opens the refund queue, and a signup opens that tenant', () => {
+    const fixture = create(true);
+    platform.getHistory.and.returnValue(
+      of(page([platformNotice({ id: 'p2', kind: 'RefundRequested', acknowledged: true }), platformNotice({ id: 'p3', kind: 'TenantSignedUp', tenantId: 't7', acknowledged: true })]))
+    );
+    fixture.componentInstance.retry();
+
+    fixture.componentInstance.open(fixture.componentInstance.page.items[0]);
+    fixture.componentInstance.open(fixture.componentInstance.page.items[1]);
+
+    expect(router.navigateByUrl.calls.allArgs()).toEqual([['/platform/refunds'], ['/platform/tenants/t7']]);
+  });
+
   it('a platform alert opens the background jobs screen', () => {
     const fixture = create(true);
 

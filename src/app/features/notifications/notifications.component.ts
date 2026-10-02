@@ -7,9 +7,9 @@ import { Subject, Observable, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap, takeUntil } from 'rxjs/operators';
 
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { DeliveryStatus, TenantNotification, isUrgentNotification } from '../../core/models/billing.model';
+import { DeliveryStatus, TenantNotification, isUrgentNotification, tenantNotificationRoute } from '../../core/models/billing.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../core/models/paged-result.model';
-import { PLATFORM_ADMIN_ROLES, PlatformNotification } from '../../core/models/platform.model';
+import { PLATFORM_ADMIN_ROLES, PlatformNotification, platformNotificationRoute } from '../../core/models/platform.model';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
@@ -83,7 +83,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
 
   get subtitle(): string {
     return this.isPlatform
-      ? 'Background jobs that keep failing, and their recovery. Shared by every operator.'
+      ? 'New signups, refund requests, renewals that could not happen, and background jobs that fail or recover. Shared by every operator.'
       : 'Alerts about your credits, quota and plan.';
   }
 
@@ -253,7 +253,7 @@ function platformRow(n: PlatformNotification): NotificationRow {
     acknowledged: n.acknowledged,
     urgent: n.severity === 'Critical',
     meta: n.tenantName,
-    link: '/platform/jobs',
+    link: platformNotificationRoute(n),
   };
 }
 
@@ -271,6 +271,6 @@ function tenantRow(n: TenantNotification): NotificationRow {
     acknowledged: n.acknowledged,
     urgent: isUrgentNotification(n.kind),
     meta: delivered.length ? delivered.join(' · ') : null,
-    link: '/billing/wallet',
+    link: tenantNotificationRoute(n.kind),
   };
 }

@@ -5,10 +5,10 @@ import { map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
 import { AppRole, REPORT_ROLES, User } from '../../core/models/user.model';
-import { Announcement, PLATFORM_ADMIN_ROLES, PlatformNotification } from '../../core/models/platform.model';
+import { Announcement, PLATFORM_ADMIN_ROLES, PlatformNotification, platformNotificationRoute } from '../../core/models/platform.model';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
-import { TenantNotification, isUrgentNotification } from '../../core/models/billing.model';
+import { TenantNotification, isUrgentNotification, tenantNotificationRoute } from '../../core/models/billing.model';
 import { BillingService } from '../../core/services/billing.service';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
@@ -346,6 +346,15 @@ export class ShellComponent implements OnInit, OnDestroy {
         this.platformAlerts = this.newestFirst([notification, ...this.platformAlerts]);
       }
     }
+  }
+
+  /** Opening an alert goes to where it can be dealt with, not always the same screen. */
+  billingAlertLink(alert: TenantNotification): string {
+    return tenantNotificationRoute(alert.kind);
+  }
+
+  platformAlertLink(alert: PlatformNotification): string {
+    return platformNotificationRoute(alert);
   }
 
   platformAlertUrgent(alert: PlatformNotification): boolean {
