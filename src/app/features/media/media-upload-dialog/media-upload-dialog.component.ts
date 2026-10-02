@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { HttpErrorResponse, HttpEventType, HttpResponse } from '@angular/common/http';
 import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -12,11 +12,13 @@ import { NotificationService } from '../../../core/services/notification.service
   templateUrl: './media-upload-dialog.component.html',
   styleUrls: ['./media-upload-dialog.component.scss'],
 })
-export class MediaUploadDialogComponent {
+export class MediaUploadDialogComponent implements OnDestroy {
   readonly accept = MEDIA_ALLOWED_CONTENT_TYPES.join(',');
   readonly maxSizeBytes = MEDIA_MAX_SIZE_BYTES;
 
   file: File | null = null;
+  /** A blob link to the chosen file, so it can be looked at before it is uploaded. */
+  filePreviewUrl: string | null = null;
   fileError: string | null = null;
   uploading = false;
 
@@ -109,7 +111,34 @@ export class MediaUploadDialogComponent {
     });
   }
 
+  get fileIsImage(): boolean {
+    return !!this.file && this.file.type.startsWith('image/');
+  }
+
+  /** The typed link, once it looks valid, so the tenant can see what they are about to add. */
+  get linkPreview(): { url: string; isVideo: boolean } | null {
+    const url = this.urlControl.value.trim();
+    if (this.urlControl.invalid || !url) {
+      return null;
+    }
+    return { url, isVideo: /\.(mp4|3gp)(\?.*)?$/i.test(url) };
+  }
+
+  linkPreviewFailed = false;
+
+  ngOnDestroy(): void {
+    this.revokePreview();
+  }
+
+  private revokePreview(): void {
+    if (this.filePreviewUrl) {
+      URL.revokeObjectURL(this.filePreviewUrl);
+      this.filePreviewUrl = null;
+    }
+  }
+
   reset(): void {
+    this.revokePreview();
     this.file = null;
     this.fileError = null;
   }
@@ -119,6 +148,7 @@ export class MediaUploadDialogComponent {
   }
 
   private selectFile(file: File | null): void {
+    this.revokePreview();
     this.fileError = null;
 
     if (!file) {
@@ -138,5 +168,6 @@ export class MediaUploadDialogComponent {
     }
 
     this.file = file;
+    this.filePreviewUrl = URL.createObjectURL(file);
   }
 }

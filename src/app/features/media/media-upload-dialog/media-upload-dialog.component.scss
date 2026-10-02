@@ -45,3 +45,25 @@
 .full-width {
   width: 100%;
 }
+
+.file-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 8px auto 4px;
+  max-width: 100%;
+
+  img,
+  video {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 8px;
+    object-fit: contain;
+    background: #eceff1;
+  }
+}
+
+.preview-failed {
+  font-size: 12px;
+  margin: 6px 0 0;
+}
