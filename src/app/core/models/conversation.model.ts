@@ -1,7 +1,7 @@
-/** Conversation.Mode. Acted on now that the AI orchestrator exists: Human skips the AI entirely and
- * notifies the assigned agent, while AI and Hybrid both take an AI turn that either replies or
- * escalates. Hybrid is currently handled identically to AI — the partial "answer the safe part
- * first" behaviour it is meant to have needs product rules that do not exist yet. */
+/** Conversation.Mode. Human skips the AI entirely and notifies the assigned agent. AI replies on its
+ * own and escalates when it should not. Hybrid answers plain questions itself, but where AI mode would
+ * escalate — and while a handoff is open — it writes a draft reply for the agent instead of sending it
+ * (see Conversation.suggestedReply). */
 export enum ConversationMode {
   AI = 'AI',
   Human = 'Human',
@@ -60,6 +60,9 @@ export interface Conversation {
   lastLeadScore: string | null;
   /** AI-maintained running summary, regenerated (not appended) after each AI turn. */
   summary: string | null;
+  /** Hybrid mode: the reply the AI wrote but held back for the agent to send, edit or discard. Only
+   * present on the single-conversation read, and only until a message goes out after it. */
+  suggestedReply?: string | null;
 }
 
 /** ConversationMessageDto — one row of a conversation's transcript. */
