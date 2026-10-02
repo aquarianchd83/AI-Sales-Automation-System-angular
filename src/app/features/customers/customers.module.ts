@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
+import { CustomerBulkTagDialogComponent } from './customer-bulk-tag-dialog/customer-bulk-tag-dialog.component';
 import { CustomerDetailComponent } from './customer-detail/customer-detail.component';
 import { CustomerFormDialogComponent } from './customer-form-dialog/customer-form-dialog.component';
 import { CustomerImportDialogComponent } from './customer-import-dialog/customer-import-dialog.component';
@@ -16,6 +17,7 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     CustomerListComponent,
+    CustomerBulkTagDialogComponent,
     CustomerDetailComponent,
     CustomerFormDialogComponent,
     CustomerImportDialogComponent,

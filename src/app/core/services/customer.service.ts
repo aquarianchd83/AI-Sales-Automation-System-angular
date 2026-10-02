@@ -5,6 +5,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AddCustomerTagsRequest,
+  BulkAddCustomerTagsRequest,
+  BulkAddCustomerTagsResult,
   BulkDeleteCustomersRequest,
   BulkDeleteCustomersResult,
   CreateCustomerRequest,
@@ -54,6 +56,17 @@ export class CustomerService {
     return this.http.post<BulkDeleteCustomersResult>(`${this.baseUrl}/bulk-delete`, {
       ids,
     } as BulkDeleteCustomersRequest);
+  }
+
+  /**
+   * Adds the same tags to many customers in one request. Tags that do not exist yet are created once; a customer that
+   * already has a tag is left as it is; unknown or deleted ids come back in `notFoundIds`.
+   */
+  bulkAddTags(ids: string[], tagNames: string[]): Observable<BulkAddCustomerTagsResult> {
+    return this.http.post<BulkAddCustomerTagsResult>(`${this.baseUrl}/bulk-tags`, {
+      ids,
+      tagNames,
+    } as BulkAddCustomerTagsRequest);
   }
 
   addTags(id: string, tagNames: string[]): Observable<Customer> {

@@ -18,6 +18,7 @@ import {
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { Customer, OptInStatus, customerDisplayName } from '../../../core/models/customer.model';
 import { CustomerFormDialogComponent, CustomerFormDialogData } from '../customer-form-dialog/customer-form-dialog.component';
+import { CustomerBulkTagDialogComponent, CustomerBulkTagDialogData } from '../customer-bulk-tag-dialog/customer-bulk-tag-dialog.component';
 import { CustomerImportDialogComponent } from '../customer-import-dialog/customer-import-dialog.component';
 import { CustomerOptInDialogComponent } from '../customer-opt-in-dialog/customer-opt-in-dialog.component';
 import { CustomerService } from '../../../core/services/customer.service';
@@ -212,6 +213,25 @@ export class CustomerListComponent implements OnInit, OnDestroy {
           this.notify.success('Customer deleted.');
           this.reload$.next();
         });
+      });
+  }
+
+  /** Opens the tag picker for the selection; the dialog does the request and closes with true once the tags are saved. */
+  tagSelected(): void {
+    const selected = this.selection.selected;
+    if (!selected.length || this.bulkDeleting) {
+      return;
+    }
+
+    const data: CustomerBulkTagDialogData = { ids: selected.map((customer) => customer.id) };
+    this.dialog
+      .open(CustomerBulkTagDialogComponent, { data, width: '560px', disableClose: true })
+      .afterClosed()
+      .subscribe((saved) => {
+        if (saved) {
+          // Reloading also clears the selection, so a second tagging cannot be applied to rows the operator no longer sees tagged.
+          this.reload$.next();
+        }
       });
   }
 
