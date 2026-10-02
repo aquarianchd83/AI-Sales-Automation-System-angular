@@ -52,7 +52,7 @@
       <span class="spacer"></span>
 
       <ng-container *ngIf="showBillingBell">
-        <button mat-icon-button type="button" class="bell" [matMenuTriggerFor]="alertsMenu" aria-label="Billing alerts">
+        <button mat-icon-button type="button" class="bell" #billingTrigger="matMenuTrigger" [matMenuTriggerFor]="alertsMenu" aria-label="Billing alerts">
           <mat-icon>{{ unreadBillingCount ? 'notifications_active' : 'notifications_none' }}</mat-icon>
           <span class="bell-count" *ngIf="unreadBillingCount">{{ unreadBillingCount > 9 ? '9+' : unreadBillingCount }}</span>
         </button>
@@ -62,7 +62,7 @@
         <mat-menu #alertsMenu="matMenu" class="alerts-menu">
           <div (click)="$event.stopPropagation()">
           <div class="alerts-empty" mat-menu-item disabled *ngIf="!billingAlerts.length">No billing alerts</div>
-          <div class="alert-row" *ngFor="let alert of (showAllBilling ? billingAlerts : billingAlerts.slice(0, 6))">
+          <div class="alert-row" *ngFor="let alert of billingAlerts.slice(0, 6)">
             <a mat-menu-item class="alert-item" routerLink="/billing/wallet" [class.alert-item--urgent]="urgentAlert(alert)" [class.alert-item--read]="alert.acknowledged">
               <span class="alert-title">{{ alert.title }}</span>
               <span class="alert-body">{{ alert.body }}</span>
@@ -83,16 +83,16 @@
             <mat-icon>data_usage</mat-icon>
             <span>Usage &amp; credits</span>
           </a>
-          <button mat-menu-item type="button" class="more-notifications" *ngIf="billingAlerts.length > 6 && !showAllBilling" (click)="viewMoreBillingAlerts($event)">
+          <a mat-menu-item class="more-notifications" routerLink="/notifications" *ngIf="billingAlerts.length > 6" (click)="billingTrigger.closeMenu()">
             <mat-icon>more_horiz</mat-icon>
             <span>More notifications</span>
-          </button>
+          </a>
           </div>
         </mat-menu>
       </ng-container>
 
       <ng-container *ngIf="showPlatformBell">
-        <button mat-icon-button type="button" class="bell" [matMenuTriggerFor]="platformAlertsMenu" aria-label="Platform alerts">
+        <button mat-icon-button type="button" class="bell" #platformTrigger="matMenuTrigger" [matMenuTriggerFor]="platformAlertsMenu" aria-label="Platform alerts">
           <mat-icon>{{ unreadPlatformCount ? 'notifications_active' : 'notifications_none' }}</mat-icon>
           <span class="bell-count" *ngIf="unreadPlatformCount">{{ unreadPlatformCount > 9 ? '9+' : unreadPlatformCount }}</span>
         </button>
@@ -100,7 +100,7 @@
         <mat-menu #platformAlertsMenu="matMenu" class="alerts-menu">
           <div (click)="$event.stopPropagation()">
           <div class="alerts-empty" mat-menu-item disabled *ngIf="!platformAlerts.length">No platform alerts</div>
-          <div class="alert-row" *ngFor="let alert of (showAllPlatform ? platformAlerts : platformAlerts.slice(0, 6))">
+          <div class="alert-row" *ngFor="let alert of platformAlerts.slice(0, 6)">
             <a
               mat-menu-item
               class="alert-item"
@@ -128,10 +128,10 @@
             <mat-icon>schedule</mat-icon>
             <span>Background jobs</span>
           </a>
-          <button mat-menu-item type="button" class="more-notifications" *ngIf="platformAlerts.length > 6 && !showAllPlatform" (click)="viewMorePlatformAlerts($event)">
+          <a mat-menu-item class="more-notifications" routerLink="/notifications" *ngIf="platformAlerts.length > 6" (click)="platformTrigger.closeMenu()">
             <mat-icon>more_horiz</mat-icon>
             <span>More notifications</span>
-          </button>
+          </a>
           </div>
         </mat-menu>
       </ng-container>

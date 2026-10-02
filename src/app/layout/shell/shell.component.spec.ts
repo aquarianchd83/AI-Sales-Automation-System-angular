@@ -1,4 +1,4 @@
-import { ComponentFixture, discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { ComponentFixture, discardPeriodicTasks, fakeAsync, flush, TestBed, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NEVER, of } from 'rxjs';
@@ -138,6 +138,39 @@ describe('ShellComponent sidenav', () => {
 
       expect(root.querySelector('[aria-label="Platform alerts"]')).not.toBeNull();
       expect(root.querySelector('.bell-count')?.textContent?.trim()).toBe('1');
+      discardPeriodicTasks();
+    }));
+
+    it('links "More notifications" to the full Notifications screen once the bell has more than it can show', fakeAsync(() => {
+      const many = Array.from({ length: 8 }, (_, i) => alert({ id: `a${i}`, title: `Alert ${i}` }));
+      const fixture = createFixture(['PlatformSuperAdmin'], many);
+      tick(1);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+
+      (root.querySelector('[aria-label="Platform alerts"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const more = Array.from(document.querySelectorAll('a.more-notifications'));
+      expect(more.length).toBe(1);
+      expect(more[0].getAttribute('href')).toBe('/notifications');
+      expect(more[0].textContent).toContain('More notifications');
+      // The bell shows the latest six; the rest are on the screen the link opens.
+      expect(document.querySelectorAll('.alerts-menu .alert-row').length).toBe(6);
+      flush();
+      discardPeriodicTasks();
+    }));
+
+    it('has no "More notifications" link while everything fits in the bell', fakeAsync(() => {
+      const fixture = createFixture(['PlatformSuperAdmin'], [alert({}), alert({ id: 'a2' })]);
+      tick(1);
+      fixture.detectChanges();
+
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[aria-label="Platform alerts"]')!.click();
+      fixture.detectChanges();
+
+      expect(document.querySelector('a.more-notifications')).toBeNull();
+      flush();
       discardPeriodicTasks();
     }));
 

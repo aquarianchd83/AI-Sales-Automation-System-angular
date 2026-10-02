@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
+import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
 import { PlatformNotification } from '../models/platform.model';
 
 /** PlatformSuperAdmin's alert inbox (`/platform/notifications`) — shared, so acknowledging clears it for every operator. */
@@ -14,6 +15,13 @@ export class PlatformNotificationService {
 
   getRecent(): Observable<PlatformNotification[]> {
     return this.http.get<PlatformNotification[]>(this.baseUrl);
+  }
+
+  /** The whole inbox, newest first, a page at a time - what the bell's "More notifications" screen reads. */
+  getHistory(query: PagedQuery, unreadOnly: boolean): Observable<PagedResult<PlatformNotification>> {
+    return this.http.get<PagedResult<PlatformNotification>>(`${this.baseUrl}/history`, {
+      params: { ...toPagedParams(query), unreadOnly: String(unreadOnly) },
+    });
   }
 
   acknowledge(id: string): Observable<void> {

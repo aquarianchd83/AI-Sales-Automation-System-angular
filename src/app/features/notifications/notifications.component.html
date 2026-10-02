@@ -1,0 +1,93 @@
+<div class="page">
+  <app-page-header [title]="title" [subtitle]="subtitle">
+    <button mat-stroked-button type="button" [disabled]="busy || !hasUnread" (click)="markAllRead()">
+      <mat-icon>done_all</mat-icon>
+      Mark all as read
+    </button>
+  </app-page-header>
+
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-button-toggle-group
+        class="filter-toggle"
+        aria-label="Show"
+        [value]="filter"
+        (change)="setFilter($event.value)"
+      >
+        <mat-button-toggle value="all">All</mat-button-toggle>
+        <mat-button-toggle value="unread">Unread</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Title or details" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <span class="spacer"></span>
+      <span class="muted result-count" *ngIf="!loading && !failed">
+        {{ page.totalCount }} notification{{ page.totalCount === 1 ? '' : 's' }}
+      </span>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading || busy"></mat-progress-bar>
+
+    <div class="load-failed" *ngIf="failed">
+      <p>The notifications could not be loaded.</p>
+      <button mat-stroked-button type="button" (click)="retry()">Try again</button>
+    </div>
+
+    <ul class="notification-list" *ngIf="!failed && page.items.length">
+      <li
+        class="notification"
+        *ngFor="let row of page.items"
+        [class.notification--urgent]="row.urgent"
+        [class.notification--read]="row.acknowledged"
+      >
+        <button type="button" class="notification-main" (click)="open(row)">
+          <span class="notification-dot" *ngIf="!row.acknowledged" aria-label="Unread"></span>
+          <span class="notification-text">
+            <span class="notification-title">{{ row.title }}</span>
+            <span class="notification-body">{{ row.body }}</span>
+            <span class="notification-meta">
+              {{ row.createdAt | zonedDate: 'medium' : tenantTimezone }}
+              <ng-container *ngIf="row.meta"> · {{ row.meta }}</ng-container>
+            </span>
+          </span>
+        </button>
+
+        <div class="notification-actions">
+          <button
+            mat-icon-button
+            type="button"
+            matTooltip="Mark as read"
+            aria-label="Mark as read"
+            *ngIf="!row.acknowledged"
+            (click)="markRead(row)"
+          >
+            <mat-icon>done</mat-icon>
+          </button>
+          <button mat-icon-button type="button" matTooltip="Delete" aria-label="Delete notification" (click)="delete(row)">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      </li>
+    </ul>
+
+    <div class="empty-state" *ngIf="!loading && !failed && !page.items.length">
+      <mat-icon class="empty-icon">notifications_none</mat-icon>
+      <p *ngIf="searchControl.value">No notifications match that search.</p>
+      <p *ngIf="!searchControl.value && filter === 'unread'">You're all caught up - nothing unread.</p>
+      <p *ngIf="!searchControl.value && filter === 'all'">No notifications yet.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>
