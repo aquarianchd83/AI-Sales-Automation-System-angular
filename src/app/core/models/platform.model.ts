@@ -887,3 +887,43 @@ export interface PlatformNotification {
   createdAt: string;
   acknowledged: boolean;
 }
+
+/** PlatformAwsSettingsDto: the platform's S3 media bucket settings. The access key and secret never come back - only
+ * whether one is stored and its last four characters. Stored in the database only; appsettings.json holds none of it. */
+export interface PlatformAwsSettings {
+  storageProvider: 'Local' | 'S3';
+  bucketName: string;
+  region: string;
+  keyPrefix: string;
+  publicBaseUrl: string;
+  hasAccessKeyId: boolean;
+  accessKeyIdHint: string | null;
+  hasSecretAccessKey: boolean;
+  secretAccessKeyHint: string | null;
+  isConfigured: boolean;
+}
+
+/** UpdatePlatformAwsSettingsRequest. For the two credentials: null keeps the stored value, '' clears it, text replaces it. */
+export interface UpdatePlatformAwsSettingsRequest {
+  storageProvider: string;
+  bucketName: string;
+  region: string;
+  keyPrefix: string;
+  publicBaseUrl: string;
+  accessKeyId: string | null;
+  secretAccessKey: string | null;
+}
+
+/** One check in a connection test (Write, Read, Delete). */
+export interface AwsConnectionStep {
+  name: string;
+  passed: boolean;
+  detail: string | null;
+}
+
+/** AwsConnectionTestResultDto: the outcome of trying the settings against AWS without saving them. */
+export interface AwsConnectionTestResult {
+  success: boolean;
+  message: string;
+  steps: AwsConnectionStep[];
+}

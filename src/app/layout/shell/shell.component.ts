@@ -156,6 +156,7 @@ export class ShellComponent implements OnInit, OnDestroy {
           roles: [],
         },
         { label: 'Background Jobs', icon: 'schedule', route: '/platform/jobs', roles: [] },
+        { label: 'AWS Settings', icon: 'cloud', route: '/platform/aws-settings', roles: [] },
       ],
     },
     {
