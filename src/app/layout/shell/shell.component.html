@@ -63,7 +63,7 @@
           <div (click)="$event.stopPropagation()">
           <div class="alerts-empty" mat-menu-item disabled *ngIf="!billingAlerts.length">No billing alerts</div>
           <div class="alert-row" *ngFor="let alert of billingAlerts.slice(0, 6)">
-            <a mat-menu-item class="alert-item" routerLink="/billing/wallet" [class.alert-item--urgent]="urgentAlert(alert)" [class.alert-item--read]="alert.acknowledged">
+            <a mat-menu-item class="alert-item" [routerLink]="billingAlertLink(alert)" [class.alert-item--urgent]="urgentAlert(alert)" [class.alert-item--read]="alert.acknowledged">
               <span class="alert-title">{{ alert.title }}</span>
               <span class="alert-body">{{ alert.body }}</span>
               <span class="alert-time">{{ alert.createdAt | zonedDate: 'medium' : tenantTimezone }}</span>
@@ -104,7 +104,7 @@
             <a
               mat-menu-item
               class="alert-item"
-              routerLink="/platform/jobs"
+              [routerLink]="platformAlertLink(alert)"
               [class.alert-item--urgent]="platformAlertUrgent(alert)"
               [class.alert-item--read]="alert.acknowledged"
               (click)="openPlatformAlert(alert)"

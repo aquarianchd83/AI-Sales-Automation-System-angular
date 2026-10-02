@@ -161,6 +161,27 @@ describe('ShellComponent sidenav', () => {
       discardPeriodicTasks();
     }));
 
+    it('opens each alert on the screen it is about, not always the jobs screen', fakeAsync(() => {
+      const fixture = createFixture(['PlatformSuperAdmin'], [
+        alert({ id: 'r1', kind: 'RefundRequested', title: 'Refund requested' }),
+        alert({ id: 's1', kind: 'TenantSignedUp', tenantId: 't9', title: 'New signup: Acme' }),
+        alert({ id: 'j1', title: 'Job failing' }),
+      ]);
+      tick(1);
+      fixture.detectChanges();
+
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('[aria-label="Platform alerts"]')!.click();
+      fixture.detectChanges();
+
+      const hrefOf = (title: string) =>
+        Array.from(document.querySelectorAll('a.alert-item')).find((a) => a.textContent?.includes(title))?.getAttribute('href');
+      expect(hrefOf('Refund requested')).toBe('/platform/refunds');
+      expect(hrefOf('New signup: Acme')).toBe('/platform/tenants/t9');
+      expect(hrefOf('Job failing')).toBe('/platform/jobs');
+      flush();
+      discardPeriodicTasks();
+    }));
+
     it('has no "More notifications" link while everything fits in the bell', fakeAsync(() => {
       const fixture = createFixture(['PlatformSuperAdmin'], [alert({}), alert({ id: 'a2' })]);
       tick(1);

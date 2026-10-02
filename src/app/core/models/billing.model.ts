@@ -277,6 +277,14 @@ export enum TenantNotificationKind {
   JobCompleted = 11,
   /** A platform operator added units to one of your quotas. */
   CreditsAdded = 12,
+  /** Meta approved one of your message templates - campaigns can use it. */
+  TemplateApproved = 13,
+  /** Meta rejected, paused or disabled one of your message templates - it can no longer be sent. */
+  TemplateNeedsAttention = 14,
+  /** Your plan's period ended but it could not renew, so no new quota was added. */
+  PlanRenewalFailed = 15,
+  /** Your WhatsApp access token could not be renewed, or is about to lapse with nothing able to renew it. */
+  WhatsAppTokenFailing = 16,
 }
 
 export interface TenantNotification {
@@ -332,6 +340,10 @@ export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = 
   [TenantNotificationKind.JobStarted]: 'Background job started',
   [TenantNotificationKind.JobCompleted]: 'Background job completed',
   [TenantNotificationKind.CreditsAdded]: 'Credits added',
+  [TenantNotificationKind.TemplateApproved]: 'Message template approved',
+  [TenantNotificationKind.TemplateNeedsAttention]: 'Message template rejected or paused',
+  [TenantNotificationKind.PlanRenewalFailed]: 'Plan could not renew',
+  [TenantNotificationKind.WhatsAppTokenFailing]: 'WhatsApp access token failing',
 };
 
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */
@@ -340,8 +352,31 @@ export function isUrgentNotification(kind: TenantNotificationKind): boolean {
     kind === TenantNotificationKind.QuotaExhausted ||
     kind === TenantNotificationKind.QuotaLow5 ||
     kind === TenantNotificationKind.CreditsExpiring3 ||
-    kind === TenantNotificationKind.PlanExpiring1
+    kind === TenantNotificationKind.PlanExpiring1 ||
+    kind === TenantNotificationKind.TemplateNeedsAttention ||
+    kind === TenantNotificationKind.PlanRenewalFailed ||
+    kind === TenantNotificationKind.WhatsAppTokenFailing
   );
+}
+
+/** Where opening a notification should go - the screen where the thing it is about can be dealt with. */
+export function tenantNotificationRoute(kind: TenantNotificationKind): string {
+  switch (kind) {
+    case TenantNotificationKind.TemplateApproved:
+    case TenantNotificationKind.TemplateNeedsAttention:
+      return '/message-templates';
+    case TenantNotificationKind.WhatsAppTokenFailing:
+      return '/tenant-settings';
+    case TenantNotificationKind.JobStarted:
+    case TenantNotificationKind.JobCompleted:
+      return '/tenant-settings/jobs';
+    case TenantNotificationKind.PlanRenewalFailed:
+    case TenantNotificationKind.PlanExpiring7:
+    case TenantNotificationKind.PlanExpiring1:
+      return '/billing';
+    default:
+      return '/billing/wallet';
+  }
 }
 
 export enum RefundStatus {

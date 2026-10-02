@@ -871,7 +871,13 @@ export interface TenantJobReconcileSummary {
   orphanRegistrationsRemoved: number;
 }
 
-export type PlatformNotificationKind = 'JobFailing' | 'JobRecovered';
+export type PlatformNotificationKind =
+  | 'JobFailing'
+  | 'JobRecovered'
+  | 'TenantSignedUp'
+  | 'RefundRequested'
+  | 'RefundFailed'
+  | 'PlanRenewalFailed';
 export type PlatformNotificationSeverity = 'Info' | 'Warning' | 'Critical';
 
 /** An alert for the platform operators — a tenant's background job that keeps failing, or has recovered. */
@@ -886,6 +892,20 @@ export interface PlatformNotification {
   body: string;
   createdAt: string;
   acknowledged: boolean;
+}
+
+/** Where opening an operator alert should go: the refund queue, the tenant it is about, or the background jobs. */
+export function platformNotificationRoute(n: Pick<PlatformNotification, 'kind' | 'tenantId'>): string {
+  switch (n.kind) {
+    case 'RefundRequested':
+    case 'RefundFailed':
+      return '/platform/refunds';
+    case 'TenantSignedUp':
+    case 'PlanRenewalFailed':
+      return n.tenantId ? `/platform/tenants/${n.tenantId}` : '/platform/tenants';
+    default:
+      return '/platform/jobs';
+  }
 }
 
 /** PlatformAwsSettingsDto: the platform's S3 media bucket settings. The access key and secret never come back - only
