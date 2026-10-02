@@ -23,6 +23,14 @@ export class MediaService {
   }
 
   /**
+   * Adds a file the tenant already hosts by its link. The server downloads it once to check its type and size, but
+   * the link they typed stays the public address, so Meta fetches it from where they host it.
+   */
+  addFromUrl(url: string): Observable<MediaAsset> {
+    return this.http.post<MediaAsset>(`${this.baseUrl}/from-url`, { url });
+  }
+
+  /**
    * Uploads under the field name `file`. The API dedupes by content checksum — uploading
    * identical bytes twice returns the existing asset rather than creating a duplicate.
    */

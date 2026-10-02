@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { HttpErrorResponse, HttpEventType, HttpResponse } from '@angular/common/http';
+import { FormControl, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 
 import { MEDIA_ALLOWED_CONTENT_TYPES, MEDIA_MAX_SIZE_BYTES, MediaAsset } from '../../../core/models/media.model';
@@ -18,6 +19,13 @@ export class MediaUploadDialogComponent {
   file: File | null = null;
   fileError: string | null = null;
   uploading = false;
+
+  /** 'file' picks a file from this computer; 'link' registers a file the tenant already hosts. */
+  mode: 'file' | 'link' = 'file';
+  readonly urlControl = new FormControl<string>('', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.pattern(/^\s*https?:\/\/\S+\s*$/i)],
+  });
   progress = 0;
 
   constructor(
@@ -66,6 +74,37 @@ export class MediaUploadDialogComponent {
         if (!(error instanceof HttpErrorResponse)) {
           throw error;
         }
+      },
+    });
+  }
+
+  get canSubmit(): boolean {
+    return !this.uploading && (this.mode === 'file' ? !!this.file : this.urlControl.valid);
+  }
+
+  submit(): void {
+    if (this.mode === 'file') {
+      this.upload();
+    } else {
+      this.addLink();
+    }
+  }
+
+  addLink(): void {
+    if (this.urlControl.invalid || this.uploading) {
+      this.urlControl.markAsTouched();
+      return;
+    }
+
+    this.uploading = true;
+    this.media.addFromUrl(this.urlControl.value.trim()).subscribe({
+      next: (asset) => {
+        this.notify.success('File added.');
+        this.dialogRef.close(asset);
+      },
+      error: () => {
+        // ErrorInterceptor toasts the server's reason (unreachable, wrong type, too large, private address).
+        this.uploading = false;
       },
     });
   }
