@@ -112,6 +112,8 @@ export class MediaListComponent implements OnInit, OnDestroy {
       .subscribe((result) => {
         if (result === 'delete') {
           this.delete(asset);
+        } else if (result === 'changed') {
+          this.reload$.next();
         }
       });
   }

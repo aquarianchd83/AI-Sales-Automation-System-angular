@@ -24,13 +24,44 @@
     </div>
     <p class="link-warning" *ngIf="!reachableByMeta">
       <mat-icon inline>warning</mat-icon>
-      This link is not public, so WhatsApp/Meta cannot fetch it. The server's
-      <strong>MediaStorage &rarr; PublicBaseUrl</strong> setting is empty or points at this machine. Ask your administrator to set it to the API's public address and restart the service.
+      This link is not public, so WhatsApp/Meta cannot fetch it. The platform's media storage has no public address yet - ask your administrator to set up S3 storage (or
+      <strong>MediaStorage:PublicBaseUrl</strong>) and restart the service.
     </p>
     <p class="link-ok muted" *ngIf="reachableByMeta">
       <mat-icon inline>public</mat-icon>
       Anyone with this link can view the file.
     </p>
+  </div>
+
+  <div class="replace-block">
+    <input #replaceInput type="file" hidden [accept]="accept" (change)="onFileChosen($event)" />
+
+    <ng-container *ngIf="!pending">
+      <button mat-stroked-button type="button" [disabled]="replacing" (click)="replaceInput.click()">
+        <mat-icon>swap_horiz</mat-icon>
+        Replace {{ isImage ? 'image' : 'video' }}
+      </button>
+      <span class="muted replace-hint">Templates and steps using this file switch to the new one.</span>
+    </ng-container>
+    <p class="mat-error" *ngIf="pendingError">{{ pendingError }}</p>
+
+    <div class="replace-pending" *ngIf="pending">
+      <div class="replace-pending__preview">
+        <img *ngIf="pendingIsImage" [src]="pendingUrl" alt="New file preview" />
+        <video *ngIf="!pendingIsImage" [src]="pendingUrl" controls preload="metadata"></video>
+      </div>
+      <div class="replace-pending__body">
+        <strong>{{ pending.name }}</strong>
+        <span class="muted">{{ formatSize(pending.size) }} · {{ pending.type }}</span>
+        <div class="replace-pending__actions">
+          <button mat-flat-button color="primary" type="button" [disabled]="replacing" (click)="confirmReplace()">
+            {{ replacing ? 'Replacing…' : 'Replace with this file' }}
+          </button>
+          <button mat-button type="button" [disabled]="replacing" (click)="cancelReplace()">Cancel</button>
+        </div>
+        <mat-progress-bar mode="indeterminate" *ngIf="replacing"></mat-progress-bar>
+      </div>
+    </div>
   </div>
 
   <dl class="facts">

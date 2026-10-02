@@ -26,7 +26,10 @@
       </ng-container>
 
       <ng-container *ngIf="file">
-        <mat-icon class="dropzone-icon" color="primary">description</mat-icon>
+        <div class="file-preview" *ngIf="filePreviewUrl">
+          <img *ngIf="fileIsImage" [src]="filePreviewUrl" alt="Preview of the chosen file" />
+          <video *ngIf="!fileIsImage" [src]="filePreviewUrl" controls preload="metadata"></video>
+        </div>
         <p class="file-name">{{ file.name }}</p>
         <p class="muted">{{ (file.size / 1024).toFixed(0) }} KB · {{ file.type }}</p>
         <button mat-button type="button" [disabled]="uploading" (click)="reset()">
@@ -71,6 +74,14 @@
       <mat-error *ngIf="urlControl.hasError('pattern')">The link must start with https://</mat-error>
     </mat-form-field>
 
+
+    <div class="file-preview" *ngIf="linkPreview as p">
+      <video *ngIf="p.isVideo" [src]="p.url" controls preload="metadata"></video>
+      <img *ngIf="!p.isVideo" [src]="p.url" alt="Preview of the link" (load)="linkPreviewFailed = false" (error)="linkPreviewFailed = true" [hidden]="linkPreviewFailed" />
+      <p class="muted preview-failed" *ngIf="linkPreviewFailed && !p.isVideo">
+        No picture could be shown from this link. It may still work - it is checked when you click Add.
+      </p>
+    </div>
     <mat-progress-bar mode="indeterminate" *ngIf="uploading"></mat-progress-bar>
   </ng-container>
 </mat-dialog-content>

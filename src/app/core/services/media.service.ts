@@ -30,6 +30,13 @@ export class MediaService {
     return this.http.post<MediaAsset>(`${this.baseUrl}/from-url`, { url });
   }
 
+  /** Swaps the file behind an entry, keeping its id - so templates and steps that use it follow along. */
+  replace(id: string, file: File): Observable<MediaAsset> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<MediaAsset>(`${this.baseUrl}/${id}/replace`, form);
+  }
+
   /**
    * Uploads under the field name `file`. The API dedupes by content checksum — uploading
    * identical bytes twice returns the existing asset rather than creating a duplicate.
