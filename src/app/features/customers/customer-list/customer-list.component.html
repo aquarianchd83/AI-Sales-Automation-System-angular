@@ -48,6 +48,15 @@
       <button mat-button type="button" (click)="selection.clear()">Clear</button>
       <span class="spacer"></span>
       <button
+        mat-stroked-button
+        type="button"
+        [disabled]="bulkDeleting"
+        (click)="tagSelected()"
+      >
+        <mat-icon>sell</mat-icon>
+        Add tags
+      </button>
+      <button
         mat-flat-button
         color="warn"
         type="button"

@@ -1,0 +1,42 @@
+<h2 mat-dialog-title>Add tags to {{ customerCount }} customer{{ customerCount === 1 ? '' : 's' }}</h2>
+
+<mat-dialog-content>
+  <p class="intro muted">
+    The tags you choose are added to every selected customer. Customers keep the tags they already have.
+  </p>
+
+  <mat-form-field class="full-width">
+    <mat-label>Tags</mat-label>
+    <mat-chip-grid #chipGrid aria-label="Tags to add">
+      <mat-chip-row *ngFor="let tag of tagNames" (removed)="remove(tag)">
+        {{ tag }}
+        <button matChipRemove [attr.aria-label]="'Remove ' + tag">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </mat-chip-row>
+    </mat-chip-grid>
+    <input
+      #tagInput
+      [formControl]="tagSearchControl"
+      placeholder="Type to search existing tags, or Enter to add a new one…"
+      [matChipInputFor]="chipGrid"
+      [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+      [matAutocomplete]="tagAuto"
+      (matChipInputTokenEnd)="addTag($event)"
+    />
+    <mat-autocomplete #tagAuto="matAutocomplete" (optionSelected)="onTagOptionSelected($event)">
+      <mat-option *ngIf="loadingTagOptions" disabled>Searching…</mat-option>
+      <mat-option *ngFor="let tag of tagOptions" [value]="tag">
+        {{ tag.name }} <span class="muted">· {{ tag.customerCount }}</span>
+      </mat-option>
+    </mat-autocomplete>
+    <mat-hint>Up to {{ maxTags }} tags, {{ maxLength }} characters each.</mat-hint>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [disabled]="saving" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="!canSave" (click)="save()">
+    {{ saving ? 'Adding…' : 'Add tags' }}
+  </button>
+</mat-dialog-actions>

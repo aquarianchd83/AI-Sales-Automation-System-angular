@@ -90,6 +90,27 @@ export interface BulkDeleteCustomersResult {
   notFoundIds: string[];
 }
 
+/** BulkAddCustomerTagsRequest - the same tags added to every listed customer. */
+export interface BulkAddCustomerTagsRequest {
+  ids: string[];
+  tagNames: string[];
+}
+
+/**
+ * BulkAddCustomerTagsResultDto. `updatedCount` counts customers that actually gained a tag - ones that already had every
+ * requested tag are not counted. Ids that matched nothing come back in `notFoundIds` and the call still succeeds.
+ */
+export interface BulkAddCustomerTagsResult {
+  requestedCount: number;
+  updatedCount: number;
+  notFoundIds: string[];
+  tagNames: string[];
+}
+
+/** BulkAddCustomerTagsRequestValidator.MaxTags / MaxTagLength. */
+export const BULK_TAG_MAX_TAGS = 20;
+export const BULK_TAG_MAX_LENGTH = 100;
+
 /** Server-side cap (BulkDeleteCustomersRequestValidator.MaxIds). */
 export const BULK_DELETE_MAX_IDS = 500;
 
