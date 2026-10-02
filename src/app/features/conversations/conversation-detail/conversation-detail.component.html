@@ -78,6 +78,22 @@
       </div>
     </mat-card>
 
+    <mat-card class="suggestion-card" *ngIf="suggestedReply as draft">
+      <div class="suggestion-head">
+        <mat-icon>smart_toy</mat-icon>
+        <strong>The AI drafted a reply for you</strong>
+        <span class="muted">It was not sent — a person should handle this one.</span>
+      </div>
+      <p class="suggestion-text">{{ draft }}</p>
+      <div class="suggestion-actions">
+        <button mat-flat-button color="primary" type="button" (click)="useSuggestion()" [disabled]="!canAct || !canSendText">
+          <mat-icon>edit</mat-icon>
+          Use this draft
+        </button>
+        <button mat-button type="button" (click)="dismissSuggestion()">Dismiss</button>
+      </div>
+    </mat-card>
+
     <mat-card class="compose-card">
       <form [formGroup]="composeForm" (ngSubmit)="send()">
         <mat-button-toggle-group formControlName="mode" class="compose-mode">

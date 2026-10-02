@@ -117,3 +117,28 @@
   margin: 0 0 8px;
   font-size: 12px;
 }
+
+.suggestion-card {
+  margin-bottom: 16px;
+  border-left: 4px solid #1976d2;
+}
+
+.suggestion-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.suggestion-text {
+  margin: 12px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(25, 118, 210, 0.08);
+  white-space: pre-wrap;
+}
+
+.suggestion-actions {
+  display: flex;
+  gap: 8px;
+}

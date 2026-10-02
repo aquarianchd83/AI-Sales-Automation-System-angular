@@ -46,6 +46,8 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
   loading = true;
   actionInFlight = false;
   sending = false;
+  /** The agent chose to ignore the AI's draft for this conversation. */
+  suggestionDismissed = false;
 
   /** Oldest-first, top to bottom — the API returns each page newest-first, reversed here. */
   messages: ConversationMessage[] = [];
@@ -223,6 +225,24 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** The AI's held-back reply (Hybrid mode), while it is still worth offering. */
+  get suggestedReply(): string | null {
+    return !this.suggestionDismissed && this.conversation?.suggestedReply ? this.conversation.suggestedReply : null;
+  }
+
+  /** Puts the draft in the message box for the agent to edit before sending. */
+  useSuggestion(): void {
+    const draft = this.suggestedReply;
+    if (!draft) {
+      return;
+    }
+    this.composeForm.patchValue({ mode: 'text', text: draft });
+  }
+
+  dismissSuggestion(): void {
+    this.suggestionDismissed = true;
+  }
+
   send(): void {
     if (!this.conversation || this.sending) {
       return;
@@ -246,6 +266,10 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
         next: (message) => {
           this.messages = [...this.messages, message];
           this.composeForm.patchValue({ text: '', messageTemplateId: null });
+          // Anything sent after the draft means the agent has dealt with the moment it was written for.
+          if (this.conversation) {
+            this.conversation = { ...this.conversation, suggestedReply: null };
+          }
           if (message.status === MessageStatus.Failed) {
             this.notify.error('WhatsApp did not accept the message — see its status in the transcript.');
           }
