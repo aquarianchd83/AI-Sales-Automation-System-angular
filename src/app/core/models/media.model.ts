@@ -6,6 +6,8 @@ export interface MediaAsset {
   sizeBytes: number;
   url: string;
   createdAt: string;
+  /** True when the API's MediaStorage PublicBaseUrl makes the link reachable by Meta; false means it is not configured. */
+  isPublicUrl: boolean;
 }
 
 /**
@@ -34,4 +36,35 @@ export function formatFileSize(bytes: number): string {
     return `${(bytes / 1024).toFixed(1)} KB`;
   }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** The link to share: the stored URL made absolute (a relative one is resolved against the page's own origin). */
+export function absoluteMediaUrl(url: string, origin: string = window.location.origin): string {
+  try {
+    return new URL(url, origin).toString();
+  } catch {
+    return url;
+  }
+}
+
+export function mediaKindLabel(contentType: string): string {
+  if (isImageContentType(contentType)) {
+    return 'Image';
+  }
+  return contentType.startsWith('video/') ? 'Video' : 'File';
+}
+
+/**
+ * Where the portal itself loads a file from for previews: the API's own address (or the dev proxy) rather than the
+ * public link. A tunnel such as ngrok's free plan answers browsers with an interstitial page instead of the file, which
+ * would leave every thumbnail broken; Meta's servers are not affected, so the public link stays what we show to copy.
+ */
+export function mediaPreviewUrl(url: string, apiBaseUrl: string, origin: string = window.location.origin): string {
+  try {
+    const path = new URL(url, origin);
+    const apiOrigin = new URL(apiBaseUrl, origin).origin;
+    return `${apiOrigin}${path.pathname}${path.search}`;
+  } catch {
+    return url;
+  }
 }

@@ -79,11 +79,11 @@ describe('CampaignStepDialogComponent', () => {
 
     http
       .expectOne(`${environment.apiBaseUrl}/media/a1`)
-      .flush({ id: 'a1', fileName: 'hero.png', contentType: 'image/png', sizeBytes: 10, url: 'https://cdn.example.test/hero.png', createdAt: '' });
+      .flush({ id: 'a1', fileName: 'hero.png', contentType: 'image/png', sizeBytes: 10, url: 'https://cdn.example.test/hero.png', createdAt: '', isPublicUrl: true });
     fixture.detectChanges();
 
     const img: HTMLImageElement = fixture.nativeElement.querySelector('.chat-bubble__image');
-    expect(img.src).toBe('https://cdn.example.test/hero.png');
+    expect(img.src).toBe(`${window.location.origin}/hero.png`); // previewed from the portal's own API origin, not the public link
   });
 
   it('saves a step without sending any message text', () => {

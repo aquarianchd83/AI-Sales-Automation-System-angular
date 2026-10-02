@@ -18,7 +18,8 @@ import {
 } from '../../../core/models/message-template.model';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
 import { MediaService } from '../../../core/services/media.service';
-import { MediaAsset, formatFileSize } from '../../../core/models/media.model';
+import { MediaAsset, formatFileSize, mediaPreviewUrl } from '../../../core/models/media.model';
+import { environment } from '../../../../environments/environment';
 import { NotificationService } from '../../../core/services/notification.service';
 
 export interface TemplateFormDialogData {
@@ -89,6 +90,7 @@ export class TemplateFormDialogComponent implements OnInit {
   imageOptions: MediaAsset[] = [];
   loadingImageOptions = false;
   readonly formatSize = formatFileSize;
+  readonly preview = (url: string): string => mediaPreviewUrl(url, environment.apiBaseUrl);
   readonly imageLimitMb = TEMPLATE_IMAGE_MAX_BYTES / (1024 * 1024);
 
   /** What the image field allows: anything before the template is on Meta; once it is, Meta has fixed whether it

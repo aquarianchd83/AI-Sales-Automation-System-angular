@@ -34,6 +34,7 @@ describe('MediaService', () => {
       sizeBytes: 6,
       url: '/media/1',
       createdAt: '',
+      isPublicUrl: true,
     });
   });
 

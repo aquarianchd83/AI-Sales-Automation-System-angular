@@ -16,8 +16,10 @@ import {
 
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
-import { MediaAsset, formatFileSize, isImageContentType } from '../../../core/models/media.model';
+import { MediaAsset, absoluteMediaUrl, formatFileSize, isImageContentType, mediaKindLabel, mediaPreviewUrl } from '../../../core/models/media.model';
+import { environment } from '../../../../environments/environment';
 import { MediaService } from '../../../core/services/media.service';
+import { MediaDetailDialogComponent, MediaDetailResult } from '../media-detail-dialog/media-detail-dialog.component';
 import { MediaUploadDialogComponent } from '../media-upload-dialog/media-upload-dialog.component';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -33,9 +35,16 @@ export class MediaListComponent implements OnInit, OnDestroy {
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
   readonly isImage = isImageContentType;
   readonly formatSize = formatFileSize;
+  readonly kindLabel = mediaKindLabel;
+  readonly preview = (url: string): string => mediaPreviewUrl(url, environment.apiBaseUrl);
 
   page: PagedResult<MediaAsset> = emptyPage<MediaAsset>();
   loading = true;
+
+  /** Any file whose link Meta could not fetch: the server's MediaStorage PublicBaseUrl is not set. */
+  get hasNonPublicLinks(): boolean {
+    return this.page.items.some((a) => !a.isPublicUrl);
+  }
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
@@ -92,6 +101,30 @@ export class MediaListComponent implements OnInit, OnDestroy {
       });
   }
 
+  view(asset: MediaAsset): void {
+    this.dialog
+      .open<MediaDetailDialogComponent, MediaAsset, MediaDetailResult>(MediaDetailDialogComponent, {
+        data: asset,
+        width: '640px',
+        maxWidth: '95vw',
+      })
+      .afterClosed()
+      .subscribe((result) => {
+        if (result === 'delete') {
+          this.delete(asset);
+        }
+      });
+  }
+
+  async copyUrl(asset: MediaAsset): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(absoluteMediaUrl(asset.url));
+      this.notify.success('Public URL copied.');
+    } catch {
+      this.notify.error('Could not copy the link - open the file details and copy it from there.');
+    }
+  }
+
   delete(asset: MediaAsset): void {
     const data: ConfirmDialogData = {
       title: `Delete "${asset.fileName}"?`,
@@ -125,7 +158,7 @@ export class MediaListComponent implements OnInit, OnDestroy {
   private confirmForceDelete(asset: MediaAsset): void {
     const data: ConfirmDialogData = {
       title: 'This file is in use',
-      message: `"${asset.fileName}" is attached to one or more campaign steps. Deleting it removes it from those steps too.`,
+      message: `"${asset.fileName}" is in use. Deleting it removes it from wherever it is attached.`,
       confirmLabel: 'Delete anyway',
       destructive: true,
     };

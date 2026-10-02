@@ -1,7 +1,7 @@
 <div class="page">
   <app-page-header
     title="Media Library"
-    subtitle="Images and videos attached to campaign steps."
+    subtitle="Upload images and videos, copy their public links, and use them on message templates."
   >
     <button mat-flat-button color="primary" type="button" (click)="upload()">
       <mat-icon>upload_file</mat-icon>
@@ -10,6 +10,15 @@
   </app-page-header>
 
   <mat-card class="table-card">
+
+    <div class="public-url-banner" *ngIf="hasNonPublicLinks">
+      <mat-icon>warning</mat-icon>
+      <div>
+        <strong>Public links are not set up.</strong>
+        Meta cannot download these files, so template images will fail to sync or send. Ask your administrator to set
+        <code>MediaStorage:PublicBaseUrl</code> to the API's public address (e.g. https://api.yourdomain.com) and restart the service.
+      </div>
+    </div>
     <div class="filters">
       <mat-form-field class="filter-search" subscriptSizing="dynamic">
         <mat-label>Search</mat-label>
@@ -25,27 +34,27 @@
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
     <div class="media-grid" *ngIf="page.items.length">
-      <mat-card class="media-card" *ngFor="let asset of page.items">
+      <mat-card class="media-card" *ngFor="let asset of page.items" tabindex="0" (click)="view(asset)" (keydown.enter)="view(asset)">
         <div class="thumb">
-          <img *ngIf="isImage(asset.contentType)" [src]="asset.url" [alt]="asset.fileName" />
+          <img *ngIf="isImage(asset.contentType)" [src]="preview(asset.url)" [alt]="asset.fileName" loading="lazy" />
           <mat-icon *ngIf="!isImage(asset.contentType)" class="thumb-icon">movie</mat-icon>
+          <span class="kind-badge">{{ kindLabel(asset.contentType) }}</span>
+          <div class="thumb-actions" (click)="$event.stopPropagation()">
+            <button mat-mini-fab type="button" matTooltip="Copy public URL" aria-label="Copy public URL" (click)="copyUrl(asset)">
+              <mat-icon>link</mat-icon>
+            </button>
+            <button mat-mini-fab type="button" matTooltip="Details" aria-label="Details" (click)="view(asset)">
+              <mat-icon>visibility</mat-icon>
+            </button>
+            <button mat-mini-fab color="warn" type="button" matTooltip="Delete" aria-label="Delete" (click)="delete(asset)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
         </div>
         <div class="media-info">
           <div class="media-name" [matTooltip]="asset.fileName">{{ asset.fileName }}</div>
-          <div class="muted media-meta">
-            {{ formatSize(asset.sizeBytes) }} · {{ asset.contentType }}
-          </div>
-          <div class="muted media-meta">{{ asset.createdAt | date: 'mediumDate' }}</div>
+          <div class="muted media-meta">{{ formatSize(asset.sizeBytes) }} · {{ asset.createdAt | date: 'mediumDate' }}</div>
         </div>
-        <button
-          mat-icon-button
-          type="button"
-          class="delete-button"
-          matTooltip="Delete"
-          (click)="delete(asset)"
-        >
-          <mat-icon>delete</mat-icon>
-        </button>
       </mat-card>
     </div>
 
