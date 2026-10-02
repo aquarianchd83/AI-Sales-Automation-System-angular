@@ -5,6 +5,7 @@ import { SharedModule } from '../../shared/shared.module';
 import { PlatformAnnouncementFormDialogComponent } from './platform-announcement-form-dialog/platform-announcement-form-dialog.component';
 import { PlatformAnnouncementListComponent } from './platform-announcement-list/platform-announcement-list.component';
 import { PlatformAwsSettingsComponent } from './platform-aws-settings/platform-aws-settings.component';
+import { PlatformDeliverySettingsComponent } from './platform-delivery-settings/platform-delivery-settings.component';
 import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-log.component';
 import { PlatformBillingComponent } from './platform-billing/platform-billing.component';
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
@@ -56,6 +57,7 @@ const routes: Routes = [
       { path: 'whatsapp-connections', component: PlatformWhatsAppConnectionsComponent },
       { path: 'jobs', component: PlatformJobsComponent },
       { path: 'aws-settings', component: PlatformAwsSettingsComponent },
+      { path: 'delivery-settings', component: PlatformDeliverySettingsComponent },
       { path: 'users', component: PlatformUserSearchComponent },
       { path: 'audit-log', component: PlatformAuditLogComponent },
       { path: 'logs', component: PlatformLogsComponent },
@@ -89,6 +91,7 @@ const routes: Routes = [
     PlatformJobsComponent,
     PlatformJobScheduleDialogComponent,
     PlatformAwsSettingsComponent,
+    PlatformDeliverySettingsComponent,
     PlatformUserSearchComponent,
     PlatformAuditLogComponent,
     PlatformLogsComponent,

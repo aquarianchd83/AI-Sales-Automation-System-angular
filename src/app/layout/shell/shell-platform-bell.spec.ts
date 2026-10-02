@@ -4,6 +4,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { NEVER, of, Subject } from 'rxjs';
 
 import { PlatformNotification } from '../../core/models/platform.model';
+import { AccountRecoveryService } from '../../core/services/account-recovery.service';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -45,6 +46,7 @@ describe('ShellComponent platform bell', () => {
       providers: [
         { provide: AuthService, useValue: auth },
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
+        { provide: AccountRecoveryService, useValue: { resendVerificationEmail: () => of(undefined) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },

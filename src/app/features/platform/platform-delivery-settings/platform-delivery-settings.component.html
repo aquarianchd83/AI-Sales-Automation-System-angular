@@ -1,0 +1,158 @@
+<div class="page">
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="loadFailed" class="delivery-card">
+    <p>The delivery settings could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading && !loadFailed" novalidate>
+    <div class="save-bar">
+      <span class="muted">
+        Stored in the database only - nothing is read from appsettings.json. Changes apply from the next request, no restart.
+      </span>
+      <span class="spacer"></span>
+      <button mat-button type="button" [disabled]="saving || form.pristine" (click)="load()">Discard changes</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving || form.pristine">
+        {{ saving ? 'Saving…' : 'Save delivery settings' }}
+      </button>
+    </div>
+
+    <div class="status" [class.status--warn]="!current?.isEmailConfigured || !current?.publicUrl">
+      <mat-icon>{{ current?.isEmailConfigured && current?.publicUrl ? 'check_circle' : 'warning' }}</mat-icon>
+      <div>
+        <strong *ngIf="current?.isEmailConfigured && current?.publicUrl">Password-reset and verification emails can be sent</strong>
+        <strong *ngIf="!current?.isEmailConfigured">No SMTP server is set up - sign-in emails are not sent</strong>
+        <strong *ngIf="current?.isEmailConfigured && !current?.publicUrl">
+          Set the web app address - without it reset and verification emails are not sent
+        </strong>
+        <p class="muted">
+          Text-message codes: {{ current?.isSmsConfigured ? 'on (MSG91)' : 'off' }}.
+        </p>
+      </div>
+    </div>
+
+    <mat-card class="delivery-card">
+      <h2>Web app address</h2>
+      <p class="muted">
+        Put in the links in sign-in emails. It is set here, never taken from a request, so nobody can point a reset email at their own site.
+      </p>
+      <mat-form-field class="field">
+        <mat-label>Web app address</mat-label>
+        <input matInput formControlName="publicUrl" autocomplete="off" placeholder="https://app.example.com" />
+        <mat-hint>Where people open the app, with no path.</mat-hint>
+        <mat-error *ngIf="form.controls.publicUrl.hasError('pattern')">Enter an address starting with http:// or https://.</mat-error>
+      </mat-form-field>
+    </mat-card>
+
+    <mat-card class="delivery-card">
+      <h2>Email (SMTP)</h2>
+      <p class="muted">Used for password-reset links and email verification. Leave the host empty to send no email.</p>
+
+      <div class="field-grid">
+        <mat-form-field class="field">
+          <mat-label>SMTP host</mat-label>
+          <input matInput formControlName="smtpHost" autocomplete="off" placeholder="smtp.example.com" />
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>Port</mat-label>
+          <input matInput type="number" formControlName="smtpPort" autocomplete="off" />
+          <mat-error>Use a port between 1 and 65535.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>From address</mat-label>
+          <input matInput formControlName="smtpFrom" autocomplete="off" placeholder="no-reply@example.com" />
+          <mat-hint>The address emails are sent as.</mat-hint>
+          <mat-error>Enter a valid email address.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>User name</mat-label>
+          <input matInput formControlName="smtpUser" autocomplete="off" />
+          <mat-hint>Leave empty for a server that needs no login.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>Password</mat-label>
+          <input matInput type="password" autocomplete="new-password" formControlName="smtpPassword" [readonly]="form.controls.removeSmtpPassword.value" />
+          <mat-hint>{{ storedHint('smtpPassword') ? 'Stored: ' + storedHint('smtpPassword') + ' - leave blank to keep' : 'None stored' }}</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <mat-checkbox formControlName="smtpEnableSsl">Use SSL/TLS</mat-checkbox>
+      <mat-checkbox formControlName="removeSmtpPassword" *ngIf="current?.hasSmtpPassword">Remove the stored password</mat-checkbox>
+
+      <div class="test-row">
+        <mat-form-field class="field" subscriptSizing="dynamic">
+          <mat-label>Send a test email to</mat-label>
+          <input matInput type="email" [formControl]="testEmailTo" autocomplete="off" placeholder="you@example.com" />
+          <mat-error>Enter a valid email address.</mat-error>
+        </mat-form-field>
+        <button mat-stroked-button type="button" [disabled]="testingEmail || saving" (click)="sendTestEmail()">
+          <mat-icon>{{ testingEmail ? 'hourglass_empty' : 'forward_to_inbox' }}</mat-icon>
+          {{ testingEmail ? 'Sending…' : 'Send test email' }}
+        </button>
+      </div>
+      <p class="muted">Tests what is on screen without saving it. A blank password field tests with the stored password.</p>
+
+      <div class="test-result" [class.test-result--fail]="!emailResult.success" *ngIf="emailResult" role="status" aria-live="polite">
+        <mat-icon>{{ emailResult.success ? 'check_circle' : 'error' }}</mat-icon>
+        <div><strong>{{ emailResult.message }}</strong></div>
+      </div>
+    </mat-card>
+
+    <mat-card class="delivery-card">
+      <h2>Text messages (MSG91)</h2>
+      <p class="muted">
+        Sends the six-digit codes for resetting a password by SMS and for verifying a phone number. In India the message wording is a
+        DLT-registered OTP template kept at MSG91; its text must use the <code>##OTP##</code> variable.
+      </p>
+
+      <mat-slide-toggle class="toggle-row" formControlName="smsEnabled" color="primary">Send codes by SMS</mat-slide-toggle>
+
+      <div class="field-grid">
+        <mat-form-field class="field">
+          <mat-label>Auth key</mat-label>
+          <input matInput type="password" autocomplete="new-password" formControlName="smsAuthKey" [readonly]="form.controls.removeSmsAuthKey.value" />
+          <mat-hint>{{ storedHint('smsAuthKey') ? 'Stored: ' + storedHint('smsAuthKey') + ' - leave blank to keep' : 'None stored' }}</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>OTP template id</mat-label>
+          <input matInput formControlName="smsOtpTemplateId" autocomplete="off" />
+          <mat-hint>From MSG91's templates page.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>API address</mat-label>
+          <input matInput formControlName="smsBaseUrl" autocomplete="off" placeholder="https://control.msg91.com/api/v5/" />
+          <mat-hint>Leave as is unless MSG91 tells you otherwise.</mat-hint>
+          <mat-error>Enter an https:// address.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-checkbox formControlName="removeSmsAuthKey" *ngIf="current?.hasSmsAuthKey">Remove the stored auth key</mat-checkbox>
+
+      <div class="test-row">
+        <mat-form-field class="field" subscriptSizing="dynamic">
+          <mat-label>Send a test text to</mat-label>
+          <input matInput type="tel" [formControl]="testSmsTo" autocomplete="off" placeholder="+919876543210" />
+          <mat-hint>With the country code.</mat-hint>
+          <mat-error>Enter the number starting with + and the country code.</mat-error>
+        </mat-form-field>
+        <button mat-stroked-button type="button" [disabled]="testingSms || saving" (click)="sendTestSms()">
+          <mat-icon>{{ testingSms ? 'hourglass_empty' : 'sms' }}</mat-icon>
+          {{ testingSms ? 'Sending…' : 'Send test text' }}
+        </button>
+      </div>
+      <p class="muted">The text contains a sample code (123456). A blank auth key field tests with the stored key.</p>
+
+      <div class="test-result" [class.test-result--fail]="!smsResult.success" *ngIf="smsResult" role="status" aria-live="polite">
+        <mat-icon>{{ smsResult.success ? 'check_circle' : 'error' }}</mat-icon>
+        <div><strong>{{ smsResult.message }}</strong></div>
+      </div>
+    </mat-card>
+  </form>
+</div>

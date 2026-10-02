@@ -199,6 +199,20 @@
   }
 }
 
+.verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: #fff8e1;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  color: #6d4c00;
+
+  span {
+    flex: 1;
+  }
+}
+
 .announcement-banner {
   display: flex;
   align-items: center;

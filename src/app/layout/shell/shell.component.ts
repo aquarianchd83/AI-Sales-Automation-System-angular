@@ -1,11 +1,12 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Observable, Subject, timer } from 'rxjs';
-import { map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
+import { finalize, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
 import { AppRole, REPORT_ROLES, User } from '../../core/models/user.model';
 import { Announcement, PLATFORM_ADMIN_ROLES, PlatformNotification, platformNotificationRoute } from '../../core/models/platform.model';
+import { AccountRecoveryService } from '../../core/services/account-recovery.service';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { TenantNotification, isUrgentNotification, tenantNotificationRoute } from '../../core/models/billing.model';
@@ -158,6 +159,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         },
         { label: 'Background Jobs', icon: 'schedule', route: '/platform/jobs', roles: [] },
         { label: 'AWS Settings', icon: 'cloud', route: '/platform/aws-settings', roles: [] },
+        { label: 'Sign-in Delivery', icon: 'forward_to_inbox', route: '/platform/delivery-settings', roles: [] },
       ],
     },
     {
@@ -214,6 +216,12 @@ export class ShellComponent implements OnInit, OnDestroy {
    * ImpersonationSessionService is required to start one at all). */
   readonly isImpersonating = this.auth.isImpersonating;
 
+  /** True while the signed-in user has not yet confirmed their email (only self-signups start that way). Absent on older cached
+   * sessions, which count as confirmed; a support session is never nagged on the customer's behalf. */
+  readonly emailUnconfirmed$ = this.auth.currentUser$.pipe(map((user) => !this.auth.isImpersonating && user?.emailConfirmed === false));
+  resendingVerification = false;
+  verificationResent = false;
+
   /** Active announcements not yet dismissed on this browser — every signed-in user, any tenant,
    * per AnnouncementsController.GetActive's own doc comment. Skipped entirely during an
    * impersonation session: a support session showing the impersonated tenant's own banners would
@@ -244,7 +252,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly platformNotifications: PlatformNotificationService,
     private readonly notificationHub: NotificationHubService,
     private readonly tenantProfile: TenantProfileService,
-    private readonly notificationsChanged: NotificationsChangedService
+    private readonly notificationsChanged: NotificationsChangedService,
+    private readonly recovery: AccountRecoveryService
   ) {}
 
   ngOnInit(): void {
@@ -322,6 +331,23 @@ export class ShellComponent implements OnInit, OnDestroy {
         this.onLiveNotification(payload);
       });
     }
+  }
+
+  /** Emails a fresh confirmation link. The banner then says so instead of offering the button again. */
+  resendVerification(): void {
+    if (this.resendingVerification) {
+      return;
+    }
+    this.resendingVerification = true;
+    this.recovery
+      .resendVerificationEmail()
+      .pipe(finalize(() => (this.resendingVerification = false)))
+      .subscribe({
+        next: () => (this.verificationResent = true),
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
   }
 
   ngOnDestroy(): void {

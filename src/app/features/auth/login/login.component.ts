@@ -72,12 +72,19 @@ export class LoginComponent implements OnInit {
         },
         // Failures are surfaced by ErrorInterceptor; 401 is the one it skips,
         // so give invalid credentials their own message here.
-        error: (error: { status?: number }) => {
+        error: (error: { status?: number; error?: { detail?: string; title?: string } | string }) => {
           if (error?.status === 401) {
-            this.notify.error('Incorrect email or password.');
+            this.notify.error(this.unauthorizedMessage(error.error));
           }
         },
       });
+  }
+
+  /** The API's own words when it has something more useful than "wrong password" - an account locked after repeated failures, or a
+   * workspace that is not available. The plain "Invalid credentials." stays as the friendlier generic line. */
+  private unauthorizedMessage(body: { detail?: string; title?: string } | string | undefined): string {
+    const message = typeof body === 'string' ? body : body?.detail || body?.title;
+    return message && message !== 'Invalid credentials.' ? message : 'Incorrect email or password.';
   }
 
   // localStorage can throw (private windows, blocked site data) — remembering the email is a

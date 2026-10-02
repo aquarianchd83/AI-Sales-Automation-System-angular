@@ -83,3 +83,62 @@ describe('LoginComponent remember me', () => {
     expect(localStorage.getItem(REMEMBERED_EMAIL_KEY)).toBeNull();
   });
 });
+
+describe('LoginComponent failed sign-in', () => {
+  let notify: jasmine.SpyObj<NotificationService>;
+
+  function failWith(error: unknown): LoginComponent {
+    const auth = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
+    auth.login.and.returnValue(throwError(() => error));
+    notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
+    TestBed.configureTestingModule({
+      declarations: [LoginComponent],
+      imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
+      providers: [
+        { provide: AuthService, useValue: auth },
+        { provide: NotificationService, useValue: notify },
+      ],
+    });
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component.form.patchValue({ email: 'ada@example.com', password: 'secret' });
+    component.submit();
+    return component;
+  }
+
+  it('shows the friendly line for plain wrong credentials', () => {
+    failWith({ status: 401, error: { title: 'Invalid credentials.' } });
+
+    expect(notify.error).toHaveBeenCalledWith('Incorrect email or password.');
+  });
+
+  it('shows the API\'s own words when the account is locked or the workspace is unavailable', () => {
+    failWith({ status: 401, error: { detail: 'Too many failed sign-in attempts. Try again in a few minutes, or reset your password.' } });
+
+    expect(notify.error).toHaveBeenCalledWith('Too many failed sign-in attempts. Try again in a few minutes, or reset your password.');
+  });
+
+  it('falls back to the friendly line when the body has nothing to say', () => {
+    failWith({ status: 401 });
+
+    expect(notify.error).toHaveBeenCalledWith('Incorrect email or password.');
+  });
+
+  it('links to the password reset instead of telling people to ask an admin', () => {
+    const auth = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
+    TestBed.configureTestingModule({
+      declarations: [LoginComponent],
+      imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
+      providers: [
+        { provide: AuthService, useValue: auth },
+        { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error']) },
+      ],
+    });
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a[href="/recover/forgot-password"]');
+    expect(link?.textContent).toContain('Forgot your password?');
+  });
+});
