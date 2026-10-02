@@ -913,3 +913,17 @@ export interface UpdatePlatformAwsSettingsRequest {
   accessKeyId: string | null;
   secretAccessKey: string | null;
 }
+
+/** One check in a connection test (Write, Read, Delete). */
+export interface AwsConnectionStep {
+  name: string;
+  passed: boolean;
+  detail: string | null;
+}
+
+/** AwsConnectionTestResultDto: the outcome of trying the settings against AWS without saving them. */
+export interface AwsConnectionTestResult {
+  success: boolean;
+  message: string;
+  steps: AwsConnectionStep[];
+}

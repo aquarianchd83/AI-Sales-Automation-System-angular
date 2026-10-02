@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { NonNullableFormBuilder, Validators } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
-import { PlatformAwsSettings } from '../../../core/models/platform.model';
+import { AwsConnectionTestResult, PlatformAwsSettings, UpdatePlatformAwsSettingsRequest } from '../../../core/models/platform.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformAwsSettingsService } from '../../../core/services/platform-aws-settings.service';
 
@@ -41,6 +41,9 @@ export class PlatformAwsSettingsComponent implements OnInit {
   loading = true;
   loadFailed = false;
   saving = false;
+  testing = false;
+  /** Outcome of the last test; cleared as soon as the form changes, since it no longer describes what is on screen. */
+  testResult: AwsConnectionTestResult | null = null;
 
   constructor(
     private readonly fb: NonNullableFormBuilder,
@@ -50,6 +53,7 @@ export class PlatformAwsSettingsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.form.valueChanges.subscribe(() => (this.testResult = null));
   }
 
   get usesS3(): boolean {
@@ -96,31 +100,14 @@ export class PlatformAwsSettingsComponent implements OnInit {
       return;
     }
 
-    const raw = this.form.getRawValue();
-    if (raw.storageProvider === 'S3' && (!raw.bucketName.trim() || !raw.region.trim())) {
-      this.notify.error('A bucket name and region are required before new uploads can go to S3.');
-      return;
-    }
-
-    // Credentials: untouched (blank) = null = keep what is stored; "Remove stored keys" = '' = clear both.
-    const accessKeyId = raw.removeKeys ? '' : raw.accessKeyId.trim() || null;
-    const secretAccessKey = raw.removeKeys ? '' : raw.secretAccessKey.trim() || null;
-    if (!raw.removeKeys && (accessKeyId === null) !== (secretAccessKey === null) && !this.current?.hasAccessKeyId) {
-      this.notify.error('Enter both the access key ID and the secret access key, or leave both blank.');
+    const request = this.buildRequest(true);
+    if (!request) {
       return;
     }
 
     this.saving = true;
     this.aws
-      .save({
-        storageProvider: raw.storageProvider,
-        bucketName: raw.bucketName.trim(),
-        region: raw.region.trim(),
-        keyPrefix: raw.keyPrefix.trim(),
-        publicBaseUrl: raw.publicBaseUrl.trim(),
-        accessKeyId,
-        secretAccessKey,
-      })
+      .save(request)
       .pipe(finalize(() => (this.saving = false)))
       .subscribe({
         next: (settings) => {
@@ -131,6 +118,67 @@ export class PlatformAwsSettingsComponent implements OnInit {
           // ErrorInterceptor toasts it.
         },
       });
+  }
+
+  /** Tries what is on screen against AWS without saving it. Blank credential fields test with the stored ones. */
+  testConnection(): void {
+    if (this.testing) {
+      return;
+    }
+    this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      return;
+    }
+    const request = this.buildRequest(false);
+    if (!request) {
+      return;
+    }
+
+    this.testing = true;
+    this.testResult = null;
+    this.aws
+      .testConnection(request)
+      .pipe(finalize(() => (this.testing = false)))
+      .subscribe({
+        next: (result) => (this.testResult = result),
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
+  }
+
+  /**
+   * What the form means as a request, or null (after telling the operator why) when it is not usable. Credentials: blank = null =
+   * keep what is stored; "Remove the stored keys" = '' = clear both. `forSave` also demands a bucket and region before S3 is
+   * switched on; a test always needs them.
+   */
+  private buildRequest(forSave: boolean): UpdatePlatformAwsSettingsRequest | null {
+    const raw = this.form.getRawValue();
+    if ((!forSave || raw.storageProvider === 'S3') && (!raw.bucketName.trim() || !raw.region.trim())) {
+      this.notify.error(
+        forSave
+          ? 'A bucket name and region are required before new uploads can go to S3.'
+          : 'Enter a bucket name and region to test the connection.'
+      );
+      return null;
+    }
+
+    const accessKeyId = raw.removeKeys ? '' : raw.accessKeyId.trim() || null;
+    const secretAccessKey = raw.removeKeys ? '' : raw.secretAccessKey.trim() || null;
+    if (!raw.removeKeys && (accessKeyId === null) !== (secretAccessKey === null) && !this.current?.hasAccessKeyId) {
+      this.notify.error('Enter both the access key ID and the secret access key, or leave both blank.');
+      return null;
+    }
+
+    return {
+      storageProvider: raw.storageProvider,
+      bucketName: raw.bucketName.trim(),
+      region: raw.region.trim(),
+      keyPrefix: raw.keyPrefix.trim(),
+      publicBaseUrl: raw.publicBaseUrl.trim(),
+      accessKeyId,
+      secretAccessKey,
+    };
   }
 
   private apply(settings: PlatformAwsSettings): void {

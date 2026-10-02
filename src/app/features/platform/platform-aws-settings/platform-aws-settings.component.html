@@ -107,5 +107,33 @@
         identity, such as a laptop, needs the keys above.
       </p>
     </mat-card>
+
+    <mat-card class="aws-card">
+      <h2>Test connection</h2>
+      <p class="muted">
+        Tries what is on screen - without saving it - by writing, reading back and deleting a small test file in the folder above.
+        Leave the key fields blank to test with the stored keys.
+      </p>
+      <div class="test-actions">
+        <button mat-stroked-button type="button" [disabled]="testing || saving" (click)="testConnection()">
+          <mat-icon>{{ testing ? 'hourglass_empty' : 'network_check' }}</mat-icon>
+          {{ testing ? 'Testing…' : 'Test connection' }}
+        </button>
+        <mat-progress-bar mode="indeterminate" class="test-progress" *ngIf="testing"></mat-progress-bar>
+      </div>
+
+      <div class="test-result" [class.test-result--fail]="!testResult.success" *ngIf="testResult" role="status" aria-live="polite">
+        <mat-icon>{{ testResult.success ? 'check_circle' : 'error' }}</mat-icon>
+        <div>
+          <strong>{{ testResult.message }}</strong>
+          <ul class="test-steps">
+            <li *ngFor="let step of testResult.steps" [class.test-steps__fail]="!step.passed">
+              <mat-icon>{{ step.passed ? 'check' : 'close' }}</mat-icon>
+              <span><b>{{ step.name }}</b><ng-container *ngIf="step.detail"> - {{ step.detail }}</ng-container></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </mat-card>
   </form>
 </div>

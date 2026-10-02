@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
-import { PlatformAwsSettings } from '../../../core/models/platform.model';
+import { AwsConnectionTestResult, PlatformAwsSettings } from '../../../core/models/platform.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformAwsSettingsService } from '../../../core/services/platform-aws-settings.service';
 import { SharedModule } from '../../../shared/shared.module';
@@ -27,7 +27,7 @@ describe('PlatformAwsSettingsComponent', () => {
   let notify: jasmine.SpyObj<NotificationService>;
 
   const create = (settings: PlatformAwsSettings) => {
-    service = jasmine.createSpyObj('PlatformAwsSettingsService', ['get', 'save']);
+    service = jasmine.createSpyObj('PlatformAwsSettingsService', ['get', 'save', 'testConnection']);
     service.get.and.returnValue(of(settings));
     service.save.and.callFake(() => of(settings));
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
@@ -112,5 +112,58 @@ describe('PlatformAwsSettingsComponent', () => {
     const fixture = create(stored({ hasAccessKeyId: false, hasSecretAccessKey: false, accessKeyIdHint: null, secretAccessKeyHint: null }));
 
     expect(fixture.componentInstance.willUseServerRole).toBeTrue();
+  });
+
+  describe('test connection', () => {
+    const ok: AwsConnectionTestResult = {
+      success: true,
+      message: 'Connected to plat-media (ap-southeast-2): media can be written, read and deleted.',
+      steps: [
+        { name: 'Write', passed: true, detail: 'Wrote media/_connection-test/x.txt' },
+        { name: 'Read', passed: true, detail: 'Read the test file back' },
+        { name: 'Delete', passed: true, detail: 'Removed the test file' },
+      ],
+    };
+
+    it('tests what is on screen without saving, using the stored keys when the fields are blank', () => {
+      const fixture = create(stored());
+      service.testConnection.and.returnValue(of(ok));
+      fixture.componentInstance.form.controls.bucketName.setValue('other-bucket');
+
+      fixture.componentInstance.testConnection();
+      fixture.detectChanges();
+
+      expect(service.testConnection).toHaveBeenCalledWith(
+        jasmine.objectContaining({ bucketName: 'other-bucket', accessKeyId: null, secretAccessKey: null })
+      );
+      expect(service.save).not.toHaveBeenCalled();
+      const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+      expect(text).toContain('media can be written, read and deleted');
+      expect(text).toContain('Removed the test file');
+    });
+
+    it('shows a failing step and clears the result once the form changes', () => {
+      const fixture = create(stored());
+      service.testConnection.and.returnValue(
+        of({ success: false, message: 'The connection works only in part.', steps: [{ name: 'Write', passed: false, detail: 'The access key ID or secret access key is wrong.' }] })
+      );
+
+      fixture.componentInstance.testConnection();
+      fixture.detectChanges();
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('secret access key is wrong');
+
+      fixture.componentInstance.form.controls.region.setValue('us-east-1');
+      fixture.detectChanges();
+      expect(fixture.componentInstance.testResult).toBeNull();
+    });
+
+    it('will not test without a bucket and region', () => {
+      const fixture = create(stored({ bucketName: '', region: '', isConfigured: false }));
+
+      fixture.componentInstance.testConnection();
+
+      expect(service.testConnection).not.toHaveBeenCalled();
+      expect(notify.error).toHaveBeenCalled();
+    });
   });
 });

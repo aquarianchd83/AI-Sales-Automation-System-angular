@@ -61,3 +61,55 @@
     flex: none;
   }
 }
+
+.test-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.test-progress {
+  max-width: 280px;
+}
+
+.test-result {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 16px;
+
+  > mat-icon {
+    flex: none;
+    color: var(--mat-sys-primary, #2e7d32);
+  }
+
+  &--fail > mat-icon {
+    color: var(--mat-sys-error, #b3261e);
+  }
+}
+
+.test-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 4px;
+    overflow-wrap: anywhere;
+  }
+
+  mat-icon {
+    flex: none;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &__fail {
+    color: var(--mat-sys-error, #b3261e);
+  }
+}
