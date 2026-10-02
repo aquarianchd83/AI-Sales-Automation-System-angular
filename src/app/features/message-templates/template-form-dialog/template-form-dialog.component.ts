@@ -1,3 +1,4 @@
+import { HttpErrorResponse, HttpEventType, HttpResponse } from '@angular/common/http';
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -23,8 +24,28 @@ import { environment } from '../../../../environments/environment';
 import { NotificationService } from '../../../core/services/notification.service';
 
 export interface TemplateFormDialogData {
-  mode: 'create' | 'edit';
+  /** 'duplicate' opens the create form pre-filled from `template`, which is the template being copied. */
+  mode: 'create' | 'edit' | 'duplicate';
   template?: MessageTemplate;
+}
+
+/** What closing the dialog can mean: true = saved, false = nothing changed, 'duplicate' = the operator asked to copy this template instead. */
+export type TemplateFormDialogResult = boolean | 'duplicate';
+
+/** Name for a copy: "Order confirmation" -> "Order confirmation (copy)" -> "(copy 2)" -> "(copy 3)", so copies never share a name. */
+export function duplicateName(name: string): string {
+  const numbered = /^(.*?)\s*\(copy(?: (\d+))?\)\s*$/i.exec(name);
+  if (!numbered) {
+    return `${name.trim()} (copy)`;
+  }
+  return `${numbered[1].trim()} (copy ${Number(numbered[2] ?? 1) + 1})`;
+}
+
+/** WhatsApp name for a copy. A template on Meta is identified by name + language, so a copy needs its own:
+ * order_confirmation -> order_confirmation_v2 -> order_confirmation_v3. */
+export function duplicateWhatsAppName(name: string): string {
+  const versioned = /^(.*)_v(\d+)$/.exec(name);
+  return versioned ? `${versioned[1]}_v${Number(versioned[2]) + 1}` : `${name}_v2`;
 }
 
 @Component({
@@ -34,6 +55,7 @@ export interface TemplateFormDialogData {
 })
 export class TemplateFormDialogComponent implements OnInit {
   readonly isEdit = this.data.mode === 'edit';
+  readonly isDuplicate = this.data.mode === 'duplicate';
   readonly categories = TEMPLATE_CATEGORIES;
   readonly languages = TEMPLATE_LANGUAGES;
   readonly languageLabel = templateLanguageLabel;
@@ -51,18 +73,15 @@ export class TemplateFormDialogComponent implements OnInit {
     // Name and WhatsApp template name are immutable after creation, so those controls are only
     // shown in create mode. Language and category are also shown when editing a template that
     // has not been created on Meta yet — see canEditLanguageAndCategory.
-    name: [this.data.template?.name ?? '', [Validators.required, Validators.maxLength(200)]],
+    name: [this.initialName(), [Validators.required, Validators.maxLength(200)]],
     language: [this.data.template?.language ?? 'en', [Validators.required, Validators.maxLength(10)]],
     category: [this.data.template?.category ?? this.categories[0], [Validators.required]],
-    whatsAppTemplateName: [
-      this.data.template?.whatsAppTemplateName ?? '',
-      [Validators.required, Validators.maxLength(200)],
-    ],
+    whatsAppTemplateName: [this.initialWhatsAppName(), [Validators.required, Validators.maxLength(200)]],
     bodyText: [
       this.data.template?.bodyText ?? '',
       [Validators.required, Validators.maxLength(2000), placeholderTokenValidator],
     ],
-    isActive: [this.data.template?.isActive ?? true],
+    isActive: [this.isDuplicate ? true : this.data.template?.isActive ?? true],
   });
 
   saving = false;
@@ -78,8 +97,24 @@ export class TemplateFormDialogComponent implements OnInit {
     private readonly templates: MessageTemplateService,
     private readonly media: MediaService,
     private readonly notify: NotificationService,
-    private readonly dialogRef: MatDialogRef<TemplateFormDialogComponent, boolean>
+    private readonly dialogRef: MatDialogRef<TemplateFormDialogComponent, TemplateFormDialogResult>
   ) {}
+
+  private initialName(): string {
+    const name = this.data.template?.name ?? '';
+    return this.isDuplicate ? duplicateName(name) : name;
+  }
+
+  private initialWhatsAppName(): string {
+    const name = this.data.template?.whatsAppTemplateName ?? '';
+    return this.isDuplicate ? duplicateWhatsAppName(name) : name;
+  }
+
+  /** For a template that is on Meta without an image: Meta fixes that at creation, so the way forward is a copy
+   * that can have one. Closes this dialog and lets the list open the copy. */
+  duplicateInstead(): void {
+    this.dialogRef.close('duplicate');
+  }
 
   // ---- optional image ---------------------------------------------------------------------------
 
@@ -144,6 +179,57 @@ export class TemplateFormDialogComponent implements OnInit {
 
   removeImage(): void {
     this.headerAsset = null;
+  }
+
+  /** Uploading from here puts the file in the media library and attaches it in one step, so nobody has to leave the
+   * dialog to add a picture. The checks mirror what Meta (and the server) will insist on, so a bad file fails now. */
+  uploadingImage = false;
+  uploadProgress = 0;
+
+  onImageFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    if (file) {
+      this.uploadImage(file);
+    }
+  }
+
+  uploadImage(file: File): void {
+    if (this.uploadingImage) {
+      return;
+    }
+    if (!TEMPLATE_IMAGE_CONTENT_TYPES.includes(file.type.toLowerCase())) {
+      this.notify.error('Only JPEG or PNG images can be used in a template.');
+      return;
+    }
+    if (file.size > TEMPLATE_IMAGE_MAX_BYTES) {
+      this.notify.error(`That image is ${formatFileSize(file.size)} - Meta allows at most ${this.imageLimitMb} MB.`);
+      return;
+    }
+
+    this.uploadingImage = true;
+    this.uploadProgress = 0;
+    this.media.upload(file).subscribe({
+      next: (event) => {
+        if (event.type === HttpEventType.UploadProgress && event.total) {
+          this.uploadProgress = Math.round((100 * event.loaded) / event.total);
+        } else if (event instanceof HttpResponse && event.body) {
+          this.headerAsset = event.body;
+          this.imageOptions = [];
+          this.uploadingImage = false;
+          this.notify.success('Image uploaded and attached.');
+        }
+      },
+      error: (error: unknown) => {
+        this.uploadingImage = false;
+        this.uploadProgress = 0;
+        // ErrorInterceptor toasts the server's reason (type, size, storage unavailable); anything else is a bug worth surfacing.
+        if (!(error instanceof HttpErrorResponse)) {
+          throw error;
+        }
+      },
+    });
   }
 
   /** The image field's change, as the update request wants it. */

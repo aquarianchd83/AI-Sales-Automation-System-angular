@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
 import { RouterTestingModule } from '@angular/router/testing';
 
 import { TemplateListComponent } from './template-list.component';
@@ -106,5 +107,46 @@ describe('TemplateListComponent review vs Meta sync', () => {
     expect(notify).toHaveBeenCalledWith(jasmine.stringContaining('Meta says'));
     http.expectOne((r) => r.url === `${environment.apiBaseUrl}/message-templates`).flush({ items: [], page: 1, pageSize: 25, totalCount: 0, totalPages: 0 });
   });
-});
 
+  describe('duplicate', () => {
+    const emptyList = { items: [], page: 1, pageSize: 25, totalCount: 0, totalPages: 0 };
+
+    it('is in the row menu and opens the create form pre-filled from that template', () => {
+      const dialog = spyOn(TestBed.inject(MatDialog), 'open').and.returnValue({ afterClosed: () => of(false) } as never);
+      const source = template('on_meta', '1387908590149880', 'Approved');
+
+      fixture.componentInstance.duplicate(source);
+
+      expect(dialog).toHaveBeenCalledWith(jasmine.any(Function), jasmine.objectContaining({ data: { mode: 'duplicate', template: source } }));
+    });
+
+    it('lists "Duplicate as new template" in each row\'s More menu', () => {
+      const more = fixture.nativeElement.querySelector('tr.mat-mdc-row button[matTooltip="More"]') as HTMLButtonElement;
+      more.click();
+      fixture.detectChanges();
+
+      expect(document.body.textContent).toContain('Duplicate as new template');
+    });
+
+    it('opens the copy when the edit dialog asks for one, without reloading the list', () => {
+      const dialog = spyOn(TestBed.inject(MatDialog), 'open').and.returnValues(
+        { afterClosed: () => of('duplicate') } as never,
+        { afterClosed: () => of(false) } as never
+      );
+      const source = template('on_meta', '1387908590149880', 'Approved');
+
+      fixture.componentInstance.edit(source);
+
+      expect(dialog.calls.count()).toBe(2);
+      expect(dialog.calls.argsFor(1)[1]).toEqual(jasmine.objectContaining({ data: { mode: 'duplicate', template: source } }));
+    });
+
+    it('reloads the list once a copy has been saved', () => {
+      spyOn(TestBed.inject(MatDialog), 'open').and.returnValue({ afterClosed: () => of(true) } as never);
+
+      fixture.componentInstance.duplicate(template('on_meta', '1387908590149880'));
+
+      http.expectOne((r) => r.url === `${environment.apiBaseUrl}/message-templates`).flush(emptyList);
+    });
+  });
+});
