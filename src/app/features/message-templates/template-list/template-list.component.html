@@ -65,7 +65,7 @@
               <img
                 *ngIf="t.headerImageUrl"
                 class="image-thumb"
-                [src]="preview(t.headerImageUrl)"
+                [src]="preview(t.headerImagePreviewUrl || t.headerImageUrl)"
                 [alt]="t.headerImageFileName || 'Template image'"
                 [matTooltip]="t.headerImageFileName"
               />
