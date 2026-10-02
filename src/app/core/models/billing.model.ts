@@ -285,6 +285,8 @@ export enum TenantNotificationKind {
   PlanRenewalFailed = 15,
   /** Your WhatsApp access token could not be renewed, or is about to lapse with nothing able to renew it. */
   WhatsAppTokenFailing = 16,
+  /** Someone's account was locked after repeated wrong passwords - a forgotten password, or someone guessing. */
+  AccountLocked = 17,
 }
 
 export interface TenantNotification {
@@ -344,6 +346,7 @@ export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = 
   [TenantNotificationKind.TemplateNeedsAttention]: 'Message template rejected or paused',
   [TenantNotificationKind.PlanRenewalFailed]: 'Plan could not renew',
   [TenantNotificationKind.WhatsAppTokenFailing]: 'WhatsApp access token failing',
+  [TenantNotificationKind.AccountLocked]: 'Account locked after wrong passwords',
 };
 
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */
@@ -355,7 +358,8 @@ export function isUrgentNotification(kind: TenantNotificationKind): boolean {
     kind === TenantNotificationKind.PlanExpiring1 ||
     kind === TenantNotificationKind.TemplateNeedsAttention ||
     kind === TenantNotificationKind.PlanRenewalFailed ||
-    kind === TenantNotificationKind.WhatsAppTokenFailing
+    kind === TenantNotificationKind.WhatsAppTokenFailing ||
+    kind === TenantNotificationKind.AccountLocked
   );
 }
 
@@ -367,6 +371,8 @@ export function tenantNotificationRoute(kind: TenantNotificationKind): string {
       return '/message-templates';
     case TenantNotificationKind.WhatsAppTokenFailing:
       return '/tenant-settings';
+    case TenantNotificationKind.AccountLocked:
+      return '/audit-log';
     case TenantNotificationKind.JobStarted:
     case TenantNotificationKind.JobCompleted:
       return '/tenant-settings/jobs';
