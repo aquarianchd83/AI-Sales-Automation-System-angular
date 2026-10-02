@@ -116,6 +116,7 @@ describe('ShellComponent sidenav', () => {
       'tuneConfiguration',
       'cloud_syncWhatsApp Connections',
       'scheduleBackground Jobs',
+      'cloudAWS Settings',
       'receipt_longLogs',
       'historyAudit Log',
       'account_circleMy Profile',

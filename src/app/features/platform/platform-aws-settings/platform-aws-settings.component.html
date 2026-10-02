@@ -1,0 +1,111 @@
+<div class="page">
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="loadFailed" class="aws-card">
+    <p>The AWS settings could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading && !loadFailed" novalidate>
+    <div class="save-bar">
+      <span class="muted">
+        Stored in the database only - nothing is read from appsettings.json. Changes apply from the next request, no restart.
+      </span>
+      <span class="spacer"></span>
+      <button mat-button type="button" [disabled]="saving || form.pristine" (click)="load()">Discard changes</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving || form.pristine">
+        {{ saving ? 'Saving…' : 'Save AWS settings' }}
+      </button>
+    </div>
+
+    <div class="status" [class.status--warn]="usesS3 && !current?.isConfigured">
+      <mat-icon>{{ usesS3 && !current?.isConfigured ? 'warning' : 'check_circle' }}</mat-icon>
+      <div>
+        <strong *ngIf="current?.storageProvider === 'S3' && current?.isConfigured">
+          New uploads go to s3://{{ current?.bucketName }} ({{ current?.region }})
+        </strong>
+        <strong *ngIf="current?.storageProvider === 'S3' && !current?.isConfigured">
+          Set to S3, but the bucket and region are missing - uploads will fail until they are saved
+        </strong>
+        <strong *ngIf="current?.storageProvider !== 'S3'">New uploads are stored on this server's disk</strong>
+        <p class="muted">Files already uploaded stay where they are, whichever option is chosen.</p>
+      </div>
+    </div>
+
+    <mat-card class="aws-card">
+      <h2>Media storage</h2>
+      <p class="muted">
+        One bucket serves every tenant, so tenants never need a cloud account of their own. Each tenant's files go in their own folder.
+      </p>
+      <mat-form-field class="field">
+        <mat-label>Where new uploads go</mat-label>
+        <mat-select formControlName="storageProvider">
+          <mat-option *ngFor="let p of providers" [value]="p.value">{{ p.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <div class="field-grid">
+        <mat-form-field class="field">
+          <mat-label>Bucket name</mat-label>
+          <input matInput formControlName="bucketName" autocomplete="off" placeholder="my-platform-media" />
+          <mat-hint>The S3 bucket every tenant's media is stored in.</mat-hint>
+          <mat-error *ngIf="form.controls.bucketName.hasError('pattern')">
+            3-63 characters: lowercase letters, numbers, dots and hyphens.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>Region</mat-label>
+          <input matInput formControlName="region" autocomplete="off" placeholder="ap-southeast-2" />
+          <mat-hint>The bucket's AWS region code.</mat-hint>
+          <mat-error *ngIf="form.controls.region.hasError('pattern')">Use a region code such as ap-southeast-2.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>Folder (key prefix)</mat-label>
+          <input matInput formControlName="keyPrefix" autocomplete="off" placeholder="media" />
+          <mat-hint>Folder inside the bucket; your public-read bucket policy should cover it.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>CDN / custom domain (optional)</mat-label>
+          <input matInput formControlName="publicBaseUrl" autocomplete="off" placeholder="https://cdn.example.com" />
+          <mat-hint>Leave empty to use the bucket's own address.</mat-hint>
+          <mat-error *ngIf="form.controls.publicBaseUrl.hasError('pattern')">Enter an address starting with http:// or https://.</mat-error>
+        </mat-form-field>
+      </div>
+    </mat-card>
+
+    <mat-card class="aws-card">
+      <h2>AWS credentials</h2>
+      <p class="muted">
+        An access key with <code>s3:PutObject</code>, <code>s3:GetObject</code> and <code>s3:DeleteObject</code> on the folder. Encrypted at
+        rest and never shown again. Leave a field blank to keep the stored value.
+      </p>
+
+      <div class="field-grid">
+        <mat-form-field class="field">
+          <mat-label>Access key ID</mat-label>
+          <input matInput type="password" autocomplete="off" formControlName="accessKeyId" [readonly]="form.controls.removeKeys.value" />
+          <mat-hint>{{ storedHint('accessKeyId') ? 'Stored: ' + storedHint('accessKeyId') + ' - leave blank to keep' : 'None stored' }}</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>Secret access key</mat-label>
+          <input matInput type="password" autocomplete="off" formControlName="secretAccessKey" [readonly]="form.controls.removeKeys.value" />
+          <mat-hint>{{ storedHint('secretAccessKey') ? 'Stored: ' + storedHint('secretAccessKey') + ' - leave blank to keep' : 'None stored' }}</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <mat-checkbox formControlName="removeKeys" *ngIf="current?.hasAccessKeyId || current?.hasSecretAccessKey">
+        Remove the stored keys
+      </mat-checkbox>
+
+      <p class="muted role-note" *ngIf="willUseServerRole">
+        <mat-icon>info</mat-icon>
+        No keys: the server's own AWS identity is used (an IAM role on EC2/ECS, or its default credentials). A machine with no AWS
+        identity, such as a laptop, needs the keys above.
+      </p>
+    </mat-card>
+  </form>
+</div>
