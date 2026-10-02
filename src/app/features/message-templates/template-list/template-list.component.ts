@@ -22,6 +22,8 @@ import {
   templateCategoryInfo,
   templateStatusChipClass,
 } from '../../../core/models/message-template.model';
+import { environment } from '../../../../environments/environment';
+import { mediaPreviewUrl } from '../../../core/models/media.model';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TemplateFormDialogComponent, TemplateFormDialogData } from '../template-form-dialog/template-form-dialog.component';
@@ -47,6 +49,7 @@ export class TemplateListComponent implements OnInit, OnDestroy {
 
   readonly displayedColumns = [
     'name',
+    'image',
     'whatsAppTemplateName',
     'category',
     'status',
@@ -54,6 +57,7 @@ export class TemplateListComponent implements OnInit, OnDestroy {
     'actions',
   ];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
+  readonly preview = (url: string): string => mediaPreviewUrl(url, environment.apiBaseUrl);
   readonly statusClass = templateStatusChipClass;
   readonly categoryInfo = templateCategoryInfo;
   readonly WhatsAppTemplateStatus = WhatsAppTemplateStatus;
