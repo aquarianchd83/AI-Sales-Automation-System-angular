@@ -124,6 +124,9 @@ export interface MessageTemplate {
   headerMediaAssetId: string | null;
   /** True once Meta holds the template with an image header - from then on the image can be swapped, not added or removed. */
   headerOnMeta: boolean;
+  /** Name and preview link of the attached image, so the list can show which one without another request. */
+  headerImageFileName?: string | null;
+  headerImageUrl?: string | null;
 }
 
 export interface CreateMessageTemplateRequest {
