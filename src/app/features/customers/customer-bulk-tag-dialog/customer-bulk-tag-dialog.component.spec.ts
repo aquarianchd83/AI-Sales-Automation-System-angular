@@ -3,6 +3,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { BulkAddCustomerTagsResult } from '../../../core/models/customer.model';
 import { CustomerService } from '../../../core/services/customer.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -114,5 +115,19 @@ describe('CustomerBulkTagDialogComponent', () => {
     expect(notify.info.calls.mostRecent().args[0]).toContain('Tagged 1 of 3');
     expect(notify.info.calls.mostRecent().args[0]).toContain('1 already had it');
     expect(notify.info.calls.mostRecent().args[0]).toContain('1 no longer exists');
+  });
+
+  it('clears what was typed once an existing tag is picked, so the next tag does not append to it', () => {
+    const fixture = create();
+    const input = (fixture.nativeElement as HTMLElement).querySelector('input') as HTMLInputElement;
+    input.value = 'VI';
+    input.dispatchEvent(new Event('input'));
+
+    fixture.componentInstance.onTagOptionSelected({
+      option: { value: { id: 't1', name: 'VIP-Gold', customerCount: 3, createdAt: '' } },
+    } as MatAutocompleteSelectedEvent);
+
+    expect(input.value).toBe('');
+    expect(fixture.componentInstance.tagNames).toEqual(['VIP-Gold']);
   });
 });

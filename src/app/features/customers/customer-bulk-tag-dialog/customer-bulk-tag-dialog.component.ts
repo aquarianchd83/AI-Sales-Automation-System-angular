@@ -1,5 +1,5 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
-import { Component, Inject } from '@angular/core';
+import { Component, ElementRef, Inject, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
@@ -30,6 +30,9 @@ export class CustomerBulkTagDialogComponent {
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
   readonly maxTags = BULK_TAG_MAX_TAGS;
   readonly maxLength = BULK_TAG_MAX_LENGTH;
+
+  /** The native input, cleared by hand after a suggestion is picked: setting the form control alone leaves the typed text behind. */
+  @ViewChild('tagInput') private tagInput?: ElementRef<HTMLInputElement>;
 
   readonly tagSearchControl = new FormControl('', { nonNullable: true });
   tagNames: string[] = [];
@@ -73,6 +76,9 @@ export class CustomerBulkTagDialogComponent {
 
   onTagOptionSelected(event: MatAutocompleteSelectedEvent): void {
     this.stage((event.option.value as Tag).name);
+    if (this.tagInput) {
+      this.tagInput.nativeElement.value = '';
+    }
     this.tagSearchControl.setValue('');
   }
 
