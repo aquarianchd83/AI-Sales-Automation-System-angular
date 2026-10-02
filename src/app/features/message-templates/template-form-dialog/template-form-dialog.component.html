@@ -141,7 +141,7 @@
       <p class="muted" *ngIf="resolvingHeader">Loading the image…</p>
 
       <div class="image-preview" *ngIf="headerAsset as asset">
-        <img [src]="preview(asset.url)" [alt]="asset.fileName" />
+        <img [src]="preview(asset.previewUrl || asset.url)" [alt]="asset.fileName" />
         <div class="image-preview__meta">
           <strong>{{ asset.fileName }}</strong>
           <span class="muted">{{ formatSize(asset.sizeBytes) }}</span>

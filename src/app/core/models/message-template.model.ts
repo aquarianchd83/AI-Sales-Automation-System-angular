@@ -127,6 +127,7 @@ export interface MessageTemplate {
   /** Name and preview link of the attached image, so the list can show which one without another request. */
   headerImageFileName?: string | null;
   headerImageUrl?: string | null;
+  headerImagePreviewUrl?: string | null;
 }
 
 export interface CreateMessageTemplateRequest {

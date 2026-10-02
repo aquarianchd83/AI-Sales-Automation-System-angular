@@ -83,7 +83,7 @@ describe('CampaignStepDialogComponent', () => {
     fixture.detectChanges();
 
     const img: HTMLImageElement = fixture.nativeElement.querySelector('.chat-bubble__image');
-    expect(img.src).toBe(`${window.location.origin}/hero.png`); // previewed from the portal's own API origin, not the public link
+    expect(img.src).toBe('https://cdn.example.test/hero.png'); // no previewUrl from the API: the link itself
   });
 
   it('saves a step without sending any message text', () => {

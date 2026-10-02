@@ -101,7 +101,7 @@ export class CampaignStepDialogComponent implements OnInit {
     this.media
       .getById(id)
       .pipe(catchError(() => of(null)))
-      .subscribe((asset) => (this.headerImageUrl = asset ? mediaPreviewUrl(asset.url, environment.apiBaseUrl) : null));
+      .subscribe((asset) => (this.headerImageUrl = asset ? mediaPreviewUrl(asset.previewUrl ?? asset.url, environment.apiBaseUrl) : null));
   }
 
   previewParts(body: string): PlaceholderPart[] {

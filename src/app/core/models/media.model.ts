@@ -8,6 +8,8 @@ export interface MediaAsset {
   createdAt: string;
   /** True when the API's MediaStorage PublicBaseUrl makes the link reachable by Meta; false means it is not configured. */
   isPublicUrl: boolean;
+  /** What the portal loads to show the file: a path on the API for stored files, the tenant's own link for linked ones. */
+  previewUrl?: string | null;
 }
 
 /**
@@ -55,16 +57,17 @@ export function mediaKindLabel(contentType: string): string {
 }
 
 /**
- * Where the portal itself loads a file from for previews: the API's own address (or the dev proxy) rather than the
- * public link. A tunnel such as ngrok's free plan answers browsers with an interstitial page instead of the file, which
- * would leave every thumbnail broken; Meta's servers are not affected, so the public link stays what we show to copy.
+ * What an <img>/<video> in the portal loads. The API sends a path it serves itself for files it stores (so a tunnel or
+ * CDN in front of the public link, e.g. ngrok's free warning page, cannot break previews) and the tenant's own link for
+ * a file they host. A path gets the API's origin (or the dev proxy's); a full link is used as is.
  */
-export function mediaPreviewUrl(url: string, apiBaseUrl: string, origin: string = window.location.origin): string {
+export function mediaPreviewUrl(previewUrl: string, apiBaseUrl: string, origin: string = window.location.origin): string {
+  if (/^https?:\/\//i.test(previewUrl)) {
+    return previewUrl;
+  }
   try {
-    const path = new URL(url, origin);
-    const apiOrigin = new URL(apiBaseUrl, origin).origin;
-    return `${apiOrigin}${path.pathname}${path.search}`;
+    return `${new URL(apiBaseUrl, origin).origin}${previewUrl}`;
   } catch {
-    return url;
+    return previewUrl;
   }
 }
