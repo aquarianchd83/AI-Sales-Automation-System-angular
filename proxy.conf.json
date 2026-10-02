@@ -12,7 +12,7 @@
     "ws": true,
     "logLevel": "debug"
   },
-  "/media": {
+  "/media/*/**": {
     "target": "https://localhost:7080",
     "secure": false,
     "changeOrigin": true,
