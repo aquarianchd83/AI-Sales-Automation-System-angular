@@ -1,5 +1,5 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
-import { Component, Inject } from '@angular/core';
+import { Component, ElementRef, Inject, ViewChild } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
@@ -57,6 +57,9 @@ export class CustomerFormDialogComponent {
   /** Existing tags staged for removal — applied via a separate call per tag on save. */
   removedTags: string[] = [];
 
+  /** The native input, cleared by hand after a suggestion is picked: setting the form control alone leaves the typed text behind. */
+  @ViewChild('tagInput') private tagInput?: ElementRef<HTMLInputElement>;
+
   readonly tagSearchControl = new FormControl('', { nonNullable: true });
   tagOptions: Tag[] = [];
   loadingTagOptions = false;
@@ -108,6 +111,9 @@ export class CustomerFormDialogComponent {
   onTagOptionSelected(event: MatAutocompleteSelectedEvent): void {
     const tag = event.option.value as Tag;
     this.stageTag(tag.name);
+    if (this.tagInput) {
+      this.tagInput.nativeElement.value = '';
+    }
     this.tagSearchControl.setValue('');
   }
 

@@ -91,6 +91,7 @@
           </mat-chip-row>
         </mat-chip-grid>
         <input
+          #tagInput
           [formControl]="tagSearchControl"
           placeholder="Type to search existing tags, or Enter to add a new one…"
           [matChipInputFor]="chipGrid"
