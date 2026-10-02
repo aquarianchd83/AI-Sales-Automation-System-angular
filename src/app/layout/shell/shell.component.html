@@ -183,6 +183,19 @@
       </button>
     </div>
 
+    <div class="verify-banner" *ngIf="emailUnconfirmed$ | async" role="status">
+      <mat-icon>mark_email_unread</mat-icon>
+      <span *ngIf="!verificationResent">
+        <strong>Confirm your email address.</strong> We sent a link when you signed up - it lets you recover your account if you forget your password.
+      </span>
+      <span *ngIf="verificationResent">
+        <strong>Sent.</strong> Check your inbox (and spam) for the confirmation link.
+      </span>
+      <button mat-stroked-button type="button" *ngIf="!verificationResent" [disabled]="resendingVerification" (click)="resendVerification()">
+        {{ resendingVerification ? 'Sending…' : 'Resend email' }}
+      </button>
+    </div>
+
     <div class="billing-alert-banner" *ngFor="let alert of urgentBillingAlerts">
       <mat-icon>error_outline</mat-icon>
       <span>

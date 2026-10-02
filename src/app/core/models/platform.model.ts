@@ -947,3 +947,49 @@ export interface AwsConnectionTestResult {
   message: string;
   steps: AwsConnectionStep[];
 }
+
+/** GET /platform/delivery-settings - how the platform reaches people for sign-in. Secrets never come back: only whether one is stored,
+ * plus the last four characters. */
+export interface PlatformDeliverySettings {
+  publicUrl: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpFrom: string;
+  smtpEnableSsl: boolean;
+  hasSmtpPassword: boolean;
+  smtpPasswordHint: string | null;
+  isEmailConfigured: boolean;
+  smsEnabled: boolean;
+  smsOtpTemplateId: string;
+  smsBaseUrl: string;
+  hasSmsAuthKey: boolean;
+  smsAuthKeyHint: string | null;
+  isSmsConfigured: boolean;
+}
+
+/** PUT body. `smtpPassword` / `smsAuthKey`: null keeps the stored one, '' clears it, text replaces it. */
+export interface UpdatePlatformDeliverySettingsRequest {
+  publicUrl: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpFrom: string;
+  smtpEnableSsl: boolean;
+  smtpPassword: string | null;
+  smsEnabled: boolean;
+  smsOtpTemplateId: string;
+  smsBaseUrl: string;
+  smsAuthKey: string | null;
+}
+
+/** POST test-email / test-sms: the form's settings (saved or not) and where to send the one real message. */
+export interface SendDeliveryTestRequest {
+  settings: UpdatePlatformDeliverySettingsRequest;
+  to: string;
+}
+
+export interface DeliveryTestResult {
+  success: boolean;
+  message: string;
+}

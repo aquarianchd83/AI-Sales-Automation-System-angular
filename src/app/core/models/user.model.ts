@@ -59,6 +59,9 @@ export interface User {
   roles: string[];
   createdAt: string;
   lastLoginAt: string | null;
+  /** False until the user follows the link emailed at signup. Absent on older cached sessions, which count as confirmed. */
+  emailConfirmed?: boolean;
+  phoneNumberConfirmed?: boolean;
 }
 
 /** CreateUserRequest — note there is no `isActive`; new users are created active. */

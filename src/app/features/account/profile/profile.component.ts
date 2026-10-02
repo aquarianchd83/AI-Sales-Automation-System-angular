@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { UpdateUserProfileRequest, UserProfile } from '../../../core/models/account.model';
 import { RegionOption, TimeZoneOption } from '../../../core/models/billing.model';
 import { PHONE_PATTERN } from '../../../core/models/tenant-profile.model';
+import { AccountRecoveryService } from '../../../core/services/account-recovery.service';
 import { AccountService } from '../../../core/services/account.service';
 import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -39,9 +40,15 @@ export class ProfileComponent implements OnInit {
     countryCode: [''],
   });
 
+  /** The six digits texted to the phone number on the profile. */
+  readonly phoneCode = this.fb.nonNullable.control('', [Validators.required, Validators.pattern(/^\d{6}$/)]);
+
   loading = true;
   loadFailed = false;
   saving = false;
+  sendingCode = false;
+  codeSent = false;
+  verifyingCode = false;
 
   profile: UserProfile | null = null;
   timezones: TimeZoneOption[] = [];
@@ -53,7 +60,8 @@ export class ProfileComponent implements OnInit {
     private readonly timeZoneService: TimeZoneService,
     private readonly billing: BillingService,
     private readonly notify: NotificationService,
-    private readonly dialog: MatDialog
+    private readonly dialog: MatDialog,
+    private readonly recovery: AccountRecoveryService
   ) {}
 
   ngOnInit(): void {
@@ -86,6 +94,65 @@ export class ProfileComponent implements OnInit {
       next: (regions) => (this.regions = regions),
       error: () => (this.regions = []),
     });
+  }
+
+  /** True while the phone box shows something other than the saved number - verification is of the saved one, so it waits for a save. */
+  get phoneEdited(): boolean {
+    return !!this.profile && this.form.controls.phoneNumber.value.trim() !== (this.profile.phoneNumber ?? '');
+  }
+
+  /** Verifying only makes sense for a saved number that is not verified yet. */
+  get canVerifyPhone(): boolean {
+    return !!this.profile?.phoneNumber && !this.profile.phoneNumberConfirmed && !this.phoneEdited;
+  }
+
+  get phoneVerified(): boolean {
+    return !!this.profile?.phoneNumber && !!this.profile.phoneNumberConfirmed && !this.phoneEdited;
+  }
+
+  /** Texts a code to the saved number. Only a verified number can later receive a password-reset code. */
+  sendPhoneCode(): void {
+    if (this.sendingCode || !this.canVerifyPhone) {
+      return;
+    }
+    this.sendingCode = true;
+    this.recovery
+      .sendPhoneCode()
+      .pipe(finalize(() => (this.sendingCode = false)))
+      .subscribe({
+        next: () => {
+          this.codeSent = true;
+          this.phoneCode.reset('');
+          this.notify.success(`We texted a code to ${this.profile?.phoneNumber}.`);
+        },
+        error: () => {
+          // ErrorInterceptor toasts why (no country code, SMS not set up, asked too soon).
+        },
+      });
+  }
+
+  verifyPhoneCode(): void {
+    if (this.verifyingCode || this.phoneCode.invalid) {
+      this.phoneCode.markAsTouched();
+      return;
+    }
+    this.verifyingCode = true;
+    this.recovery
+      .verifyPhone(this.phoneCode.value.trim())
+      .pipe(
+        switchMap(() => this.account.getProfile()),
+        finalize(() => (this.verifyingCode = false))
+      )
+      .subscribe({
+        next: (profile) => {
+          this.codeSent = false;
+          this.apply(profile);
+          this.notify.success('Phone number verified.');
+        },
+        error: () => {
+          // ErrorInterceptor toasts why (a wrong or expired code).
+        },
+      });
   }
 
   get emailChanged(): boolean {
@@ -179,6 +246,9 @@ export class ProfileComponent implements OnInit {
   }
 
   private apply(profile: UserProfile): void {
+    if (this.profile && this.profile.phoneNumber !== profile.phoneNumber) {
+      this.codeSent = false;
+    }
     this.profile = profile;
     this.form.reset({
       fullName: profile.fullName,

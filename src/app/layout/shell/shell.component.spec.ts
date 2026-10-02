@@ -3,6 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NEVER, of } from 'rxjs';
 
+import { AccountRecoveryService } from '../../core/services/account-recovery.service';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -15,9 +16,14 @@ import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
 describe('ShellComponent sidenav', () => {
-  function createFixture(roles: string[], platformAlerts: PlatformNotification[] = []): ComponentFixture<ShellComponent> {
+  function createFixture(
+    roles: string[],
+    platformAlerts: PlatformNotification[] = [],
+    emailConfirmed?: boolean,
+    resend: () => unknown = () => of(undefined)
+  ): ComponentFixture<ShellComponent> {
     const auth = {
-      currentUser$: of({ fullName: 'Test User', email: 't@example.com', roles }),
+      currentUser$: of({ fullName: 'Test User', email: 't@example.com', roles, emailConfirmed }),
       isImpersonating: false,
       hasAnyRole: (wanted: string[]) =>
         wanted.length === 0 || wanted.some((role) => roles.includes(role)),
@@ -29,6 +35,7 @@ describe('ShellComponent sidenav', () => {
       providers: [
         { provide: AuthService, useValue: auth },
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
+        { provide: AccountRecoveryService, useValue: { resendVerificationEmail: resend } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
@@ -117,6 +124,7 @@ describe('ShellComponent sidenav', () => {
       'cloud_syncWhatsApp Connections',
       'scheduleBackground Jobs',
       'cloudAWS Settings',
+      'forward_to_inboxSign-in Delivery',
       'receipt_longLogs',
       'historyAudit Log',
       'account_circleMy Profile',
@@ -199,6 +207,33 @@ describe('ShellComponent sidenav', () => {
       const root = render(['Admin']);
 
       expect(root.querySelector('[aria-label="Platform alerts"]')).toBeNull();
+    });
+  });
+  describe('unconfirmed email banner', () => {
+    const banner = (root: HTMLElement) => root.querySelector('.verify-banner');
+
+    it('asks a user who has not confirmed their email to do so', () => {
+      const fixture = createFixture(['Admin'], [], false);
+
+      expect(banner(fixture.nativeElement)?.textContent).toContain('Confirm your email address');
+    });
+
+    it('stays out of the way of a confirmed user, and of an older cached session that has no flag', () => {
+      expect(banner(createFixture(['Admin'], [], true).nativeElement)).toBeNull();
+      TestBed.resetTestingModule();
+      expect(banner(createFixture(['Admin'], [], undefined).nativeElement)).toBeNull();
+    });
+
+    it('resends the link and then says it was sent', () => {
+      const resend = jasmine.createSpy('resend').and.returnValue(of(undefined));
+      const fixture = createFixture(['Admin'], [], false, resend);
+
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.verify-banner button')!.click();
+      fixture.detectChanges();
+
+      expect(resend).toHaveBeenCalledTimes(1);
+      expect(banner(fixture.nativeElement)?.textContent).toContain('Sent.');
+      expect(banner(fixture.nativeElement)?.querySelector('button')).toBeNull();
     });
   });
 });

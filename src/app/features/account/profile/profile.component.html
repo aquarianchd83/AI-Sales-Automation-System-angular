@@ -41,6 +41,32 @@
             <input matInput formControlName="phoneNumber" type="tel" maxlength="32" placeholder="+91 98765 43210" />
             <mat-error>Use digits, spaces, brackets, dashes and an optional leading +.</mat-error>
           </mat-form-field>
+
+          <div class="phone-verify" *ngIf="profile?.phoneNumber">
+            <ng-container *ngIf="phoneVerified">
+              <span class="verified"><mat-icon>verified</mat-icon> Phone verified</span>
+              <span class="muted">You can reset your password with a code texted to it.</span>
+            </ng-container>
+
+            <ng-container *ngIf="phoneEdited">
+              <span class="muted">Save your changes, then verify the new number.</span>
+            </ng-container>
+
+            <ng-container *ngIf="canVerifyPhone">
+              <span class="unverified"><mat-icon>sms</mat-icon> Not verified</span>
+              <button mat-stroked-button type="button" [disabled]="sendingCode" (click)="sendPhoneCode()">
+                {{ sendingCode ? 'Sending…' : codeSent ? 'Send a new code' : 'Text me a code' }}
+              </button>
+              <mat-form-field appearance="outline" class="code-field" subscriptSizing="dynamic" *ngIf="codeSent">
+                <mat-label>Six-digit code</mat-label>
+                <input matInput [formControl]="phoneCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" (keydown.enter)="verifyPhoneCode(); $event.preventDefault()" />
+                <mat-error>Enter the six digits from the text message.</mat-error>
+              </mat-form-field>
+              <button mat-flat-button color="primary" type="button" *ngIf="codeSent" [disabled]="verifyingCode" (click)="verifyPhoneCode()">
+                {{ verifyingCode ? 'Checking…' : 'Verify' }}
+              </button>
+            </ng-container>
+          </div>
         </div>
       </mat-card>
 

@@ -16,6 +16,9 @@ export interface UserProfile {
   tenantId: string | null;
   createdAt: string;
   lastLoginAt: string | null;
+  emailConfirmed?: boolean;
+  /** True once the number on the profile has been proven with a texted code. Only a verified phone can receive a reset code. */
+  phoneNumberConfirmed?: boolean;
 }
 
 /**

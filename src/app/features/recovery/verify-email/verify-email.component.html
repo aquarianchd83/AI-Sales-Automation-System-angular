@@ -1,0 +1,32 @@
+<div class="login-page">
+  <mat-card class="login-card">
+    <div class="login-brand">
+      <mat-icon color="primary">mark_email_read</mat-icon>
+      <div>
+        <h1>Confirm your email</h1>
+      </div>
+    </div>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="state === 'checking'"></mat-progress-bar>
+
+    <div class="outcome outcome--ok" *ngIf="state === 'confirmed'" role="status" aria-live="polite">
+      <mat-icon>check_circle</mat-icon>
+      <div>
+        <strong>Your email address is confirmed</strong>
+        <p>Thank you. You can carry on.</p>
+      </div>
+    </div>
+
+    <div class="outcome outcome--fail" *ngIf="state === 'failed'" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <div>
+        <strong>This link is invalid or has expired</strong>
+        <p>Sign in and use "Resend email" in the banner at the top to get a fresh one.</p>
+      </div>
+    </div>
+
+    <a mat-flat-button color="primary" class="full-width submit" [routerLink]="signedIn ? '/' : '/login'" *ngIf="state !== 'checking'">
+      {{ signedIn ? 'Continue' : 'Go to sign in' }}
+    </a>
+  </mat-card>
+</div>

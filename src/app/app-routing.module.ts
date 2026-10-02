@@ -15,6 +15,15 @@ const routes: Routes = [
       import('./features/auth/auth.module').then((m) => m.AuthModule),
   },
   {
+    // Sign-in recovery: no guard at all - these pages are for people who cannot sign in. The API puts the short
+    // /reset-password and /verify-email paths in its emails, so those redirect here (query parameters are kept).
+    path: 'recover',
+    loadChildren: () => import('./features/recovery/recovery.module').then((m) => m.RecoveryModule),
+  },
+  { path: 'forgot-password', redirectTo: 'recover/forgot-password', pathMatch: 'full' },
+  { path: 'reset-password', redirectTo: 'recover/reset-password', pathMatch: 'full' },
+  { path: 'verify-email', redirectTo: 'recover/verify-email', pathMatch: 'full' },
+  {
     // No authGuard/roleGuard — a brand-new tab with no session yet. See
     // ImpersonateSessionComponent's own doc comment.
     path: 'impersonate-session',

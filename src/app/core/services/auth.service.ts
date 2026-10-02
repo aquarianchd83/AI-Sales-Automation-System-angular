@@ -53,6 +53,22 @@ export class AuthService {
     return !!readAccessTokenClaims(this.tokens.decodeAccessToken() ?? {}).impersonatedByUserId;
   }
 
+  /** Updates facts about the signed-in user that changed without a new sign-in (e.g. their email was just confirmed), so the app
+   * reflects them straight away. Does nothing when nobody is signed in. */
+  patchCurrentUser(patch: Partial<User>): void {
+    const current = this.currentUser;
+    if (!current) {
+      return;
+    }
+    const updated = { ...current, ...patch };
+    this.currentUserSubject.next(updated);
+    try {
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    } catch {
+      // Storage can be blocked; the in-memory copy is what the app reads.
+    }
+  }
+
   hasAnyRole(roles: string[]): boolean {
     if (!roles.length) {
       return true;

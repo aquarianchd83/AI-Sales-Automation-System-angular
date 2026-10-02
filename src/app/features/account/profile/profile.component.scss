@@ -219,3 +219,38 @@ mat-icon[matPrefix] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.phone-verify {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: -4px 0 8px;
+
+  .verified,
+  .unverified {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .verified {
+    color: #2e7d32;
+  }
+
+  .unverified {
+    color: #b26a00;
+  }
+
+  .code-field {
+    width: 170px;
+  }
+}

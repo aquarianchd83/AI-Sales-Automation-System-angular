@@ -5,6 +5,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
 import { UserProfile } from '../../../core/models/account.model';
+import { AccountRecoveryService } from '../../../core/services/account-recovery.service';
 import { AccountService } from '../../../core/services/account.service';
 import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -32,6 +33,7 @@ describe('ProfileComponent', () => {
   let account: jasmine.SpyObj<AccountService>;
   let notify: jasmine.SpyObj<NotificationService>;
   let dialog: jasmine.SpyObj<MatDialog>;
+  let recovery: jasmine.SpyObj<AccountRecoveryService>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
 
@@ -47,6 +49,9 @@ describe('ProfileComponent', () => {
     account.getProfile.and.returnValue(of(profile));
     account.updateProfile.and.callFake((request) => of({ ...profile, ...request }));
     notify = jasmine.createSpyObj('NotificationService', ['success']);
+    recovery = jasmine.createSpyObj('AccountRecoveryService', ['sendPhoneCode', 'verifyPhone']);
+    recovery.sendPhoneCode.and.returnValue(of(undefined));
+    recovery.verifyPhone.and.returnValue(of(undefined));
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
     dialog.open.and.returnValue({ afterClosed: () => of(true) } as never);
 
@@ -55,6 +60,7 @@ describe('ProfileComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: AccountService, useValue: account },
+        { provide: AccountRecoveryService, useValue: recovery },
         { provide: NotificationService, useValue: notify },
         {
           provide: TimeZoneService,
@@ -131,5 +137,64 @@ describe('ProfileComponent', () => {
     component.save();
 
     expect(account.updateProfile).not.toHaveBeenCalled();
+  });
+  describe('phone verification', () => {
+    const withPhone = (confirmed: boolean): UserProfile => ({ ...profile, phoneNumber: '+919876543210', phoneNumberConfirmed: confirmed });
+
+    it('offers nothing when there is no phone number', () => {
+      create();
+
+      expect(component.canVerifyPhone).toBeFalse();
+      expect(component.phoneVerified).toBeFalse();
+    });
+
+    it('shows a verified number as verified', () => {
+      account.getProfile.and.returnValue(of(withPhone(true)));
+      create();
+
+      expect(component.phoneVerified).toBeTrue();
+      expect(text()).toContain('Phone verified');
+    });
+
+    it('texts a code for an unverified number and then shows the code box', () => {
+      account.getProfile.and.returnValue(of(withPhone(false)));
+      create();
+
+      component.sendPhoneCode();
+      fixture.detectChanges();
+
+      expect(recovery.sendPhoneCode).toHaveBeenCalledTimes(1);
+      expect(component.codeSent).toBeTrue();
+      expect(text()).toContain('Six-digit code');
+    });
+
+    it('waits for a save before verifying a number that was just edited', () => {
+      account.getProfile.and.returnValue(of(withPhone(false)));
+      create();
+
+      component.form.controls.phoneNumber.setValue('+911111111111');
+
+      expect(component.canVerifyPhone).toBeFalse();
+      component.sendPhoneCode();
+      expect(recovery.sendPhoneCode).not.toHaveBeenCalled();
+    });
+
+    it('verifies with the six digits and then reloads the profile', () => {
+      account.getProfile.and.returnValues(of(withPhone(false)), of(withPhone(true)));
+      create();
+      component.sendPhoneCode();
+
+      component.phoneCode.setValue('12');
+      component.verifyPhoneCode();
+      expect(recovery.verifyPhone).not.toHaveBeenCalled();
+
+      component.phoneCode.setValue('482913');
+      component.verifyPhoneCode();
+
+      expect(recovery.verifyPhone).toHaveBeenCalledWith('482913');
+      expect(component.phoneVerified).toBeTrue();
+      expect(component.codeSent).toBeFalse();
+      expect(notify.success).toHaveBeenCalledWith('Phone number verified.');
+    });
   });
 });
