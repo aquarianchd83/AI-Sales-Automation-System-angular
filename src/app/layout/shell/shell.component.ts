@@ -149,6 +149,15 @@ export class ShellComponent implements OnInit, OnDestroy {
       ],
     },
     {
+      // The platform's own WhatsApp: the number tenant notices are sent from, the template behind each notice, and the images they show.
+      label: 'WhatsApp Notices',
+      items: [
+        { label: 'Platform WhatsApp', icon: 'chat', route: '/platform/whatsapp-settings', roles: [] },
+        { label: 'Notice Templates', icon: 'description', route: '/platform/notice-templates', roles: [] },
+        { label: 'Notice Media', icon: 'perm_media', route: '/platform/notice-media', roles: [] },
+      ],
+    },
+    {
       label: 'Infrastructure',
       items: [
         {

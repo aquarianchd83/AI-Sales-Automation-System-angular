@@ -109,7 +109,7 @@ describe('ShellComponent sidenav', () => {
   it('groups the platform console nav the same way, with no tenant items', () => {
     const root = render(['PlatformSuperAdmin']);
 
-    expect(labels(root)).toEqual(['Tenants', 'Revenue', 'Infrastructure', 'Monitoring', 'Account']);
+    expect(labels(root)).toEqual(['Tenants', 'Revenue', 'WhatsApp Notices', 'Infrastructure', 'Monitoring', 'Account']);
     expect(items(root)).toEqual([
       'dashboardDashboard',
       'businessTenants',
@@ -121,6 +121,9 @@ describe('ShellComponent sidenav', () => {
       'receipt_longPayments',
       'assignment_returnRefund Requests',
       'tuneConfiguration',
+      'chatPlatform WhatsApp',
+      'descriptionNotice Templates',
+      'perm_mediaNotice Media',
       'cloud_syncWhatsApp Connections',
       'scheduleBackground Jobs',
       'cloudAWS Settings',

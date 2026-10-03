@@ -1,0 +1,87 @@
+.wa-card {
+  padding: 16px 20px 20px;
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+  }
+
+  p {
+    margin: 0 0 16px;
+  }
+}
+
+.save-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 12px 0;
+  margin-bottom: 8px;
+  background: var(--mat-sys-surface, #fff);
+}
+
+.field {
+  width: 100%;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px 16px;
+  margin-bottom: 8px;
+}
+
+.status {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+
+  p {
+    margin: 2px 0 0;
+  }
+
+  &--warn mat-icon {
+    color: var(--mat-sys-error, #b3261e);
+  }
+}
+
+.toggle-row {
+  margin: 4px 0 16px;
+}
+
+.test-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  mat-form-field {
+    flex: 1 1 260px;
+  }
+
+  button {
+    margin-top: 6px;
+  }
+}
+
+.test-result {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 16px;
+
+  > mat-icon {
+    flex: none;
+    color: var(--mat-sys-primary, #2e7d32);
+  }
+
+  &--fail > mat-icon {
+    color: var(--mat-sys-error, #b3261e);
+  }
+}

@@ -1,0 +1,120 @@
+<div class="page">
+  <app-page-header
+    title="Platform WhatsApp"
+    subtitle="The WhatsApp number the platform sends notices from - plan expiring, credits running out, refunds. Not a tenant's own number."
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="loadFailed" class="wa-card">
+    <p>The platform WhatsApp settings could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading && !loadFailed" novalidate>
+    <div class="save-bar">
+      <span class="muted">Stored in the database only. Changes apply from the next request, no restart.</span>
+      <span class="spacer"></span>
+      <button mat-button type="button" [disabled]="saving || form.pristine" (click)="load()">Discard changes</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving || form.pristine">
+        {{ saving ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+
+    <div class="status" [class.status--warn]="!current?.isConfigured">
+      <mat-icon>{{ current?.isConfigured ? 'check_circle' : 'warning' }}</mat-icon>
+      <div>
+        <strong *ngIf="current?.isConfigured">Tenant notices can be sent on WhatsApp</strong>
+        <strong *ngIf="!current?.isConfigured && current?.hasAccessToken && !current?.enabled">
+          The platform WhatsApp number is switched off - notices go by email and in-app only
+        </strong>
+        <strong *ngIf="!current?.isConfigured && !(current?.hasAccessToken && !current?.enabled)">
+          No platform WhatsApp number is set up - notices go by email and in-app only
+        </strong>
+        <p class="muted" *ngIf="current?.isConfigured && !current?.canManageTemplates">
+          Add the WhatsApp Business Account id to create and review the notice templates on Meta.
+        </p>
+        <p class="muted" *ngIf="current?.canManageTemplates">
+          Templates are managed on the Notice Templates page. A notice goes on WhatsApp once Meta has approved its template.
+        </p>
+      </div>
+    </div>
+
+    <mat-card class="wa-card">
+      <h2>The number</h2>
+      <p class="muted">
+        From Meta's WhatsApp Manager (API setup). Use a permanent System User access token - a temporary token stops working after about a day.
+      </p>
+
+      <mat-slide-toggle class="toggle-row" formControlName="enabled" color="primary">Send tenant notices on WhatsApp</mat-slide-toggle>
+
+      <div class="field-grid">
+        <mat-form-field class="field">
+          <mat-label>Phone number id</mat-label>
+          <input matInput formControlName="phoneNumberId" autocomplete="off" inputmode="numeric" />
+          <mat-hint>The numeric id Meta shows next to the number - not the phone number itself.</mat-hint>
+          <mat-error>Enter the numeric id (digits only).</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>WhatsApp Business Account id</mat-label>
+          <input matInput formControlName="whatsAppBusinessAccountId" autocomplete="off" inputmode="numeric" />
+          <mat-hint>Where the notice templates live and are reviewed.</mat-hint>
+          <mat-error>Enter the numeric id (digits only).</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>Access token</mat-label>
+          <input matInput type="password" autocomplete="new-password" formControlName="accessToken" [readonly]="form.controls.removeAccessToken.value" />
+          <mat-hint>{{ storedTokenHint ? 'Stored: ' + storedTokenHint + ' - leave blank to keep' : 'None stored' }}</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <mat-checkbox formControlName="removeAccessToken" *ngIf="current?.hasAccessToken">Remove the stored access token</mat-checkbox>
+    </mat-card>
+
+    <mat-card class="wa-card">
+      <h2>Advanced</h2>
+      <p class="muted">Leave as they are unless Meta tells you otherwise.</p>
+      <div class="field-grid">
+        <mat-form-field class="field">
+          <mat-label>API version</mat-label>
+          <input matInput formControlName="apiVersion" autocomplete="off" placeholder="v19.0" />
+          <mat-error>Use a version like v19.0.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
+          <mat-label>API address</mat-label>
+          <input matInput formControlName="apiBaseUrl" autocomplete="off" placeholder="https://graph.facebook.com/" />
+          <mat-error>Enter an https:// address.</mat-error>
+        </mat-form-field>
+      </div>
+    </mat-card>
+
+    <mat-card class="wa-card">
+      <h2>Test the connection</h2>
+      <p class="muted">
+        Sends Meta's own sample message (<code>hello_world</code>) from the saved number, to prove the number and token work. It needs no approval
+        of yours - every new WhatsApp Business Account has it.
+      </p>
+
+      <div class="test-row">
+        <mat-form-field class="field" subscriptSizing="dynamic">
+          <mat-label>Send a test message to</mat-label>
+          <input matInput type="tel" [formControl]="testTo" autocomplete="off" placeholder="+919876543210" />
+          <mat-hint>A WhatsApp number with the country code.</mat-hint>
+          <mat-error>Enter the number starting with + and the country code.</mat-error>
+        </mat-form-field>
+        <button mat-stroked-button type="button" [disabled]="testing || saving" (click)="sendTest()">
+          <mat-icon>{{ testing ? 'hourglass_empty' : 'send' }}</mat-icon>
+          {{ testing ? 'Sending…' : 'Send test message' }}
+        </button>
+      </div>
+
+      <div class="test-result" [class.test-result--fail]="!testResult.success" *ngIf="testResult" role="status" aria-live="polite">
+        <mat-icon>{{ testResult.success ? 'check_circle' : 'error' }}</mat-icon>
+        <div><strong>{{ testResult.message }}</strong></div>
+      </div>
+    </mat-card>
+  </form>
+</div>
