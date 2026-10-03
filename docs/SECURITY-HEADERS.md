@@ -13,12 +13,13 @@ server configuration. `angular.json` points the `production` configuration at `s
 | Directive | Value | Why |
 |---|---|---|
 | `default-src` | `'self'` | Anything not listed below may only come from this app's own origin. |
-| `script-src` | `'self'` | **The one that matters.** Only the bundled scripts run: no inline scripts, no `eval`, no third-party script. |
+| `script-src` | `'self' https://checkout.razorpay.com https://*.razorpay.com` | **The one that matters.** Only the bundled scripts run, plus Razorpay Checkout (loaded only by the platform's Razorpay test page, and later by payment pages): no inline scripts, no `eval`, no other third-party script. |
 | `style-src` | `'self' 'unsafe-inline'` | Angular injects each component's styles as `<style>` elements, and the module-flow diagrams add one too. Dropping `'unsafe-inline'` needs a per-response nonce (`ngCspNonce`), which a static host cannot produce. Styles cannot run code, so this is the acceptable trade. |
 | `img-src` | `'self' data: blob: https:` | Uploaded media is served from wherever the platform's media storage points (the S3 bucket, a CDN, or this origin), which is a setting, not a build-time fact. `blob:` and `data:` are the upload previews. |
 | `media-src` | `'self' blob: https:` | Same, for video previews. |
 | `font-src` | `'self' data:` | Roboto and the Material icons are bundled; nothing is fetched from a font CDN. |
-| `connect-src` | `'self'` | The API (`/api/v1`) and the notification hub (`/hubs/notifications`, a websocket) are same-origin behind the reverse proxy. A page that has been tampered with cannot send data to anyone else. |
+| `connect-src` | `'self' https://*.razorpay.com` | The API (`/api/v1`) and the notification hub (`/hubs/notifications`, a websocket) are same-origin behind the reverse proxy; Razorpay Checkout reports to its own hosts. A page that has been tampered with cannot send data to anyone else. |
+| `frame-src` | `https://api.razorpay.com https://*.razorpay.com` | Razorpay Checkout draws its payment form in an iframe from Razorpay. Nothing else may be framed. |
 | `object-src` | `'none'` | No plugins. |
 | `base-uri` | `'self'` | An injected `<base>` tag cannot redirect every relative URL. |
 | `form-action` | `'self'` | A form cannot be pointed at another site. |

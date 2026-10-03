@@ -128,6 +128,7 @@ describe('ShellComponent sidenav', () => {
       'scheduleBackground Jobs',
       'cloudAWS Settings',
       'forward_to_inboxSign-in Delivery',
+      'credit_cardRazorpay Test',
       'receipt_longLogs',
       'historyAudit Log',
       'account_circleMy Profile',
