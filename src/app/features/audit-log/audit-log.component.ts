@@ -4,7 +4,7 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, of } from 'rxjs';
 import { catchError, debounceTime, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
-import { AuditLogEntry, AuditLogQuery, formatChanges } from '../../core/models/audit-log.model';
+import { AUDIT_RECORD_TYPES, AuditLogEntry, AuditLogQuery, describeAuditEntry, formatChanges } from '../../core/models/audit-log.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../core/models/paged-result.model';
 import { AuditLogService } from '../../core/services/audit-log.service';
 
@@ -42,6 +42,8 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   expandedId: string | null = null;
 
   readonly formatChanges = formatChanges;
+  readonly describe = describeAuditEntry;
+  readonly recordTypes = AUDIT_RECORD_TYPES;
 
   private pageIndex = 1;
   private pageSize = DEFAULT_PAGE_SIZE;

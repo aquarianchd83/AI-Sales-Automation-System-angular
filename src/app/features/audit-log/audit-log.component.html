@@ -1,7 +1,7 @@
 <div class="page">
   <app-page-header
     title="Audit log"
-    subtitle="Who changed a lead's stage, started or stopped a campaign, switched a conversation between AI and human, or recorded an opt-out. Newest first."
+    subtitle="Who signed in wrongly, was locked out, changed a password or a role, replaced a credential, or edited a template, a lead, a campaign or a conversation. Newest first."
   ></app-page-header>
 
   <mat-card class="table-card">
@@ -14,7 +14,10 @@
 
       <mat-form-field class="filter" subscriptSizing="dynamic">
         <mat-label>Record type</mat-label>
-        <input matInput formControlName="entityName" placeholder="e.g. Lead" />
+        <mat-select formControlName="entityName">
+          <mat-option value="">All</mat-option>
+          <mat-option *ngFor="let type of recordTypes" [value]="type.value">{{ type.label }}</mat-option>
+        </mat-select>
       </mat-form-field>
 
       <mat-form-field class="filter" subscriptSizing="dynamic">
@@ -71,7 +74,10 @@
 
         <ng-container matColumnDef="action">
           <th mat-header-cell *matHeaderCellDef>Action</th>
-          <td mat-cell *matCellDef="let entry"><span class="tag">{{ entry.action || '—' }}</span></td>
+          <td mat-cell *matCellDef="let entry">
+            <span class="tag">{{ entry.action || '—' }}</span>
+            <div class="muted small" *ngIf="describe(entry) as summary">{{ summary }}</div>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="expand">
