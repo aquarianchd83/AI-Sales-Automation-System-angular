@@ -31,5 +31,13 @@ jobs:
       - name: Build
         run: npx ng build --configuration development
 
+      # The production build is what ships, and nothing else exercises it: its budgets, its own index.html and the Content-Security-Policy.
+      - name: Production build
+        run: npx ng build --configuration production
+
+      # Fails if the policy was loosened, or the built page gained an inline script or handler that the policy would block.
+      - name: Content-Security-Policy check
+        run: node scripts/check-csp.mjs --dist
+
       - name: Unit tests
         run: npx ng test --watch=false --browsers=ChromeHeadlessCI
