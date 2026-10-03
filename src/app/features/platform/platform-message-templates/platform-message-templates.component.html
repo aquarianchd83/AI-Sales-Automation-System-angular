@@ -1,0 +1,106 @@
+<div class="page">
+  <app-page-header
+    title="Notice Templates"
+    subtitle="The WhatsApp message behind each notice the platform sends a company - plan expiring, credits running out, refunds."
+  >
+    <button mat-flat-button color="primary" type="button" [disabled]="syncing || loading || canManageTemplates === false" (click)="syncAll()">
+      <mat-icon>{{ syncing ? 'hourglass_empty' : 'sync' }}</mat-icon>
+      {{ syncing ? 'Syncing…' : 'Sync with Meta' }}
+    </button>
+  </app-page-header>
+
+  <div class="banner banner--warn" *ngIf="canManageTemplates === false">
+    <mat-icon>warning</mat-icon>
+    <div>
+      <strong>The platform WhatsApp number is not set up.</strong>
+      Templates can be edited here, but they cannot be sent to Meta, so no notice goes on WhatsApp yet. Notices still go by email and in-app.
+      <a routerLink="/platform/whatsapp-settings">Set up the number</a>
+    </div>
+  </div>
+
+  <div class="banner">
+    <mat-icon>info</mat-icon>
+    <div>
+      Each template is <strong>Utility</strong> and has to be <strong>approved by Meta</strong> before its notice goes on WhatsApp - an hourly job
+      keeps the review status up to date. Use <code>{{ '{{TenantName}}' }}</code>, <code>{{ '{{Title}}' }}</code> and
+      <code>{{ '{{Message}}' }}</code> in the wording. Editing an approved template sends it back to review.
+    </div>
+  </div>
+
+  <div class="sync-result" *ngIf="syncResult" role="status" aria-live="polite" [class.sync-result--warn]="!syncResult.configured || syncResult.failures.length">
+    <mat-icon>{{ syncResult.configured && !syncResult.failures.length ? 'check_circle' : 'warning' }}</mat-icon>
+    <div>
+      <ng-container *ngIf="!syncResult.configured">
+        <strong>{{ syncResult.note }}</strong>
+      </ng-container>
+      <ng-container *ngIf="syncResult.configured">
+        <strong>
+          {{ syncResult.created }} sent to Meta, {{ syncResult.updated }} updated, {{ syncResult.statusUpdated }} review
+          result{{ syncResult.statusUpdated === 1 ? '' : 's' }} changed.
+        </strong>
+        <ul *ngIf="syncResult.failures.length">
+          <li *ngFor="let f of syncResult.failures">{{ f }}</li>
+        </ul>
+      </ng-container>
+    </div>
+  </div>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="loadFailed" class="empty-card">
+    <p>The notice templates could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <p class="muted summary" *ngIf="!loading && templates.length">
+    {{ approvedCount }} of {{ templates.length }} notices go out on WhatsApp right now.
+  </p>
+
+  <div class="template-grid">
+    <mat-card class="template-card" *ngFor="let t of templates; trackBy: trackById" [class.template-card--off]="!t.isActive">
+      <div class="card-head">
+        <div class="card-title">
+          <h2>{{ t.name }}</h2>
+          <span class="muted key">{{ t.whatsAppTemplateName }}</span>
+        </div>
+        <mat-slide-toggle
+          color="primary"
+          [checked]="t.isActive"
+          [disabled]="busyId === t.id"
+          (change)="toggleActive(t, $event.checked)"
+          [attr.aria-label]="'Send ' + t.name + ' on WhatsApp'"
+        ></mat-slide-toggle>
+      </div>
+
+      <div class="badges">
+        <span class="badge" [ngClass]="'badge--' + t.status.toLowerCase()">{{ statusLabel(t) }}</span>
+        <span class="badge badge--live" *ngIf="isLive(t)">Live</span>
+        <span class="badge badge--off" *ngIf="!t.isActive">Switched off</span>
+      </div>
+
+      <div class="preview">
+        <img *ngIf="t.headerPreviewUrl" class="preview-image" [src]="imageUrl(t.headerPreviewUrl)" [alt]="t.headerFileName || 'Template image'" loading="lazy" />
+        <p class="preview-text">{{ preview(t) }}</p>
+      </div>
+
+      <div class="card-actions">
+        <button mat-stroked-button type="button" [disabled]="busyId === t.id" (click)="edit(t)">
+          <mat-icon>edit</mat-icon>
+          Edit
+        </button>
+        <button mat-button type="button" [disabled]="busyId === t.id || canManageTemplates === false" (click)="syncOne(t)">
+          <mat-icon>sync</mat-icon>
+          Sync
+        </button>
+        <button mat-button type="button" [disabled]="busyId === t.id || t.status !== 'Approved'" (click)="sendTest(t)"
+          [matTooltip]="t.status === 'Approved' ? 'Send it with sample values' : 'Available once Meta approves it'">
+          <mat-icon>send</mat-icon>
+          Send test
+        </button>
+        <button mat-icon-button type="button" [disabled]="busyId === t.id" matTooltip="Restore the default text" aria-label="Restore the default text" (click)="restoreDefault(t)">
+          <mat-icon>restore</mat-icon>
+        </button>
+      </div>
+    </mat-card>
+  </div>
+</div>

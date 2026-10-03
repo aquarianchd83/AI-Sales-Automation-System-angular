@@ -1,0 +1,23 @@
+<h2 mat-dialog-title>Send "{{ template.name }}" as a test</h2>
+
+<mat-dialog-content>
+  <p class="muted">It is sent from the platform number with sample values, so it reads like this:</p>
+  <blockquote class="sample">{{ preview }}</blockquote>
+
+  <mat-form-field class="full" subscriptSizing="dynamic">
+    <mat-label>Send to</mat-label>
+    <input matInput type="tel" [formControl]="to" autocomplete="off" placeholder="+919876543210" (keydown.enter)="send()" />
+    <mat-hint>A WhatsApp number with the country code.</mat-hint>
+    <mat-error>Enter the number starting with + and the country code.</mat-error>
+  </mat-form-field>
+
+  <p class="result" *ngIf="result" role="status" aria-live="polite" [class.result--fail]="!result.success">
+    <mat-icon>{{ result.success ? 'check_circle' : 'error' }}</mat-icon>
+    <strong>{{ result.message }}</strong>
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Close</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="sending" (click)="send()">{{ sending ? 'Sending…' : 'Send test' }}</button>
+</mat-dialog-actions>

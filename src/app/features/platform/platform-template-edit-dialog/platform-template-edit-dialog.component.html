@@ -1,0 +1,74 @@
+<h2 mat-dialog-title>Edit "{{ template.name }}"</h2>
+
+<form [formGroup]="form" (ngSubmit)="save()" novalidate>
+  <mat-dialog-content class="content">
+    <div class="editor">
+      <mat-form-field class="field">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" autocomplete="off" />
+        <mat-hint>What you call it here. Tenants never see it.</mat-hint>
+        <mat-error>Enter a name.</mat-error>
+      </mat-form-field>
+
+      <div class="tokens" role="group" aria-label="Insert a placeholder">
+        <span class="muted">Insert:</span>
+        <button mat-stroked-button type="button" *ngFor="let token of tokens" [matTooltip]="tokenHelp[token]" (click)="insert(token)">
+          {{ '{{' + token + '}}' }}
+        </button>
+      </div>
+
+      <mat-form-field class="field">
+        <mat-label>Message</mat-label>
+        <textarea #bodyInput matInput rows="7" formControlName="bodyText"></textarea>
+        <mat-hint align="end" [class.over]="bodyLength > maxBody">{{ bodyLength }} / {{ maxBody }}</mat-hint>
+        <mat-error *ngIf="form.controls.bodyText.hasError('required')">Enter the message.</mat-error>
+        <mat-error *ngIf="form.controls.bodyText.hasError('unknownTokens')">
+          Unknown placeholder: {{ unknownTokens.join(', ') }}. Use only the ones above.
+        </mat-error>
+        <mat-error *ngIf="form.controls.bodyText.hasError('edgeToken')">
+          Meta does not accept a message that starts or ends with a placeholder - add a few words before and after.
+        </mat-error>
+        <mat-error *ngIf="form.controls.bodyText.hasError('maxlength')">Meta allows at most {{ maxBody }} characters.</mat-error>
+      </mat-form-field>
+
+      <button mat-button type="button" class="restore" (click)="restoreDefault()">
+        <mat-icon>restore</mat-icon>
+        Use the default text
+      </button>
+
+      <mat-form-field class="field">
+        <mat-label>Image above the message</mat-label>
+        <mat-select formControlName="headerMediaAssetId" [disabled]="headerLocked">
+          <mat-option value="" *ngIf="!headerRequired">No image</mat-option>
+          <mat-option *ngFor="let image of images" [value]="image.id">{{ image.fileName }}</mat-option>
+        </mat-select>
+        <mat-hint *ngIf="headerLocked">Meta already holds this template without an image, and fixes that when a template is created.</mat-hint>
+        <mat-hint *ngIf="headerRequired">Meta holds this template with an image: you can swap it but not remove it.</mat-hint>
+        <mat-hint *ngIf="!headerLocked && !headerRequired && !imagesLoading && !images.length">
+          No JPEG or PNG in the Notice Media library yet.
+        </mat-hint>
+        <mat-hint *ngIf="!headerLocked && !headerRequired && (imagesLoading || images.length)">
+          Choose it before the first sync - after that Meta does not let a template gain or lose its image.
+        </mat-hint>
+      </mat-form-field>
+
+      <mat-slide-toggle formControlName="isActive" color="primary">Send this notice on WhatsApp</mat-slide-toggle>
+    </div>
+
+    <div class="preview-pane" aria-live="polite">
+      <div class="muted preview-label">Preview with sample values</div>
+      <div class="bubble">
+        <img *ngIf="previewImage" class="bubble-image" [src]="previewImage.previewUrl || previewImage.url" [alt]="previewImage.fileName" />
+        <p>{{ preview }}</p>
+      </div>
+      <p class="muted note">
+        Meta reviews the wording with these examples. An approved template goes back to review when its text changes.
+      </p>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancel()" [disabled]="saving">Cancel</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
+  </mat-dialog-actions>
+</form>

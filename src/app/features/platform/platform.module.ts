@@ -34,6 +34,11 @@ import { PlatformTenantWhatsAppConfigDialogComponent } from './platform-tenant-w
 import { PlatformUsageComponent } from './platform-usage/platform-usage.component';
 import { PlatformUserSearchComponent } from './platform-user-search/platform-user-search.component';
 import { PlatformWhatsAppConnectionsComponent } from './platform-whatsapp-connections/platform-whatsapp-connections.component';
+import { PlatformMediaComponent } from './platform-media/platform-media.component';
+import { PlatformMessageTemplatesComponent } from './platform-message-templates/platform-message-templates.component';
+import { PlatformTemplateEditDialogComponent } from './platform-template-edit-dialog/platform-template-edit-dialog.component';
+import { PlatformTemplateTestDialogComponent } from './platform-template-test-dialog/platform-template-test-dialog.component';
+import { PlatformWhatsAppSettingsComponent } from './platform-whatsapp-settings/platform-whatsapp-settings.component';
 
 const routes: Routes = [
   {
@@ -58,6 +63,10 @@ const routes: Routes = [
       { path: 'jobs', component: PlatformJobsComponent },
       { path: 'aws-settings', component: PlatformAwsSettingsComponent },
       { path: 'delivery-settings', component: PlatformDeliverySettingsComponent },
+      // The platform's own WhatsApp: the number, a template per notice, and the images they show.
+      { path: 'whatsapp-settings', component: PlatformWhatsAppSettingsComponent },
+      { path: 'notice-templates', component: PlatformMessageTemplatesComponent },
+      { path: 'notice-media', component: PlatformMediaComponent },
       { path: 'users', component: PlatformUserSearchComponent },
       { path: 'audit-log', component: PlatformAuditLogComponent },
       { path: 'logs', component: PlatformLogsComponent },
@@ -92,6 +101,11 @@ const routes: Routes = [
     PlatformJobScheduleDialogComponent,
     PlatformAwsSettingsComponent,
     PlatformDeliverySettingsComponent,
+    PlatformWhatsAppSettingsComponent,
+    PlatformMessageTemplatesComponent,
+    PlatformTemplateEditDialogComponent,
+    PlatformTemplateTestDialogComponent,
+    PlatformMediaComponent,
     PlatformUserSearchComponent,
     PlatformAuditLogComponent,
     PlatformLogsComponent,
