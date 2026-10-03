@@ -1,0 +1,219 @@
+<div class="page">
+  <app-page-header
+    title="Razorpay Test"
+    subtitle="Save the platform's Razorpay keys and make a real payment through Razorpay Checkout to check everything works. Not connected to billing."
+  >
+    <button mat-stroked-button type="button" [disabled]="refreshing || loading" (click)="refresh()">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="rz-card" *ngIf="loadFailed">
+    <p>The Razorpay test page could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <ng-container *ngIf="!loading && !loadFailed">
+    <div class="banner banner--warn" *ngIf="settings?.mode === 'live' && settings?.isConfigured">
+      <mat-icon>warning</mat-icon>
+      <div><strong>Live keys are saved.</strong> Payments made here charge real money. Use test keys (rzp_test_...) to try things out.</div>
+    </div>
+
+    <div class="grid">
+      <!-- Keys -->
+      <mat-card class="rz-card">
+        <div class="card-title">
+          <h2>1. Keys</h2>
+          <span class="mode" [class.mode--live]="settings?.mode === 'live'" *ngIf="settings?.isConfigured">{{ settings?.mode }} mode</span>
+        </div>
+        <p class="muted">From Razorpay Dashboard &gt; Account &amp; Settings &gt; API Keys. The secret stays on the server; only the key id reaches the browser.</p>
+
+        <form [formGroup]="keysForm" (ngSubmit)="saveKeys()" novalidate>
+          <mat-form-field class="field">
+            <mat-label>Key id</mat-label>
+            <input matInput formControlName="keyId" autocomplete="off" placeholder="rzp_test_XXXXXXXXXXXXXX" />
+            <mat-hint *ngIf="typedMode">{{ typedMode === 'live' ? 'Live key - real money' : 'Test key - no real money' }}</mat-hint>
+            <mat-error>It looks like rzp_test_... or rzp_live_...</mat-error>
+          </mat-form-field>
+
+          <mat-form-field class="field">
+            <mat-label>Key secret</mat-label>
+            <input matInput type="password" autocomplete="new-password" formControlName="keySecret" [readonly]="keysForm.controls.removeKeySecret.value" />
+            <mat-hint>{{ hint('key') ? 'Stored: ' + hint('key') + ' - leave blank to keep' : 'None stored' }}</mat-hint>
+          </mat-form-field>
+          <mat-checkbox formControlName="removeKeySecret" *ngIf="settings?.hasKeySecret">Remove the stored key secret</mat-checkbox>
+
+          <mat-form-field class="field">
+            <mat-label>Webhook secret</mat-label>
+            <input matInput type="password" autocomplete="new-password" formControlName="webhookSecret" [readonly]="keysForm.controls.removeWebhookSecret.value" />
+            <mat-hint>{{ hint('webhook') ? 'Stored: ' + hint('webhook') + ' - leave blank to keep' : 'The secret you type when creating the webhook in Razorpay' }}</mat-hint>
+          </mat-form-field>
+          <mat-checkbox formControlName="removeWebhookSecret" *ngIf="settings?.hasWebhookSecret">Remove the stored webhook secret</mat-checkbox>
+
+          <div class="actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="savingKeys || keysForm.pristine">{{ savingKeys ? 'Saving…' : 'Save keys' }}</button>
+            <button mat-stroked-button type="button" [disabled]="testingKeys" (click)="testKeys()">
+              <mat-icon>{{ testingKeys ? 'hourglass_empty' : 'vpn_key' }}</mat-icon>
+              {{ testingKeys ? 'Testing…' : 'Test keys' }}
+            </button>
+          </div>
+        </form>
+
+        <div class="result" *ngIf="keyTest" [class.result--fail]="!keyTest.success" role="status" aria-live="polite">
+          <mat-icon>{{ keyTest.success ? 'check_circle' : 'error' }}</mat-icon>
+          <strong>{{ keyTest.message }}</strong>
+        </div>
+
+        <div class="webhook">
+          <div class="muted">Webhook URL - add it in Razorpay Dashboard &gt; Webhooks with the secret above (events: payment.*, order.paid, refund.*):</div>
+          <div class="webhook-row">
+            <code class="webhook-url">{{ webhookUrl }}</code>
+            <button mat-icon-button type="button" matTooltip="Copy" aria-label="Copy webhook URL" (click)="copyWebhookUrl()"><mat-icon>content_copy</mat-icon></button>
+          </div>
+          <div class="muted small" *ngIf="!settings?.hasWebhookSecret">No webhook secret is saved yet, so webhooks are refused.</div>
+        </div>
+      </mat-card>
+
+      <!-- Pay -->
+      <mat-card class="rz-card">
+        <div class="card-title"><h2>2. Make a test payment</h2></div>
+        <p class="muted">
+          Opens Razorpay Checkout. In test mode use card <code>4111 1111 1111 1111</code> (any future expiry, any CVV) or UPI
+          <code>success&#64;razorpay</code>; <code>failure&#64;razorpay</code> shows a failed attempt.
+        </p>
+
+        <form [formGroup]="payForm" (ngSubmit)="pay()" novalidate>
+          <div class="row">
+            <mat-form-field class="field">
+              <mat-label>Amount</mat-label>
+              <input matInput type="number" min="1" step="0.01" formControlName="amount" />
+              <mat-error>Between 1 and 5,00,000.</mat-error>
+            </mat-form-field>
+            <mat-form-field class="field field--small">
+              <mat-label>Currency</mat-label>
+              <mat-select formControlName="currency">
+                <mat-option *ngFor="let c of currencies" [value]="c">{{ c }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <mat-form-field class="field">
+            <mat-label>Description</mat-label>
+            <input matInput formControlName="description" />
+          </mat-form-field>
+          <div class="row">
+            <mat-form-field class="field">
+              <mat-label>Name (prefill)</mat-label>
+              <input matInput formControlName="customerName" autocomplete="off" />
+            </mat-form-field>
+            <mat-form-field class="field">
+              <mat-label>Email (prefill)</mat-label>
+              <input matInput formControlName="customerEmail" autocomplete="off" />
+              <mat-error>Enter a valid email.</mat-error>
+            </mat-form-field>
+            <mat-form-field class="field">
+              <mat-label>Phone (prefill)</mat-label>
+              <input matInput formControlName="customerContact" autocomplete="off" placeholder="+919876543210" />
+              <mat-error>Enter a phone number.</mat-error>
+            </mat-form-field>
+          </div>
+          <button mat-flat-button color="primary" type="submit" [disabled]="paying || !settings?.isConfigured">
+            <mat-icon>payments</mat-icon>
+            {{ paying ? 'Payment in progress…' : 'Pay with Razorpay' }}
+          </button>
+          <span class="muted small not-ready" *ngIf="!settings?.isConfigured">Save the key id and key secret first.</span>
+        </form>
+
+        <ol class="flow" *ngIf="flow.length" aria-live="polite">
+          <li *ngFor="let step of flow" [class]="'flow-step flow-step--' + step.state">
+            <mat-icon>{{ step.state === 'ok' ? 'check_circle' : step.state === 'fail' ? 'cancel' : step.state === 'busy' ? 'hourglass_empty' : 'info' }}</mat-icon>
+            <div>
+              <div>{{ step.label }}</div>
+              <div class="muted small" *ngIf="step.detail">{{ step.detail }}</div>
+            </div>
+          </li>
+        </ol>
+        <div class="result" *ngIf="flowOutcome" [class.result--fail]="!flowOutcome.success" role="status">
+          <mat-icon>{{ flowOutcome.success ? 'verified' : 'error' }}</mat-icon>
+          <strong>{{ flowOutcome.message }}</strong>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Orders -->
+    <mat-card class="rz-card">
+      <div class="card-title"><h2>3. Orders</h2><span class="muted">Latest 50 made from this page</span></div>
+
+      <div class="table-wrap" *ngIf="orders.length; else noOrders">
+        <table class="rz-table">
+          <thead>
+            <tr><th>Created</th><th>Order</th><th>Amount</th><th>Status</th><th>Payment</th><th>Verified</th><th>Last webhook</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let o of orders; trackBy: trackById">
+              <td>{{ o.createdAt | date: 'd MMM, HH:mm:ss' }}</td>
+              <td><code>{{ o.orderId }}</code><div class="muted small">{{ o.mode }} · {{ o.description }}</div></td>
+              <td>
+                {{ format(o.amountMinor, o.currency) }}
+                <div class="muted small" *ngIf="o.refundedMinor">refunded {{ format(o.refundedMinor, o.currency) }}</div>
+              </td>
+              <td>
+                <span class="status" [ngClass]="statusClass(o.status)">{{ o.status }}</span>
+                <div class="muted small failure" *ngIf="o.failureReason && o.status !== 'Paid'">{{ o.failureReason }}</div>
+              </td>
+              <td><code *ngIf="o.paymentId">{{ o.paymentId }}</code><div class="muted small">{{ o.method }}</div></td>
+              <td>
+                <mat-icon *ngIf="o.signatureVerifiedAtUtc" class="ok" matTooltip="Signature checked on the server">verified</mat-icon>
+                <span class="muted" *ngIf="!o.signatureVerifiedAtUtc">-</span>
+              </td>
+              <td>{{ o.lastWebhookEvent || '-' }}<div class="muted small" *ngIf="o.lastWebhookAtUtc">{{ o.lastWebhookAtUtc | date: 'HH:mm:ss' }}</div></td>
+              <td>
+                <button mat-stroked-button type="button" *ngIf="canRefund(o)" (click)="startRefund(o)">Refund</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noOrders><p class="muted">No test payments yet.</p></ng-template>
+
+      <div class="refund" *ngIf="refunding">
+        <strong>Refund {{ refunding.orderId }}</strong>
+        <span class="muted">({{ format(refunding.amountMinor - refunding.refundedMinor, refunding.currency) }} left)</span>
+        <mat-form-field class="field field--small" subscriptSizing="dynamic">
+          <mat-label>Amount</mat-label>
+          <input matInput type="number" min="0.01" step="0.01" [formControl]="refundAmount" placeholder="All" />
+          <mat-hint>Blank refunds everything left.</mat-hint>
+        </mat-form-field>
+        <button mat-flat-button color="warn" type="button" [disabled]="refundBusy" (click)="confirmRefund()">{{ refundBusy ? 'Refunding…' : 'Refund' }}</button>
+        <button mat-button type="button" (click)="cancelRefund()">Cancel</button>
+      </div>
+    </mat-card>
+
+    <!-- Webhooks -->
+    <mat-card class="rz-card">
+      <div class="card-title"><h2>4. Webhooks received</h2><span class="muted">Only correctly signed deliveries are kept</span></div>
+      <div class="table-wrap" *ngIf="events.length; else noEvents">
+        <table class="rz-table">
+          <thead><tr><th>Received</th><th>Event</th><th>Order</th><th>Payment</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let e of events; trackBy: trackById">
+              <td>{{ e.receivedAt | date: 'd MMM, HH:mm:ss' }}</td>
+              <td><code>{{ e.event }}</code></td>
+              <td><code *ngIf="e.orderId">{{ e.orderId }}</code></td>
+              <td><code *ngIf="e.paymentId">{{ e.paymentId }}</code></td>
+              <td>
+                <mat-icon class="small-icon" [class.ok]="e.applied">{{ e.applied ? 'check_circle' : 'remove_circle_outline' }}</mat-icon>
+                {{ e.note }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noEvents>
+        <p class="muted">No webhooks yet. They arrive a few seconds after a payment once the webhook is set up in Razorpay - press Refresh.</p>
+      </ng-template>
+    </mat-card>
+  </ng-container>
+</div>

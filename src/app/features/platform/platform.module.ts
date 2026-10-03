@@ -67,6 +67,8 @@ const routes: Routes = [
       { path: 'whatsapp-settings', component: PlatformWhatsAppSettingsComponent },
       { path: 'notice-templates', component: PlatformMessageTemplatesComponent },
       { path: 'notice-media', component: PlatformMediaComponent },
+      // Razorpay test page - its own lazy module, deliberately separate from billing.
+      { path: 'razorpay-test', loadChildren: () => import('../razorpay-test/razorpay-test.module').then((m) => m.RazorpayTestModule) },
       { path: 'users', component: PlatformUserSearchComponent },
       { path: 'audit-log', component: PlatformAuditLogComponent },
       { path: 'logs', component: PlatformLogsComponent },
