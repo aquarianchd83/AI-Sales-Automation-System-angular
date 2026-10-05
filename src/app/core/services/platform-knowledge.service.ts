@@ -7,6 +7,7 @@ import {
   CreateKnowledgeBaseArticleRequest,
   KnowledgeBaseArticle,
   UpdateKnowledgeBaseArticleRequest,
+  UploadKnowledgeArticleResult,
 } from '../models/knowledge-base.model';
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
 
@@ -18,10 +19,6 @@ export interface PlatformEmbeddingStatus {
   keyMissing: boolean;
   /** Non-null when tenants on a real embedding provider would not find platform articles. */
   warning: string | null;
-}
-
-export interface UploadKnowledgeArticleResult {
-  article: KnowledgeBaseArticle;
 }
 
 /** The platform's own (GLOBAL) knowledge base - PlatformSuperAdmin only. Answers every tenant's

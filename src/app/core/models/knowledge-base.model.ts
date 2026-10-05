@@ -32,17 +32,19 @@ export enum KnowledgeBaseSourceType {
   ReleaseChangeNote = 'ReleaseChangeNote',
   AdminConfiguredArticle = 'AdminConfiguredArticle',
   HistoricalDocumentation = 'HistoricalDocumentation',
+  Voucher = 'Voucher',
 }
 
 /** The source types a TENANT may author. The rest are statements about the platform itself and are
  * reserved for a PlatformSuperAdmin - the API rejects them with a 400 explaining why (see
  * KnowledgeAuthority.GlobalOnly), so offering them in a tenant's dropdown would only produce an
- * error the user could not act on. All four of these cap at authority rank 30. */
+ * error the user could not act on. All of these cap at authority rank 30. */
 export const TENANT_AUTHORABLE_SOURCE_TYPES: KnowledgeBaseSourceType[] = [
   KnowledgeBaseSourceType.AdminConfiguredArticle,
   KnowledgeBaseSourceType.ApprovedFaq,
   KnowledgeBaseSourceType.TroubleshootingGuide,
   KnowledgeBaseSourceType.HistoricalDocumentation,
+  KnowledgeBaseSourceType.Voucher,
 ];
 
 /** "AdminConfiguredArticle" reads badly in a dropdown. */
@@ -56,6 +58,8 @@ export function sourceTypeDisplayName(sourceType: KnowledgeBaseSourceType | stri
       return 'Troubleshooting guide';
     case KnowledgeBaseSourceType.HistoricalDocumentation:
       return 'Historical / superseded';
+    case KnowledgeBaseSourceType.Voucher:
+      return 'Voucher';
     default:
       // Every remaining value is platform-only and will not normally reach a tenant's screen, so a
       // readable fallback beats fifteen more hand-written cases: "BillingRule" -> "Billing rule".
@@ -232,3 +236,8 @@ export const EMBEDDING_PROVIDERS: EmbeddingProviderName[] = [
   EmbeddingProviderName.OpenAI,
   EmbeddingProviderName.Google,
 ];
+
+/** UploadKnowledgeArticleResultDto - an uploaded document becomes a Draft article; read it, then publish. */
+export interface UploadKnowledgeArticleResult {
+  article: KnowledgeBaseArticle;
+}

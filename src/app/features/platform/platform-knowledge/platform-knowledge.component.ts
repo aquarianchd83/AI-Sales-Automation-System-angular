@@ -193,7 +193,7 @@ export class PlatformKnowledgeComponent implements OnInit, OnDestroy {
   }
 
   /** Creates a Draft from the chosen file - nothing is published until it has been read and reviewed. */
-  onFileSelected(event: Event): void {
+  onFileSelected(event: Event, sourceType?: string): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
@@ -203,7 +203,7 @@ export class PlatformKnowledgeComponent implements OnInit, OnDestroy {
 
     this.uploading = true;
     this.articles
-      .upload(file)
+      .upload(file, sourceType)
       .pipe(finalize(() => (this.uploading = false)))
       .subscribe({
         next: (result) => {
