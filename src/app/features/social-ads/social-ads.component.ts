@@ -20,6 +20,9 @@ const LOGIN_CANCELLED = 'The Facebook login was cancelled, so nothing was connec
 export class SocialAdsComponent implements OnInit {
   readonly months = recentMonths(new Date(), 24);
   readonly manualColumns = ['month', 'amount', 'actions'];
+  /** Shown in the setup guide to copy into the Meta App: it must match what the connect button sends, character for character. */
+  readonly redirectUri = socialAdsRedirectUri(window.location.origin);
+  readonly metaAppsUrl = 'https://developers.facebook.com/apps/';
 
   readonly manualForm = this.fb.nonNullable.group({
     month: [this.months[0], [Validators.required]],
@@ -158,6 +161,19 @@ export class SocialAdsComponent implements OnInit {
       this.notify.success('Removed.');
       this.loadManual();
     });
+  }
+
+  /** Copies the redirect address; falls back to a message when the browser blocks clipboard access. */
+  copyRedirectUri(): void {
+    const clipboard = navigator.clipboard;
+    if (!clipboard) {
+      this.notify.error('Copy is not available here. Select the address and copy it by hand.');
+      return;
+    }
+    clipboard.writeText(this.redirectUri).then(
+      () => this.notify.success('Redirect address copied.'),
+      () => this.notify.error('Could not copy. Select the address and copy it by hand.')
+    );
   }
 
   /** True while there is something to show on the connected card (syncing happens daily by itself). */

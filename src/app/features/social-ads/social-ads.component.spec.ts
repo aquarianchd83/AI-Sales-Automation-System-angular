@@ -67,9 +67,10 @@ describe('SocialAdsComponent', () => {
     fixture.detectChanges();
     flushLoad({ ...base, isAvailable: false });
 
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain("isn't switched on for this platform yet");
-    expect(text).not.toContain('Connect with Facebook');
+    const root = fixture.nativeElement as HTMLElement;
+    const connectButtons = Array.from(root.querySelectorAll('button')).filter((b) => b.textContent?.includes('Connect with Facebook'));
+    expect(root.textContent).toContain("isn't switched on for this platform yet");
+    expect(connectButtons.length).toBe(0);
   });
 
   it('finishes the login Facebook redirected back with, then removes the single-use code from the address', () => {
@@ -147,5 +148,42 @@ describe('SocialAdsComponent', () => {
     expect(clear.request.body.amount).toBe(0);
     clear.flush(null);
     http.expectOne((r) => r.url.endsWith('/social-ads/manual-spend') && r.method === 'GET').flush([]);
+  });
+
+  it('shows the Meta app setup steps with the exact redirect address to register', () => {
+    create();
+    fixture.detectChanges();
+    flushLoad(base);
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(component.redirectUri).toBe(`${window.location.origin}/social-ads`);
+    expect(text).toContain('Meta app setup');
+    expect(text).toContain('Valid OAuth Redirect URIs');
+    expect(text).toContain(component.redirectUri);
+    expect(text).toContain('ads_read');
+    expect(text).toContain('How to connect');
+  });
+
+  it('opens the Meta setup steps by default when the platform has no Meta App yet', () => {
+    create();
+    fixture.detectChanges();
+    flushLoad({ ...base, isAvailable: false });
+
+    const panels = (fixture.nativeElement as HTMLElement).querySelectorAll('mat-expansion-panel.guide');
+    const setup = Array.from(panels).find((p) => p.textContent?.includes('Meta app setup'));
+    expect(setup?.classList.contains('mat-expanded')).toBeTrue();
+  });
+
+  it('copies the redirect address to the clipboard', async () => {
+    create();
+    fixture.detectChanges();
+    flushLoad(base);
+    const write = jasmine.createSpy('writeText').and.resolveTo();
+    spyOnProperty(navigator, 'clipboard', 'get').and.returnValue({ writeText: write } as unknown as Clipboard);
+
+    component.copyRedirectUri();
+    await fixture.whenStable();
+
+    expect(write).toHaveBeenCalledWith(component.redirectUri);
   });
 });
