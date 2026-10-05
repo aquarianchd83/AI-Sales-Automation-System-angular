@@ -68,6 +68,8 @@
       </form>
     </mat-card>
 
+    <app-lead-follow-up-panel [leadId]="l.id" [canEdit]="canEdit" (changed)="refreshActivities()"></app-lead-follow-up-panel>
+
     <mat-card class="activity-card">
       <h2>Activity</h2>
 
@@ -91,6 +93,9 @@
           <div class="timeline-body">
             <ng-container [ngSwitch]="a.activityType">
               <span *ngSwitchCase="'Note'">{{ a.note }}</span>
+              <span *ngSwitchCase="'FollowUpScheduled'">{{ a.note }}</span>
+              <span *ngSwitchCase="'FollowUpSent'">{{ a.note }}</span>
+              <span *ngSwitchCase="'FollowUpCancelled'">{{ a.note }}</span>
               <span *ngSwitchDefault>
                 {{ a.activityType }}: {{ a.oldValue || '—' }} → {{ a.newValue || '—' }}
                 <span *ngIf="a.note"> ({{ a.note }})</span>

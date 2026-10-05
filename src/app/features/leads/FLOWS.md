@@ -116,3 +116,50 @@ Configuration this open needs a way to tell whether a question earns its place. 
 - **Turns to answer** — a question that takes four turns is costing the conversation its patience.
 - **Hot conversion against everyone else** — if leads the rules mark hot do not close better than the
   rest, the rules are measuring something that is not buying intent, and the fix is in the rules.
+
+---
+
+## 5. Follow up later
+
+A customer who was interested but could not go ahead (budget, timing, a decision pending) is parked on the
+lead with a wait of 1, 2 or 3 months (or a date up to a year out), an approved template and an optional
+reason. Campaign follow-ups cannot do this: they only chase customers who have not replied and stop for good
+once someone does. The list of everyone parked is **Leads → Follow-ups**.
+
+| Where the logic lives | File |
+| --- | --- |
+| UI | `lead-follow-up-panel` (on the lead), `lead-follow-up-list` (the list) |
+| Model and display rules | [lead-follow-up.model.ts](../../core/models/lead-follow-up.model.ts) |
+| HTTP calls | [lead-follow-up.service.ts](../../core/services/lead-follow-up.service.ts) |
+| Rules and sending (API) | `.../Application/Leads/FollowUps/LeadFollowUpService.cs`, `LeadFollowUpPolicy.cs` |
+| Hourly sender (API) | `.../BackgroundJobs/LeadFollowUpJob.cs` (`lead-follow-ups` per-tenant job) |
+
+The limits that keep it from irritating anyone live in `LeadFollowUpPolicy` and are not tenant settings: a
+floor a tenant can lower is not a floor.
+
+```mermaid
+flowchart TD
+    A["Agent parks the lead<br/>1/2/3 months or a date, template, reason"] --> B{"Lead open, customer opted in,<br/>template approved,<br/>fewer than 3 already sent?"}
+    B -- no --> X["Refused with the reason"]
+    B -- yes --> S["Scheduled<br/>replaces the lead's earlier one"]
+    S --> J["Hourly job, per tenant"]
+    J --> W{"Tenant-local time<br/>9am to 8pm?"}
+    W -- no --> J
+    W -- yes --> D{"Due?"}
+    D -- no --> J
+    D -- yes --> O{"Opted out, or lead<br/>Won / Lost?"}
+    O -- yes --> C["Cancelled"]
+    O -- no --> R{"Customer wrote in since<br/>it was scheduled?"}
+    R -- yes --> K["Skipped<br/>no reminder needed"]
+    R -- no --> Q{"Messaged by anything<br/>in the last 7 days?"}
+    Q -- yes --> P["Pushed back until 7 days<br/>after that message"]
+    Q -- no --> T{"Template approved<br/>and quota left?"}
+    T -- no --> J
+    T -- yes --> M["Send the template<br/>spend quota, add to the conversation"]
+    M --> OK{"WhatsApp accepted?"}
+    OK -- yes --> SENT["Sent<br/>lead timeline updated"]
+    OK -- no --> F["Failed, quota given back<br/>a person can Try again"]
+```
+
+"Send now" is a person's call: it skips the daytime window, the quiet period and the "wrote in since" check,
+but never opt-in, template approval or quota.

@@ -36,6 +36,9 @@ export enum LeadActivityType {
   StageChanged = 'StageChanged',
   Note = 'Note',
   AssignmentChanged = 'AssignmentChanged',
+  FollowUpScheduled = 'FollowUpScheduled',
+  FollowUpSent = 'FollowUpSent',
+  FollowUpCancelled = 'FollowUpCancelled',
 }
 
 /** LeadDto. Customer phone/name arrive denormalized, same as ConversationDto/HandoffDto. */

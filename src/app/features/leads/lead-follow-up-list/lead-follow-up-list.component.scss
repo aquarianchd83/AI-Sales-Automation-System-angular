@@ -1,0 +1,66 @@
+.summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.tile {
+  padding: 12px 20px;
+  min-width: 120px;
+  text-align: center;
+
+  &--alert .tile-value {
+    color: #b26a00;
+  }
+}
+
+.tile-value {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.filter-select {
+  width: 180px;
+}
+
+.primary-cell {
+  font-weight: 500;
+}
+
+.phone-cell {
+  font-size: 12px;
+}
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.clickable-row {
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}
