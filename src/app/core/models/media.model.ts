@@ -10,6 +10,8 @@ export interface MediaAsset {
   isPublicUrl: boolean;
   /** What the portal loads to show the file: a path on the API for stored files, the tenant's own link for linked ones. */
   previewUrl?: string | null;
+  /** A still frame cut from a video when it was uploaded; null for images and for videos that have none. */
+  thumbnailUrl?: string | null;
 }
 
 /**
@@ -47,6 +49,11 @@ export function absoluteMediaUrl(url: string, origin: string = window.location.o
   } catch {
     return url;
   }
+}
+
+/** The picture to show for a video before it is played, or null when it has no thumbnail. */
+export function mediaThumbnailUrl(asset: MediaAsset, apiBaseUrl: string): string | null {
+  return asset.thumbnailUrl ? mediaPreviewUrl(asset.thumbnailUrl, apiBaseUrl) : null;
 }
 
 export function mediaKindLabel(contentType: string): string {

@@ -127,15 +127,17 @@ describe('PlatformTemplateEditDialogComponent', () => {
     expect(component.form.controls.bodyText.value).toContain('the default');
   });
 
-  it('offers only a JPEG or PNG up to 5 MB as the image', () => {
+  it('offers a JPEG or PNG up to 5 MB, or an MP4 or 3GPP video up to 16 MB', () => {
     const { component } = create(template(), [
       image(),
       image({ id: 'i2', fileName: 'clip.mp4', contentType: 'video/mp4' }),
       image({ id: 'i3', fileName: 'huge.png', sizeBytes: 6 * 1024 * 1024 }),
       image({ id: 'i4', fileName: 'photo.jpg', contentType: 'image/jpeg' }),
+      image({ id: 'i5', fileName: 'huge.mp4', contentType: 'video/mp4', sizeBytes: 17 * 1024 * 1024 }),
+      image({ id: 'i6', fileName: 'still.webp', contentType: 'image/webp' }),
     ]);
 
-    expect(component.images.map((i) => i.fileName)).toEqual(['hero.png', 'photo.jpg']);
+    expect(component.images.map((i) => i.fileName)).toEqual(['hero.png', 'clip.mp4', 'photo.jpg']);
   });
 
   it('saves the edit, sending the image only when it changed', () => {

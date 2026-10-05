@@ -127,29 +127,39 @@
 
     <section class="image-section">
       <h3 class="image-section__title">
-        <mat-icon>image</mat-icon> Image <span class="muted">(optional)</span>
+        <mat-icon>perm_media</mat-icon> Image or video <span class="muted">(optional)</span>
       </h3>
 
       <p class="muted image-section__hint" *ngIf="imageMode !== 'locked'">
-        Shown above the message, from the media library — JPEG or PNG, up to {{ imageLimitMb }} MB. It is sent to Meta
-        with the template when you press <strong>Sync</strong>, and every message sent with this template then carries it.
+        Shown above the message, from the media library — a JPEG or PNG image up to {{ imageLimitMb }} MB, or an MP4 or
+        3GPP video up to {{ videoLimitMb }} MB. It is sent to Meta with the template when you press <strong>Sync</strong>,
+        and every message sent with this template then carries it.
       </p>
       <p class="muted image-section__hint" *ngIf="imageMode === 'swap'">
-        Meta already has this template with an image, so you can replace the picture but not remove it.
+        Meta already has this template with {{ lockedKind === 'video' ? 'a video' : 'an image' }}, so you can replace it
+        with another {{ lockedKind ?? 'file of the same kind' }} but not remove it.
       </p>
       <p class="muted image-section__hint" *ngIf="imageMode === 'locked'">
-        This template is on Meta without an image, and Meta fixes that when a template is created. To send a picture
-        with the message, make a copy of this template and add the image there.
+        This template is on Meta without an image or video, and Meta fixes that when a template is created. To send a
+        picture or video with the message, make a copy of this template and add it there.
       </p>
       <button mat-stroked-button type="button" *ngIf="imageMode === 'locked'" class="image-duplicate" (click)="duplicateInstead()">
         <mat-icon>content_copy</mat-icon>
         Duplicate as a new template
       </button>
 
-      <p class="muted" *ngIf="resolvingHeader">Loading the image…</p>
+      <p class="muted" *ngIf="resolvingHeader">Loading…</p>
 
       <div class="image-preview" *ngIf="headerAsset as asset">
-        <img [src]="preview(asset.previewUrl || asset.url)" [alt]="asset.fileName" />
+        <video
+          *ngIf="headerKind(asset) === 'video'; else stillPreview"
+          [src]="preview(asset.url)"
+          [poster]="thumb(asset)"
+          controls
+          muted
+          preload="metadata"
+        ></video>
+        <ng-template #stillPreview><img [src]="preview(asset.previewUrl || asset.url)" [alt]="asset.fileName" /></ng-template>
         <div class="image-preview__meta">
           <strong>{{ asset.fileName }}</strong>
           <span class="muted">{{ formatSize(asset.sizeBytes) }}</span>
@@ -158,8 +168,8 @@
           mat-icon-button
           type="button"
           *ngIf="imageMode === 'free'"
-          matTooltip="Remove the image"
-          aria-label="Remove the image"
+          [matTooltip]="headerKind(asset) === 'video' ? 'Remove the video' : 'Remove the image'"
+          [attr.aria-label]="headerKind(asset) === 'video' ? 'Remove the video' : 'Remove the image'"
           (click)="removeImage()"
         >
           <mat-icon>close</mat-icon>
@@ -168,12 +178,12 @@
 
       <p class="image-warning" *ngIf="headerAsset && !headerAsset.isPublicUrl">
         <mat-icon inline>warning</mat-icon>
-        This image's link is not public, so Meta cannot fetch it. Ask your administrator to set the server's
+        This file's link is not public, so Meta cannot fetch it. Ask your administrator to set the server's
         MediaStorage PublicBaseUrl before syncing this template.
       </p>
 
       <mat-form-field class="full-width" *ngIf="imageMode !== 'locked'">
-        <mat-label>{{ headerAsset ? 'Replace image' : 'Add image' }}</mat-label>
+        <mat-label>{{ headerAsset ? 'Replace it' : 'Add an image or video' }}</mat-label>
         <mat-icon matPrefix>search</mat-icon>
         <input
           matInput
@@ -187,14 +197,16 @@
             {{ asset.fileName }} <span class="muted">· {{ formatSize(asset.sizeBytes) }}</span>
           </mat-option>
         </mat-autocomplete>
-        <mat-hint>Only JPEG or PNG files up to {{ imageLimitMb }} MB are listed.</mat-hint>
+        <mat-hint>
+          Only files Meta accepts are listed: JPEG or PNG up to {{ imageLimitMb }} MB, MP4 or 3GPP up to {{ videoLimitMb }} MB.
+        </mat-hint>
       </mat-form-field>
 
       <div class="image-upload" *ngIf="imageMode !== 'locked'">
-        <input #imageFile type="file" hidden accept="image/jpeg,image/png" (change)="onImageFileSelected($event)" />
+        <input #imageFile type="file" hidden [accept]="headerAccept" (change)="onImageFileSelected($event)" />
         <button mat-stroked-button type="button" [disabled]="uploadingImage" (click)="imageFile.click()">
           <mat-icon>upload</mat-icon>
-          {{ uploadingImage ? 'Uploading… ' + uploadProgress + '%' : headerAsset ? 'Upload a different image' : 'Upload an image' }}
+          {{ uploadingImage ? 'Uploading… ' + uploadProgress + '%' : headerAsset ? 'Upload a different file' : 'Upload an image or video' }}
         </button>
         <span class="muted">or pick one that is already in the media library.</span>
         <mat-progress-bar *ngIf="uploadingImage" class="image-upload__progress" mode="determinate" [value]="uploadProgress"></mat-progress-bar>

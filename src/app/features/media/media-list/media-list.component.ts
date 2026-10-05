@@ -16,7 +16,7 @@ import {
 
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
-import { MediaAsset, absoluteMediaUrl, formatFileSize, isImageContentType, mediaKindLabel, mediaPreviewUrl } from '../../../core/models/media.model';
+import { MediaAsset, absoluteMediaUrl, formatFileSize, isImageContentType, mediaKindLabel, mediaPreviewUrl, mediaThumbnailUrl } from '../../../core/models/media.model';
 import { environment } from '../../../../environments/environment';
 import { MediaService } from '../../../core/services/media.service';
 import { MediaDetailDialogComponent, MediaDetailResult } from '../media-detail-dialog/media-detail-dialog.component';
@@ -37,6 +37,7 @@ export class MediaListComponent implements OnInit, OnDestroy {
   readonly formatSize = formatFileSize;
   readonly kindLabel = mediaKindLabel;
   readonly preview = (url: string): string => mediaPreviewUrl(url, environment.apiBaseUrl);
+  readonly thumb = (asset: MediaAsset): string | null => mediaThumbnailUrl(asset, environment.apiBaseUrl);
 
   page: PagedResult<MediaAsset> = emptyPage<MediaAsset>();
   loading = true;

@@ -3,7 +3,8 @@ import { AbstractControl, NonNullableFormBuilder, ValidationErrors, Validators }
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
-import { MediaAsset } from '../../../core/models/media.model';
+import { environment } from '../../../../environments/environment';
+import { MediaAsset, mediaThumbnailUrl } from '../../../core/models/media.model';
 import {
   PLATFORM_TEMPLATE_MAX_BODY,
   PLATFORM_TEMPLATE_TOKENS,
@@ -16,7 +17,7 @@ import {
 } from '../../../core/models/platform-whatsapp.model';
 import { PlatformMediaService } from '../../../core/services/platform-media.service';
 import { PlatformMessageTemplatesService } from '../../../core/services/platform-message-templates.service';
-import { TEMPLATE_IMAGE_MAX_BYTES, TEMPLATE_IMAGE_TYPES } from '../platform-media/platform-media.component';
+import { TemplateHeaderKind, isUsableTemplateHeader, templateHeaderKind } from '../../../core/models/message-template.model';
 
 export interface PlatformTemplateEditData {
   template: PlatformMessageTemplate;
@@ -81,6 +82,13 @@ export class PlatformTemplateEditDialogComponent implements OnInit {
     return renderTemplatePreview(this.form.controls.bodyText.value, this.template.sampleMessage);
   }
 
+  readonly thumb = (asset: MediaAsset): string | null => mediaThumbnailUrl(asset, environment.apiBaseUrl);
+
+  readonly headerKind = (asset: MediaAsset): TemplateHeaderKind | null => templateHeaderKind(asset.contentType);
+
+  /** On Meta, a template keeps the kind of header it was created with, so a swap must be the same kind. */
+  lockedKind: TemplateHeaderKind | null = null;
+
   get previewImage(): MediaAsset | null {
     const id = this.form.controls.headerMediaAssetId.value;
     return this.images.find((i) => i.id === id) ?? null;
@@ -99,16 +107,20 @@ export class PlatformTemplateEditDialogComponent implements OnInit {
       .getAll()
       .pipe(finalize(() => (this.imagesLoading = false)))
       .subscribe({
-        next: (all) => (this.images = all.filter((a) => this.usable(a) || a.id === this.template.headerMediaAssetId)),
+        next: (all) => {
+          const current = all.find((a) => a.id === this.template.headerMediaAssetId);
+          this.lockedKind = this.headerRequired && current ? templateHeaderKind(current.contentType) : null;
+          this.images = all.filter((a) => this.usable(a) || a.id === this.template.headerMediaAssetId);
+        },
         error: () => {
           // ErrorInterceptor toasts it.
         },
       });
   }
 
-  /** Meta accepts JPEG or PNG up to 5 MB for a message header. */
+  /** Meta accepts a JPEG or PNG up to 5 MB, or an MP4 or 3GPP video up to 16 MB - of the locked kind once on Meta. */
   usable(asset: MediaAsset): boolean {
-    return TEMPLATE_IMAGE_TYPES.includes(asset.contentType.toLowerCase()) && asset.sizeBytes <= TEMPLATE_IMAGE_MAX_BYTES;
+    return isUsableTemplateHeader(asset) && (!this.lockedKind || templateHeaderKind(asset.contentType) === this.lockedKind);
   }
 
   /** Puts {{Token}} where the cursor is, replacing any selection. */

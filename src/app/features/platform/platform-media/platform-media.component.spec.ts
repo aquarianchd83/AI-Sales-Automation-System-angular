@@ -53,12 +53,16 @@ describe('PlatformMediaComponent', () => {
     component.onFileChosen({ target: input } as unknown as Event);
   };
 
-  it('lists the files and says which cannot be a template image', () => {
-    const { text } = create([asset(), asset({ id: 'm2', fileName: 'clip.mp4', contentType: 'video/mp4' })]);
+  it('lists the files and says which cannot go in a template', () => {
+    const { text } = create([
+      asset(),
+      asset({ id: 'm2', fileName: 'clip.mp4', contentType: 'video/mp4' }),
+      asset({ id: 'm3', fileName: 'still.webp', contentType: 'image/webp' }),
+    ]);
 
     expect(text()).toContain('hero.png');
-    expect(text()).toContain('2 files');
-    expect(text().match(/Not usable as a template image/g)?.length).toBe(1);
+    expect(text()).toContain('3 files');
+    expect(text().match(/Not usable in a template/g)?.length).toBe(1);
   });
 
   it('warns when the files have no public link, because Meta cannot fetch them', () => {

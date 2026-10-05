@@ -24,8 +24,8 @@
     <div class="hint">
       <mat-icon>info</mat-icon>
       <span>
-        A template image must be a <strong>JPEG or PNG up to 5 MB</strong> - that is what Meta accepts for a message header. Other files can be
-        stored here but cannot be picked for a template.
+        Above a template message Meta accepts a <strong>JPEG or PNG up to 5 MB</strong> or an <strong>MP4 or 3GPP video up to 16 MB</strong>.
+        Other files can be stored here but cannot be picked for a template.
       </span>
     </div>
 
@@ -50,13 +50,14 @@
       <mat-card class="media-card" *ngFor="let asset of items">
         <div class="thumb">
           <img *ngIf="isImage(asset.contentType)" [src]="preview(asset.previewUrl || asset.url)" [alt]="asset.fileName" loading="lazy" />
-          <mat-icon *ngIf="!isImage(asset.contentType)" class="thumb-icon">movie</mat-icon>
+          <img *ngIf="!isImage(asset.contentType) && thumb(asset) as poster" [src]="poster" [alt]="asset.fileName" loading="lazy" />
+          <mat-icon *ngIf="!isImage(asset.contentType) && !thumb(asset)" class="thumb-icon">movie</mat-icon>
           <span class="kind-badge">{{ kindLabel(asset.contentType) }}</span>
         </div>
         <div class="media-info">
           <div class="media-name" [matTooltip]="asset.fileName">{{ asset.fileName }}</div>
           <div class="muted media-meta">{{ formatSize(asset.sizeBytes) }} · {{ asset.createdAt | date: 'mediumDate' }}</div>
-          <div class="media-flag" *ngIf="!usableAsHeader(asset)">Not usable as a template image</div>
+          <div class="media-flag" *ngIf="!usableAsHeader(asset)">Not usable in a template</div>
         </div>
         <div class="media-actions">
           <button mat-icon-button type="button" matTooltip="Copy public link" aria-label="Copy public link" (click)="copyUrl(asset)">

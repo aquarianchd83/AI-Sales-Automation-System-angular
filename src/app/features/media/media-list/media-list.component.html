@@ -37,7 +37,8 @@
       <mat-card class="media-card" *ngFor="let asset of page.items" tabindex="0" (click)="view(asset)" (keydown.enter)="view(asset)">
         <div class="thumb">
           <img *ngIf="isImage(asset.contentType)" [src]="preview(asset.previewUrl || asset.url)" [alt]="asset.fileName" loading="lazy" />
-          <mat-icon *ngIf="!isImage(asset.contentType)" class="thumb-icon">movie</mat-icon>
+          <img *ngIf="!isImage(asset.contentType) && thumb(asset) as poster" [src]="poster" [alt]="asset.fileName" loading="lazy" />
+          <mat-icon *ngIf="!isImage(asset.contentType) && !thumb(asset)" class="thumb-icon">movie</mat-icon>
           <span class="kind-badge">{{ kindLabel(asset.contentType) }}</span>
           <div class="thumb-actions" (click)="$event.stopPropagation()">
             <button mat-mini-fab type="button" matTooltip="Copy public URL" aria-label="Copy public URL" (click)="copyUrl(asset)">

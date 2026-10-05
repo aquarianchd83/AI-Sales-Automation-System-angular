@@ -13,14 +13,12 @@ import {
   isImageContentType,
   mediaKindLabel,
   mediaPreviewUrl,
+  mediaThumbnailUrl,
 } from '../../../core/models/media.model';
+import { isUsableTemplateHeader } from '../../../core/models/message-template.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformMediaService } from '../../../core/services/platform-media.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
-
-/** What a notice template's image has to be: Meta accepts JPEG or PNG for a message header, up to 5 MB. */
-export const TEMPLATE_IMAGE_TYPES = ['image/jpeg', 'image/png'];
-export const TEMPLATE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 /**
  * The platform's own media library - the images the WhatsApp notice templates show. Separate from every tenant's library: these files are the
@@ -38,9 +36,9 @@ export class PlatformMediaComponent implements OnInit, OnDestroy {
   readonly formatSize = formatFileSize;
   readonly kindLabel = mediaKindLabel;
   readonly preview = (url: string): string => mediaPreviewUrl(url, environment.apiBaseUrl);
+  readonly thumb = (asset: MediaAsset): string | null => mediaThumbnailUrl(asset, environment.apiBaseUrl);
   /** Whether Meta can use the file as a template header. */
-  readonly usableAsHeader = (asset: MediaAsset): boolean =>
-    TEMPLATE_IMAGE_TYPES.includes(asset.contentType.toLowerCase()) && asset.sizeBytes <= TEMPLATE_IMAGE_MAX_BYTES;
+  readonly usableAsHeader = isUsableTemplateHeader;
 
   items: MediaAsset[] = [];
   loading = true;
