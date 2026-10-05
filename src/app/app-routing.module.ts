@@ -93,6 +93,13 @@ const routes: Routes = [
           import('./features/knowledge-base/knowledge-base.module').then((m) => m.KnowledgeBaseModule),
       },
       {
+        path: 'packages',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ROLES },
+        loadChildren: () =>
+          import('./features/packages/packages.module').then((m) => m.PackagesModule),
+      },
+      {
         path: 'tags',
         canActivate: [roleGuard],
         data: { roles: TENANT_ROLES },

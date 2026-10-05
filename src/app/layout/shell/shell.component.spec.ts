@@ -69,6 +69,7 @@ describe('ShellComponent sidenav', () => {
       'insightsLeads',
       'travel_exploreLead Discovery',
       'sellTags',
+      'inventory_2Packages',
       'text_snippetMessage Templates',
       'perm_mediaMedia Library',
       'menu_bookKnowledge Base',
@@ -89,7 +90,7 @@ describe('ShellComponent sidenav', () => {
 
     expect(labels(root)).toEqual(['Engage', 'CRM', 'Content']);
     expect(items(root)).not.toContain('settingsSettings');
-    expect(items(root).length).toBe(11);
+    expect(items(root).length).toBe(12);
   });
 
   it('sends an Admin straight to Lead Discovery History - the Discovered Leads page would 403 nobody, but History is Admin-only', () => {

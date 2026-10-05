@@ -1,0 +1,18 @@
+.package-form {
+  display: flex;
+  flex-direction: column;
+  min-width: min(480px, 80vw);
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+}
+
+.grow {
+  flex: 1 1 0;
+}
+
+.projection {
+  margin: 4px 0 12px;
+}
