@@ -10,7 +10,7 @@
          needs inline scripts and a websocket back to the dev server, which this would block). Keep the rest of this file identical to
          index.html - `npm run check:csp` and CI enforce it. See docs/SECURITY-HEADERS.md for what each directive is for, and for the
          directives a <meta> tag cannot carry (frame-ancestors) which the web server must send as a header. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://checkout.razorpay.com https://*.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self' https://*.razorpay.com; frame-src https://api.razorpay.com https://*.razorpay.com; object-src 'none'; base-uri 'self'; form-action 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://checkout.razorpay.com https://*.razorpay.com https://www.googletagmanager.com https://www.clarity.ms https://scripts.clarity.ms; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; font-src 'self' data:; connect-src 'self' https://*.razorpay.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src https://api.razorpay.com https://*.razorpay.com; object-src 'none'; base-uri 'self'; form-action 'self'" />
     <!-- csp:end -->
     <!-- Roboto and the Material Icons font are bundled via src/styles.scss, not fetched
          from a CDN, so the panel works offline and makes no third-party request. -->

@@ -8,6 +8,7 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { CoreModule } from './core/core.module';
 import { LayoutModule } from './layout/layout.module';
+import { AnalyticsService } from './core/services/analytics.service';
 import { DialogInteractionService } from './shared/services/dialog-interaction.service';
 
 @NgModule({
@@ -34,7 +35,8 @@ import { DialogInteractionService } from './shared/services/dialog-interaction.s
   bootstrap: [AppComponent],
 })
 export class AppModule {
-  constructor(dialogInteraction: DialogInteractionService) {
+  constructor(dialogInteraction: DialogInteractionService, analytics: AnalyticsService) {
     dialogInteraction.init();
+    analytics.init();
   }
 }
