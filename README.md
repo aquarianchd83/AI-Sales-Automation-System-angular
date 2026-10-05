@@ -44,34 +44,46 @@ npm install
 ```
 
 Point the dev proxy at your API. `dotnet run` prints the HTTPS port it bound; put it in
-[proxy.conf.json](proxy.conf.json) — currently set to `https://localhost:59205`:
+[proxy.conf.json](proxy.conf.json) — currently set to `https://localhost:7080`:
 
 ```json
 {
   "/api": {
-    "target": "https://localhost:59205",
+    "target": "https://localhost:7080",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "logLevel": "debug"
   },
-  "/media": {
-    "target": "https://localhost:59205",
+  "/hubs": {
+    "target": "https://localhost:7080",
     "secure": false,
-    "changeOrigin": true
+    "changeOrigin": true,
+    "ws": true,
+    "logLevel": "debug"
+  },
+  "/media/*/**": {
+    "target": "https://localhost:7080",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
   }
 }
 ```
 
-`"secure": false` accepts the ASP.NET Core dev certificate. **Both entries are required** —
-`/media` proxies the uploaded-file URLs `MediaAssetDto.url` returns (see §6, Phase 3 note
-10); missing it is the one config mistake that looks like a bug (uploads "work" but the
-image never renders) rather than a config error. `proxy.conf.json` only loads at startup,
+`"secure": false` accepts the ASP.NET Core dev certificate. **All three entries are
+required.** `/hubs` carries the SignalR WebSocket for live notifications (`"ws": true`).
+`/media/*/**` proxies the uploaded-file URLs `MediaAssetDto.url` returns (see §6, Phase 3
+note 11); missing it is the one config mistake that looks like a bug (uploads "work" but
+the image never renders) rather than a config error. Keep the key as `/media/*/**`, not
+`/media`: the bare prefix also matches the Media Library page itself, so refreshing
+`http://localhost:4200/media` would be sent to the API and 404. `proxy.conf.json` only loads at startup,
 so change the target and restart `npm start` — it will not pick up edits live. Then:
 
 ```bash
 npm start
 ```
 
-The app serves at `http://localhost:4200` and proxies `/api/*` and `/media/*` to the
+The app serves at `http://localhost:4200` and proxies `/api/*`, `/hubs/*` and `/media/*` to the
 backend, so there is no CORS configuration to do in development.
 
 Sign in with the seeded Super Admin from the backend's `appsettings.Development.json`
@@ -318,7 +330,7 @@ domain enums) rather than guessed:
     `/media/2026/08/<guid>.jpg` — a path with no scheme or host. `<img [src]="asset.url">`
     resolves a relative URL against the *current page's* origin, so without a proxy entry
     an uploaded image tries to load from the Angular dev server (`:4200`) instead of the
-    API (`:59205`) and 404s — the browser never even asks the right server. `/media` is
+    API (`:7080`) and 404s — the browser never even asks the right server. `/media` is
     proxied in [proxy.conf.json](proxy.conf.json) for exactly this reason, mirroring
     `/api`. **This means production needs the same fix**: whatever serves the built
     static files must also route `/media` (or your configured `PublicBasePath`) to the
