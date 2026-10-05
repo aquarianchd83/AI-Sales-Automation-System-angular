@@ -62,6 +62,7 @@ describe('ShellComponent sidenav', () => {
     expect(labels(root)).toEqual(['Engage', 'CRM', 'Content', 'Workspace']);
     expect(items(root)).toEqual([
       'dashboardDashboard',
+      'rocket_launchApplications',
       'inboxInbox',
       'support_agentHandoffs',
       'campaignCampaigns',
@@ -91,7 +92,7 @@ describe('ShellComponent sidenav', () => {
 
     expect(labels(root)).toEqual(['Engage', 'CRM', 'Content']);
     expect(items(root)).not.toContain('settingsSettings');
-    expect(items(root).length).toBe(12);
+    expect(items(root).length).toBe(13);
   });
 
   it('sends an Admin straight to Lead Discovery History - the Discovered Leads page would 403 nobody, but History is Admin-only', () => {
@@ -119,6 +120,7 @@ describe('ShellComponent sidenav', () => {
       'campaignAnnouncements',
       'menu_bookKnowledge Base',
       'paymentsPackage',
+      'checklistSetup Plans',
       'data_usageUsage & Quotas',
       'receipt_longPayments',
       'assignment_returnRefund Requests',

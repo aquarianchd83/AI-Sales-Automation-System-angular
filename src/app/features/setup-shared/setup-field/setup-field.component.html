@@ -1,0 +1,185 @@
+<ng-container [ngSwitch]="field.fieldType">
+  <!-- Single line inputs: text, email, url, phone, number, decimal, currency, date -->
+  <mat-form-field
+    *ngSwitchCase="'Text'"
+    appearance="outline"
+    class="full"
+    [class.has-error]="!!error"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <input matInput [id]="id" [type]="inputType" [formControl]="control" [maxLength]="maxLength"
+           [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)" />
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field
+    *ngSwitchCase="'Email'"
+    appearance="outline"
+    class="full"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <mat-icon matPrefix class="prefix">mail_outline</mat-icon>
+    <input matInput [id]="id" type="email" [formControl]="control" [placeholder]="placeholder" autocomplete="off"
+           [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)" />
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field
+    *ngSwitchCase="'Url'"
+    appearance="outline"
+    class="full"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <mat-icon matPrefix class="prefix">link</mat-icon>
+    <input matInput [id]="id" type="url" [formControl]="control" [placeholder]="placeholder" autocomplete="off"
+           [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)" />
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field
+    *ngSwitchCase="'Phone'"
+    appearance="outline"
+    class="full"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <mat-icon matPrefix class="prefix">phone</mat-icon>
+    <input matInput [id]="id" type="tel" [formControl]="control" [placeholder]="placeholder" autocomplete="off"
+           [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)" />
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field
+    *ngSwitchCase="'Number'"
+    appearance="outline"
+    class="full"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <input matInput [id]="id" type="number" step="1" [formControl]="control"
+           [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)" />
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field
+    *ngSwitchCase="'Decimal'"
+    appearance="outline"
+    class="full"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <input matInput [id]="id" type="number" step="any" [formControl]="control"
+           [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)" />
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field
+    *ngSwitchCase="'Currency'"
+    appearance="outline"
+    class="full"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <span matTextPrefix class="currency-prefix" *ngIf="currencySymbol">{{ currencySymbol }}&nbsp;</span>
+    <input matInput [id]="id" type="number" min="0" step="any" [formControl]="control"
+           [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)" />
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field
+    *ngSwitchCase="'Date'"
+    appearance="outline"
+    class="full"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <input matInput [id]="id" type="date" [formControl]="control"
+           [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)" />
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <mat-form-field
+    *ngSwitchCase="'MultilineText'"
+    appearance="outline"
+    class="full"
+  >
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <textarea matInput [id]="id" rows="4" [formControl]="control" [maxLength]="maxLength"
+              [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired" (input)="onInput($any($event.target).value)"></textarea>
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-hint align="end" *ngIf="maxLength && text.length > maxLength * 0.8">{{ text.length }} / {{ maxLength }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <!-- Choice inputs -->
+  <mat-form-field *ngSwitchCase="'Dropdown'" appearance="outline" class="full">
+    <mat-label>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></mat-label>
+    <mat-select [id]="id" [formControl]="control" [errorStateMatcher]="matcher" [attr.aria-required]="field.isRequired"
+                (selectionChange)="emit($event.value)">
+      <mat-option *ngIf="!field.isRequired" [value]="null">— None —</mat-option>
+      <mat-option *ngFor="let option of field.options" [value]="option.value">{{ option.label }}</mat-option>
+    </mat-select>
+    <mat-hint *ngIf="field.helpText && !error">{{ field.helpText }}</mat-hint>
+    <mat-error>{{ error }}</mat-error>
+  </mat-form-field>
+
+  <fieldset *ngSwitchCase="'Radio'" class="group" [class.has-error]="!!error" [attr.aria-required]="field.isRequired">
+    <legend>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></legend>
+    <mat-radio-group class="radio-row" [value]="text" [disabled]="disabled" (change)="emit($event.value)">
+      <mat-radio-button *ngFor="let option of field.options" [value]="option.value" color="primary">{{ option.label }}</mat-radio-button>
+    </mat-radio-group>
+    <div class="hint" *ngIf="field.helpText && !error">{{ field.helpText }}</div>
+    <div class="field-error" role="alert" *ngIf="error">{{ error }}</div>
+  </fieldset>
+
+  <fieldset *ngSwitchCase="'MultiSelect'" class="group" [class.has-error]="!!error" [attr.aria-required]="field.isRequired">
+    <legend>{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></legend>
+    <mat-chip-listbox class="pick-chips" multiple [attr.aria-label]="field.label" [disabled]="disabled">
+      <mat-chip-option
+        *ngFor="let option of field.options"
+        [selected]="isPicked(option.value)"
+        [value]="option.value"
+        (selectionChange)="$event.isUserInput && onPick(option.value, $event.selected)"
+      >{{ option.label }}</mat-chip-option>
+    </mat-chip-listbox>
+    <div class="hint" *ngIf="field.helpText && !error">{{ field.helpText }}</div>
+    <div class="field-error" role="alert" *ngIf="error">{{ error }}</div>
+  </fieldset>
+
+  <div *ngSwitchCase="'Checkbox'" class="group checkbox" [class.has-error]="!!error">
+    <mat-checkbox color="primary" [checked]="checked" [disabled]="disabled" (change)="emit($event.checked)">
+      {{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span>
+    </mat-checkbox>
+    <div class="hint" *ngIf="field.helpText && !error">{{ field.helpText }}</div>
+    <div class="field-error" role="alert" *ngIf="error">{{ error }}</div>
+  </div>
+
+  <!-- File: uploaded to the media library; the answer is the library entry's id -->
+  <div *ngSwitchCase="'FileUpload'" class="group file" [class.has-error]="!!error">
+    <div class="legend">{{ field.label }}<span class="req" *ngIf="field.isRequired" aria-hidden="true"> *</span></div>
+    <div class="file-row">
+      <ng-container *ngIf="asset || text; else pick">
+        <img class="thumb" *ngIf="asset?.previewUrl || asset?.thumbnailUrl || asset?.url" [src]="asset?.thumbnailUrl || asset?.previewUrl || asset?.url" alt="" />
+        <mat-icon class="thumb placeholder" *ngIf="!(asset?.previewUrl || asset?.thumbnailUrl || asset?.url)">insert_drive_file</mat-icon>
+        <span class="file-name">{{ asset?.fileName || 'File uploaded' }}</span>
+        <button mat-button type="button" (click)="fileInput.click()" [disabled]="disabled || uploading">Replace</button>
+        <button mat-icon-button type="button" aria-label="Remove file" (click)="removeFile()" [disabled]="disabled || uploading">
+          <mat-icon>close</mat-icon>
+        </button>
+      </ng-container>
+      <ng-template #pick>
+        <button mat-stroked-button type="button" (click)="fileInput.click()" [disabled]="disabled || uploading">
+          <mat-icon>upload_file</mat-icon>
+          Choose file
+        </button>
+      </ng-template>
+      <input #fileInput type="file" hidden accept="image/jpeg,image/png,image/webp,video/mp4" (change)="onFileChosen($event)" />
+    </div>
+    <mat-progress-bar *ngIf="uploading" mode="determinate" [value]="uploadProgress"></mat-progress-bar>
+    <div class="hint" *ngIf="field.helpText && !error && !uploadError">{{ field.helpText }}</div>
+    <div class="field-error" role="alert" *ngIf="error || uploadError">{{ error || uploadError }}</div>
+  </div>
+</ng-container>

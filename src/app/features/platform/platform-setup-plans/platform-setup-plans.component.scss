@@ -1,0 +1,106 @@
+.plan-card {
+  margin-bottom: 16px;
+  padding: 18px 20px 8px;
+}
+
+.plan-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+  }
+}
+
+.code {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #eceff1;
+  color: #546e7a;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.notes {
+  max-width: 340px;
+  font-size: 12px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &.ok {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  &.warn {
+    background: #fff4e0;
+    color: #b26a00;
+  }
+
+  &.neutral {
+    background: #eceff1;
+    color: #546e7a;
+  }
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.mat-column-status {
+  width: 120px;
+}
+
+.mat-column-fields,
+.mat-column-applications {
+  width: 120px;
+}
+
+.mat-column-published {
+  width: 140px;
+}
+
+.mat-column-actions {
+  width: 130px;
+}
+
+td.mat-mdc-cell {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.clickable {
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
+}
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}

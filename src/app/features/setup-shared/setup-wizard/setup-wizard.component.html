@@ -1,0 +1,103 @@
+<div class="wizard" *ngIf="steps.length">
+  <mat-card class="progress-card">
+    <div class="progress-head">
+      <div>
+        <div class="eyebrow">{{ mode === 'preview' ? 'Preview — nothing is saved' : 'Application setup' }}</div>
+        <h2 class="plan">
+          {{ definition.planName }}
+          <span class="version">v{{ definition.versionNumber }}</span>
+        </h2>
+      </div>
+      <div class="percent" aria-live="polite">
+        <strong>{{ percent }}%</strong>
+        <span>{{ answeredRequired }} of {{ totalRequired }} required answers</span>
+      </div>
+    </div>
+    <mat-progress-bar mode="determinate" [value]="percent" aria-label="Setup progress"></mat-progress-bar>
+  </mat-card>
+
+  <div class="body">
+    <nav class="rail" aria-label="Setup steps">
+      <button
+        *ngFor="let s of steps; let i = index; trackBy: trackStep"
+        type="button"
+        class="rail-step"
+        [ngClass]="stepState(i)"
+        [attr.aria-current]="i === current ? 'step' : null"
+        (click)="goTo(i)"
+      >
+        <mat-icon aria-hidden="true">{{ stepIcon(i) }}</mat-icon>
+        <span class="rail-label">{{ s.title }}</span>
+      </button>
+    </nav>
+
+    <mat-card class="panel">
+      <!-- A question step -->
+      <ng-container *ngIf="step && step.kind === 'section'">
+        <h3 class="step-title">{{ step.title }}</h3>
+        <p class="muted step-sub" *ngIf="step.description">{{ step.description }}</p>
+
+        <div class="fields">
+          <app-setup-field
+            *ngFor="let field of step.fields; trackBy: trackField"
+            class="field"
+            [class.wide]="isWide(field)"
+            [field]="field"
+            [value]="answers[field.fieldKey]"
+            [error]="errorFor(field)"
+            [currencySymbol]="currencySymbol"
+            [disabled]="saving"
+            (valueChange)="onValue(field, $event)"
+            (focusout)="touch(field)"
+          ></app-setup-field>
+        </div>
+      </ng-container>
+
+      <!-- Review & confirm -->
+      <ng-container *ngIf="isReview">
+        <h3 class="step-title">Review &amp; Confirm</h3>
+        <p class="muted step-sub">Check your answers. You can come back and edit them at any time.</p>
+
+        <div class="banner problem" role="alert" *ngIf="issueCount > 0">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ issueCount }} {{ issueCount === 1 ? 'answer needs' : 'answers need' }} attention before you can finish.</span>
+        </div>
+
+        <section class="review-section" *ngFor="let group of reviewSections">
+          <header>
+            <h4>{{ group.section.title }}</h4>
+            <button mat-button type="button" color="primary" (click)="goTo(group.index)">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </button>
+          </header>
+          <dl>
+            <ng-container *ngFor="let row of group.rows">
+              <dt>{{ row.label }}</dt>
+              <dd [class.empty]="row.value === '—'" [class.bad]="hasIssue(row.key)">{{ row.value }}</dd>
+            </ng-container>
+          </dl>
+        </section>
+      </ng-container>
+
+      <footer class="actions">
+        <button mat-button type="button" (click)="back()" [disabled]="current === 0 || saving">
+          <mat-icon>arrow_back</mat-icon>
+          Back
+        </button>
+        <span class="spacer"></span>
+        <button mat-button type="button" (click)="saveAndExit()" [disabled]="saving">
+          {{ mode === 'preview' ? 'Close preview' : 'Save & Exit' }}
+        </button>
+        <button *ngIf="!isReview" mat-flat-button color="primary" type="button" (click)="next()" [disabled]="saving">
+          {{ mode === 'preview' ? 'Next' : 'Save & Continue' }}
+          <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+        </button>
+        <button *ngIf="isReview" mat-flat-button color="primary" type="button" (click)="complete()" [disabled]="saving || mode === 'preview'">
+          <mat-icon>check</mat-icon>
+          {{ alreadyCompleted ? 'Save changes' : 'Complete setup' }}
+        </button>
+      </footer>
+    </mat-card>
+  </div>
+</div>
