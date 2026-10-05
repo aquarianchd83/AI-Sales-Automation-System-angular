@@ -1,0 +1,63 @@
+.guide-content {
+  min-width: min(760px, 85vw);
+  max-height: 70vh;
+}
+
+.tab-body {
+  padding: 8px 4px 16px;
+
+  h3 {
+    margin: 16px 0 6px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+
+.steps,
+.steps-list {
+  margin: 8px 0;
+  padding-left: 22px;
+
+  li {
+    margin: 10px 0;
+    line-height: 1.5;
+  }
+}
+
+.faq {
+  margin: 0;
+
+  dt {
+    margin-top: 10px;
+    font-weight: 500;
+  }
+
+  dd {
+    margin: 2px 0 0;
+    opacity: 0.85;
+  }
+}
+
+.copy-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 4px;
+
+  code {
+    padding: 6px 10px;
+    word-break: break-all;
+  }
+}
+
+code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #eceff1;
+  font-size: 12px;
+}
+
+.small {
+  font-size: 12px;
+}

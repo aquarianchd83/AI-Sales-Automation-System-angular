@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { SharedModule } from '../../shared/shared.module';
@@ -150,40 +151,33 @@ describe('SocialAdsComponent', () => {
     http.expectOne((r) => r.url.endsWith('/social-ads/manual-spend') && r.method === 'GET').flush([]);
   });
 
-  it('shows the Meta app setup steps with the exact redirect address to register', () => {
+  it('keeps the setup steps off the page and opens them in a modal from the Setup guide button', () => {
     create();
     fixture.detectChanges();
     flushLoad(base);
+    const dialog = TestBed.inject(MatDialog);
+    const open = spyOn(dialog, 'open').and.callThrough();
 
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(component.redirectUri).toBe(`${window.location.origin}/social-ads`);
-    expect(text).toContain('Meta app setup');
-    expect(text).toContain('Valid OAuth Redirect URIs');
-    expect(text).toContain(component.redirectUri);
-    expect(text).toContain('ads_read');
-    expect(text).toContain('How to connect');
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Valid OAuth Redirect URIs');
+
+    component.openGuide();
+
+    expect(open).toHaveBeenCalledTimes(1);
+    const [, config] = open.calls.mostRecent().args;
+    expect(config?.data).toEqual({ redirectUri: `${window.location.origin}/social-ads`, startOnSetup: false });
   });
 
-  it('opens the Meta setup steps by default when the platform has no Meta App yet', () => {
+  it('opens straight on the Meta app setup tab from the "platform not set up" notice', () => {
     create();
     fixture.detectChanges();
     flushLoad({ ...base, isAvailable: false });
+    const open = spyOn(TestBed.inject(MatDialog), 'open').and.callThrough();
 
-    const panels = (fixture.nativeElement as HTMLElement).querySelectorAll('mat-expansion-panel.guide');
-    const setup = Array.from(panels).find((p) => p.textContent?.includes('Meta app setup'));
-    expect(setup?.classList.contains('mat-expanded')).toBeTrue();
-  });
+    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('View setup steps')
+    ) as HTMLButtonElement;
+    button.click();
 
-  it('copies the redirect address to the clipboard', async () => {
-    create();
-    fixture.detectChanges();
-    flushLoad(base);
-    const write = jasmine.createSpy('writeText').and.resolveTo();
-    spyOnProperty(navigator, 'clipboard', 'get').and.returnValue({ writeText: write } as unknown as Clipboard);
-
-    component.copyRedirectUri();
-    await fixture.whenStable();
-
-    expect(write).toHaveBeenCalledWith(component.redirectUri);
+    expect(open.calls.mostRecent().args[1]?.data).toEqual({ redirectUri: component.redirectUri, startOnSetup: true });
   });
 });

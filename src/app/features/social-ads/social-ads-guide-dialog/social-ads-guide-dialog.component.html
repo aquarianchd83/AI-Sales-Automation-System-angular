@@ -1,0 +1,109 @@
+<h2 mat-dialog-title>Setup guide</h2>
+
+<mat-dialog-content class="guide-content">
+  <mat-tab-group [selectedIndex]="data.startOnSetup ? 1 : 0" animationDuration="0ms">
+    <mat-tab label="How to connect">
+      <div class="tab-body">
+
+    <h3>Before you start</h3>
+    <ul class="steps-list">
+      <li>You need the <strong>Facebook login that can open your ad account</strong> in Meta Ads Manager or Meta Business Suite. Any access level that can see results is enough; we only read.</li>
+      <li>The ads should have been run through that ad account. Ads you paid for through an agency's own ad account won't show up here.</li>
+      <li>You must be an <strong>Admin</strong> here to connect.</li>
+    </ul>
+
+    <h3>Connect</h3>
+    <ol class="steps">
+      <li>Close this window and click <strong>Connect with Facebook</strong> on the page.</li>
+      <li>Log in to Facebook if asked, then press <strong>Continue</strong> to allow <em>read-only access to your ad spend</em>.</li>
+      <li>If your login has several ad accounts, choose the one you run your ads from. With one account this step is skipped.</li>
+      <li>Wait a few seconds while we pull your last two years of ad spend. After that it updates by itself every day.</li>
+      <li>Open <strong>Reports → Revenue</strong> to see social media against WhatsApp.</li>
+    </ol>
+
+    <h3>If something goes wrong</h3>
+    <dl class="faq">
+      <dt>"That Facebook login has no ad account we can read"</dt>
+      <dd>You logged in with a Facebook profile that has no access to your ad account. Disconnect, then connect again with the profile you use in Ads Manager.</dd>
+      <dt>"Please reconnect Facebook"</dt>
+      <dd>Facebook stopped accepting the saved login, usually after a password change or when access was removed. Click <strong>Reconnect</strong>; your earlier spend is kept.</dd>
+      <dt>"This Facebook login has expired or did not start here"</dt>
+      <dd>The login link is only valid for 15 minutes and only from the page that started it. Click <strong>Connect with Facebook</strong> again.</dd>
+      <dt>The login screen says the app isn't available, or you can't continue</dt>
+      <dd>The platform's Meta App is still waiting for Facebook's approval, so only invited people can connect. Ask your platform administrator to add you as a tester (see the setup below).</dd>
+      <dt>You don't run Facebook or Instagram ads</dt>
+      <dd>Use <strong>Type in your monthly spend instead</strong> on the Social Ads page. Nothing to connect.</dd>
+    </dl>
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Meta app setup (admin, one time)">
+      <div class="tab-body">
+
+    <p class="muted">
+      This is done once for the whole platform, not per tenant. If your platform already has a Meta App for WhatsApp, reuse it:
+      you add the Facebook Login product and a redirect address, and no new App ID or secret is needed. Meta renames menus from
+      time to time, so follow the intent of each step if a label differs.
+    </p>
+
+    <ol class="steps">
+      <li>
+        <strong>Open your Meta App.</strong> Go to
+        <a [href]="metaAppsUrl" target="_blank" rel="noopener noreferrer">developers.facebook.com/apps</a>
+        and open the app you use for WhatsApp, or choose <em>Create App</em> (type <em>Business</em>) for a new one.
+      </li>
+      <li>
+        <strong>Add the Facebook Login product.</strong> In the app dashboard choose <em>Add product</em> and set up
+        <em>Facebook Login</em> (the classic one, not "for Business").
+      </li>
+      <li>
+        <strong>Add the redirect address.</strong> Under <em>Facebook Login → Settings</em>, paste this exactly into
+        <em>Valid OAuth Redirect URIs</em> and switch on <em>Client OAuth Login</em> and <em>Web OAuth Login</em>:
+        <div class="copy-row">
+          <code>{{ data.redirectUri }}</code>
+          <button mat-stroked-button type="button" (click)="copyRedirectUri()">
+            <mat-icon>content_copy</mat-icon>
+            Copy
+          </button>
+        </div>
+        <span class="muted small">It must match character for character, including https and no trailing slash. Add one entry per address people use (for example a test site as well).</span>
+      </li>
+      <li>
+        <strong>Fill in the basics.</strong> Under <em>Settings → Basic</em> add an app icon, a <em>Privacy Policy URL</em> and a
+        category. Facebook requires these before it will approve ad access.
+      </li>
+      <li>
+        <strong>Give the app its ID and secret.</strong> Copy <em>App ID</em> and <em>App Secret</em> from <em>Settings → Basic</em>.
+        If the app is the same one WhatsApp uses, nothing to do: its saved ID and secret are reused. Otherwise, in the Platform Admin
+        Console open <em>Configuration</em>, choose the <strong>MetaAds</strong> category and save <code>MetaAds:AppId</code> and
+        <code>MetaAds:AppSecret</code>. Changes apply immediately, with no restart.
+      </li>
+      <li>
+        <strong>Ask Facebook for ad-spend access.</strong> Under <em>App Review → Permissions and Features</em> request
+        <code>ads_read</code> and choose <em>Advanced Access</em>. Facebook will ask you to complete
+        <em>Business Verification</em>, describe how you use the data (read-only ad spend and results, shown to the business that owns the ads),
+        and upload a short screen recording of a tenant connecting and seeing the Revenue report. Approval can take days to weeks.
+      </li>
+      <li>
+        <strong>While you wait: add testers.</strong> Until Facebook approves, the app is in <em>Development</em> mode and only people with a role on
+        the app can connect. Add them under <em>App Roles → Roles</em> (as <em>Testers</em>); they accept the invite in Facebook.
+      </li>
+      <li>
+        <strong>Go live.</strong> After approval, switch the app from <em>Development</em> to <em>Live</em> (the toggle at the top of the dashboard).
+        From then on any tenant can connect.
+      </li>
+    </ol>
+
+    <p class="muted small">
+      Facebook's own guides: <a href="https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow" target="_blank" rel="noopener noreferrer">Facebook Login</a>
+      · <a href="https://developers.facebook.com/docs/marketing-api/overview/authorization" target="_blank" rel="noopener noreferrer">Marketing API authorization</a>
+      · <a href="https://developers.facebook.com/docs/resp-plat-initiatives/individual-processes/app-review" target="_blank" rel="noopener noreferrer">App Review</a>
+    </p>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button color="primary" type="button" mat-dialog-close>Close</button>
+</mat-dialog-actions>
