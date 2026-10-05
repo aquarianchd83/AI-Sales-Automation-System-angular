@@ -286,6 +286,34 @@ export const TEMPLATE_RULE_GROUPS: TemplateRuleGroup[] = [
   },
 ];
 
-/** What Meta accepts for a template's image header. */
+/** What Meta accepts above a template's message: a JPEG or PNG image up to 5 MB, or an MP4 or 3GPP video up to 16 MB. */
 export const TEMPLATE_IMAGE_CONTENT_TYPES = ['image/jpeg', 'image/png'];
 export const TEMPLATE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+export const TEMPLATE_VIDEO_CONTENT_TYPES = ['video/mp4', 'video/3gpp'];
+export const TEMPLATE_VIDEO_MAX_BYTES = 16 * 1024 * 1024;
+export const TEMPLATE_HEADER_ACCEPT = [...TEMPLATE_IMAGE_CONTENT_TYPES, ...TEMPLATE_VIDEO_CONTENT_TYPES].join(',');
+
+export type TemplateHeaderKind = 'image' | 'video';
+
+/** Whether a file of this type can go above a template as an image or a video; null when Meta takes neither. */
+export function templateHeaderKind(contentType: string): TemplateHeaderKind | null {
+  const type = contentType.toLowerCase();
+  if (TEMPLATE_IMAGE_CONTENT_TYPES.includes(type)) {
+    return 'image';
+  }
+  return TEMPLATE_VIDEO_CONTENT_TYPES.includes(type) ? 'video' : null;
+}
+
+/** Why Meta would refuse this file above a template, or null when it is fine. */
+export function templateHeaderProblem(contentType: string, sizeBytes: number): string | null {
+  const kind = templateHeaderKind(contentType);
+  if (!kind) {
+    return 'Only a JPEG or PNG image, or an MP4 or 3GPP video, can go above a template message.';
+  }
+  const limit = kind === 'video' ? TEMPLATE_VIDEO_MAX_BYTES : TEMPLATE_IMAGE_MAX_BYTES;
+  return sizeBytes > limit ? `Meta allows a template ${kind} of at most ${limit / (1024 * 1024)} MB.` : null;
+}
+
+export function isUsableTemplateHeader(asset: { contentType: string; sizeBytes: number }): boolean {
+  return templateHeaderProblem(asset.contentType, asset.sizeBytes) === null;
+}

@@ -37,18 +37,23 @@
       </button>
 
       <mat-form-field class="field">
-        <mat-label>Image above the message</mat-label>
+        <mat-label>Image or video above the message</mat-label>
         <mat-select formControlName="headerMediaAssetId" [disabled]="headerLocked">
-          <mat-option value="" *ngIf="!headerRequired">No image</mat-option>
-          <mat-option *ngFor="let image of images" [value]="image.id">{{ image.fileName }}</mat-option>
+          <mat-option value="" *ngIf="!headerRequired">None</mat-option>
+          <mat-option *ngFor="let image of images" [value]="image.id">
+            {{ image.fileName }}<span class="muted" *ngIf="headerKind(image) === 'video'"> · video</span>
+          </mat-option>
         </mat-select>
-        <mat-hint *ngIf="headerLocked">Meta already holds this template without an image, and fixes that when a template is created.</mat-hint>
-        <mat-hint *ngIf="headerRequired">Meta holds this template with an image: you can swap it but not remove it.</mat-hint>
+        <mat-hint *ngIf="headerLocked">Meta already holds this template without an image or video, and fixes that when a template is created.</mat-hint>
+        <mat-hint *ngIf="headerRequired">
+          Meta holds this template with {{ lockedKind === 'video' ? 'a video' : 'an image' }}: you can swap it for another
+          {{ lockedKind ?? 'file of the same kind' }} but not remove it.
+        </mat-hint>
         <mat-hint *ngIf="!headerLocked && !headerRequired && !imagesLoading && !images.length">
-          No JPEG or PNG in the Notice Media library yet.
+          No JPEG, PNG or MP4 in the Notice Media library yet.
         </mat-hint>
         <mat-hint *ngIf="!headerLocked && !headerRequired && (imagesLoading || images.length)">
-          Choose it before the first sync - after that Meta does not let a template gain or lose its image.
+          Choose it before the first sync - after that Meta does not let a template gain or lose it.
         </mat-hint>
       </mat-form-field>
 
@@ -58,7 +63,18 @@
     <div class="preview-pane" aria-live="polite">
       <div class="muted preview-label">Preview with sample values</div>
       <div class="bubble">
-        <img *ngIf="previewImage" class="bubble-image" [src]="previewImage.previewUrl || previewImage.url" [alt]="previewImage.fileName" />
+        <ng-container *ngIf="previewImage as header">
+          <video
+            *ngIf="headerKind(header) === 'video'; else stillHeader"
+            class="bubble-image"
+            [src]="header.url"
+            [poster]="thumb(header)"
+            controls
+            muted
+            preload="metadata"
+          ></video>
+          <ng-template #stillHeader><img class="bubble-image" [src]="header.previewUrl || header.url" [alt]="header.fileName" /></ng-template>
+        </ng-container>
         <p>{{ preview }}</p>
       </div>
       <p class="muted note">

@@ -109,6 +109,14 @@
     background: #e0e3e5;
   }
 
+  video {
+    flex: none;
+    width: 160px;
+    height: 90px;
+    border-radius: 8px;
+    background: #000;
+  }
+
   &__meta {
     display: flex;
     flex: 1;

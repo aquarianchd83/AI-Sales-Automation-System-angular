@@ -12,14 +12,19 @@ import {
   TEMPLATE_CATEGORIES,
   TEMPLATE_LANGUAGES,
   templateCategoryInfo,
-  TEMPLATE_IMAGE_CONTENT_TYPES,
+  TEMPLATE_HEADER_ACCEPT,
   TEMPLATE_IMAGE_MAX_BYTES,
+  TEMPLATE_VIDEO_MAX_BYTES,
+  TemplateHeaderKind,
+  isUsableTemplateHeader,
+  templateHeaderKind,
+  templateHeaderProblem,
   templateLanguageLabel,
   WhatsAppTemplateStatus,
 } from '../../../core/models/message-template.model';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
 import { MediaService } from '../../../core/services/media.service';
-import { MediaAsset, formatFileSize, mediaPreviewUrl } from '../../../core/models/media.model';
+import { MediaAsset, formatFileSize, mediaPreviewUrl, mediaThumbnailUrl } from '../../../core/models/media.model';
 import { environment } from '../../../../environments/environment';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -126,7 +131,14 @@ export class TemplateFormDialogComponent implements OnInit {
   loadingImageOptions = false;
   readonly formatSize = formatFileSize;
   readonly preview = (url: string): string => mediaPreviewUrl(url, environment.apiBaseUrl);
+  readonly thumb = (asset: MediaAsset): string | null => mediaThumbnailUrl(asset, environment.apiBaseUrl);
   readonly imageLimitMb = TEMPLATE_IMAGE_MAX_BYTES / (1024 * 1024);
+  readonly videoLimitMb = TEMPLATE_VIDEO_MAX_BYTES / (1024 * 1024);
+  readonly headerAccept = TEMPLATE_HEADER_ACCEPT;
+  readonly headerKind = (asset: MediaAsset): TemplateHeaderKind | null => templateHeaderKind(asset.contentType);
+
+  /** On Meta, a template keeps the kind of header it was created with: an image swaps only for an image, a video for a video. */
+  lockedKind: TemplateHeaderKind | null = null;
 
   /** What the image field allows: anything before the template is on Meta; once it is, Meta has fixed whether it
    * has an image, so an existing one can be swapped but none can be added or removed. */
@@ -147,7 +159,12 @@ export class TemplateFormDialogComponent implements OnInit {
           catchError(() => of(null)),
           finalize(() => (this.resolvingHeader = false))
         )
-        .subscribe((asset) => (this.headerAsset = asset));
+        .subscribe((asset) => {
+          this.headerAsset = asset;
+          if (asset && this.imageMode === 'swap') {
+            this.lockedKind = templateHeaderKind(asset.contentType);
+          }
+        });
     }
 
     this.imageSearchControl.valueChanges
@@ -166,9 +183,9 @@ export class TemplateFormDialogComponent implements OnInit {
       .subscribe((items) => (this.imageOptions = items));
   }
 
-  /** Meta accepts only JPEG or PNG, up to 5 MB, for a message header. */
+  /** Meta accepts a JPEG or PNG up to 5 MB, or an MP4 or 3GPP video up to 16 MB - of the locked kind once on Meta. */
   isUsableImage(asset: MediaAsset): boolean {
-    return TEMPLATE_IMAGE_CONTENT_TYPES.includes(asset.contentType.toLowerCase()) && asset.sizeBytes <= TEMPLATE_IMAGE_MAX_BYTES;
+    return isUsableTemplateHeader(asset) && (!this.lockedKind || templateHeaderKind(asset.contentType) === this.lockedKind);
   }
 
   onImageSelected(event: MatAutocompleteSelectedEvent): void {
@@ -199,12 +216,13 @@ export class TemplateFormDialogComponent implements OnInit {
     if (this.uploadingImage) {
       return;
     }
-    if (!TEMPLATE_IMAGE_CONTENT_TYPES.includes(file.type.toLowerCase())) {
-      this.notify.error('Only JPEG or PNG images can be used in a template.');
+    const problem = templateHeaderProblem(file.type, file.size);
+    if (problem) {
+      this.notify.error(`${file.name} (${formatFileSize(file.size)}) can't be used: ${problem}`);
       return;
     }
-    if (file.size > TEMPLATE_IMAGE_MAX_BYTES) {
-      this.notify.error(`That image is ${formatFileSize(file.size)} - Meta allows at most ${this.imageLimitMb} MB.`);
+    if (this.lockedKind && templateHeaderKind(file.type) !== this.lockedKind) {
+      this.notify.error(`Meta has this template with a${this.lockedKind === 'image' ? 'n' : ''} ${this.lockedKind}, so it can only be replaced by another ${this.lockedKind}.`);
       return;
     }
 
@@ -218,7 +236,7 @@ export class TemplateFormDialogComponent implements OnInit {
           this.headerAsset = event.body;
           this.imageOptions = [];
           this.uploadingImage = false;
-          this.notify.success('Image uploaded and attached.');
+          this.notify.success(`${templateHeaderKind(event.body.contentType) === 'video' ? 'Video' : 'Image'} uploaded and attached.`);
         }
       },
       error: (error: unknown) => {

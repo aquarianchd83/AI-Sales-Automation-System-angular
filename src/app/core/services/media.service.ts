@@ -1,10 +1,11 @@
 import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, switchMap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { MediaAsset } from '../models/media.model';
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
+import { thumbnailFor, uploadForm } from '../utils/video-thumbnail';
 
 @Injectable({ providedIn: 'root' })
 export class MediaService {
@@ -32,22 +33,25 @@ export class MediaService {
 
   /** Swaps the file behind an entry, keeping its id - so templates and steps that use it follow along. */
   replace(id: string, file: File): Observable<MediaAsset> {
-    const form = new FormData();
-    form.append('file', file, file.name);
-    return this.http.post<MediaAsset>(`${this.baseUrl}/${id}/replace`, form);
+    return thumbnailFor(file).pipe(
+      switchMap((thumbnail) => this.http.post<MediaAsset>(`${this.baseUrl}/${id}/replace`, uploadForm(file, thumbnail)))
+    );
   }
 
   /**
    * Uploads under the field name `file`. The API dedupes by content checksum — uploading
-   * identical bytes twice returns the existing asset rather than creating a duplicate.
+   * identical bytes twice returns the existing asset rather than creating a duplicate. A video goes up with a still frame
+   * cut from it in the browser (field `thumbnail`), which the API stores beside it.
    */
   upload(file: File): Observable<HttpEvent<MediaAsset>> {
-    const form = new FormData();
-    form.append('file', file, file.name);
-    return this.http.post<MediaAsset>(`${this.baseUrl}/upload`, form, {
-      reportProgress: true,
-      observe: 'events',
-    });
+    return thumbnailFor(file).pipe(
+      switchMap((thumbnail) =>
+        this.http.post<MediaAsset>(`${this.baseUrl}/upload`, uploadForm(file, thumbnail), {
+          reportProgress: true,
+          observe: 'events',
+        })
+      )
+    );
   }
 
   /**

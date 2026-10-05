@@ -130,13 +130,23 @@ describe('TemplateFormDialogComponent image', () => {
     http.verify();
   });
 
-  it('only offers JPEG or PNG files up to 5 MB, the limits Meta sets for a message image', () => {
+  it('offers JPEG or PNG up to 5 MB and MP4 or 3GPP up to 16 MB, the limits Meta sets for a message header', () => {
     const c = open('create').componentInstance;
 
     expect(c.isUsableImage({ ...asset, contentType: 'image/jpeg' })).toBeTrue();
     expect(c.isUsableImage({ ...asset, contentType: 'image/webp' })).toBeFalse();
-    expect(c.isUsableImage({ ...asset, contentType: 'video/mp4' })).toBeFalse();
     expect(c.isUsableImage({ ...asset, sizeBytes: 5 * 1024 * 1024 + 1 })).toBeFalse();
+    expect(c.isUsableImage({ ...asset, contentType: 'video/mp4', sizeBytes: 12 * 1024 * 1024 })).toBeTrue();
+    expect(c.isUsableImage({ ...asset, contentType: 'video/3gpp' })).toBeTrue();
+    expect(c.isUsableImage({ ...asset, contentType: 'video/mp4', sizeBytes: 16 * 1024 * 1024 + 1 })).toBeFalse();
+  });
+
+  it('a template on Meta with an image only offers other images', () => {
+    const c = open('edit', { ...onMeta, headerMediaAssetId: 'a1', headerOnMeta: true }).componentInstance;
+    http.expectOne(`${environment.apiBaseUrl}/media/a1`).flush(asset);
+
+    expect(c.isUsableImage({ ...asset, contentType: 'image/jpeg' })).toBeTrue();
+    expect(c.isUsableImage({ ...asset, contentType: 'video/mp4' })).toBeFalse();
   });
 
   it('a template on Meta with an image can swap it but not remove it', () => {
@@ -161,7 +171,7 @@ describe('TemplateFormDialogComponent image', () => {
     const fixture = open('edit', onMeta);
 
     expect(fixture.componentInstance.imageMode).toBe('locked');
-    expect(fixture.nativeElement.textContent).toContain('make a copy of this template and add the image there');
+    expect(fixture.nativeElement.textContent).toContain('make a copy of this template and add it there');
     expect(fixture.nativeElement.querySelector('input[placeholder="Search the media library…"]')).toBeNull();
   });
 
@@ -301,10 +311,11 @@ describe('TemplateFormDialogComponent duplicate and image upload', () => {
     const fixture = open('create');
     const error = spyOn(TestBed.inject(NotificationService), 'error');
 
-    fixture.componentInstance.uploadImage(file('clip.mp4', 'video/mp4'));
+    fixture.componentInstance.uploadImage(file('still.webp', 'image/webp'));
     fixture.componentInstance.uploadImage(file('huge.png', 'image/png', 5 * 1024 * 1024 + 1));
+    fixture.componentInstance.uploadImage(file('huge.mp4', 'video/mp4', 16 * 1024 * 1024 + 1));
 
-    expect(error).toHaveBeenCalledTimes(2);
+    expect(error).toHaveBeenCalledTimes(3);
     expect(fixture.componentInstance.uploadingImage).toBeFalse();
     http.verify(); // no request was made
   });

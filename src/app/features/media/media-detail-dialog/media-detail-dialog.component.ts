@@ -11,6 +11,7 @@ import {
   isImageContentType,
   mediaKindLabel,
   mediaPreviewUrl,
+  mediaThumbnailUrl,
 } from '../../../core/models/media.model';
 import { environment } from '../../../../environments/environment';
 import { MediaService } from '../../../core/services/media.service';
@@ -63,6 +64,11 @@ export class MediaDetailDialogComponent implements OnDestroy {
 
   get publicUrl(): string {
     return absoluteMediaUrl(this.asset.url);
+  }
+
+  /** The still frame cut at upload, shown until the video is played; null (no poster) when it has none. */
+  get posterUrl(): string | null {
+    return mediaThumbnailUrl(this.asset, environment.apiBaseUrl);
   }
 
   get previewUrl(): string {
