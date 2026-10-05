@@ -166,3 +166,78 @@ export interface RevenueReport {
   trend: RevenueTrendPoint[];
   packages: PackageRevenueRow[];
 }
+
+/** SocialChannelDto — the ad side of the comparison. Per-sale figures are null when they can't be worked out honestly. */
+export interface SocialChannel {
+  spend: number;
+  impressions: number;
+  clicks: number;
+  leads: number;
+  costPerClick: number | null;
+  costPerLead: number | null;
+  costPerSale: number | null;
+  /** Revenue earned per 1 spent (e.g. 3.2). */
+  returnOnSpend: number | null;
+}
+
+/** WhatsAppChannelDto — the platform's ESTIMATED cost of WhatsApp sending plus lead discovery. Not a bill. */
+export interface WhatsAppChannel {
+  cost: number;
+  messagesSent: number;
+  costPerSale: number | null;
+  returnOnSpend: number | null;
+}
+
+export interface SocialPlatform {
+  platform: string;
+  spend: number;
+  sharePercent: number | null;
+  clicks: number;
+  leads: number;
+}
+
+export interface SpendTrendPoint {
+  start: string;
+  spend: number;
+}
+
+/** MarketingComparisonDto — social media ads against WhatsApp automation over the Revenue report's period. */
+export interface MarketingComparison {
+  months: number;
+  /** 'Meta' (connected ad account), 'Manual' (typed-in months) or 'None'. */
+  spendSource: 'Meta' | 'Manual' | 'None';
+  connectionStatus: string;
+  spendCurrencyCode: string | null;
+  tenantCurrencyCode: string;
+  /** False when the ad account bills in another currency: cross-currency figures are then withheld. */
+  currencyMatches: boolean;
+  revenue: number;
+  sales: number;
+  social: SocialChannel;
+  whatsApp: WhatsAppChannel;
+  /** 'WhatsApp' or 'Social' — null when the per-sale costs can't be compared or are equal. */
+  cheaperChannel: 'WhatsApp' | 'Social' | null;
+  savingsPerSale: number | null;
+  platforms: SocialPlatform[];
+  spendTrend: SpendTrendPoint[];
+}
+
+/** Meta's publisher_platform values, as people say them. Anything else is shown as Meta sent it. */
+export function platformLabel(platform: string): string {
+  switch (platform) {
+    case 'facebook':
+      return 'Facebook';
+    case 'instagram':
+      return 'Instagram';
+    case 'messenger':
+      return 'Messenger';
+    case 'audience_network':
+      return 'Audience Network';
+    case 'manual':
+      return 'Typed-in spend';
+    case 'unknown':
+      return 'Other';
+    default:
+      return platform;
+  }
+}

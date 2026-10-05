@@ -76,6 +76,7 @@ describe('ShellComponent sidenav', () => {
       'bar_chartReports',
       'monitoringAgent Performance',
       'storefrontBusiness Profile',
+      'publicSocial Ads',
       'manage_accountsUsers & Roles',
       'settingsSettings',
       'historyAudit Log',
