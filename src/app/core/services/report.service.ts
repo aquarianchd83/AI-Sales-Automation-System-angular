@@ -8,6 +8,7 @@ import {
   CampaignPerformanceReport,
   HumanAgentPerformanceReport,
   LeadFunnelReport,
+  MarketingComparison,
   RevenueReport,
 } from '../models/report.model';
 
@@ -37,5 +38,10 @@ export class ReportService {
   /** Package sales revenue over the last `months` calendar months (API clamps to 1-24). */
   revenue(months: number): Observable<RevenueReport> {
     return this.http.get<RevenueReport>(`${this.baseUrl}/revenue`, { params: { months } });
+  }
+
+  /** Social media ads against WhatsApp automation over the same `months` period as `revenue`. */
+  marketingComparison(months: number): Observable<MarketingComparison> {
+    return this.http.get<MarketingComparison>(`${this.baseUrl}/revenue/marketing-comparison`, { params: { months } });
   }
 }

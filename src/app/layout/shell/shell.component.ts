@@ -100,6 +100,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Reports', icon: 'bar_chart', route: '/reports', roles: REPORT_ROLES },
         { label: 'Agent Performance', icon: 'monitoring', route: '/agent-performance', roles: TENANT_ADMIN_ONLY },
         { label: 'Business Profile', icon: 'storefront', route: '/profile', roles: TENANT_ADMIN_ONLY },
+        { label: 'Social Ads', icon: 'public', route: '/social-ads', roles: TENANT_ADMIN_ONLY },
         { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
         { label: 'Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
         { label: 'Audit Log', icon: 'history', route: '/audit-log', roles: TENANT_ADMIN_ONLY },

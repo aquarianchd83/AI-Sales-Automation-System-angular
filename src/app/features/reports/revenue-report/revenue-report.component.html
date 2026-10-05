@@ -203,3 +203,113 @@
     </mat-card>
   </ng-container>
 </ng-container>
+
+<!-- ── Social media vs WhatsApp ─────────────────────────────────────────────────────────── -->
+<ng-container *ngIf="marketing as m">
+  <h2 class="section-title">Social media vs WhatsApp</h2>
+
+  <mat-card class="note-card warn" *ngIf="m.connectionStatus === 'NeedsReconnect'">
+    <mat-icon>link_off</mat-icon>
+    <span>
+      Facebook stopped accepting the saved login, so new ad spend isn't coming in.
+      <a routerLink="/social-ads">Reconnect Facebook</a> to bring it up to date.
+    </span>
+  </mat-card>
+
+  <!-- No ad spend known: show how to get it, with no typing of documents. -->
+  <mat-card class="empty-card" *ngIf="m.spendSource === 'None'">
+    <mat-icon class="empty-icon">public</mat-icon>
+    <h2>See what your social media ads cost</h2>
+    <p class="muted">
+      Connect Facebook &amp; Instagram once and we read your ad spend automatically. Then you can see, side by side,
+      whether ads or WhatsApp win more sales for less.
+    </p>
+    <a mat-flat-button color="primary" routerLink="/social-ads">
+      <mat-icon>public</mat-icon>
+      Connect Facebook &amp; Instagram
+    </a>
+    <span class="muted small">WhatsApp automation cost so far: {{ money(m.whatsApp.cost) }} (estimated)</span>
+  </mat-card>
+
+  <ng-container *ngIf="m.spendSource !== 'None'">
+    <!-- The answer first. -->
+    <mat-card class="verdict" *ngIf="m.cheaperChannel as cheaper" [class.verdict--whatsapp]="cheaper === 'WhatsApp'">
+      <mat-icon>{{ cheaper === 'WhatsApp' ? 'chat' : 'public' }}</mat-icon>
+      <div>
+        <strong>{{ cheaper === 'WhatsApp' ? 'WhatsApp' : 'Social media ads' }} won more sales for less.</strong>
+        Each sale cost {{ money(cheaper === 'WhatsApp' ? m.whatsApp.costPerSale : m.social.costPerSale) }} through
+        {{ cheaper === 'WhatsApp' ? 'WhatsApp' : 'social media' }} against
+        {{ money(cheaper === 'WhatsApp' ? m.social.costPerSale : m.whatsApp.costPerSale) }}
+        through {{ cheaper === 'WhatsApp' ? 'ads' : 'WhatsApp' }} — {{ money(m.savingsPerSale) }} less per sale.
+      </div>
+    </mat-card>
+
+    <mat-card class="note-card warn" *ngIf="!m.currencyMatches">
+      <mat-icon>currency_exchange</mat-icon>
+      <span>
+        Your ad account bills in {{ m.spendCurrencyCode }} but your sales are in {{ m.tenantCurrencyCode }}, so cost per sale and
+        return on spend aren't worked out (they'd mix currencies). Spend, clicks and leads are shown as they are.
+      </span>
+    </mat-card>
+
+    <div class="channels">
+      <mat-card class="channel">
+        <div class="channel-head"><mat-icon>public</mat-icon><h3>Social media ads</h3></div>
+        <div class="muted small">{{ spendSourceLabel }}</div>
+        <div class="channel-value">{{ socialMoney(m.social.spend) }}</div>
+        <div class="muted small">spent in the last {{ periodLabel }}</div>
+        <dl class="stats">
+          <div><dt>Cost per sale</dt><dd>{{ socialMoney(m.social.costPerSale) }}</dd></div>
+          <div><dt>Cost per lead</dt><dd>{{ socialMoney(m.social.costPerLead) }}</dd></div>
+          <div><dt>Cost per click</dt><dd>{{ socialMoney(m.social.costPerClick) }}</dd></div>
+          <div><dt>Clicks</dt><dd>{{ m.social.clicks | number }}</dd></div>
+          <div><dt>Leads from ads</dt><dd>{{ m.social.leads | number }}</dd></div>
+        </dl>
+        <div class="return" *ngIf="returnText(m.social.returnOnSpend) as text">{{ text }}</div>
+      </mat-card>
+
+      <mat-card class="channel">
+        <div class="channel-head"><mat-icon>chat</mat-icon><h3>WhatsApp automation</h3></div>
+        <div class="muted small">Estimated platform cost</div>
+        <div class="channel-value">{{ money(m.whatsApp.cost) }}</div>
+        <div class="muted small">for sending and finding leads in the last {{ periodLabel }}</div>
+        <dl class="stats">
+          <div><dt>Cost per sale</dt><dd>{{ money(m.whatsApp.costPerSale) }}</dd></div>
+          <div><dt>Messages sent</dt><dd>{{ m.whatsApp.messagesSent | number }}</dd></div>
+        </dl>
+        <div class="return" *ngIf="returnText(m.whatsApp.returnOnSpend) as text">{{ text }}</div>
+      </mat-card>
+    </div>
+    <p class="muted small footnote">
+      Sales are the packages you recorded as sold ({{ m.sales | number }} for {{ money(m.revenue) }}). Sales aren't tied to the
+      channel that found the customer, so cost per sale divides each channel's cost by all recorded sales.
+    </p>
+
+    <div class="channels" *ngIf="m.platforms.length > 1 || m.spendTrend.length">
+      <mat-card class="channel" *ngIf="m.platforms.length > 1">
+        <h3>Where the ad spend went</h3>
+        <div class="split" *ngFor="let p of m.platforms">
+          <div class="split-title">
+            <strong>{{ platformLabel(p.platform) }}</strong>
+            <span class="muted small">{{ socialMoney(p.spend) }}<ng-container *ngIf="p.sharePercent !== null"> · {{ p.sharePercent }}%</ng-container></span>
+          </div>
+          <div class="meter"><span class="meter-fill" [style.width.%]="p.sharePercent ?? 0"></span></div>
+        </div>
+      </mat-card>
+
+      <mat-card class="channel" *ngIf="m.spendTrend.length">
+        <h3>Ad spend {{ m.months === 1 ? 'by day' : 'by month' }}</h3>
+        <div class="trend trend--small" [class.trend--dense]="m.spendTrend.length > 14">
+          <div
+            class="trend-col"
+            *ngFor="let t of m.spendTrend"
+            [matTooltip]="(t.start | date: (m.months === 1 ? 'mediumDate' : 'MMMM y') : 'UTC') + ' — ' + socialMoney(t.spend)"
+          >
+            <span class="trend-bar-track"><span class="trend-bar spend" [style.height.%]="barPercent(t.spend, spendMax)"></span></span>
+            <span class="trend-label">{{ t.start | date: (m.months === 1 ? 'd' : m.spendTrend.length > 12 ? 'MMM yy' : 'MMM') : 'UTC' }}</span>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  </ng-container>
+</ng-container>

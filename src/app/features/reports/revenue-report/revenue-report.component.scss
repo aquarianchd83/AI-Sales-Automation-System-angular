@@ -346,3 +346,137 @@ h2 {
     color: #f9a825;
   }
 }
+
+/* ── Social media vs WhatsApp ─────────────────────────────────────────────────────────── */
+.section-title {
+  margin: 24px 0 12px;
+  font-size: 18px;
+}
+
+.note-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: #e3f2fd;
+  font-size: 13px;
+
+  &.warn {
+    background: #fff8e1;
+  }
+}
+
+.verdict {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px 18px;
+  background: #e3f2fd;
+
+  mat-icon {
+    flex: none;
+    color: #1877f2;
+  }
+
+  &--whatsapp {
+    background: #e8f5e9;
+
+    mat-icon {
+      color: #2e7d32;
+    }
+  }
+}
+
+.channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.channel {
+  padding: 16px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 500;
+  }
+}
+
+.channel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.channel-value {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.stats {
+  margin: 12px 0 0;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-top: 1px solid #eceff1;
+    font-size: 13px;
+  }
+
+  dt {
+    opacity: 0.7;
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 500;
+  }
+}
+
+.return {
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f1f8e9;
+  font-size: 13px;
+}
+
+.footnote {
+  margin: 0 0 16px;
+  max-width: 80ch;
+}
+
+.split {
+  margin: 10px 0;
+}
+
+.split-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.trend--small {
+  height: 140px;
+}
+
+.trend-bar.spend {
+  background: #1877f2;
+}
+
+.trend-col:hover .trend-bar.spend {
+  background: #1259b8;
+}

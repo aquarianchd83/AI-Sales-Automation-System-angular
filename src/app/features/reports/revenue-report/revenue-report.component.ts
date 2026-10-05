@@ -3,13 +3,24 @@ import { of } from 'rxjs';
 import { catchError, map, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 
-import { PackageRevenueRow, REVENUE_PERIODS, RevenueReport } from '../../../core/models/report.model';
+import {
+  MarketingComparison,
+  PackageRevenueRow,
+  REVENUE_PERIODS,
+  RevenueReport,
+  platformLabel,
+} from '../../../core/models/report.model';
 import { ReportService } from '../../../core/services/report.service';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
 
 /** Widest a trend bar can be drawn relative to the biggest one, never below 2% so a small value stays visible. */
 export function barPercent(value: number, max: number): number {
   return max > 0 && value > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
+}
+
+/** 1234.5 -> "1,234.5"; whole numbers carry no decimals, everything else at most two. */
+export function formatAmount(value: number): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
 }
 
 /** "+12.5%" / "-3%" / null — the sign is always shown so a rise and a fall can't be confused at a glance. */
@@ -31,6 +42,7 @@ export class RevenueReportComponent implements OnInit, OnDestroy {
   readonly packageColumns = ['rank', 'name', 'sales', 'revenue', 'customers', 'target'];
   readonly barPercent = barPercent;
   readonly formatChange = formatChange;
+  readonly platformLabel = platformLabel;
 
   months = 3;
   report: RevenueReport | null = null;
@@ -42,6 +54,11 @@ export class RevenueReportComponent implements OnInit, OnDestroy {
   /** Biggest bar in the trend chart / biggest package, so every bar is drawn relative to it. */
   trendMax = 0;
   popularityMax = 0;
+
+  /** Social media vs WhatsApp. Loaded alongside the report but on its own, so it failing never hides the revenue figures. */
+  marketing: MarketingComparison | null = null;
+  marketingFailed = false;
+  spendMax = 0;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -98,6 +115,52 @@ export class RevenueReportComponent implements OnInit, OnDestroy {
         this.trendMax = Math.max(0, ...(report?.trend ?? []).map((t) => t.revenue));
         this.popularityMax = Math.max(0, ...(report?.packages ?? []).map((p) => p.salesCount));
       });
+
+    this.reports
+      .marketingComparison(months)
+      .pipe(
+        map((comparison) => ({ comparison, failed: false })),
+        catchError(() => of({ comparison: null, failed: true })),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(({ comparison, failed }) => {
+        if (months !== this.months) {
+          return;
+        }
+        this.marketingFailed = failed;
+        this.marketing = comparison;
+        this.spendMax = Math.max(0, ...(comparison?.spendTrend ?? []).map((t) => t.spend));
+      });
+  }
+
+  /** An amount in the tenant's own currency (symbol in front), or the ad account's currency code when it differs. */
+  socialMoney(amount: number | null | undefined): string {
+    if (amount === null || amount === undefined) {
+      return '—';
+    }
+    const formatted = formatAmount(amount);
+    const m = this.marketing;
+    return m && !m.currencyMatches && m.spendCurrencyCode ? `${m.spendCurrencyCode} ${formatted}` : `${this.currencySymbol}${formatted}`;
+  }
+
+  money(amount: number | null | undefined): string {
+    return amount === null || amount === undefined ? '—' : `${this.currencySymbol}${formatAmount(amount)}`;
+  }
+
+  /** "₹3.20 earned for every ₹1 spent" is clearer to a business owner than "ROAS 3.2x". */
+  returnText(value: number | null): string | null {
+    return value === null ? null : `${this.currencySymbol}${formatAmount(value)} back for every ${this.currencySymbol}1`;
+  }
+
+  get spendSourceLabel(): string {
+    switch (this.marketing?.spendSource) {
+      case 'Meta':
+        return 'Facebook & Instagram ads (connected)';
+      case 'Manual':
+        return 'Monthly spend you typed in';
+      default:
+        return '';
+    }
   }
 
   /** The package that sold the most — the headline of the report. */
