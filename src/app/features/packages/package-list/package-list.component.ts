@@ -19,7 +19,8 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPag
 import { NotificationService } from '../../../core/services/notification.service';
 import { PackageFormDialogComponent, PackageFormDialogData } from '../package-form-dialog/package-form-dialog.component';
 import { PackageService } from '../../../core/services/package.service';
-import { PackageSummary, SalesPackage, formatPackageDuration } from '../../../core/models/package.model';
+import { PackageSale, PackageSummary, SalesPackage, formatPackageDuration } from '../../../core/models/package.model';
+import { PackageSaleDialogComponent, PackageSaleDialogData } from '../package-sale-dialog/package-sale-dialog.component';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
 
 @Component({
@@ -31,11 +32,13 @@ export class PackageListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
   readonly displayedColumns = ['name', 'price', 'duration', 'features', 'expectedSales', 'projectedRevenue', 'status', 'actions'];
+  readonly saleColumns = ['soldAt', 'package', 'customer', 'amount', 'actions'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
   readonly formatDuration = formatPackageDuration;
 
   page: PagedResult<SalesPackage> = emptyPage<SalesPackage>();
+  recentSales: PackageSale[] = [];
   summary: PackageSummary = { activePackages: 0, totalExpectedSales: 0, totalProjectedRevenue: 0 };
   /** The tenant's own currency symbol; empty until (or unless) the charges call answers, in which case amounts show bare. */
   currencySymbol = '';
@@ -78,13 +81,17 @@ export class PackageListComponent implements OnInit, OnDestroy {
           return forkJoin({
             page: this.packages.getPaged(this.query).pipe(catchError(() => of(emptyPage<SalesPackage>(this.query.pageSize)))),
             summary: this.packages.getSummary().pipe(catchError(() => of(this.summary))),
+            sales: this.packages
+              .getSales({ page: 1, pageSize: 8 })
+              .pipe(catchError(() => of(emptyPage<PackageSale>(8)))),
           }).pipe(finalize(() => (this.loading = false)));
         }),
         takeUntil(this.destroy$)
       )
-      .subscribe(({ page, summary }) => {
+      .subscribe(({ page, summary, sales }) => {
         this.page = page;
         this.summary = summary;
+        this.recentSales = sales.items;
       });
   }
 
@@ -106,10 +113,54 @@ export class PackageListComponent implements OnInit, OnDestroy {
     this.openForm({ mode: 'edit', package: pkg, currencySymbol: this.currencySymbol });
   }
 
+  /** Opens the sale dialog; `pkg` preselects the package whose row was clicked. */
+  recordSale(pkg?: SalesPackage): void {
+    this.packages.getPaged({ page: 1, pageSize: 100 }).subscribe((all) => {
+      const data: PackageSaleDialogData = {
+        packages: all.items.filter((p) => p.isActive),
+        preselectedId: pkg?.id,
+        currencySymbol: this.currencySymbol,
+      };
+      if (!data.packages.length) {
+        this.notify.error('Create an active package first, then record a sale against it.');
+        return;
+      }
+      this.dialog
+        .open(PackageSaleDialogComponent, { data, width: '560px', maxWidth: '95vw', disableClose: true })
+        .afterClosed()
+        .subscribe((saved) => {
+          if (saved) {
+            this.reload$.next();
+          }
+        });
+    });
+  }
+
+  deleteSale(sale: PackageSale): void {
+    const data: ConfirmDialogData = {
+      title: 'Remove this sale?',
+      message: `This removes the ${sale.packageName} sale from your revenue report. Use it to fix a sale recorded by mistake.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    };
+    this.dialog
+      .open(ConfirmDialogComponent, { data, width: '460px' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.packages.deleteSale(sale.id).subscribe(() => {
+            this.notify.success('Sale removed.');
+            this.reload$.next();
+          });
+        }
+      });
+  }
+
   delete(pkg: SalesPackage): void {
     const data: ConfirmDialogData = {
       title: `Delete "${pkg.name}"?`,
-      message: 'This removes the package and its share of your revenue estimate. Customers are not affected.',
+      message:
+        'This removes the package and its share of your revenue estimate. A package that already has sales cannot be deleted — mark it inactive instead.',
       confirmLabel: 'Delete',
       destructive: true,
     };

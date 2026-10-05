@@ -11,10 +11,10 @@ import {
 } from '../../core/models/report.model';
 import { ReportService } from '../../core/services/report.service';
 
-type ReportTab = 'campaigns' | 'funnel' | 'agents' | 'ai';
+type ReportTab = 'campaigns' | 'funnel' | 'agents' | 'ai' | 'revenue';
 
 /** Tab order, matching the mat-tab-group in the template. */
-const TABS: ReportTab[] = ['campaigns', 'funnel', 'agents', 'ai'];
+const TABS: ReportTab[] = ['campaigns', 'funnel', 'agents', 'ai', 'revenue'];
 
 /** A report tab's own load state: each tab loads on first view and again when the window changes. */
 interface Panel<T> {
@@ -73,12 +73,22 @@ export class ReportsComponent implements OnInit, OnDestroy {
     this.funnel = emptyPanel();
     this.agents = emptyPanel();
     this.ai = emptyPanel();
-    this.run(TABS[this.tabIndex]);
+    if (!this.onRevenueTab) {
+      this.run(TABS[this.tabIndex]);
+    }
+  }
+
+  /** The Revenue tab has its own month-based period control and loads itself, so the day window is hidden for it. */
+  get onRevenueTab(): boolean {
+    return TABS[this.tabIndex] === 'revenue';
   }
 
   onTab(index: number): void {
     this.tabIndex = index;
     const tab = TABS[index];
+    if (tab === 'revenue') {
+      return;
+    }
     const panel = this.panelFor(tab);
     if (!panel.data && !panel.loading) {
       this.run(tab);

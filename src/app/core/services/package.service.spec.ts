@@ -64,4 +64,22 @@ describe('PackageService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('records, lists and removes sales under /packages/sales', () => {
+    service.recordSale({ packageId: 'p-1', customerId: null, amount: 4500, soldAt: null }).subscribe();
+    const post = http.expectOne(`${baseUrl}/sales`);
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body.amount).toBe(4500);
+    post.flush({});
+
+    service.getSales({ page: 1, pageSize: 8 }).subscribe();
+    const get = http.expectOne((r) => r.url === `${baseUrl}/sales`);
+    expect(get.request.params.get('PageSize')).toBe('8');
+    get.flush({ items: [], page: 1, pageSize: 8, totalCount: 0, totalPages: 0 });
+
+    service.deleteSale('s-1').subscribe();
+    const del = http.expectOne(`${baseUrl}/sales/s-1`);
+    expect(del.request.method).toBe('DELETE');
+    del.flush(null);
+  });
 });

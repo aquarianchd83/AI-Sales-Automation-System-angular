@@ -113,3 +113,56 @@ export interface AiPerformanceReport {
   byModel: AiModelRow[];
   daily: AiDailyRow[];
 }
+
+/** Periods offered by the Revenue report, in calendar months (this month included). The API takes 1-24. */
+export const REVENUE_PERIODS: { label: string; months: number }[] = [
+  { label: '1 month', months: 1 },
+  { label: '3 months', months: 3 },
+  { label: '6 months', months: 6 },
+  { label: '1 year', months: 12 },
+  { label: '2 years', months: 24 },
+];
+
+/** RevenueTrendPointDto — one bar of the trend chart; `start` is the day (1-month view) or month. */
+export interface RevenueTrendPoint {
+  start: string;
+  revenue: number;
+  sales: number;
+}
+
+/** PackageRevenueRowDto. `rank` is by sales count (1 = most popular), 0 when the package sold nothing. */
+export interface PackageRevenueRow {
+  packageId: string;
+  name: string;
+  isActive: boolean;
+  price: number;
+  salesCount: number;
+  revenue: number;
+  salesSharePercent: number | null;
+  revenueSharePercent: number | null;
+  uniqueCustomers: number;
+  /** The tenant's own expected sales per month times the months in the period. */
+  targetSales: number;
+  rank: number;
+}
+
+/** RevenueReportDto. Percent fields are null when their denominator is zero. */
+export interface RevenueReport {
+  months: number;
+  granularity: 'Day' | 'Month';
+  from: string;
+  to: string;
+  totalRevenue: number;
+  salesCount: number;
+  averageSale: number;
+  uniqueCustomers: number;
+  previousRevenue: number;
+  previousSalesCount: number;
+  revenueChangePercent: number | null;
+  expectedRevenue: number;
+  targetAchievedPercent: number | null;
+  mostPopularPackage: string | null;
+  topRevenuePackage: string | null;
+  trend: RevenueTrendPoint[];
+  packages: PackageRevenueRow[];
+}

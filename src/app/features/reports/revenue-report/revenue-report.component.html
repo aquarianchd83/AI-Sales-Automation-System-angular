@@ -1,0 +1,205 @@
+<div class="period-bar">
+  <span class="period-label">Show sales from the last</span>
+  <mat-button-toggle-group [value]="months" (change)="setPeriod($event.value)" aria-label="Revenue period">
+    <mat-button-toggle *ngFor="let p of periods" [value]="p.months">{{ p.label }}</mat-button-toggle>
+  </mat-button-toggle-group>
+  <span class="muted period-note" *ngIf="report">
+    {{ report.from | date: 'mediumDate':'UTC' }} – {{ report.to | date: 'mediumDate':'UTC' }}
+  </span>
+</div>
+
+<mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+<div class="empty-state" *ngIf="failed">
+  <mat-icon class="empty-icon">error_outline</mat-icon>
+  <p>The revenue report could not be loaded.</p>
+  <button mat-stroked-button type="button" (click)="load()">Try again</button>
+</div>
+
+<ng-container *ngIf="report as r">
+  <!-- Nothing sold yet: say how to fix that rather than showing a screen of zeros. -->
+  <mat-card class="empty-card" *ngIf="r.salesCount === 0">
+    <mat-icon class="empty-icon">savings</mat-icon>
+    <h2>No sales in the last {{ periodLabel }}</h2>
+    <p class="muted">
+      Record each package a customer buys and this report fills in: revenue, the trend, and which package your
+      customers like best.
+    </p>
+    <a mat-flat-button color="primary" routerLink="/packages">
+      <mat-icon>point_of_sale</mat-icon>
+      Record a sale
+    </a>
+  </mat-card>
+
+  <ng-container *ngIf="r.salesCount > 0">
+    <!-- Headline: the answer to "which package is most popular?" -->
+    <mat-card class="hero" *ngIf="topPackage as top">
+      <mat-icon class="hero-icon">emoji_events</mat-icon>
+      <div class="hero-text">
+        <div class="hero-kicker">Most popular package</div>
+        <div class="hero-title">{{ top.name }}</div>
+        <div class="hero-sub">
+          {{ top.salesCount | number }} sale{{ top.salesCount === 1 ? '' : 's' }}
+          <ng-container *ngIf="top.salesSharePercent !== null">({{ top.salesSharePercent }}% of all sales)</ng-container>
+          · {{ currencySymbol }}{{ top.revenue | number: '1.0-2' }} revenue
+          <ng-container *ngIf="r.topRevenuePackage && r.topRevenuePackage !== top.name">
+            · biggest earner is <strong>{{ r.topRevenuePackage }}</strong>
+          </ng-container>
+        </div>
+      </div>
+    </mat-card>
+
+    <div class="kpis">
+      <mat-card class="kpi">
+        <div class="kpi-label">Revenue</div>
+        <div class="kpi-value">{{ currencySymbol }}{{ r.totalRevenue | number: '1.0-2' }}</div>
+        <div class="kpi-foot">
+          <span class="change" [class.up]="changeDirection === 'up'" [class.down]="changeDirection === 'down'" *ngIf="changeText as c">
+            <mat-icon>{{ changeDirection === 'down' ? 'trending_down' : changeDirection === 'up' ? 'trending_up' : 'trending_flat' }}</mat-icon>
+            {{ c }}
+          </span>
+          <span class="muted">
+            {{ changeText ? 'vs previous ' + periodLabel : 'nothing to compare with yet' }}
+          </span>
+        </div>
+      </mat-card>
+      <mat-card class="kpi">
+        <div class="kpi-label">Sales</div>
+        <div class="kpi-value">{{ r.salesCount | number }}</div>
+        <div class="kpi-foot muted">{{ r.previousSalesCount | number }} in the previous {{ periodLabel }}</div>
+      </mat-card>
+      <mat-card class="kpi">
+        <div class="kpi-label">Average sale</div>
+        <div class="kpi-value">{{ currencySymbol }}{{ r.averageSale | number: '1.0-2' }}</div>
+        <div class="kpi-foot muted">per package sold</div>
+      </mat-card>
+      <mat-card class="kpi">
+        <div class="kpi-label">Customers</div>
+        <div class="kpi-value">{{ r.uniqueCustomers | number }}</div>
+        <div class="kpi-foot muted">who bought (sales with a customer attached)</div>
+      </mat-card>
+    </div>
+
+    <!-- Revenue against what the tenant said they expect to sell. -->
+    <mat-card class="detail-card" *ngIf="r.expectedRevenue > 0">
+      <div class="target-head">
+        <h2>Against your target</h2>
+        <strong>{{ r.targetAchievedPercent ?? 0 | number: '1.0-1' }}%</strong>
+      </div>
+      <div class="meter" role="progressbar" [attr.aria-valuenow]="targetBar" aria-valuemin="0" aria-valuemax="100">
+        <span class="meter-fill" [style.width.%]="targetBar"></span>
+      </div>
+      <p class="muted section-note">
+        You made {{ currencySymbol }}{{ r.totalRevenue | number: '1.0-0' }} of the {{ currencySymbol }}{{ r.expectedRevenue | number: '1.0-0' }}
+        your active packages' expected sales add up to over {{ periodLabel }}. Edit a package to change its target.
+      </p>
+    </mat-card>
+
+    <mat-card class="detail-card">
+      <h2>Revenue {{ r.granularity === 'Day' ? 'by day' : 'by month' }}</h2>
+      <div class="trend" [class.trend--dense]="r.trend.length > 14">
+        <div
+          class="trend-col"
+          *ngFor="let t of r.trend"
+          [matTooltip]="
+            (t.start | date: (r.granularity === 'Day' ? 'mediumDate' : 'MMMM y') : 'UTC') +
+            ' — ' + currencySymbol + (t.revenue | number: '1.0-2') + ' from ' + t.sales + ' sale' + (t.sales === 1 ? '' : 's')
+          "
+        >
+          <span class="trend-bar-track">
+            <span class="trend-bar" [style.height.%]="barPercent(t.revenue, trendMax)"></span>
+          </span>
+          <span class="trend-label">{{ t.start | date: (r.granularity === 'Day' ? 'd' : r.trend.length > 12 ? 'MMM yy' : 'MMM') : 'UTC' }}</span>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="detail-card">
+      <h2>Package popularity</h2>
+      <p class="muted section-note">Ranked by how many customers bought each package. Hover a bar for the revenue share.</p>
+
+      <div class="rank-list">
+        <div class="rank-row" *ngFor="let p of r.packages">
+          <span class="medal" [ngClass]="medalClass(p.rank)" [class.none]="p.rank === 0">
+            <mat-icon *ngIf="p.rank > 0 && p.rank <= 3">emoji_events</mat-icon>
+            <ng-container *ngIf="p.rank > 3">{{ p.rank }}</ng-container>
+            <ng-container *ngIf="p.rank === 0">–</ng-container>
+          </span>
+          <div class="rank-main">
+            <div class="rank-title">
+              <strong>{{ p.name }}</strong>
+              <span class="status-chip inactive" *ngIf="!p.isActive">Inactive</span>
+              <span class="muted rank-count">
+                {{ p.salesCount | number }} sale{{ p.salesCount === 1 ? '' : 's' }}
+                <ng-container *ngIf="p.salesSharePercent !== null"> · {{ p.salesSharePercent }}%</ng-container>
+              </span>
+            </div>
+            <div
+              class="meter"
+              [matTooltip]="p.revenueSharePercent === null ? 'No revenue yet' : p.revenueSharePercent + '% of revenue'"
+            >
+              <span class="meter-fill" [class.top]="p.rank === 1" [style.width.%]="barPercent(p.salesCount, popularityMax)"></span>
+            </div>
+          </div>
+          <span class="rank-revenue">{{ currencySymbol }}{{ p.revenue | number: '1.0-2' }}</span>
+        </div>
+      </div>
+
+      <p class="note" *ngIf="unsoldPackages.length">
+        <mat-icon>lightbulb</mat-icon>
+        <span>
+          No one bought
+          <strong>{{ unsoldPackages.length === 1 ? unsoldPackages[0].name : unsoldPackages.length + ' of your active packages' }}</strong>
+          in this period. Consider promoting
+          {{ unsoldPackages.length === 1 ? 'it' : 'them' }}, or mark {{ unsoldPackages.length === 1 ? 'it' : 'them' }} inactive.
+        </span>
+      </p>
+    </mat-card>
+
+    <mat-card class="table-card">
+      <h2>Package details</h2>
+      <div class="table-scroll">
+        <table mat-table [dataSource]="r.packages">
+          <ng-container matColumnDef="rank">
+            <th mat-header-cell *matHeaderCellDef>#</th>
+            <td mat-cell *matCellDef="let p">{{ p.rank || '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Package</th>
+            <td mat-cell *matCellDef="let p">
+              <strong>{{ p.name }}</strong>
+              <span class="muted small">{{ currencySymbol }}{{ p.price | number: '1.0-2' }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="sales">
+            <th mat-header-cell *matHeaderCellDef class="num">Sales</th>
+            <td mat-cell *matCellDef="let p" class="num">{{ p.salesCount | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="revenue">
+            <th mat-header-cell *matHeaderCellDef class="num">Revenue</th>
+            <td mat-cell *matCellDef="let p" class="num">
+              {{ currencySymbol }}{{ p.revenue | number: '1.0-2' }}
+              <span class="muted small" *ngIf="p.revenueSharePercent !== null">{{ p.revenueSharePercent }}%</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="customers">
+            <th mat-header-cell *matHeaderCellDef class="num">Customers</th>
+            <td mat-cell *matCellDef="let p" class="num">{{ p.uniqueCustomers | number }}</td>
+          </ng-container>
+          <ng-container matColumnDef="target">
+            <th mat-header-cell *matHeaderCellDef>Sales vs target</th>
+            <td mat-cell *matCellDef="let p">
+              <ng-container *ngIf="p.targetSales > 0; else noTarget">
+                <span class="mini-meter"><span class="meter-fill" [style.width.%]="targetProgress(p)"></span></span>
+                <span class="small">{{ p.salesCount }} / {{ p.targetSales }}</span>
+              </ng-container>
+              <ng-template #noTarget><span class="muted">no target set</span></ng-template>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="packageColumns"></tr>
+          <tr mat-row *matRowDef="let p; columns: packageColumns"></tr>
+        </table>
+      </div>
+    </mat-card>
+  </ng-container>
+</ng-container>

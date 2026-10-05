@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>Record a sale</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate class="sale-form">
+    <mat-form-field class="full-width">
+      <mat-label>Package</mat-label>
+      <mat-select formControlName="packageId">
+        <mat-option *ngFor="let p of data.packages" [value]="p.id">
+          {{ p.name }} — {{ data.currencySymbol }}{{ p.price | number: '1.0-2' }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Customer (optional)</mat-label>
+      <input matInput [formControl]="customerControl" [matAutocomplete]="auto" placeholder="Search by name or phone" />
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        aria-label="Clear customer"
+        *ngIf="customerControl.value"
+        (click)="clearCustomer()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+      <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayCustomer">
+        <mat-option *ngFor="let c of customers" [value]="c">{{ label(c) }}</mat-option>
+      </mat-autocomplete>
+      <mat-hint>Leave empty for a sale with no customer on file — it still counts towards revenue.</mat-hint>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field class="grow">
+        <mat-label>Amount ({{ data.currencySymbol }})</mat-label>
+        <input matInput type="number" min="0" step="0.01" formControlName="amount" />
+        <mat-hint>Defaults to the package price — lower it for a discount.</mat-hint>
+        <mat-error *ngIf="form.controls.amount.invalid">Enter an amount of 0 or more.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="grow">
+        <mat-label>Sold on</mat-label>
+        <input matInput [matDatepicker]="picker" [max]="today" formControlName="soldAt" readonly (click)="picker.open()" />
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Record sale' }}
+  </button>
+</mat-dialog-actions>

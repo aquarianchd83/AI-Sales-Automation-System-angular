@@ -59,3 +59,22 @@ export function parseFeatureLines(text: string): string[] {
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 }
+
+/** PackageSaleDto — one recorded sale. `customerName` is null for a sale with no customer attached. */
+export interface PackageSale {
+  id: string;
+  packageId: string;
+  packageName: string;
+  customerId: string | null;
+  customerName: string | null;
+  amount: number;
+  soldAt: string;
+}
+
+/** RecordPackageSaleRequest — `amount` defaults to the package price and `soldAt` to now when omitted. */
+export interface RecordPackageSaleRequest {
+  packageId: string;
+  customerId: string | null;
+  amount: number | null;
+  soldAt: string | null;
+}

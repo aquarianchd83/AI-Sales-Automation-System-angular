@@ -8,6 +8,7 @@ import {
   CampaignPerformanceReport,
   HumanAgentPerformanceReport,
   LeadFunnelReport,
+  RevenueReport,
 } from '../models/report.model';
 
 /** The tenant's reports. Each takes `days`, the window ending now (API clamps it to 1-365). */
@@ -31,5 +32,10 @@ export class ReportService {
 
   aiPerformance(days: number): Observable<AiPerformanceReport> {
     return this.http.get<AiPerformanceReport>(`${this.baseUrl}/ai-performance`, { params: { days } });
+  }
+
+  /** Package sales revenue over the last `months` calendar months (API clamps to 1-24). */
+  revenue(months: number): Observable<RevenueReport> {
+    return this.http.get<RevenueReport>(`${this.baseUrl}/revenue`, { params: { months } });
   }
 }

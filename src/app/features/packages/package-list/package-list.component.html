@@ -3,6 +3,10 @@
     title="Packages"
     subtitle="The packages you sell to your customers, and the revenue they could bring in each month."
   >
+    <button mat-stroked-button type="button" (click)="recordSale()">
+      <mat-icon>point_of_sale</mat-icon>
+      Record sale
+    </button>
     <button mat-flat-button color="primary" type="button" (click)="create()">
       <mat-icon>add</mat-icon>
       New package
@@ -92,6 +96,9 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef aria-label="Actions"></th>
           <td mat-cell *matCellDef="let pkg" class="actions-cell">
+            <button mat-icon-button type="button" matTooltip="Record a sale" *ngIf="pkg.isActive" (click)="recordSale(pkg)">
+              <mat-icon>point_of_sale</mat-icon>
+            </button>
             <button mat-icon-button type="button" matTooltip="Edit" (click)="edit(pkg)">
               <mat-icon>edit</mat-icon>
             </button>
@@ -120,5 +127,38 @@
       showFirstLastButtons
       (page)="onPage($event)"
     ></mat-paginator>
+  </mat-card>
+
+  <mat-card class="table-card sales-card" *ngIf="recentSales.length">
+    <h2>Recent sales</h2>
+    <p class="muted">The latest sales you recorded. The Revenue report (Reports → Revenue) is built from these.</p>
+    <table mat-table [dataSource]="recentSales">
+      <ng-container matColumnDef="soldAt">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let sale">{{ sale.soldAt | date: 'mediumDate' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="package">
+        <th mat-header-cell *matHeaderCellDef>Package</th>
+        <td mat-cell *matCellDef="let sale"><strong>{{ sale.packageName }}</strong></td>
+      </ng-container>
+      <ng-container matColumnDef="customer">
+        <th mat-header-cell *matHeaderCellDef>Customer</th>
+        <td mat-cell *matCellDef="let sale">{{ sale.customerName || '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let sale">{{ currencySymbol }}{{ sale.amount | number: '1.0-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef aria-label="Actions"></th>
+        <td mat-cell *matCellDef="let sale" class="actions-cell">
+          <button mat-icon-button type="button" matTooltip="Remove this sale" (click)="deleteSale(sale)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="saleColumns"></tr>
+      <tr mat-row *matRowDef="let sale; columns: saleColumns"></tr>
+    </table>
   </mat-card>
 </div>
