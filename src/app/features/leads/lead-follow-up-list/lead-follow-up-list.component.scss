@@ -10,6 +10,10 @@
   min-width: 120px;
   text-align: center;
 
+  &--suggested .tile-value {
+    color: #2e7d32;
+  }
+
   &--alert .tile-value {
     color: #b26a00;
   }

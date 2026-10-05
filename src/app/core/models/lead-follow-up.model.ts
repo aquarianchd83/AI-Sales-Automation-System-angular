@@ -7,6 +7,9 @@ export enum LeadFollowUpStatus {
   Skipped = 'Skipped',
   /** WhatsApp refused the send; "Send now" retries it. */
   Failed = 'Failed',
+  /** Proposed by the AI because the customer said they are interested but cannot go ahead. Nothing is sent from
+   * this state: a person confirms it (choosing the message) or dismisses it. */
+  Suggested = 'Suggested',
 }
 
 /** The history views of the follow-up list — every status but Scheduled. */
@@ -39,7 +42,8 @@ export interface LeadFollowUp {
   /** The 1/2/3-month choice it was scheduled from, or null when an exact date was picked. */
   intervalMonths: number | null;
   reason: string | null;
-  messageTemplateId: string;
+  /** Null while it is only the AI suggestion. */
+  messageTemplateId: string | null;
   messageTemplateName: string | null;
   /** 1 for the first follow-up of the lead, 2 for the next. */
   followUpNumber: number;
@@ -63,6 +67,8 @@ export interface LeadFollowUpSummary {
   dueNow: number;
   dueWithin30Days: number;
   sent: number;
+  /** What the AI proposed that nobody has confirmed or dismissed yet. */
+  suggested: number;
 }
 
 export function followUpStatusChipClass(status: string): string {
@@ -75,6 +81,8 @@ export function followUpStatusChipClass(status: string): string {
       return 'status-chip status-chip--stopped';
     case LeadFollowUpStatus.Skipped:
       return 'status-chip status-chip--paused';
+    case LeadFollowUpStatus.Suggested:
+      return 'status-chip status-chip--running';
     default:
       return 'status-chip status-chip--draft';
   }
@@ -94,4 +102,9 @@ export function isFollowUpOverdue(followUp: Pick<LeadFollowUp, 'status' | 'dueAt
 /** A Scheduled or Failed follow-up can still be sent or cancelled by a person. */
 export function isFollowUpActionable(status: string): boolean {
   return status === LeadFollowUpStatus.Scheduled || status === LeadFollowUpStatus.Failed;
+}
+
+/** The AI unconfirmed proposal: reviewed on the lead, where the message is chosen, or dismissed. */
+export function isFollowUpSuggestion(status: string): boolean {
+  return status === LeadFollowUpStatus.Suggested;
 }

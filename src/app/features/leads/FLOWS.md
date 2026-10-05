@@ -163,3 +163,27 @@ flowchart TD
 
 "Send now" is a person's call: it skips the daytime window, the quiet period and the "wrote in since" check,
 but never opt-in, template approval or quota.
+
+### 5a. The AI notices a customer who cannot proceed
+
+The AI never schedules or sends this itself. When a customer says they are interested but cannot go ahead
+right now ("budget is frozen till April", "ask me after Diwali"), the turn reports `cannot_proceed_now` with
+a short reason and the wait they described (1, 2 or 3 months). The orchestrator turns that into a
+**Suggested** follow-up; a person confirms it on the lead (choosing the message) or dismisses it.
+
+```mermaid
+flowchart TD
+    A["Customer message<br/>AI turn"] --> B{"Interested but cannot<br/>go ahead right now?"}
+    B -- no --> N["Nothing extra"]
+    B -- yes --> R["Warm reply, no pressure,<br/>no promise to get back to them"]
+    R --> O{"Also asked to stop?"}
+    O -- yes --> X["Opt-out wins<br/>no suggestion"]
+    O -- no --> G{"Lead open, customer opted in,<br/>fewer than 3 sent,<br/>nothing open, none dismissed<br/>in the last 30 days?"}
+    G -- no --> X2["No suggestion<br/>an open one only keeps the newer reason"]
+    G -- yes --> S["Suggested follow-up<br/>reason + wait, no template"]
+    S --> H{"A person"}
+    H -- confirms --> SC["Scheduled<br/>sent by the hourly job, section 5"]
+    H -- dismisses --> D["Cancelled<br/>no new suggestion for 30 days"]
+```
+
+A Suggested row is never picked up by the sender, and **Send now** refuses it until it is confirmed.

@@ -83,13 +83,18 @@ export class LeadFollowUpPanelComponent implements OnChanges {
     return this.followUps.find((f) => f.status === LeadFollowUpStatus.Scheduled);
   }
 
+  /** What the AI proposed after the customer said they cannot go ahead. Nothing happens until a person confirms. */
+  get suggestion(): LeadFollowUp | undefined {
+    return this.followUps.find((f) => f.status === LeadFollowUpStatus.Suggested);
+  }
+
   /** Failed ones stay actionable on their own, so they are shown with the pending one rather than buried. */
   get needsAttention(): LeadFollowUp[] {
     return this.followUps.filter((f) => f.status === LeadFollowUpStatus.Failed);
   }
 
   get history(): LeadFollowUp[] {
-    return this.followUps.filter((f) => f.status !== LeadFollowUpStatus.Scheduled);
+    return this.followUps.filter((f) => f.status !== LeadFollowUpStatus.Scheduled && f.status !== LeadFollowUpStatus.Suggested);
   }
 
   get sentCount(): number {
@@ -126,6 +131,14 @@ export class LeadFollowUpPanelComponent implements OnChanges {
     const due = new Date();
     due.setMonth(due.getMonth() + choice);
     return due;
+  }
+
+  /** The label over the wait toggle: what pressing Schedule will do. */
+  get formLabel(): string {
+    if (this.suggestion) {
+      return 'Confirm the follow-up';
+    }
+    return this.pending ? 'Reschedule (replaces the one above)' : 'Remind me in';
   }
 
   get canSubmit(): boolean {
@@ -172,6 +185,31 @@ export class LeadFollowUpPanelComponent implements OnChanges {
           // ErrorInterceptor toasts it.
         },
       });
+  }
+
+  /** Fills the form from the AI suggestion - its wait and reason - so confirming is choosing a message and pressing
+   * Schedule. A wait that is not 1, 2 or 3 months becomes the exact date. */
+  useSuggestion(suggestion: LeadFollowUp): void {
+    const months = suggestion.intervalMonths;
+    const quick = months != null && this.monthChoices.includes(months);
+    this.form.patchValue({
+      choice: quick ? months : 'custom',
+      date: quick ? null : new Date(suggestion.dueAt),
+      reason: suggestion.reason ?? '',
+    });
+    this.form.controls.reason.markAsDirty();
+  }
+
+  dismissSuggestion(suggestion: LeadFollowUp): void {
+    this.confirm(
+      {
+        title: 'Dismiss this suggestion?',
+        message: 'No follow-up will be scheduled. The AI will not suggest another for this customer for a month.',
+        confirmLabel: 'Dismiss',
+        destructive: true,
+      },
+      () => this.run(suggestion, this.followUpService.cancel(suggestion.id), 'Suggestion dismissed.')
+    );
   }
 
   cancel(followUp: LeadFollowUp): void {

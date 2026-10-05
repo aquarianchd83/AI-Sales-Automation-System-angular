@@ -62,7 +62,7 @@ describe('LeadFollowUpService', () => {
     http.expectOne(`${followUpsUrl}/f-1/send-now`).flush({});
 
     service.getSummary().subscribe();
-    http.expectOne(`${followUpsUrl}/summary`).flush({ scheduled: 0, dueNow: 0, dueWithin30Days: 0, sent: 0 });
+    http.expectOne(`${followUpsUrl}/summary`).flush({ scheduled: 0, dueNow: 0, dueWithin30Days: 0, sent: 0, suggested: 0 });
 
     service.getForLead('lead-1').subscribe();
     http.expectOne(`${leadsUrl}/lead-1/follow-ups`).flush([]);

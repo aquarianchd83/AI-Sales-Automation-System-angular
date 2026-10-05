@@ -96,6 +96,7 @@
               <span *ngSwitchCase="'FollowUpScheduled'">{{ a.note }}</span>
               <span *ngSwitchCase="'FollowUpSent'">{{ a.note }}</span>
               <span *ngSwitchCase="'FollowUpCancelled'">{{ a.note }}</span>
+              <span *ngSwitchCase="'FollowUpSuggested'">{{ a.note }}</span>
               <span *ngSwitchDefault>
                 {{ a.activityType }}: {{ a.oldValue || '—' }} → {{ a.newValue || '—' }}
                 <span *ngIf="a.note"> ({{ a.note }})</span>

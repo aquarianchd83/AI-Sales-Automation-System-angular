@@ -20,6 +20,11 @@ h2 {
   border-left: 3px solid #1976d2;
   background: rgba(25, 118, 210, 0.05);
 
+  &.suggested {
+    border-left-color: #2e7d32;
+    background: rgba(46, 125, 50, 0.06);
+  }
+
   &.failed {
     border-left-color: #c62828;
     background: rgba(198, 40, 40, 0.05);

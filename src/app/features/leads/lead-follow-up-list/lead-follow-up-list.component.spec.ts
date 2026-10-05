@@ -34,7 +34,7 @@ describe('LeadFollowUpListComponent', () => {
 
   function render(items: LeadFollowUp[]) {
     const getPaged = jasmine.createSpy('getPaged').and.returnValue(of({ items, totalCount: items.length, page: 1, pageSize: 25, totalPages: 1 }));
-    const getSummary = jasmine.createSpy('getSummary').and.returnValue(of({ scheduled: 4, dueNow: 1, dueWithin30Days: 2, sent: 7 }));
+    const getSummary = jasmine.createSpy('getSummary').and.returnValue(of({ scheduled: 4, dueNow: 1, dueWithin30Days: 2, sent: 7, suggested: 3 }));
 
     TestBed.configureTestingModule({
       declarations: [LeadFollowUpListComponent],
@@ -60,7 +60,7 @@ describe('LeadFollowUpListComponent', () => {
     const { root } = render([]);
 
     const tiles = Array.from(root.querySelectorAll('.tile')).map((t) => [text(t.querySelector('.tile-value')), text(t.querySelector('.muted'))]);
-    expect(tiles).toEqual([['4', 'Waiting'], ['2', 'Due in 30 days'], ['1', 'Due now'], ['7', 'Sent so far']]);
+    expect(tiles).toEqual([['3', 'AI suggested'], ['4', 'Waiting'], ['2', 'Due in 30 days'], ['1', 'Due now'], ['7', 'Sent so far']]);
   });
 
   it('narrows to what is due in 30 days, or switches to a history outcome', () => {
@@ -87,6 +87,23 @@ describe('LeadFollowUpListComponent', () => {
     const actions = rows.map((r) => Array.from(r.querySelectorAll('.actions-cell button')).map((b) => text(b)));
 
     expect(actions).toEqual([['Send now', 'Cancel'], ['Try again', 'Dismiss'], [], []]);
+  });
+
+  it('sends a suggestion to the lead to be confirmed, or dismisses it - never sends it', () => {
+    const { root } = render([row(LeadFollowUpStatus.Suggested, 'Asha', { messageTemplateId: null, messageTemplateName: null })]);
+
+    const actions = Array.from(root.querySelectorAll('tr.mat-mdc-row .actions-cell button')).map((b) => text(b));
+    expect(actions).toEqual(['Review', 'Dismiss']);
+    expect(text(root.querySelector('tr.mat-mdc-row'))).toContain('AI suggestion');
+  });
+
+  it('can show only what the AI suggested', () => {
+    const { fixture, component, getPaged } = render([]);
+
+    component.viewControl.setValue('Suggested');
+    fixture.detectChanges();
+
+    expect(getPaged.calls.mostRecent().args.slice(1)).toEqual(['Suggested', undefined]);
   });
 
   it('says why one was skipped', () => {

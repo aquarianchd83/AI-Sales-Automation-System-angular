@@ -14,6 +14,7 @@ import {
   followUpWaitLabel,
   isFollowUpActionable,
   isFollowUpOverdue,
+  isFollowUpSuggestion,
 } from '../../../core/models/lead-follow-up.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { LeadFollowUpService } from '../../../core/services/lead-follow-up.service';
@@ -40,6 +41,7 @@ export class LeadFollowUpListComponent implements OnInit, OnDestroy {
   readonly waitLabel = followUpWaitLabel;
   readonly actionable = isFollowUpActionable;
   readonly overdue = isFollowUpOverdue;
+  readonly suggestion = isFollowUpSuggestion;
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
   readonly viewControl = new FormControl<FollowUpView>('scheduled', { nonNullable: true });
@@ -123,18 +125,33 @@ export class LeadFollowUpListComponent implements OnInit, OnDestroy {
     );
   }
 
+  /** Cancels a Scheduled or Failed follow-up, or dismisses the AI suggestion. */
   cancel(followUp: LeadFollowUp, event: Event): void {
     event.stopPropagation();
+    const suggestion = isFollowUpSuggestion(followUp.status);
     this.confirm(
-      {
-        title: 'Cancel this follow-up?',
-        message: 'The reminder will not be sent. You can schedule a new one from the lead at any time.',
-        confirmLabel: 'Cancel follow-up',
-        cancelLabel: 'Keep it',
-        destructive: true,
-      },
-      () => this.run(followUp, this.followUps.cancel(followUp.id), 'Follow-up cancelled.')
+      suggestion
+        ? {
+            title: 'Dismiss this suggestion?',
+            message: 'No follow-up will be scheduled. The AI will not suggest another for this customer for a month.',
+            confirmLabel: 'Dismiss',
+            destructive: true,
+          }
+        : {
+            title: 'Cancel this follow-up?',
+            message: 'The reminder will not be sent. You can schedule a new one from the lead at any time.',
+            confirmLabel: 'Cancel follow-up',
+            cancelLabel: 'Keep it',
+            destructive: true,
+          },
+      () => this.run(followUp, this.followUps.cancel(followUp.id), suggestion ? 'Suggestion dismissed.' : 'Follow-up cancelled.')
     );
+  }
+
+  /** A suggestion is confirmed on the lead, where the message is chosen. */
+  review(followUp: LeadFollowUp, event: Event): void {
+    event.stopPropagation();
+    this.viewLead(followUp);
   }
 
   private run(followUp: LeadFollowUp, call: ReturnType<LeadFollowUpService['cancel']>, success: string): void {

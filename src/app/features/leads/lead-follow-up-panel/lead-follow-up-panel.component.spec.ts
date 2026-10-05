@@ -160,6 +160,46 @@ describe('LeadFollowUpPanelComponent', () => {
     expect(root.querySelectorAll('.history-row').length).toBe(1);
   });
 
+  it('shows the AI suggestion with its reason, and says nothing is sent until it is confirmed', () => {
+    const { root } = render([followUp(LeadFollowUpStatus.Suggested, { messageTemplateId: null, messageTemplateName: null, reason: 'Budget frozen until April' })]);
+
+    const block = text(root.querySelector('.pending.suggested'));
+    expect(block).toContain('AI suggestion');
+    expect(block).toContain('Budget frozen until April');
+    expect(block).toContain('Nothing is sent until you confirm');
+    expect(Array.from(root.querySelectorAll('.pending.suggested .actions button')).map((b) => text(b))).toEqual(['Use this suggestion', 'Dismiss']);
+    expect(text(root.querySelector('.schedule-form .field-label'))).toBe('Confirm the follow-up');
+    expect(text(root.querySelector('.schedule-form button[type=submit]'))).toBe('Confirm and schedule');
+    expect(root.querySelectorAll('.history-row').length).toBe(0); // a suggestion is not history
+  });
+
+  it('fills the form from the suggestion, so confirming is just choosing the message', () => {
+    const { component } = render([followUp(LeadFollowUpStatus.Suggested, { intervalMonths: 3, reason: 'Needs sign-off' })]);
+
+    component.useSuggestion(component.suggestion!);
+
+    expect(component.form.controls.choice.value).toBe(3);
+    expect(component.form.controls.reason.value).toBe('Needs sign-off');
+    component.schedule();
+    expect(schedule).toHaveBeenCalledOnceWith('lead-1', { months: 3, dueAt: null, messageTemplateId: 'ok', reason: 'Needs sign-off' });
+  });
+
+  it('turns a suggested wait that is not 1, 2 or 3 months into an exact date', () => {
+    const { component } = render([followUp(LeadFollowUpStatus.Suggested, { intervalMonths: 6, dueAt: '2027-04-10T06:00:00Z' })]);
+
+    component.useSuggestion(component.suggestion!);
+
+    expect(component.form.controls.choice.value).toBe('custom');
+    expect(component.form.controls.date.value?.toISOString()).toBe('2027-04-10T06:00:00.000Z');
+  });
+
+  it('does not offer to confirm or dismiss a suggestion on a closed lead', () => {
+    const { root } = render([followUp(LeadFollowUpStatus.Suggested)], false);
+
+    expect(root.querySelector('.pending.suggested')).not.toBeNull();
+    expect(root.querySelector('.pending.suggested .actions')).toBeNull();
+  });
+
   it('surfaces a failed send so it can be retried or dismissed', () => {
     const { root } = render([followUp(LeadFollowUpStatus.Failed, { outcomeNote: 'rejected' })]);
 
