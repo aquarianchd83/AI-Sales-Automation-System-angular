@@ -9,6 +9,7 @@ import {
   CreateKnowledgeBaseArticleRequest,
   KnowledgeBaseArticle,
   UpdateKnowledgeBaseArticleRequest,
+  UploadKnowledgeArticleResult,
 } from '../models/knowledge-base.model';
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
 
@@ -30,6 +31,17 @@ export class KnowledgeBaseService {
 
   create(request: CreateKnowledgeBaseArticleRequest): Observable<KnowledgeBaseArticle> {
     return this.http.post<KnowledgeBaseArticle>(`${this.baseUrl}/articles`, request);
+  }
+
+  /** Creates a Draft article from an uploaded .md/.txt/.html/.docx/.pdf (10 MB). `sourceType` is any
+   * tenant-authorable type, e.g. "Voucher". Nothing is published until the Draft has been reviewed. */
+  upload(file: File, sourceType?: string): Observable<UploadKnowledgeArticleResult> {
+    const body = new FormData();
+    body.append('file', file, file.name);
+    if (sourceType) {
+      body.append('sourceType', sourceType);
+    }
+    return this.http.post<UploadKnowledgeArticleResult>(`${this.baseUrl}/articles/upload`, body);
   }
 
   /** Bumps Version but does not re-chunk/re-embed by itself — publish() or reindex() picks up

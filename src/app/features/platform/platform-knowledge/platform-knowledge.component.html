@@ -4,6 +4,7 @@
     subtitle="Platform articles the AI support agent uses when any tenant asks about the product - refunds, credits, plans. Published articles are shared with every tenant."
   >
     <input #fileInput type="file" hidden accept=".md,.txt,.html,.docx,.pdf" (change)="onFileSelected($event)" />
+    <input #voucherInput type="file" hidden accept=".md,.txt,.html,.docx,.pdf" (change)="onFileSelected($event, 'Voucher')" />
     <button mat-stroked-button type="button" (click)="openEmbeddingSettings()">
       <mat-icon>settings</mat-icon>
       Embedding settings
@@ -11,6 +12,10 @@
     <button mat-stroked-button type="button" [disabled]="uploading" (click)="fileInput.click()">
       <mat-icon>upload_file</mat-icon>
       {{ uploading ? 'Uploading...' : 'Upload file' }}
+    </button>
+    <button mat-stroked-button type="button" [disabled]="uploading" (click)="voucherInput.click()">
+      <mat-icon>local_activity</mat-icon>
+      Upload voucher
     </button>
     <button mat-stroked-button type="button" [disabled]="reindexing" (click)="reindexAll()">
       <mat-icon>sync</mat-icon>

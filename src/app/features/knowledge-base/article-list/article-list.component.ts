@@ -21,6 +21,7 @@ import {
   EmbeddingProviderName,
   KnowledgeBaseArticle,
   KnowledgeBaseArticleStatus,
+  KnowledgeBaseSourceType,
   aiModelDisplayName,
   canPublishArticle,
   knowledgeBaseStatusChipClass,
@@ -81,6 +82,7 @@ export class ArticleListComponent implements OnInit, OnDestroy {
   page: PagedResult<KnowledgeBaseArticle> = emptyPage<KnowledgeBaseArticle>();
   loading = true;
   reindexing = false;
+  uploading = false;
   bulkPublishing = false;
   statusFilter: string | null = null;
 
@@ -216,6 +218,31 @@ export class ArticleListComponent implements OnInit, OnDestroy {
         },
         error: () => {
           // ErrorInterceptor toasts it; keep the selection so it can be retried.
+        },
+      });
+  }
+
+  /** Creates a Draft article of source type Voucher from the chosen file - nothing is published until
+   * it has been read and reviewed. */
+  onVoucherSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || this.uploading) {
+      return;
+    }
+
+    this.uploading = true;
+    this.articles
+      .upload(file, KnowledgeBaseSourceType.Voucher)
+      .pipe(finalize(() => (this.uploading = false)))
+      .subscribe({
+        next: (result) => {
+          this.notify.success(`Voucher "${result.article.title}" created as Draft from ${file.name} — review it, then publish.`);
+          this.reload$.next();
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
         },
       });
   }
