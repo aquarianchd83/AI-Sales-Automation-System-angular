@@ -1,0 +1,70 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit package' : 'New package' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate class="package-form">
+    <mat-form-field class="full-width">
+      <mat-label>Package name</mat-label>
+      <input matInput formControlName="name" [maxlength]="limits.name" placeholder="e.g. Gold" />
+      <mat-error *ngIf="form.controls.name.hasError('required')">A name is required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Description (optional)</mat-label>
+      <textarea matInput formControlName="description" rows="2" [maxlength]="limits.description"></textarea>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field class="grow">
+        <mat-label>Price ({{ data.currencySymbol }})</mat-label>
+        <input matInput type="number" min="0" step="0.01" formControlName="price" />
+        <mat-error *ngIf="form.controls.price.invalid">Enter a price of 0 or more.</mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="row">
+      <mat-form-field class="grow">
+        <mat-label>Duration</mat-label>
+        <input matInput type="number" min="1" step="1" formControlName="durationValue" />
+        <mat-error *ngIf="form.controls.durationValue.invalid">Enter a whole number from 1 to {{ limits.maxDuration }}.</mat-error>
+      </mat-form-field>
+      <mat-form-field class="grow">
+        <mat-label>Unit</mat-label>
+        <mat-select formControlName="durationUnit">
+          <mat-option *ngFor="let unit of units" [value]="unit">{{ unit }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field class="full-width">
+      <mat-label>Features (one per line)</mat-label>
+      <textarea matInput formControlName="features" rows="5" placeholder="Monthly report&#10;Dedicated manager"></textarea>
+      <mat-error *ngIf="form.controls.features.hasError('tooManyFeatures')">
+        List at most {{ limits.maxFeatures }} features.
+      </mat-error>
+      <mat-error *ngIf="form.controls.features.hasError('featureTooLong')">
+        Keep each feature under {{ limits.featureLength }} characters.
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Expected sales per month</mat-label>
+      <input matInput type="number" min="0" step="1" formControlName="expectedSales" />
+      <mat-hint>How many customers you expect to buy this each month — used for the revenue estimate.</mat-hint>
+      <mat-error *ngIf="form.controls.expectedSales.invalid">Enter a whole number of 0 or more.</mat-error>
+    </mat-form-field>
+
+    <p class="projection">
+      Estimated revenue:
+      <strong>{{ data.currencySymbol }}{{ projectedRevenue | number: '1.0-2' }}</strong> / month
+    </p>
+
+    <mat-slide-toggle formControlName="isActive">Active (counted in your revenue estimate)</mat-slide-toggle>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create package' }}
+  </button>
+</mat-dialog-actions>

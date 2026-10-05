@@ -1,9 +1,9 @@
 <div class="page">
   <app-page-header
     title="Reports"
-    subtitle="How campaigns, the lead pipeline, your sales agents and the AI agent have done over a window ending now."
+    subtitle="How campaigns, the lead pipeline, your sales agents, the AI agent and your package sales have done over a window ending now."
   >
-    <mat-button-toggle-group [value]="days" (change)="setWindow($event.value)">
+    <mat-button-toggle-group *ngIf="!onRevenueTab" [value]="days" (change)="setWindow($event.value)">
       <mat-button-toggle *ngFor="let w of windows" [value]="w.days">{{ w.label }}</mat-button-toggle>
     </mat-button-toggle-group>
   </app-page-header>
@@ -331,6 +331,13 @@
             <p class="muted section-note">The darker part of each bar is the share escalated to a human.</p>
           </mat-card>
         </ng-container>
+      </ng-template>
+    </mat-tab>
+
+    <!-- ── Revenue ─────────────────────────────────────────────────────────────────────── -->
+    <mat-tab label="Revenue">
+      <ng-template matTabContent>
+        <app-revenue-report></app-revenue-report>
       </ng-template>
     </mat-tab>
   </mat-tab-group>

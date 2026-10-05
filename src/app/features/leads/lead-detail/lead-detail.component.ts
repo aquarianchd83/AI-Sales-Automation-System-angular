@@ -126,6 +126,12 @@ export class LeadDetailComponent implements OnInit, OnDestroy {
     return activity.createdBy ? this.agentName(activity.createdBy) : 'AI';
   }
 
+  /** A follow-up scheduled, sent or cancelled from the panel adds a timeline row. */
+  refreshActivities(): void {
+    this.activityQuery = { page: 1, pageSize: 20 };
+    this.reloadActivities$.next();
+  }
+
   loadMoreActivities(): void {
     if (!this.lead || this.loadingActivities || !this.hasMoreActivities) {
       return;

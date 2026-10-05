@@ -1,0 +1,107 @@
+<mat-card class="follow-up-card">
+  <h2>Follow up later</h2>
+  <p class="muted hint">
+    Interested but cannot go ahead yet? Park the lead and we'll send one gentle reminder when the wait is over —
+    only in daytime hours, never to someone who has opted out, written in since, or was messaged in the last week.
+  </p>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="pending suggested" *ngIf="suggestion as s">
+    <div class="pending-main">
+      <span [class]="statusClass(s.status)">AI suggestion</span>
+      <strong>Follow up in {{ waitLabel(s) }}</strong>
+      <span class="muted">(around {{ s.dueAt | zonedDate: 'mediumDate' }})</span>
+    </div>
+    <div class="muted detail">
+      The AI noticed this customer is interested but cannot go ahead right now<span *ngIf="s.reason">: {{ s.reason }}</span>.
+      Nothing is sent until you confirm.
+    </div>
+    <div class="actions" *ngIf="canEdit">
+      <button mat-stroked-button type="button" (click)="useSuggestion(s)">Use this suggestion</button>
+      <button mat-button color="warn" type="button" [disabled]="busyId === s.id" (click)="dismissSuggestion(s)">Dismiss</button>
+    </div>
+  </div>
+
+  <div class="pending" *ngIf="pending as p">
+    <div class="pending-main">
+      <span [class]="statusClass(p.status)">Scheduled</span>
+      <strong>{{ p.dueAt | zonedDate: 'mediumDate' }}</strong>
+      <span class="muted">({{ waitLabel(p) }})</span>
+      <span class="chip-note" *ngIf="overdue(p)">Due — goes out at the next daytime run</span>
+    </div>
+    <div class="muted detail">
+      Template: {{ p.messageTemplateName || '—' }}<span *ngIf="p.reason"> · Reason: {{ p.reason }}</span>
+    </div>
+    <div class="actions" *ngIf="canEdit">
+      <button mat-stroked-button type="button" [disabled]="busyId === p.id" (click)="sendNow(p)">Send now</button>
+      <button mat-button color="warn" type="button" [disabled]="busyId === p.id" (click)="cancel(p)">Cancel</button>
+    </div>
+  </div>
+
+  <div class="pending failed" *ngFor="let f of needsAttention">
+    <div class="pending-main">
+      <span [class]="statusClass(f.status)">Failed</span>
+      <strong>{{ f.dueAt | zonedDate: 'mediumDate' }}</strong>
+      <span class="muted">{{ f.outcomeNote }}</span>
+    </div>
+    <div class="actions" *ngIf="canEdit">
+      <button mat-stroked-button type="button" [disabled]="busyId === f.id" (click)="sendNow(f)">Try again</button>
+      <button mat-button color="warn" type="button" [disabled]="busyId === f.id" (click)="cancel(f)">Dismiss</button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="canEdit">
+    <div class="limit-note muted" *ngIf="limitReached">
+      This customer has already had {{ sentCount }} follow-ups. Another reminder would only irritate — if they get
+      back in touch, carry on from the conversation instead.
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="schedule()" *ngIf="!limitReached" class="schedule-form">
+      <div class="field-label">{{ formLabel }}</div>
+      <mat-button-toggle-group formControlName="choice" aria-label="How long to wait" class="wait-toggle">
+        <mat-button-toggle *ngFor="let m of monthChoices" [value]="m">{{ m }} month{{ m === 1 ? '' : 's' }}</mat-button-toggle>
+        <mat-button-toggle value="custom">Pick a date</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <mat-form-field *ngIf="customChosen" subscriptSizing="dynamic" class="date-field">
+        <mat-label>Follow up on</mat-label>
+        <input matInput [matDatepicker]="picker" [min]="minDate" [max]="maxDate" formControlName="date" readonly (click)="picker.open()" />
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        <mat-hint>At least {{ minDaysAhead }} days from now.</mat-hint>
+      </mat-form-field>
+
+      <div class="muted preview" *ngIf="dueDatePreview as due">Reminder goes out around {{ due | date: 'mediumDate' }}.</div>
+
+      <div class="row">
+        <mat-form-field subscriptSizing="dynamic" class="template-field">
+          <mat-label>Message to send</mat-label>
+          <mat-select formControlName="templateId">
+            <mat-option *ngFor="let t of templates" [value]="t.id">{{ t.name }}</mat-option>
+          </mat-select>
+          <mat-hint *ngIf="!templates.length">No approved template yet — create and get one approved first.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field subscriptSizing="dynamic" class="reason-field">
+          <mat-label>Why can't they proceed? (optional)</mat-label>
+          <input matInput formControlName="reason" maxlength="500" placeholder="e.g. Budget frozen until April" />
+        </mat-form-field>
+      </div>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="!canSubmit">
+        {{ saving ? 'Scheduling…' : suggestion ? 'Confirm and schedule' : pending ? 'Reschedule follow-up' : 'Schedule follow-up' }}
+      </button>
+    </form>
+  </ng-container>
+
+  <div class="history" *ngIf="history.length">
+    <div class="field-label">History</div>
+    <div class="history-row" *ngFor="let f of history">
+      <span [class]="statusClass(f.status)">{{ f.status }}</span>
+      <span>#{{ f.followUpNumber }} · due {{ f.dueAt | zonedDate: 'mediumDate' }}</span>
+      <span class="muted" *ngIf="f.sentAt">sent {{ f.sentAt | zonedDate: 'medium' }}</span>
+      <span class="muted" *ngIf="f.outcomeNote && f.status !== 'Failed'">{{ f.outcomeNote }}</span>
+    </div>
+  </div>
+</mat-card>

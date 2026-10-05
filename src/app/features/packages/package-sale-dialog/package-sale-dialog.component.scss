@@ -1,0 +1,16 @@
+.sale-form {
+  display: flex;
+  flex-direction: column;
+  min-width: min(480px, 80vw);
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.grow {
+  flex: 1 1 0;
+}
