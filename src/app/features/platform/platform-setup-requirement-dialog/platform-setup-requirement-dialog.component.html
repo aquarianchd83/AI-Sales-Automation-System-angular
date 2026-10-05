@@ -1,0 +1,146 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit question' : 'Add a question' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate class="req-form">
+    <div class="row">
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>Question (shown to the Talent)</mat-label>
+        <input matInput formControlName="label" maxlength="150" cdkFocusInitial />
+        <mat-error>A label is required.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="key">
+        <mat-label>Field key</mat-label>
+        <input matInput formControlName="fieldKey" maxlength="60" autocomplete="off" />
+        <mat-hint>Identifies the answer across plans and versions.</mat-hint>
+        <mat-error>Lowercase letters, digits and underscores, starting with a letter.</mat-error>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Help text (optional)</mat-label>
+      <input matInput formControlName="helpText" maxlength="500" />
+      <mat-hint>A short hint shown under the field.</mat-hint>
+    </mat-form-field>
+
+    <div class="row">
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>Answer type</mat-label>
+        <mat-select formControlName="fieldType">
+          <mat-option *ngFor="let t of types" [value]="t.value">{{ t.label }}</mat-option>
+        </mat-select>
+        <mat-hint>{{ typeHint }}</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="grow">
+        <mat-label>Wizard step (section)</mat-label>
+        <input matInput formControlName="section" [matAutocomplete]="sectionAuto" autocomplete="off" />
+        <mat-autocomplete #sectionAuto="matAutocomplete">
+          <mat-option *ngFor="let s of data.sections" [value]="s.key">{{ s.title }}</mat-option>
+        </mat-autocomplete>
+        <mat-hint>Pick a step or type a new key.</mat-hint>
+        <mat-error>Lowercase letters, digits and underscores.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="order">
+        <mat-label>Order</mat-label>
+        <input matInput type="number" formControlName="displayOrder" min="0" />
+      </mat-form-field>
+    </div>
+
+    <div class="toggles">
+      <mat-slide-toggle formControlName="isRequired" color="primary">Required</mat-slide-toggle>
+      <mat-slide-toggle formControlName="isActive" color="primary">Active</mat-slide-toggle>
+    </div>
+
+    <mat-form-field appearance="outline" class="full" *ngIf="isChoice">
+      <mat-label>Options</mat-label>
+      <textarea matInput formControlName="optionsText" rows="5" placeholder="Instagram&#10;Facebook&#10;ig | Instagram (value | label)"></textarea>
+      <mat-hint>One per line. Use "value | label" to choose the stored value yourself.</mat-hint>
+      <mat-error>Add at least one option.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full" *ngIf="type !== 'FileUpload'">
+      <mat-label>Default answer (optional)</mat-label>
+      <input matInput formControlName="defaultValue" />
+      <mat-hint>{{ defaultHint }}</mat-hint>
+    </mat-form-field>
+
+    <mat-expansion-panel class="panel" *ngIf="showsRules">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Validation rules</mat-panel-title>
+        <mat-panel-description>Limits on what can be entered</mat-panel-description>
+      </mat-expansion-panel-header>
+      <div class="row" *ngIf="isNumeric || isMulti">
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>{{ isMulti ? 'Fewest picks' : 'Minimum value' }}</mat-label>
+          <input matInput type="number" formControlName="min" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>{{ isMulti ? 'Most picks' : 'Maximum value' }}</mat-label>
+          <input matInput type="number" formControlName="max" />
+        </mat-form-field>
+      </div>
+      <ng-container *ngIf="isText">
+        <div class="row">
+          <mat-form-field appearance="outline" class="grow">
+            <mat-label>Minimum length</mat-label>
+            <input matInput type="number" min="0" formControlName="minLength" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="grow">
+            <mat-label>Maximum length</mat-label>
+            <input matInput type="number" min="1" formControlName="maxLength" />
+          </mat-form-field>
+        </div>
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Must match pattern (regular expression)</mat-label>
+          <input matInput formControlName="pattern" placeholder="^[A-Z]{3}[0-9]{4}$" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full" *ngIf="form.controls.pattern.value">
+          <mat-label>Message when it doesn't match</mat-label>
+          <input matInput formControlName="patternMessage" />
+        </mat-form-field>
+      </ng-container>
+    </mat-expansion-panel>
+
+    <mat-expansion-panel class="panel" [expanded]="!!data.field?.condition">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Conditional visibility</mat-panel-title>
+        <mat-panel-description>{{ form.controls.conditionFieldKey.value ? 'Only shown in some cases' : 'Always shown' }}</mat-panel-description>
+      </mat-expansion-panel-header>
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Show this question only when…</mat-label>
+        <mat-select formControlName="conditionFieldKey">
+          <mat-option value="">— Always show —</mat-option>
+          <mat-option *ngFor="let f of parents" [value]="f.fieldKey">{{ f.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <div class="row" *ngIf="form.controls.conditionFieldKey.value">
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>…its answer</mat-label>
+          <mat-select formControlName="conditionOperator">
+            <mat-option *ngFor="let o of operators" [value]="o.value">{{ o.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="grow" *ngIf="operatorNeedsValue">
+          <mat-label>Value</mat-label>
+          <mat-select formControlName="conditionValue" *ngIf="parent?.options?.length && form.controls.conditionOperator.value !== 'In'; else freeValue">
+            <mat-option *ngFor="let o of parent!.options" [value]="o.value">{{ o.label }}</mat-option>
+          </mat-select>
+          <ng-template #freeValue><input matInput formControlName="conditionValue" /></ng-template>
+        </mat-form-field>
+      </div>
+    </mat-expansion-panel>
+
+    <mat-form-field appearance="outline" class="full metric">
+      <mat-label>Feeds the revenue / cost estimate (optional)</mat-label>
+      <mat-select formControlName="metricKey">
+        <mat-option value="">— Not used in the estimate —</mat-option>
+        <mat-option *ngFor="let m of data.metricKeys" [value]="m">{{ metricLabels[m] || m }}</mat-option>
+      </mat-select>
+      <mat-hint>Tag numeric answers so the Talent can see expected revenue, cost, profit and ROI.</mat-hint>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close [disabled]="saving">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">{{ isEdit ? 'Save question' : 'Add question' }}</button>
+</mat-dialog-actions>

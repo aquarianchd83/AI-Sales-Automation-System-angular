@@ -93,6 +93,14 @@ const routes: Routes = [
           import('./features/knowledge-base/knowledge-base.module').then((m) => m.KnowledgeBaseModule),
       },
       {
+        // Plan-driven applications: any tenant user may look; configuring and running are enforced by the API (Admin / Sales Manager).
+        path: 'applications',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ROLES },
+        loadChildren: () =>
+          import('./features/applications/applications.module').then((m) => m.ApplicationsModule),
+      },
+      {
         path: 'packages',
         canActivate: [roleGuard],
         data: { roles: TENANT_ROLES },

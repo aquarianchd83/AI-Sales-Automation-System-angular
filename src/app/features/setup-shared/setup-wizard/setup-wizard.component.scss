@@ -1,0 +1,277 @@
+:host {
+  display: block;
+}
+
+.progress-card {
+  padding: 16px 20px 12px;
+  margin-bottom: 16px;
+
+  mat-progress-bar {
+    margin-top: 12px;
+    border-radius: 4px;
+  }
+}
+
+.progress-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.plan {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.version {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #e0f2f1;
+  color: #00695c;
+  font-size: 12px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.percent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  strong {
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 500;
+  }
+
+  span {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 16px;
+}
+
+.rail-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.7);
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00796b;
+    outline-offset: 1px;
+  }
+
+  mat-icon {
+    flex: none;
+    color: rgba(0, 0, 0, 0.35);
+  }
+
+  &.current {
+    background: #e0f2f1;
+    color: #004d40;
+    font-weight: 500;
+
+    mat-icon {
+      color: #00796b;
+    }
+  }
+
+  &.done mat-icon {
+    color: #2e7d32;
+  }
+
+  &.error {
+    color: #c62828;
+
+    mat-icon {
+      color: #c62828;
+    }
+  }
+}
+
+.rail-label {
+  min-width: 0;
+}
+
+.panel {
+  padding: 24px;
+  min-width: 0;
+}
+
+.step-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.step-sub {
+  margin: 4px 0 20px;
+  font-size: 13px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 20px;
+}
+
+.field {
+  animation: reveal 0.2s ease-out;
+
+  &.wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+
+  &.problem {
+    background: #fdecea;
+    color: #b71c1c;
+  }
+}
+
+.review-section {
+  margin-bottom: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 8px;
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
+    gap: 6px 16px;
+    margin: 4px 0 12px;
+    font-size: 14px;
+  }
+
+  dt {
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  dd {
+    margin: 0;
+    word-break: break-word;
+    white-space: pre-line;
+
+    &.empty {
+      color: rgba(0, 0, 0, 0.35);
+    }
+
+    &.bad {
+      color: #c62828;
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 860px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rail {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .rail-step {
+    width: auto;
+    white-space: nowrap;
+    flex: none;
+  }
+
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel {
+    padding: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field {
+    animation: none;
+  }
+}

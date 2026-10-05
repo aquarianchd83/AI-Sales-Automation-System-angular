@@ -59,7 +59,10 @@ export class ShellComponent implements OnInit, OnDestroy {
   readonly tenantNavSections: NavSection[] = [
     {
       label: null,
-      items: [{ label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: [] }],
+      items: [
+        { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: [] },
+        { label: 'Applications', icon: 'rocket_launch', route: '/applications', roles: [] },
+      ],
     },
     {
       label: 'Engage',
@@ -144,6 +147,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       label: 'Revenue',
       items: [
         { label: 'Package', icon: 'payments', route: '/platform/billing', roles: [] },
+        { label: 'Setup Plans', icon: 'checklist', route: '/platform/setup-plans', roles: [] },
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
         { label: 'Payments', icon: 'receipt_long', route: '/platform/payments', roles: [] },
         { label: 'Refund Requests', icon: 'assignment_return', route: '/platform/refunds', roles: [] },
