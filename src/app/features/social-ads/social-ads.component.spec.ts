@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { SharedModule } from '../../shared/shared.module';
@@ -67,9 +68,10 @@ describe('SocialAdsComponent', () => {
     fixture.detectChanges();
     flushLoad({ ...base, isAvailable: false });
 
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain("isn't switched on for this platform yet");
-    expect(text).not.toContain('Connect with Facebook');
+    const root = fixture.nativeElement as HTMLElement;
+    const connectButtons = Array.from(root.querySelectorAll('button')).filter((b) => b.textContent?.includes('Connect with Facebook'));
+    expect(root.textContent).toContain("isn't switched on for this platform yet");
+    expect(connectButtons.length).toBe(0);
   });
 
   it('finishes the login Facebook redirected back with, then removes the single-use code from the address', () => {
@@ -147,5 +149,35 @@ describe('SocialAdsComponent', () => {
     expect(clear.request.body.amount).toBe(0);
     clear.flush(null);
     http.expectOne((r) => r.url.endsWith('/social-ads/manual-spend') && r.method === 'GET').flush([]);
+  });
+
+  it('keeps the setup steps off the page and opens them in a modal from the Setup guide button', () => {
+    create();
+    fixture.detectChanges();
+    flushLoad(base);
+    const dialog = TestBed.inject(MatDialog);
+    const open = spyOn(dialog, 'open').and.callThrough();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Valid OAuth Redirect URIs');
+
+    component.openGuide();
+
+    expect(open).toHaveBeenCalledTimes(1);
+    const [, config] = open.calls.mostRecent().args;
+    expect(config?.data).toEqual({ redirectUri: `${window.location.origin}/social-ads`, startOnSetup: false });
+  });
+
+  it('opens straight on the Meta app setup tab from the "platform not set up" notice', () => {
+    create();
+    fixture.detectChanges();
+    flushLoad({ ...base, isAvailable: false });
+    const open = spyOn(TestBed.inject(MatDialog), 'open').and.callThrough();
+
+    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('View setup steps')
+    ) as HTMLButtonElement;
+    button.click();
+
+    expect(open.calls.mostRecent().args[1]?.data).toEqual({ redirectUri: component.redirectUri, startOnSetup: true });
   });
 });

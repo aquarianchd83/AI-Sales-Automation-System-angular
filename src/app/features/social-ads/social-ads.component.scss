@@ -13,6 +13,11 @@
   &.warn {
     background: #fff8e1;
   }
+
+  button {
+    flex: none;
+    white-space: nowrap;
+  }
 }
 
 h2 {

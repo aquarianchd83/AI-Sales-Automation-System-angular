@@ -6,6 +6,7 @@ import { finalize } from 'rxjs/operators';
 
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ManualAdSpend, SocialAdsStatus, recentMonths, socialAdsRedirectUri, SOCIAL_ADS_PATH } from '../../core/models/social-ads.model';
+import { SocialAdsGuideDialogComponent, SocialAdsGuideDialogData } from './social-ads-guide-dialog/social-ads-guide-dialog.component';
 import { NotificationService } from '../../core/services/notification.service';
 import { SocialAdsService } from '../../core/services/social-ads.service';
 
@@ -20,6 +21,8 @@ const LOGIN_CANCELLED = 'The Facebook login was cancelled, so nothing was connec
 export class SocialAdsComponent implements OnInit {
   readonly months = recentMonths(new Date(), 24);
   readonly manualColumns = ['month', 'amount', 'actions'];
+  /** Shown in the setup guide to copy into the Meta App: it must match what the connect button sends, character for character. */
+  readonly redirectUri = socialAdsRedirectUri(window.location.origin);
 
   readonly manualForm = this.fb.nonNullable.group({
     month: [this.months[0], [Validators.required]],
@@ -158,6 +161,12 @@ export class SocialAdsComponent implements OnInit {
       this.notify.success('Removed.');
       this.loadManual();
     });
+  }
+
+  /** Opens the setup steps in a modal. `startOnSetup` lands on the one-time Meta app tab. */
+  openGuide(startOnSetup = false): void {
+    const data: SocialAdsGuideDialogData = { redirectUri: this.redirectUri, startOnSetup };
+    this.dialog.open(SocialAdsGuideDialogComponent, { data, width: '820px', maxWidth: '95vw' });
   }
 
   /** True while there is something to show on the connected card (syncing happens daily by itself). */

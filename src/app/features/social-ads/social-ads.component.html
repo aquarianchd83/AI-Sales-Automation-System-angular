@@ -2,7 +2,12 @@
   <app-page-header
     title="Social Ads"
     subtitle="Connect your Facebook and Instagram ads once. We read your ad spend and results, so the Revenue report can compare social media with WhatsApp."
-  ></app-page-header>
+  >
+    <button mat-stroked-button type="button" (click)="openGuide()">
+      <mat-icon>help_outline</mat-icon>
+      Setup guide
+    </button>
+  </app-page-header>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading || completing"></mat-progress-bar>
 
@@ -30,6 +35,7 @@
         Connecting Facebook isn't switched on for this platform yet. Ask your platform administrator to add the Meta App.
         Meanwhile you can type in your monthly ad spend below.
       </span>
+      <button mat-stroked-button type="button" (click)="openGuide(true)">View setup steps</button>
     </mat-card>
 
     <!-- Not connected -->
