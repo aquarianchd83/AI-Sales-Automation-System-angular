@@ -7,6 +7,7 @@ import { AccountRecoveryService } from '../../core/services/account-recovery.ser
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
+import { OnboardingService } from '../../core/services/onboarding.service';
 import { BillingService } from '../../core/services/billing.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotification } from '../../core/models/platform.model';
@@ -34,6 +35,7 @@ describe('ShellComponent sidenav', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: AuthService, useValue: auth },
+        { provide: OnboardingService, useValue: { status$: of(null), refresh: () => of(null), current: () => of(null) } },
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountRecoveryService, useValue: { resendVerificationEmail: resend } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
@@ -62,7 +64,6 @@ describe('ShellComponent sidenav', () => {
     expect(labels(root)).toEqual(['Engage', 'CRM', 'Content', 'Workspace']);
     expect(items(root)).toEqual([
       'dashboardDashboard',
-      'rocket_launchApplications',
       'inboxInbox',
       'support_agentHandoffs',
       'campaignCampaigns',
@@ -92,7 +93,7 @@ describe('ShellComponent sidenav', () => {
 
     expect(labels(root)).toEqual(['Engage', 'CRM', 'Content']);
     expect(items(root)).not.toContain('settingsSettings');
-    expect(items(root).length).toBe(13);
+    expect(items(root).length).toBe(12);
   });
 
   it('sends an Admin straight to Lead Discovery History - the Discovered Leads page would 403 nobody, but History is Admin-only', () => {
@@ -120,7 +121,6 @@ describe('ShellComponent sidenav', () => {
       'campaignAnnouncements',
       'menu_bookKnowledge Base',
       'paymentsPackage',
-      'checklistSetup Plans',
       'data_usageUsage & Quotas',
       'receipt_longPayments',
       'assignment_returnRefund Requests',

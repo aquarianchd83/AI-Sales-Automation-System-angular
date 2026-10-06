@@ -18,6 +18,19 @@ export interface TenantWhatsAppConfig {
   isConnected: boolean;
   hasWebhookVerifyToken: boolean;
   appId: string | null;
+  /** When Meta last confirmed these credentials reach the phone number ("Verify connection"). Null: never
+   * verified since the last save, or the last attempt failed. Every save clears it. */
+  verifiedAtUtc?: string | null;
+  /** Meta's reason the last verification failed. */
+  verificationError?: string | null;
+  /** The number and display name as Meta reported them on a successful verification. */
+  verifiedDisplayPhoneNumber?: string | null;
+  verifiedName?: string | null;
+}
+
+/** Saved, and confirmed live by Meta since. */
+export function isWhatsAppVerified(config: TenantWhatsAppConfig | null | undefined): boolean {
+  return !!config?.isConnected && !!config.verifiedAtUtc;
 }
 
 /** UpdateTenantWhatsAppConfigRequest — accessToken/appSecret/webhookVerifyToken null (omitted)

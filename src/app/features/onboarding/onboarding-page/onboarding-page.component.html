@@ -1,0 +1,131 @@
+<div class="page">
+  <mat-card class="hero">
+    <div class="hero-text">
+      <span class="eyebrow">Welcome</span>
+      <h1>Complete Your Application Setup</h1>
+      <ng-container *ngIf="status && !status.isCompleted">
+        <p class="summary">
+          <strong>{{ doneCount }} of {{ stepCount }} steps done.</strong>
+          <span class="todo" *ngIf="todo.length">
+            Still to do:
+            <ng-container *ngFor="let step of todo; let last = last">
+              <b>{{ step.title }}</b><ng-container *ngIf="!last">, </ng-container>
+            </ng-container>.
+          </span>
+        </p>
+        <p class="muted" *ngIf="isAdmin">Work through each step right here - it ticks off as soon as it is done.</p>
+        <p class="muted" *ngIf="!isAdmin">Your administrator is setting up your workspace. You will have full access as soon as setup is complete.</p>
+      </ng-container>
+    </div>
+    <div class="hero-progress" *ngIf="status">
+      <span class="percent">{{ status.progressPercent }}%</span>
+      <span class="percent-label">Completed</span>
+    </div>
+  </mat-card>
+
+  <mat-progress-bar class="overall" mode="determinate" *ngIf="status" [value]="status.progressPercent"></mat-progress-bar>
+  <mat-progress-bar mode="indeterminate" *ngIf="!status && checking"></mat-progress-bar>
+
+  <mat-card class="load-failed" *ngIf="loadFailed && !status">
+    <mat-icon>cloud_off</mat-icon>
+    <p>We could not load your setup progress.</p>
+    <button mat-stroked-button color="primary" type="button" (click)="check(false)">Try again</button>
+  </mat-card>
+
+  <!-- All done -->
+  <mat-card class="done" *ngIf="status?.isCompleted">
+    <mat-icon class="done-icon">celebration</mat-icon>
+    <h2>Your setup is complete</h2>
+    <p class="muted">Everything is in place. Your full workspace is now open.</p>
+    <button mat-flat-button color="primary" type="button" (click)="finish()">
+      Go to dashboard
+      <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+    </button>
+  </mat-card>
+
+  <div class="layout" *ngIf="status && !status.isCompleted">
+    <mat-card class="steps">
+      <ol>
+        <li
+          *ngFor="let step of status.steps; trackBy: trackStep"
+          class="step"
+          [ngClass]="'step--' + (step.state | lowercase)"
+          [class.step--selected]="isAdmin && selected?.key === step.key"
+          [attr.tabindex]="isAdmin && step.state !== 'Pending' ? 0 : null"
+          [attr.aria-current]="step.state === 'Current' ? 'step' : null"
+          [attr.aria-disabled]="step.state === 'Pending' ? true : null"
+          [matTooltip]="step.state === 'Pending' ? 'Finish ' + (current?.title ?? 'the step before') + ' first' : ''"
+          matTooltipPosition="right"
+          (click)="isAdmin && select(step)"
+          (keydown.enter)="isAdmin && select(step)"
+        >
+          <mat-icon class="step-icon">{{ icon(step) }}</mat-icon>
+          <span class="step-text">
+            <span class="step-title">{{ step.title }}</span>
+            <span class="step-state">{{ stateLabel(step) }}</span>
+          </span>
+          <span class="step-weight">{{ step.weight }}%</span>
+        </li>
+      </ol>
+    </mat-card>
+
+    <!-- The Admin's panel: title, the step's own screen in place, then Previous / Next -->
+    <mat-card class="panel" *ngIf="isAdmin && selected as step">
+      <header class="panel-head">
+        <div class="panel-title">
+          <span class="eyebrow">Step {{ stepNumber(step) }} of {{ stepCount }} · {{ step.weight }}%</span>
+          <h2>{{ step.title }}</h2>
+          <p class="muted">{{ step.description }}</p>
+        </div>
+        <span class="chip" [ngClass]="'chip--' + (step.state | lowercase)">
+          <mat-icon>{{ icon(step) }}</mat-icon>
+          {{ stateLabel(step) }}
+        </span>
+      </header>
+
+      <p class="banner banner--done" *ngIf="justCompleted as done" role="status">
+        <mat-icon>check_circle</mat-icon>
+        <span><strong>{{ done.title }} is complete.</strong></span>
+      </p>
+      <p class="banner banner--missing" *ngIf="!justCompleted && step.state !== 'Completed' && step.missing" role="status">
+        <mat-icon>info</mat-icon>
+        <span>{{ step.missing }}</span>
+        <button mat-stroked-button type="button" (click)="check()" [disabled]="checking">
+          {{ checking ? 'Checking…' : 'Check again' }}
+        </button>
+      </p>
+
+      <button mat-button type="button" class="back" *ngIf="isDeeper" (click)="backToStep()">
+        <mat-icon>arrow_back</mat-icon>
+        Back to {{ step.title }}
+      </button>
+
+      <div class="panel-body">
+        <app-onboarding-step-host [url]="panelUrl" (rendered)="onRendered()"></app-onboarding-step-host>
+      </div>
+
+      <footer class="panel-nav">
+        <button mat-stroked-button type="button" (click)="previous()" [disabled]="!previousStep">
+          <mat-icon>arrow_back</mat-icon>
+          Previous
+        </button>
+        <span class="nav-hint muted" *ngIf="nextHint && !canGoNext">{{ nextHint }}</span>
+        <button mat-flat-button color="primary" type="button" (click)="next()" [disabled]="!canGoNext">
+          Next
+          <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+        </button>
+      </footer>
+    </mat-card>
+
+    <!-- Everyone else waits -->
+    <mat-card class="waiting" *ngIf="!isAdmin">
+      <mat-icon class="waiting-icon">hourglass_top</mat-icon>
+      <h2>Setup in progress</h2>
+      <p class="muted" *ngIf="current">Your administrator is on step {{ stepNumber(current) }} of {{ stepCount }}: {{ current.title }}.</p>
+      <button mat-stroked-button type="button" (click)="check(false)" [disabled]="checking">
+        <mat-icon>refresh</mat-icon>
+        Check again
+      </button>
+    </mat-card>
+  </div>
+</div>

@@ -1,38 +1,29 @@
 <div class="page">
   <app-page-header
     title="Settings"
-    subtitle="WhatsApp connection status and message usage, managed by your platform administrator."
+    subtitle="Your WhatsApp connection, message usage and charges."
   ></app-page-header>
+
+  <mat-card class="detail-card whatsapp-card">
+    <h3>WhatsApp connection</h3>
+    <p class="muted hint">
+      The number your customers message. You and your platform administrator can both set it up; whoever changes it,
+      verify the connection afterwards.
+    </p>
+    <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
+    <app-whatsapp-connection-form
+      *ngIf="!loadingWhatsApp"
+      [config]="whatsAppConfig"
+      [save]="saveWhatsApp"
+      [verify]="verifyWhatsApp"
+      (changed)="whatsAppConfig = $event"
+    ></app-whatsapp-connection-form>
+  </mat-card>
 
   <div class="detail-grid">
     <mat-card class="detail-card">
-      <h3>WhatsApp</h3>
-      <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
-      <ng-container *ngIf="!loadingWhatsApp">
-        <div class="connection-status">
-          <mat-chip-listbox [selectable]="false">
-            <mat-chip color="primary" [highlighted]="true" *ngIf="whatsAppConfig?.isConnected">
-              <mat-icon inline="true">check_circle</mat-icon>
-              Connected
-            </mat-chip>
-            <mat-chip *ngIf="!whatsAppConfig?.isConnected">
-              <mat-icon inline="true">radio_button_unchecked</mat-icon>
-              Not connected
-            </mat-chip>
-          </mat-chip-listbox>
-        </div>
-        <dl *ngIf="whatsAppConfig">
-          <dt>Phone number ID</dt>
-          <dd>{{ whatsAppConfig.phoneNumberId || '—' }}</dd>
-          <dt>WhatsApp Business Account ID</dt>
-          <dd>{{ whatsAppConfig.whatsAppBusinessAccountId || '—' }}</dd>
-        </dl>
-      </ng-container>
-      <p class="muted hint">
-        Contact your platform administrator to connect or change this — it's no longer editable here.
-      </p>
-
-      <div class="usage field-spaced">
+      <h3>Messages</h3>
+      <div class="usage">
         <h4>Usage this month</h4>
         <mat-progress-bar mode="indeterminate" *ngIf="loadingUsage"></mat-progress-bar>
         <ng-container *ngIf="!loadingUsage && usage">

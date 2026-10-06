@@ -27,7 +27,9 @@ export class SignupComponent implements OnInit {
     fullName: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
-    country: [''],
+    // Required: it sets the currency plans are priced in and the tax on them, and the Business Profile (onboarding's
+    // first step) needs it. Left optional it was easy to skip, and the profile then asked for it again.
+    country: ['', Validators.required],
     state: [''],
     timezone: [''],
   });
@@ -74,7 +76,7 @@ export class SignupComponent implements OnInit {
       .signUp({
         ...raw,
         productName: productName.trim() || null,
-        countryCode: country || null,
+        countryCode: country,
         stateCode: state || null,
         timezone: timezone || null,
       })

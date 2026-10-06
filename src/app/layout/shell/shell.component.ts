@@ -1,7 +1,8 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
 import { Observable, Subject, timer } from 'rxjs';
-import { finalize, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
+import { filter, finalize, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
 import { AppRole, REPORT_ROLES, User } from '../../core/models/user.model';
@@ -15,6 +16,8 @@ import { NotificationsChangedService } from '../../core/services/notifications-c
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
+import { OnboardingStatus, OnboardingStep, currentStep } from '../../core/models/onboarding.model';
+import { OnboardingService } from '../../core/services/onboarding.service';
 
 interface NavItem {
   label: string;
@@ -61,7 +64,6 @@ export class ShellComponent implements OnInit, OnDestroy {
       label: null,
       items: [
         { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', roles: [] },
-        { label: 'Applications', icon: 'rocket_launch', route: '/applications', roles: [] },
       ],
     },
     {
@@ -147,7 +149,6 @@ export class ShellComponent implements OnInit, OnDestroy {
       label: 'Revenue',
       items: [
         { label: 'Package', icon: 'payments', route: '/platform/billing', roles: [] },
-        { label: 'Setup Plans', icon: 'checklist', route: '/platform/setup-plans', roles: [] },
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
         { label: 'Payments', icon: 'receipt_long', route: '/platform/payments', roles: [] },
         { label: 'Refund Requests', icon: 'assignment_return', route: '/platform/refunds', roles: [] },
@@ -257,6 +258,14 @@ export class ShellComponent implements OnInit, OnDestroy {
    * across operators, and skipped in a support session for the same reason the billing bell is. */
   readonly showPlatformBell = this.isPlatformSuperAdmin && !this.auth.isImpersonating;
   platformAlerts: PlatformNotification[] = [];
+
+  /** Set while this tenant's onboarding is incomplete: the sidenav is hidden (there is nowhere else to go yet) and
+   * every screen but the wizard itself shows a bar leading back to it. Never set for a PlatformSuperAdmin or in a
+   * support session - the onboarding guard does not hold either of them. */
+  onboarding: OnboardingStatus | null = null;
+  onOnboardingPage = false;
+  checkingOnboarding = false;
+
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -269,15 +278,70 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly notificationHub: NotificationHubService,
     private readonly tenantProfile: TenantProfileService,
     private readonly notificationsChanged: NotificationsChangedService,
-    private readonly recovery: AccountRecoveryService
+    private readonly recovery: AccountRecoveryService,
+    private readonly onboardingService: OnboardingService,
+    private readonly router: Router
   ) {}
+
+  get onboardingActive(): boolean {
+    return !!this.onboarding && !this.onboarding.isCompleted;
+  }
+
+  get onboardingStep(): OnboardingStep | null {
+    return currentStep(this.onboarding);
+  }
+
+  /** "Check this step" from the bar on a step's own screen: back to the wizard once it is done. */
+  checkOnboardingStep(): void {
+    if (this.checkingOnboarding) {
+      return;
+    }
+    const before = this.onboardingStep?.key ?? null;
+    this.checkingOnboarding = true;
+    this.onboardingService
+      .refresh()
+      .pipe(finalize(() => (this.checkingOnboarding = false)))
+      .subscribe({
+        next: (status) => {
+          if (status && (status.isCompleted || status.currentStepKey !== before)) {
+            void this.router.navigate(['/onboarding']);
+          }
+        },
+        error: () => undefined,
+      });
+  }
 
   ngOnInit(): void {
     // Unconditional - the sidenav's open/close toggle works the same in a support session as
     // anywhere else, so it isn't gated behind the isImpersonating early return below.
     this.isHandset$.pipe(takeUntil(this.destroy$)).subscribe((isHandset) => {
-      this.sidenavOpened = !isHandset;
+      this.sidenavOpened = !isHandset && !this.onboardingActive;
     });
+
+    if (!this.isPlatformSuperAdmin && !this.isImpersonating) {
+      this.onboardingService.status$.pipe(takeUntil(this.destroy$)).subscribe((status) => {
+        const wasActive = this.onboardingActive;
+        const wasComplete = !!this.onboarding?.isCompleted;
+        this.onboarding = status;
+        if (this.onboardingActive) {
+          this.sidenavOpened = false;
+          // Setup was just undone (the only package deleted, say): back to the wizard, wherever the tenant was.
+          if (wasComplete && !this.router.url.startsWith('/onboarding')) {
+            void this.router.navigate(['/onboarding']);
+          }
+        } else if (wasActive) {
+          // Just finished: the full workspace opens up.
+          this.sidenavOpened = !this.breakpoints.isMatched(Breakpoints.Handset);
+        }
+      });
+      this.onOnboardingPage = this.router.url.startsWith('/onboarding');
+      this.router.events
+        .pipe(
+          filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+          takeUntil(this.destroy$)
+        )
+        .subscribe((e) => (this.onOnboardingPage = e.urlAfterRedirects.startsWith('/onboarding')));
+    }
 
     if (this.isImpersonating) {
       return;

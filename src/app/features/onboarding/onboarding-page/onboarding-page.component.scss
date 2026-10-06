@@ -1,0 +1,332 @@
+$teal: #00796b;
+$radius: 14px;
+
+.page {
+  display: grid;
+  gap: 16px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $teal;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 28px !important;
+  border-radius: $radius !important;
+  background: linear-gradient(135deg, #e0f2f1, #fff 70%);
+
+  h1 {
+    margin: 4px 0 6px;
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 0;
+    max-width: 640px;
+  }
+}
+
+.hero-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+
+  .percent {
+    font-size: 40px;
+    font-weight: 500;
+    line-height: 1;
+    color: $teal;
+  }
+
+  .percent-label {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.overall {
+  height: 8px;
+  border-radius: 4px;
+}
+
+// Two parts: the steps, and the step itself.
+.layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.steps {
+  position: sticky;
+  top: 16px;
+  padding: 8px !important;
+  border-radius: $radius !important;
+
+  ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+
+  .step-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .step-state {
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  .step-weight {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.55);
+  }
+
+  &--completed {
+    cursor: pointer;
+
+    .step-icon {
+      color: $teal;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  // The one to do next: open, and flagged amber so it stands out from the done ones.
+  &--current {
+    cursor: pointer;
+    font-weight: 500;
+
+    .step-icon,
+    .step-state {
+      color: #ef6c00;
+    }
+  }
+
+  // Not done, and waiting behind the one above: disabled, not locked.
+  &--pending {
+    cursor: not-allowed;
+    color: rgba(0, 0, 0, 0.45);
+
+    .step-icon {
+      color: rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  &--selected {
+    background: rgba(0, 121, 107, 0.1);
+    box-shadow: inset 3px 0 0 $teal;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $teal;
+    outline-offset: 1px;
+  }
+}
+
+.panel {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px 22px !important;
+  border-radius: $radius !important;
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  h2 {
+    margin: 4px 0 4px;
+    font-size: 20px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+
+  mat-icon {
+    flex: none;
+  }
+
+  span {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  &--missing {
+    background: rgba(255, 152, 0, 0.12);
+
+    mat-icon {
+      color: #ef6c00;
+    }
+  }
+
+  &--done {
+    background: rgba(0, 121, 107, 0.1);
+
+    mat-icon {
+      color: $teal;
+    }
+  }
+}
+
+.back {
+  justify-self: start;
+}
+
+// The embedded screen keeps its own layout; this only frames it.
+.panel-body {
+  min-width: 0;
+  // Never let the page collapse while a screen is being swapped (the old one goes, the new one is still loading):
+  // a short page makes the browser clamp the scroll to the bottom, and the new step's title ends up above the view.
+  min-height: calc(100vh - 180px);
+  border-radius: $radius;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.waiting,
+.done,
+.load-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.waiting {
+  padding: 32px 24px !important;
+  border-radius: $radius !important;
+}
+
+.waiting-icon,
+.done-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 48px;
+  color: $teal;
+}
+
+.done {
+  padding: 40px 24px !important;
+  border-radius: $radius !important;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-progress {
+    align-items: flex-start;
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .steps {
+    position: static;
+  }
+}
+
+.chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px 3px 6px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 500;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+
+  &--completed {
+    background: rgba(0, 121, 107, 0.12);
+    color: $teal;
+  }
+
+  &--current {
+    background: rgba(255, 152, 0, 0.16);
+    color: #bf5b00;
+  }
+
+  &--pending {
+    background: rgba(0, 0, 0, 0.06);
+    color: rgba(0, 0, 0, 0.55);
+  }
+}
+
+// Previous / Next, under the content.
+.panel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+
+  .nav-hint {
+    flex: 1;
+    text-align: right;
+    font-size: 12px;
+  }
+}
+
+.summary {
+  margin: 0 0 4px;
+
+  .todo {
+    margin-left: 4px;
+  }
+}

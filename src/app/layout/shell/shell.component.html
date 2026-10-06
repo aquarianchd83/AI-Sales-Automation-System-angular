@@ -44,10 +44,12 @@
         type="button"
         mat-icon-button
         aria-label="Toggle navigation"
+        *ngIf="!onboardingActive"
         (click)="drawer.toggle()"
       >
         <mat-icon>menu</mat-icon>
       </button>
+      <span class="onboarding-title" *ngIf="onboardingActive">Application setup</span>
 
       <span class="spacer"></span>
 
@@ -227,6 +229,21 @@
       >
         <mat-icon>close</mat-icon>
       </button>
+    </div>
+
+    <!-- On a step's own screen during onboarding: where you are, and the way back to the wizard. -->
+    <div class="onboarding-bar" *ngIf="onboardingActive && !onOnboardingPage && onboarding as status" role="status">
+      <mat-icon>rocket_launch</mat-icon>
+      <span class="onboarding-bar-text">
+        <strong>Setup {{ status.progressPercent }}% complete</strong>
+        <ng-container *ngIf="onboardingStep as step">
+          · Step {{ status.steps.indexOf(step) + 1 }} of {{ status.steps.length }}: {{ step.title }}
+        </ng-container>
+      </span>
+      <button mat-stroked-button type="button" (click)="checkOnboardingStep()" [disabled]="checkingOnboarding">
+        {{ checkingOnboarding ? 'Checking…' : 'Check this step' }}
+      </button>
+      <a mat-flat-button color="primary" routerLink="/onboarding">Back to setup</a>
     </div>
 
     <main class="shell-content">

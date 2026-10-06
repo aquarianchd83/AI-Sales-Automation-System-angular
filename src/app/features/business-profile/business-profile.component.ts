@@ -9,8 +9,10 @@ import { RegionOption, TimeZoneOption } from '../../core/models/billing.model';
 import {
   INDUSTRY_SUGGESTIONS,
   PHONE_PATTERN,
+  TARGET_CUSTOMER_TYPES,
   TENANT_PROFILE_LIMITS,
   TenantProfile,
+  KeywordSuggestions,
   UpdateTenantBusinessProfileRequest,
   WEBSITE_PATTERN,
   addDomainKeywords,
@@ -38,18 +40,24 @@ const L = TENANT_PROFILE_LIMITS;
 })
 export class BusinessProfileComponent implements OnInit {
   readonly limits = L;
+  readonly customerTypes = TARGET_CUSTOMER_TYPES;
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
 
   readonly form = this.fb.nonNullable.group({
     companyName: ['', [Validators.required, Validators.maxLength(L.companyName)]],
     productName: ['', Validators.maxLength(L.productName)],
-    industry: ['', Validators.maxLength(L.industry)],
-    businessDescription: ['', Validators.maxLength(L.businessDescription)],
+    // Industry, description, support email and phone, and country are what onboarding's first step needs.
+    industry: ['', [Validators.required, Validators.maxLength(L.industry)]],
+    businessDescription: ['', [Validators.required, Validators.maxLength(L.businessDescription)]],
     websiteUrl: ['', [Validators.maxLength(L.websiteUrl), Validators.pattern(WEBSITE_PATTERN)]],
-    supportEmail: ['', [Validators.maxLength(L.supportEmail), Validators.email]],
-    supportPhone: ['', [Validators.maxLength(L.supportPhone), Validators.pattern(PHONE_PATTERN)]],
+    supportEmail: ['', [Validators.required, Validators.maxLength(L.supportEmail), Validators.email]],
+    supportPhone: ['', [Validators.required, Validators.maxLength(L.supportPhone), Validators.pattern(PHONE_PATTERN)]],
+    workingHours: ['', Validators.maxLength(L.workingHours)],
+    targetAudience: ['', Validators.maxLength(L.targetAudience)],
+    targetLocation: ['', Validators.maxLength(L.targetLocation)],
+    targetCustomerType: [''],
     timezone: ['', Validators.required],
-    countryCode: [''],
+    countryCode: ['', Validators.required],
     stateCode: [''],
   });
 
@@ -57,6 +65,14 @@ export class BusinessProfileComponent implements OnInit {
 
   keywords: string[] = [];
   keywordError: string | null = null;
+
+  /** What "AI suggest" last returned, for the industry it was asked about; empty once added or dismissed. */
+  suggestions: string[] = [];
+  suggestionSource: KeywordSuggestions['source'] | null = null;
+  suggestedFor = '';
+  suggesting = false;
+  /** Set when the last request came back with nothing to offer. */
+  noSuggestions = false;
 
   loading = true;
   loadFailed = false;
@@ -124,6 +140,8 @@ export class BusinessProfileComponent implements OnInit {
       v.websiteUrl,
       v.supportEmail,
       v.supportPhone,
+      v.targetAudience,
+      v.targetLocation,
       this.keywords.length ? 'yes' : '',
     ];
     const done = checks.filter((value) => value.trim().length > 0).length;
@@ -148,6 +166,50 @@ export class BusinessProfileComponent implements OnInit {
     const result = addDomainKeywords(this.keywords, raw);
     this.keywords = result.keywords;
     this.keywordError = result.error;
+  }
+
+  /** "AI suggest": keywords for the selected industry. Nothing is added until the tenant picks. */
+  suggestKeywords(): void {
+    const industry = this.form.controls.industry.value.trim();
+    if (!industry || this.suggesting) {
+      return;
+    }
+    this.suggesting = true;
+    this.noSuggestions = false;
+    this.profileService
+      .suggestKeywords({
+        industry,
+        businessDescription: blankToNull(this.form.controls.businessDescription.value),
+        existing: this.keywords,
+      })
+      .pipe(finalize(() => (this.suggesting = false)))
+      .subscribe({
+        next: (result) => {
+          this.suggestions = result.keywords;
+          this.suggestionSource = result.source;
+          this.suggestedFor = industry;
+          this.noSuggestions = result.keywords.length === 0;
+        },
+        error: () => undefined, // the error interceptor shows why
+      });
+  }
+
+  /** Adds one suggestion the way a typed keyword is added, and takes it off the list. */
+  addSuggestion(keyword: string): void {
+    this.addKeywords(keyword);
+    if (!this.keywordError) {
+      this.suggestions = this.suggestions.filter((s) => s !== keyword);
+    }
+  }
+
+  addAllSuggestions(): void {
+    this.addKeywords(this.suggestions.join(','));
+    this.suggestions = this.suggestions.filter((s) => !this.keywords.some((k) => k.toLowerCase() === s.toLowerCase()));
+  }
+
+  dismissSuggestions(): void {
+    this.suggestions = [];
+    this.noSuggestions = false;
   }
 
   removeKeyword(keyword: string): void {
@@ -180,6 +242,10 @@ export class BusinessProfileComponent implements OnInit {
       supportEmail: blankToNull(v.supportEmail),
       supportPhone: blankToNull(v.supportPhone),
       domainKeywords: this.keywords,
+      workingHours: blankToNull(v.workingHours),
+      targetAudience: blankToNull(v.targetAudience),
+      targetLocation: blankToNull(v.targetLocation),
+      targetCustomerType: blankToNull(v.targetCustomerType),
     };
 
     const steps: Observable<TenantProfile>[] = [this.profileService.updateBusinessProfile(request)];
@@ -214,6 +280,10 @@ export class BusinessProfileComponent implements OnInit {
       websiteUrl: profile.websiteUrl ?? '',
       supportEmail: profile.supportEmail ?? '',
       supportPhone: profile.supportPhone ?? '',
+      workingHours: profile.workingHours ?? '',
+      targetAudience: profile.targetAudience ?? '',
+      targetLocation: profile.targetLocation ?? '',
+      targetCustomerType: profile.targetCustomerType ?? '',
       timezone: profile.timezone,
       countryCode: profile.countryCode ?? '',
       stateCode: profile.stateCode ?? '',

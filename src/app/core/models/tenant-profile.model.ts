@@ -2,8 +2,9 @@
  * country. companyName is the tenant's name from signup. Timezone is always the effective value
  * (defaults to "Asia/Kolkata" when never set), never blank. countryCode has no such default — null
  * means "never set", and plan pricing quotes in USD until it is (see RegionalPricingCatalog.Resolve on
- * the backend). domainKeywords is never null. The business fields are stored for the tenant's own
- * reference; nothing else in the platform reads them yet. */
+ * the backend). domainKeywords is never null. This is the single copy of the business facts: the guided
+ * application setup reads and writes the same fields (name, description, website, industry, contact,
+ * working hours and the audience), so an answer given there shows up here and the other way round. */
 export interface TenantProfile {
   companyName: string;
   productName: string | null;
@@ -17,6 +18,13 @@ export interface TenantProfile {
   countryCode: string | null;
   /** The tenant's state where its country's tax splits by state (India) — decides CGST + SGST versus IGST. */
   stateCode?: string | null;
+  workingHours?: string | null;
+  /** Who the business wants to reach. */
+  targetAudience?: string | null;
+  /** Cities or regions customers are sought in (not where the business itself is based). */
+  targetLocation?: string | null;
+  /** One of TARGET_CUSTOMER_TYPES' values. */
+  targetCustomerType?: string | null;
 }
 
 /** Body of PUT /tenant-profile — replaces every business field at once, so a null optional field
@@ -30,6 +38,10 @@ export interface UpdateTenantBusinessProfileRequest {
   supportEmail: string | null;
   supportPhone: string | null;
   domainKeywords: string[];
+  workingHours: string | null;
+  targetAudience: string | null;
+  targetLocation: string | null;
+  targetCustomerType: string | null;
 }
 
 /** Mirrors TenantProfileLimits on the backend (UpdateTenantBusinessProfileRequestValidator). */
@@ -41,6 +53,9 @@ export const TENANT_PROFILE_LIMITS = {
   websiteUrl: 300,
   supportEmail: 256,
   supportPhone: 32,
+  workingHours: 500,
+  targetAudience: 1000,
+  targetLocation: 500,
   keyword: 50,
   maxKeywords: 30,
 } as const;
@@ -63,6 +78,28 @@ export const INDUSTRY_SUGGESTIONS = [
   'Technology & software',
   'Travel & hospitality',
 ];
+
+/** The values match the "Target customer type" question of the setup plans, which stores the same field. */
+export const TARGET_CUSTOMER_TYPES = [
+  { value: 'smb', label: 'Small & medium businesses' },
+  { value: 'enterprise', label: 'Large enterprises' },
+  { value: 'startups', label: 'Startups' },
+  { value: 'consumers', label: 'Individual consumers' },
+];
+
+/** KeywordSuggestionsDto - `source` is "AI" when the tenant's AI provider wrote them, "Common terms" when they came from
+ * the built-in list for well-known industries; the screen says which. */
+export interface KeywordSuggestions {
+  keywords: string[];
+  source: 'AI' | 'Common terms';
+}
+
+/** Body of POST /tenant-profile/keyword-suggestions. `existing` are never suggested again. */
+export interface SuggestKeywordsRequest {
+  industry: string;
+  businessDescription: string | null;
+  existing: string[];
+}
 
 export function blankToNull(value: string): string | null {
   const trimmed = value.trim();

@@ -35,6 +35,11 @@ export class PlatformTenantConfigService {
     return this.http.put<TenantWhatsAppConfig>(`${this.baseUrl(tenantId)}/whatsapp-config`, request);
   }
 
+  /** Asks Meta whether the saved credentials reach the phone number; the answer comes back on the config. */
+  verifyWhatsAppConfig(tenantId: string): Observable<TenantWhatsAppConfig> {
+    return this.http.post<TenantWhatsAppConfig>(`${this.baseUrl(tenantId)}/whatsapp-config/verify`, {});
+  }
+
   deleteWhatsAppConfig(tenantId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl(tenantId)}/whatsapp-config`);
   }

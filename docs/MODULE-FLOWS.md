@@ -11,7 +11,7 @@ docs; where the two differ, the code wins.
 | Handoffs | [handoffs/FLOWS.md](../src/app/features/handoffs/FLOWS.md) | end-to-end sequence, escalation triggers, the briefing, claim and resolve |
 | Leads | [leads/FLOWS.md](../src/app/features/leads/FLOWS.md) | qualification capture, configurable scoring, stages, agent actions, measuring whether it works |
 | Knowledge base | [knowledge-base/FLOWS.md](../src/app/features/knowledge-base/FLOWS.md) | publish and embed, per-model publishing, retrieval |
-| Applications | [applications/FLOWS.md](../src/app/features/applications/FLOWS.md) | plan-driven setup wizard, setup status, execution gate, plan change and versions, audit |
+| Onboarding | [onboarding/FLOWS.md](../src/app/features/onboarding/FLOWS.md) | the nine weighted setup steps, sequence and resume, the access gate, who sees what |
 
 The charts are Mermaid. They render on GitHub and in VS Code with a Mermaid preview extension.
 

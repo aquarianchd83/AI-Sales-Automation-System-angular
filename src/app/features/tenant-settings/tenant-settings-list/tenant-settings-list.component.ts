@@ -1,17 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 
 import { formatCharge } from '../../../core/models/billing.model';
-import { TenantCharges, TenantMessageUsage, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
+import {
+  TenantCharges,
+  TenantMessageUsage,
+  TenantWhatsAppConfig,
+  UpdateTenantWhatsAppConfigRequest,
+} from '../../../core/models/tenant-settings.model';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
 
 /**
- * A tenant's own read-only view of its WhatsApp Business Account connection (SaaS conversion
- * Phase B) — status and message usage only. A PlatformSuperAdmin now owns creating, editing and
- * deleting the connection itself (see the backend's PlatformTenantConfigController doc comment for
- * why): it holds a real, security-sensitive credential whose correctness affects billing and
- * platform-wide abuse exposure, not just this one tenant. Message usage (this month's send count vs.
- * the plan's quota) is a read-only derived figure, not a credential — TenantSettingsService.getUsage,
- * backed by the same count IPlanLimitsService.EnsureCanSendMessageAsync already enforces sends against.
+ * A tenant's own settings. The WhatsApp Business connection is owned jointly with the Platform Admin: the tenant's
+ * Admin can save and verify it here (this page is also the onboarding wizard's WhatsApp step), and the Platform
+ * Admin Console edits the same connection. Message usage (this month's send count vs. the plan's quota) is a
+ * read-only derived figure — TenantSettingsService.getUsage, backed by the same count
+ * IPlanLimitsService.EnsureCanSendMessageAsync already enforces sends against.
  *
  * AI provider status is deliberately not shown here (by request) - which model/provider is in use
  * behind the scenes is not something a tenant needs or should see; this component never even calls
@@ -45,6 +48,9 @@ export class TenantSettingsListComponent implements OnInit {
     }
     return Math.min(100, Math.round((this.usage.messagesSentThisMonth / this.usage.maxMessagesPerMonth) * 100));
   }
+
+  readonly saveWhatsApp = (request: UpdateTenantWhatsAppConfigRequest) => this.tenantSettings.saveWhatsAppConfig(request);
+  readonly verifyWhatsApp = () => this.tenantSettings.verifyWhatsAppConfig();
 
   constructor(private readonly tenantSettings: TenantSettingsService) {}
 

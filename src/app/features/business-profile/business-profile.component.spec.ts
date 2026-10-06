@@ -16,8 +16,8 @@ const profile: TenantProfile = {
   industry: 'Solar & energy',
   businessDescription: 'Rooftop solar for homes.',
   websiteUrl: 'https://sunvolt.example.com',
-  supportEmail: null,
-  supportPhone: null,
+  supportEmail: 'hello@sunvolt.example.com',
+  supportPhone: '+91 99999 00000',
   domainKeywords: ['solar panels'],
   timezone: 'Asia/Kolkata',
   countryCode: 'IN',
@@ -37,11 +37,13 @@ describe('BusinessProfileComponent', () => {
       'updateBusinessProfile',
       'updateTimezone',
       'updateCountry',
+      'suggestKeywords',
     ]);
     profileService.getProfile.and.returnValue(of(profile));
     profileService.updateBusinessProfile.and.callFake((request) => of({ ...profile, ...request }));
     profileService.updateTimezone.and.callFake((timezone) => of({ ...profile, timezone }));
     profileService.updateCountry.and.callFake((countryCode) => of({ ...profile, countryCode }));
+    profileService.suggestKeywords.and.returnValue(of({ keywords: ['rooftop solar', 'net metering', 'inverters'], source: 'AI' }));
     notify = jasmine.createSpyObj('NotificationService', ['success']);
 
     TestBed.configureTestingModule({
@@ -77,12 +79,12 @@ describe('BusinessProfileComponent', () => {
 
   it('loads the profile into the form and shows the summary', () => {
     expect(component.form.controls.companyName.value).toBe('SunVolt Energy');
-    expect(component.form.controls.supportEmail.value).toBe('');
+    expect(component.form.controls.supportEmail.value).toBe('hello@sunvolt.example.com');
     expect(component.keywords).toEqual(['solar panels']);
     expect(component.hasChanges).toBeFalse();
     expect(text()).toContain('SE'); // avatar initials
     expect(text()).toContain('solar panels');
-    expect(text()).toContain('6 of 8 details added');
+    expect(text()).toContain('8 of 10 details added');
     expect(text()).not.toContain('You have unsaved changes');
   });
 
@@ -110,6 +112,8 @@ describe('BusinessProfileComponent', () => {
     component.form.controls.productName.setValue('   ');
     component.form.controls.supportPhone.setValue('+91 98765 43210');
     component.form.controls.timezone.setValue('Europe/London');
+    component.form.controls.targetAudience.setValue('Homeowners in Punjab');
+    component.form.controls.targetCustomerType.setValue('consumers');
     component.form.markAsDirty();
     component.addKeywords('Inverters');
 
@@ -121,14 +125,30 @@ describe('BusinessProfileComponent', () => {
       industry: 'Solar & energy',
       businessDescription: 'Rooftop solar for homes.',
       websiteUrl: 'https://sunvolt.example.com',
-      supportEmail: null,
+      supportEmail: 'hello@sunvolt.example.com',
       supportPhone: '+91 98765 43210',
       domainKeywords: ['solar panels', 'Inverters'],
+      workingHours: null,
+      targetAudience: 'Homeowners in Punjab',
+      targetLocation: null,
+      targetCustomerType: 'consumers',
     });
     expect(profileService.updateTimezone).toHaveBeenCalledOnceWith('Europe/London');
     expect(profileService.updateCountry).not.toHaveBeenCalled();
     expect(notify.success).toHaveBeenCalledWith('Business profile saved.');
     expect(component.hasChanges).toBeFalse();
+  });
+
+  it('requires what onboarding needs: industry, description, support email and phone, country', () => {
+    for (const key of ['industry', 'businessDescription', 'supportEmail', 'supportPhone', 'countryCode'] as const) {
+      component.form.controls[key].setValue('');
+      expect(component.form.controls[key].hasError('required')).withContext(key).toBeTrue();
+    }
+    component.form.markAsDirty();
+
+    component.save();
+
+    expect(profileService.updateBusinessProfile).not.toHaveBeenCalled();
   });
 
   it('blocks saving while a field is invalid', () => {
@@ -152,5 +172,94 @@ describe('BusinessProfileComponent', () => {
     expect(component.form.controls.companyName.value).toBe('SunVolt Energy');
     expect(component.keywords).toEqual(['solar panels']);
     expect(component.hasChanges).toBeFalse();
+  });
+
+  describe('AI suggest', () => {
+    const button = (): HTMLButtonElement =>
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.suggest-row button')).find((b) => b.textContent!.includes('AI suggest'))!;
+    const chips = (): string[] =>
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.suggestion')).map((c) => c.textContent!.replace('add', '').trim());
+
+    it('sits above the keyword box and is off until an industry is chosen', () => {
+      const root = fixture.nativeElement as HTMLElement;
+      const row = root.querySelector('.suggest-row')!;
+      const box = root.querySelector('mat-chip-grid')!;
+      expect(row.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+      expect(button().disabled).toBeFalse(); // the fixture's industry is "Solar & energy"
+      component.form.controls.industry.setValue('  ');
+      fixture.detectChanges();
+      expect(button().disabled).toBeTrue();
+      expect(text()).toContain('Choose an industry to get suggestions.');
+    });
+
+    it('asks for the selected industry, with the description and the keywords already added', () => {
+      component.addKeywords('Inverters');
+      button().click();
+      fixture.detectChanges();
+
+      expect(profileService.suggestKeywords).toHaveBeenCalledOnceWith({
+        industry: 'Solar & energy',
+        businessDescription: 'Rooftop solar for homes.',
+        existing: ['solar panels', 'Inverters'],
+      });
+    });
+
+    it('shows what came back, says where it came from, and adds nothing by itself', () => {
+      button().click();
+      fixture.detectChanges();
+
+      expect(chips()).toEqual(['rooftop solar', 'net metering', 'inverters']);
+      expect(text()).toContain('Suggested for Solar & energy');
+      expect(text()).toContain('written by your AI assistant');
+      expect(component.keywords).toEqual(['solar panels']);
+    });
+
+    it('does not call common terms AI', () => {
+      profileService.suggestKeywords.and.returnValue(of({ keywords: ['net metering'], source: 'Common terms' }));
+
+      button().click();
+      fixture.detectChanges();
+
+      expect(text()).toContain('common terms for this industry');
+      expect(text()).not.toContain('written by your AI assistant');
+    });
+
+    it('adds a clicked suggestion as a keyword and takes it off the list', () => {
+      button().click();
+      fixture.detectChanges();
+
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.suggestion')[1].click();
+      fixture.detectChanges();
+
+      expect(component.keywords).toEqual(['solar panels', 'net metering']);
+      expect(chips()).toEqual(['rooftop solar', 'inverters']);
+      expect(component.hasChanges).toBeTrue();
+    });
+
+    it('adds them all at once, skipping one that is already there in another case', () => {
+      component.addKeywords('Rooftop Solar');
+      button().click();
+      fixture.detectChanges();
+
+      component.addAllSuggestions();
+      fixture.detectChanges();
+
+      expect(component.keywords).toEqual(['solar panels', 'Rooftop Solar', 'net metering', 'inverters']);
+      expect(component.suggestions).toEqual([]);
+    });
+
+    it('can be dismissed, and says so when there is nothing to suggest', () => {
+      button().click();
+      fixture.detectChanges();
+      component.dismissSuggestions();
+      fixture.detectChanges();
+      expect(chips()).toEqual([]);
+
+      profileService.suggestKeywords.and.returnValue(of({ keywords: [], source: 'Common terms' }));
+      button().click();
+      fixture.detectChanges();
+      expect(text()).toContain('Nothing to suggest for "Solar & energy" yet');
+    });
   });
 });

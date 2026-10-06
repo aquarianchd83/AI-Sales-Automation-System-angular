@@ -316,6 +316,13 @@
           </dd>
           <dt *ngIf="whatsAppConfig?.phoneNumberId">Phone number ID</dt>
           <dd *ngIf="whatsAppConfig?.phoneNumberId">{{ whatsAppConfig?.phoneNumberId }}</dd>
+          <dt *ngIf="whatsAppConfig?.isConnected">Verified</dt>
+          <dd *ngIf="whatsAppConfig?.isConnected">
+            <ng-container *ngIf="whatsAppConfig?.verifiedAtUtc; else notVerified">
+              {{ whatsAppConfig?.verifiedDisplayPhoneNumber || 'Yes' }} · {{ whatsAppConfig?.verifiedAtUtc | date: 'medium' }}
+            </ng-container>
+            <ng-template #notVerified>{{ whatsAppConfig?.verificationError ? 'Failed: ' + whatsAppConfig?.verificationError : 'Not yet' }}</ng-template>
+          </dd>
         </dl>
         <div class="card-actions">
           <button mat-stroked-button color="primary" type="button" [disabled]="loadingConfig" (click)="editWhatsAppConfig()">
@@ -325,7 +332,7 @@
             Delete
           </button>
         </div>
-        <p class="muted hint">Only a PlatformSuperAdmin can set or change this.</p>
+        <p class="muted hint">The tenant's Admin can set and verify this too.</p>
       </mat-card>
 
       <mat-card class="section">
