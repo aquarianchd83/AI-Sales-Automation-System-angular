@@ -17,6 +17,7 @@ import {
 import { ActivatedRoute, ROUTES, Route, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 
+import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import { ONBOARDING_AREAS, OnboardingArea, areaFor, matchRoute } from './onboarding-areas';
 
 /**
@@ -110,7 +111,11 @@ export class OnboardingStepHostComponent implements OnChanges, OnDestroy {
       }
 
       const injector = Injector.create({
-        providers: [{ provide: ActivatedRoute, useValue: this.routeWith(match.params, match.route.data ?? {}) }],
+        providers: [
+          { provide: ActivatedRoute, useValue: this.routeWith(match.params, match.route.data ?? {}) },
+          // Lets a screen that is also a full page leave out what does not belong in a guided step.
+          { provide: EMBEDDED_IN_ONBOARDING, useValue: true },
+        ],
         parent: moduleRef.injector,
       });
       this.outlet.clear();

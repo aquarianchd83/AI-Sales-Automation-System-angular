@@ -1,6 +1,6 @@
 <div class="page">
   <app-page-header title="Billing" subtitle="Choose a plan or switch to another one.">
-    <a mat-stroked-button routerLink="/billing/wallet">
+    <a mat-stroked-button routerLink="/billing/wallet" *ngIf="!embedded">
       <mat-icon>data_usage</mat-icon>
       Usage &amp; credits
     </a>
@@ -86,7 +86,7 @@
 
   <p class="muted price-note" *ngIf="!loadingPlans && plans.length">Prices are shown in your local currency.</p>
 
-  <mat-card class="payment-history-card">
+  <mat-card class="payment-history-card" *ngIf="!embedded">
     <h3>Payment history</h3>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPayments"></mat-progress-bar>
     <ng-container *ngIf="!loadingPayments">
@@ -104,7 +104,7 @@
     </ng-container>
   </mat-card>
 
-  <mat-card class="payment-history-card" *ngIf="refundRequests.length">
+  <mat-card class="payment-history-card" *ngIf="!embedded && refundRequests.length">
     <h3>Refund requests</h3>
     <div class="payment-list">
       <div class="refund-row" *ngFor="let request of refundRequests">

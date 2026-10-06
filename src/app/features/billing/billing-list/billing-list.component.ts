@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, Optional } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
 import { NotificationService } from '../../../core/services/notification.service';
 import { BillingService } from '../../../core/services/billing.service';
+import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import {
   Payment,
   Plan,
@@ -50,8 +51,15 @@ export class BillingListComponent implements OnInit {
   constructor(
     private readonly billing: BillingService,
     private readonly notify: NotificationService,
-    private readonly dialog: MatDialog
-  ) {}
+    private readonly dialog: MatDialog,
+    @Optional() @Inject(EMBEDDED_IN_ONBOARDING) embedded: boolean | null
+  ) {
+    this.embedded = !!embedded;
+  }
+
+  /** Shown inside the onboarding step "Select Package Plan": just the plans. Payment history, refund requests and the
+   * shortcut to usage and credits belong to the Billing page, not to choosing a plan - and are neither shown nor fetched. */
+  readonly embedded: boolean;
 
   ngOnInit(): void {
     this.loadPlans();
@@ -182,6 +190,9 @@ export class BillingListComponent implements OnInit {
   }
 
   private loadRefundRequests(): void {
+    if (this.embedded) {
+      return;
+    }
     this.billing.getRefundRequests().subscribe({ next: (requests) => (this.refundRequests = requests) });
   }
 
@@ -208,6 +219,10 @@ export class BillingListComponent implements OnInit {
   }
 
   private loadPaymentHistory(): void {
+    if (this.embedded) {
+      this.loadingPayments = false;
+      return;
+    }
     this.loadingPayments = true;
     this.billing.getPaymentHistory().subscribe({
       next: (payments) => {
