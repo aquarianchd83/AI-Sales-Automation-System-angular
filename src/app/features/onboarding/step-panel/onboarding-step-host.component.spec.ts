@@ -89,6 +89,14 @@ describe('OnboardingStepHostComponent with the real step screens', () => {
     });
   }
 
+  it('tells the screens they are shown inside onboarding: Billing leaves out payment history and the usage shortcut', async () => {
+    const root = await show('/billing');
+
+    expect(root.querySelector('app-billing-list')).toBeTruthy();
+    expect(root.querySelector('.payment-history-card')).toBeNull();
+    expect(root.textContent).not.toContain('Usage & credits');
+  });
+
   it('says when the screen has arrived, once per url', async () => {
     let arrived = 0;
     fixture.componentInstance.rendered.subscribe(() => arrived++);
