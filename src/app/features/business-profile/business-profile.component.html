@@ -41,10 +41,12 @@
             <input
               matInput
               formControlName="industry"
+              required
               [maxlength]="limits.industry"
               [matAutocomplete]="industryAuto"
               placeholder="Pick a suggestion or type your own"
             />
+            <mat-error>Industry is required.</mat-error>
             <mat-autocomplete #industryAuto="matAutocomplete">
               <mat-option *ngFor="let option of filteredIndustries" [value]="option">{{ option }}</mat-option>
             </mat-autocomplete>
@@ -55,6 +57,7 @@
             <textarea
               matInput
               formControlName="businessDescription"
+              required
               rows="4"
               [maxlength]="limits.businessDescription"
               placeholder="What you sell, who you sell to, and what makes you different."
@@ -62,6 +65,7 @@
             <mat-hint align="end">
               {{ form.controls.businessDescription.value.length | number }} / {{ limits.businessDescription | number }}
             </mat-hint>
+            <mat-error>Business description is required.</mat-error>
           </mat-form-field>
         </div>
       </mat-card>
@@ -87,15 +91,59 @@
           <mat-form-field appearance="outline">
             <mat-label>Support email</mat-label>
             <mat-icon matPrefix>mail</mat-icon>
-            <input matInput formControlName="supportEmail" type="email" [maxlength]="limits.supportEmail" placeholder="support@example.com" />
-            <mat-error>Enter a valid email address.</mat-error>
+            <input matInput formControlName="supportEmail" type="email" required [maxlength]="limits.supportEmail" placeholder="support@example.com" />
+            <mat-error>{{ form.controls.supportEmail.hasError('required') ? 'Support email is required.' : 'Enter a valid email address.' }}</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
             <mat-label>Support phone</mat-label>
             <mat-icon matPrefix>call</mat-icon>
-            <input matInput formControlName="supportPhone" type="tel" [maxlength]="limits.supportPhone" placeholder="+91 98765 43210" />
-            <mat-error>Use digits, spaces, brackets, dashes and an optional leading +.</mat-error>
+            <input matInput formControlName="supportPhone" type="tel" required [maxlength]="limits.supportPhone" placeholder="+91 98765 43210" />
+            <mat-error>{{ form.controls.supportPhone.hasError('required') ? 'Support phone is required.' : 'Use digits, spaces, brackets, dashes and an optional leading +.' }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Working hours</mat-label>
+            <mat-icon matPrefix>schedule</mat-icon>
+            <input matInput formControlName="workingHours" [maxlength]="limits.workingHours" placeholder="Mon-Sat, 9am-6pm" />
+          </mat-form-field>
+        </div>
+      </mat-card>
+
+      <!-- Audience -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-blue"><mat-icon>groups</mat-icon></span>
+          <div>
+            <h2>Audience</h2>
+            <p>Who you want to reach. Your application setup uses these answers too.</p>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Target audience</mat-label>
+            <textarea
+              matInput
+              formControlName="targetAudience"
+              rows="3"
+              [maxlength]="limits.targetAudience"
+              placeholder="Age, interests, where they live, what they need."
+            ></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Target customer type</mat-label>
+            <mat-select formControlName="targetCustomerType">
+              <mat-option value="">Not set</mat-option>
+              <mat-option *ngFor="let type of customerTypes" [value]="type.value">{{ type.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Target location</mat-label>
+            <mat-icon matPrefix>place</mat-icon>
+            <input matInput formControlName="targetLocation" [maxlength]="limits.targetLocation" placeholder="e.g. Chandigarh, Mohali, Panchkula" />
           </mat-form-field>
         </div>
       </mat-card>
@@ -113,6 +161,53 @@
             {{ keywords.length }} / {{ limits.maxKeywords }}
           </span>
         </div>
+
+        <!-- AI suggest: keywords for the industry chosen above. Nothing is added until you pick. -->
+        <div class="suggest-row">
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            (click)="suggestKeywords()"
+            [disabled]="!form.controls.industry.value.trim() || suggesting"
+            [matTooltip]="form.controls.industry.value.trim() ? '' : 'Choose an industry first'"
+          >
+            <mat-icon>auto_awesome</mat-icon>
+            {{ suggesting ? 'Suggesting…' : 'AI suggest' }}
+          </button>
+          <span class="muted suggest-hint">
+            {{ form.controls.industry.value.trim() ? 'Suggests keywords for ' + form.controls.industry.value.trim() + '.' : 'Choose an industry to get suggestions.' }}
+          </span>
+        </div>
+
+        <div class="suggestions" *ngIf="suggestions.length" role="region" aria-label="Suggested keywords">
+          <div class="suggestions-head">
+            <span>
+              <strong>Suggested for {{ suggestedFor }}</strong>
+              <span class="muted"> · {{ suggestionSource === 'AI' ? 'written by your AI assistant' : 'common terms for this industry' }}</span>
+            </span>
+            <span class="spacer"></span>
+            <button mat-button type="button" color="primary" (click)="addAllSuggestions()">Add all</button>
+            <button mat-icon-button type="button" aria-label="Dismiss suggestions" (click)="dismissSuggestions()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <div class="suggestion-chips">
+            <button
+              *ngFor="let suggestion of suggestions"
+              type="button"
+              class="suggestion"
+              [attr.aria-label]="'Add ' + suggestion"
+              (click)="addSuggestion(suggestion)"
+            >
+              <mat-icon>add</mat-icon>{{ suggestion }}
+            </button>
+          </div>
+        </div>
+        <p class="muted no-suggestions" *ngIf="noSuggestions" role="status">
+          <mat-icon>info</mat-icon>
+          Nothing to suggest for "{{ suggestedFor }}" yet - add your own below, or try a broader industry.
+        </p>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Add keywords</mat-label>
@@ -188,12 +283,13 @@
 
         <mat-form-field appearance="outline" class="full-width field-gap">
           <mat-label>Country</mat-label>
-          <mat-select formControlName="countryCode">
+          <mat-select formControlName="countryCode" required>
             <mat-option *ngFor="let region of regions" [value]="region.countryCode">
               {{ region.countryName }} ({{ region.currencyCode }})
             </mat-option>
           </mat-select>
           <mat-hint>Sets your currency, your plan prices and the tax on them.</mat-hint>
+          <mat-error>Country is required.</mat-error>
         </mat-form-field>
 
         <app-state-select class="field-gap" [control]="form.controls.stateCode" [country]="form.controls.countryCode.value"></app-state-select>

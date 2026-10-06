@@ -31,7 +31,7 @@ describe('flowDocForHref', () => {
     expect(flowDocForHref('../../../../docs/MODULE-FLOWS.md')).toBe('overview');
     expect(flowDocForHref('../conversations/FLOWS.md')).toBe('conversations');
     expect(flowDocForHref('../src/app/features/knowledge-base/FLOWS.md')).toBe('knowledge-base');
-    expect(flowDocForHref('../src/app/features/applications/FLOWS.md')).toBe('applications');
+    expect(flowDocForHref('../src/app/features/onboarding/FLOWS.md')).toBe('onboarding');
   });
 
   it('returns null for source-file links and modules with no doc', () => {

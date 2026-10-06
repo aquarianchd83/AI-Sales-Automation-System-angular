@@ -1,0 +1,76 @@
+:host {
+  display: block;
+}
+
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.04);
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  mat-icon {
+    flex: none;
+  }
+
+  &--verified {
+    background: rgba(0, 121, 107, 0.1);
+
+    mat-icon {
+      color: #00796b;
+    }
+  }
+
+  &--failed {
+    background: rgba(211, 47, 47, 0.08);
+
+    mat-icon {
+      color: #d32f2f;
+    }
+  }
+
+  &--unverified {
+    background: rgba(255, 152, 0, 0.12);
+
+    mat-icon {
+      color: #ef6c00;
+    }
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 12px;
+  row-gap: 4px;
+}
+
+.span-2,
+.advanced-toggle {
+  grid-column: 1 / -1;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

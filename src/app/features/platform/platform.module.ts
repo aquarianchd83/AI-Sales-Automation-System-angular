@@ -2,11 +2,6 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { SharedModule } from '../../shared/shared.module';
-import { SetupSharedModule } from '../setup-shared/setup-shared.module';
-import { PlatformSetupPlansComponent } from './platform-setup-plans/platform-setup-plans.component';
-import { PlatformSetupPreviewDialogComponent } from './platform-setup-preview-dialog/platform-setup-preview-dialog.component';
-import { PlatformSetupRequirementDialogComponent } from './platform-setup-requirement-dialog/platform-setup-requirement-dialog.component';
-import { PlatformSetupVersionComponent } from './platform-setup-version/platform-setup-version.component';
 import { PlatformAnnouncementFormDialogComponent } from './platform-announcement-form-dialog/platform-announcement-form-dialog.component';
 import { PlatformAnnouncementListComponent } from './platform-announcement-list/platform-announcement-list.component';
 import { PlatformAwsSettingsComponent } from './platform-aws-settings/platform-aws-settings.component';
@@ -57,8 +52,6 @@ const routes: Routes = [
       { path: 'billing', component: PlatformBillingComponent },
       { path: 'billing/plans/new', component: PlatformPlanEditorComponent },
       { path: 'billing/plans/:id', component: PlatformPlanEditorComponent },
-      { path: 'setup-plans', component: PlatformSetupPlansComponent },
-      { path: 'setup-plans/versions/:id', component: PlatformSetupVersionComponent },
       { path: 'usage', component: PlatformUsageComponent },
       { path: 'payments', component: PlatformPaymentListComponent },
       { path: 'configuration', component: PlatformConfigurationComponent },
@@ -124,11 +117,7 @@ const routes: Routes = [
     PlatformKnowledgeDeprecateDialogComponent,
     PlatformAnnouncementListComponent,
     PlatformAnnouncementFormDialogComponent,
-    PlatformSetupPlansComponent,
-    PlatformSetupVersionComponent,
-    PlatformSetupRequirementDialogComponent,
-    PlatformSetupPreviewDialogComponent,
   ],
-  imports: [SharedModule, SetupSharedModule, RouterModule.forChild(routes)],
+  imports: [SharedModule, RouterModule.forChild(routes)],
 })
 export class PlatformModule {}

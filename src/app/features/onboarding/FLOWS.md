@@ -1,0 +1,117 @@
+# Onboarding — flows
+
+How a tenant is taken through setup after signing in, and what it can reach until setup is done. All charts are
+traced from the code. Index of every module's charts: [docs/MODULE-FLOWS.md](../../../../docs/MODULE-FLOWS.md).
+
+| Where the logic lives | File |
+| --- | --- |
+| The widget ("Complete Your Application Setup") | [onboarding-page.component.ts](onboarding-page/onboarding-page.component.ts) |
+| A step's real screen, shown in the panel | [onboarding-step-host.component.ts](step-panel/onboarding-step-host.component.ts), [onboarding-areas.ts](step-panel/onboarding-areas.ts) |
+| Re-check after every save | [onboarding-progress.interceptor.ts](../../core/interceptors/onboarding-progress.interceptor.ts) |
+| Who may go where while onboarding | [onboarding.guard.ts](../../core/guards/onboarding.guard.ts) |
+| No sidenav, the "Back to setup" bar | [shell.component.ts](../../layout/shell/shell.component.ts) |
+| Status, cached once complete | [onboarding.service.ts](../../core/services/onboarding.service.ts) |
+| Steps, order, weights (API) | `AI-Sales-Automation-System-api/.../Application/Onboarding/OnboardingCatalog.cs` |
+| What completes each step (API) | `.../Application/Onboarding/OnboardingService.cs` |
+
+---
+
+## 1. The steps
+
+Listed in this order. Progress is the sum of the weights of the steps whose data is in place (they add up to 100) -
+every step is judged on its own data, in any order, so a tenant who already has eight steps' worth of data sees 85%,
+not the share before the first gap.
+Each step is judged by the data its screen saves. There is no "mark as done" button.
+
+## 1a. One page, two parts
+
+The wizard is one page: the steps on the left, the selected step on the right. The right part shows the step's
+**real screen** (the Business profile, the Packages list, ...), loaded from its own feature module and picked from
+that module's own routes - nothing is rebuilt for onboarding. The tenant never leaves the page:
+
+- Anything the screen links to (a campaign's detail page to add its steps and customers, a related setting) is
+  caught by the page's canDeactivate and opened in the same panel, with "Back to <step>".
+- A link into a waiting step is refused with a note; links elsewhere (sign out, own account) go through.
+- Every successful save re-reads progress in the background, so the list ticks off by itself. When the step on
+  screen completes, a banner offers the next one; the panel never moves on its own.
+
+| # | Step | Weight | Screen (shown in the panel) | Complete when |
+| - | ---- | -----: | ------ | ------------- |
+| 1 | Profile Information | 10% | `/profile` | name, industry, description, support email and phone, and country are saved |
+| 2 | Select Package Plan | 10% | `/billing` | the tenant has a plan that is not cancelled |
+| 3 | Create Customer Package | 15% | `/packages` | an active customer package exists (the API refuses one before a plan, and maps it to the plan) |
+| 4 | Lead Discovery Profile | 10% | `/lead-discovery/profile` | a profile with a business type and at least one location is saved |
+| 5 | WhatsApp Configuration | 15% | `/tenant-settings` | the connection is saved **and verified with Meta** since the last save |
+| 6 | Configure Message Template | 10% | `/message-templates` | an active template exists that Meta has not rejected (pending counts) |
+| 7 | Create Customer | 10% | `/customers` | a customer exists |
+| 8 | Create Campaign | 10% | `/campaigns` | a campaign with at least one message step and one customer exists |
+| 9 | Knowledge Base / Voucher | 10% | `/knowledge-base` | an uploaded article of the tenant has finished processing |
+
+## 2. States, progress and resume
+
+Each step is one of three, shown on its row and on the panel's chip - never a padlock, since nothing is locked from
+being changed:
+
+| State | Meaning | Open? |
+| ----- | ------- | ----- |
+| **Done** | its data is in place | yes - open it to review or change |
+| **To do** | the first step that is not done: what to do next | yes |
+| **Waiting** | not done either, behind the one to do | no - disabled, with a tooltip naming what to finish first |
+
+```mermaid
+flowchart TD
+    R["GET /onboarding"] --> L["For each step, on its own data"]
+    L --> D{"Its data is there right now?"}
+    D -- yes --> DONE["Done (recorded, keeping when it first was)"]
+    D -- no --> F{"First one not done?"}
+    F -- yes --> CUR["To do, with what is missing"]
+    F -- no --> W["Waiting, with what it needs"]
+    DONE --> SUM
+    CUR --> SUM
+    W --> SUM["Progress = sum of the Done weights"]
+    SUM --> END{"All nine done?"}
+    END -- yes --> OK["Onboarding completed"]
+    END -- no --> OPEN["Onboarding in progress"]
+```
+
+Setup is checked **live**, not remembered. Delete the only customer package and Step 3 is to do again: progress
+drops by its 15%, the other steps stay done (their data is still there), and the tenant is taken back to the wizard
+from wherever they were. The same goes for any step - clear the industry on the profile and Step 1 reopens.
+Signing out and back in resumes at the first step still to do. `TenantOnboardingSteps` records what is done now, and
+since when. Every successful save or delete re-reads progress shortly after (the interceptor), including for a
+tenant whose setup is complete - that is how a delete is noticed straight away.
+
+Moving to another step (Next, Previous, a click on the list, a link opening in the panel) always brings the panel back to
+the top of the view - Next sits at the bottom of a long screen, so without it the new step's title is left above the
+fold. It scrolls again once the new screen has arrived, because a step visited for the first time loads its code from
+the network; the panel body keeps a minimum height so the page never collapses (and the browser never clamps the scroll)
+while one screen is swapped for another.
+
+The page itself reads top to bottom: the step's title, its real screen, then **Previous / Next**. Previous and Next
+move between open steps; Next waits while the step on screen is still to do.
+
+## 3. Access while onboarding
+
+```mermaid
+flowchart TD
+    N["Navigation"] --> P{"Platform operator,<br/>or a support session?"}
+    P -- yes --> OK["Allowed"]
+    P -- no --> O{"Onboarding complete?"}
+    O -- yes --> OK
+    O -- no --> A{"/onboarding or<br/>own account?"}
+    A -- yes --> OK
+    A -- no --> AD{"Tenant Admin, and the<br/>screen of a completed or<br/>current step?"}
+    AD -- yes --> OK
+    AD -- no --> W["Sent to /onboarding"]
+```
+
+The tenant's Admin works through the steps; every other tenant user sees the same progress, read-only, until the
+Admin finishes. While onboarding is incomplete the sidenav is hidden. A step's screen can still be opened at its own
+address (a bookmark, a link); it then shows a bar with "Check this step" and "Back to setup".
+
+## 4. WhatsApp: shared ownership
+
+The tenant's Admin and the Platform Admin both own the WhatsApp connection: the same form on the tenant's Settings
+page and in the Platform Admin Console writes the same row. "Verify connection" asks Meta for the phone number with
+the stored token; the answer (number and verified name, or Meta's error) is recorded, and any later save clears it,
+so step 5 is only complete for credentials that are verified as they are now.

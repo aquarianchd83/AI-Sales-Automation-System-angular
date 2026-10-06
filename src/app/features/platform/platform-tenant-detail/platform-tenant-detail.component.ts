@@ -299,7 +299,8 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.dialog
       .open(PlatformTenantWhatsAppConfigDialogComponent, {
         data: { tenantId: this.tenantId, tenantName: this.tenant?.name ?? '', config: this.whatsAppConfig },
-        width: '560px',
+        width: '720px',
+        maxWidth: '95vw',
         disableClose: true,
       })
       .afterClosed()
@@ -329,7 +330,8 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.dialog
       .open(PlatformTenantAiConfigDialogComponent, {
         data: { tenantId: this.tenantId, tenantName: this.tenant?.name ?? '', config: this.aiConfig },
-        width: '560px',
+        width: '720px',
+        maxWidth: '95vw',
         disableClose: true,
       })
       .afterClosed()

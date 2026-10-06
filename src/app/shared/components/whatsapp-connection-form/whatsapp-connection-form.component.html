@@ -1,0 +1,103 @@
+<div class="status" [ngClass]="'status--' + state" role="status">
+  <ng-container [ngSwitch]="state">
+    <ng-container *ngSwitchCase="'verified'">
+      <mat-icon>verified</mat-icon>
+      <div>
+        <strong>Connected and verified</strong>
+        <span>
+          {{ config?.verifiedDisplayPhoneNumber || config?.phoneNumberId }}<ng-container *ngIf="config?.verifiedName"> · {{ config?.verifiedName }}</ng-container>
+          · checked {{ config?.verifiedAtUtc | date: 'medium' }}
+        </span>
+      </div>
+    </ng-container>
+    <ng-container *ngSwitchCase="'failed'">
+      <mat-icon>error</mat-icon>
+      <div>
+        <strong>Verification failed</strong>
+        <span>{{ config?.verificationError }}</span>
+      </div>
+    </ng-container>
+    <ng-container *ngSwitchCase="'unverified'">
+      <mat-icon>pending</mat-icon>
+      <div>
+        <strong>Saved, not verified yet</strong>
+        <span>Verify the connection to confirm Meta accepts these credentials.</span>
+      </div>
+    </ng-container>
+    <ng-container *ngSwitchDefault>
+      <mat-icon>link_off</mat-icon>
+      <div>
+        <strong>Not connected</strong>
+        <span>Enter your WhatsApp Business details from Meta, save, then verify.</span>
+      </div>
+    </ng-container>
+  </ng-container>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSave()" class="grid" novalidate>
+  <mat-form-field appearance="outline">
+    <mat-label>Phone number ID</mat-label>
+    <input matInput formControlName="phoneNumberId" required autocomplete="off" />
+    <mat-error>Phone number ID is required.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>WhatsApp Business Account ID</mat-label>
+    <input matInput formControlName="whatsAppBusinessAccountId" required autocomplete="off" />
+    <mat-error>WhatsApp Business Account ID is required.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Access token</mat-label>
+    <input matInput type="password" formControlName="accessToken" autocomplete="new-password"
+           [placeholder]="config?.hasAccessToken ? 'Saved — type to replace' : ''" />
+    <mat-hint>{{ config?.hasAccessToken ? 'A token is saved. Leave blank to keep it.' : 'A permanent System User token is best.' }}</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>App secret</mat-label>
+    <input matInput type="password" formControlName="appSecret" autocomplete="new-password"
+           [placeholder]="config?.hasAppSecret ? 'Saved — type to replace' : ''" />
+    <mat-hint *ngIf="config?.hasAppSecret">A secret is saved. Leave blank to keep it.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>App ID</mat-label>
+    <input matInput formControlName="appId" autocomplete="off" />
+    <mat-hint>Lets a short-lived token be renewed automatically.</mat-hint>
+  </mat-form-field>
+
+  <div class="advanced-toggle">
+    <button mat-button type="button" (click)="showAdvanced = !showAdvanced">
+      <mat-icon>{{ showAdvanced ? 'expand_less' : 'expand_more' }}</mat-icon>
+      Advanced
+    </button>
+  </div>
+
+  <ng-container *ngIf="showAdvanced">
+    <mat-form-field appearance="outline">
+      <mat-label>Webhook verify token</mat-label>
+      <input matInput type="password" formControlName="webhookVerifyToken" autocomplete="new-password"
+             [placeholder]="config?.hasWebhookVerifyToken ? 'Saved — type to replace' : ''" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>API version</mat-label>
+      <input matInput formControlName="apiVersion" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="span-2">
+      <mat-label>API base URL</mat-label>
+      <input matInput formControlName="apiBaseUrl" />
+    </mat-form-field>
+  </ng-container>
+
+  <div class="actions span-2">
+    <button mat-stroked-button color="primary" type="button" (click)="onVerify()" [disabled]="!canVerify"
+            [matTooltip]="form.dirty ? 'Save your changes first' : ''">
+      <mat-icon>wifi_tethering</mat-icon>
+      {{ verifying ? 'Verifying…' : 'Verify connection' }}
+    </button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="saving">
+      {{ saving ? 'Saving…' : 'Save' }}
+    </button>
+  </div>
+</form>

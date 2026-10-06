@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { authGuard, guestGuard, homeRedirectGuard, roleGuard } from './core/guards/auth.guard';
+import { onboardingGuard } from './core/guards/onboarding.guard';
 import { PLATFORM_ADMIN_ROLES } from './core/models/platform.model';
 import { SETTINGS_ADMIN_ROLES } from './core/models/settings.model';
 import { REPORT_ROLES, TENANT_ADMIN_ROLES, TENANT_ROLES, USER_ADMIN_ROLES } from './core/models/user.model';
@@ -36,7 +37,8 @@ const routes: Routes = [
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],
-    canActivateChild: [authGuard],
+    // onboardingGuard holds a tenant in the onboarding wizard until its setup is complete.
+    canActivateChild: [authGuard, onboardingGuard],
     children: [
       // Static redirectTo can't branch on the signed-in user — homeRedirectGuard sends a
       // PlatformSuperAdmin to /platform and everyone else to /dashboard. See its own doc comment.
@@ -93,12 +95,12 @@ const routes: Routes = [
           import('./features/knowledge-base/knowledge-base.module').then((m) => m.KnowledgeBaseModule),
       },
       {
-        // Plan-driven applications: any tenant user may look; configuring and running are enforced by the API (Admin / Sales Manager).
-        path: 'applications',
+        // "Complete Your Application Setup" - where a tenant lands until onboarding is done.
+        path: 'onboarding',
         canActivate: [roleGuard],
         data: { roles: TENANT_ROLES },
         loadChildren: () =>
-          import('./features/applications/applications.module').then((m) => m.ApplicationsModule),
+          import('./features/onboarding/onboarding.module').then((m) => m.OnboardingModule),
       },
       {
         path: 'packages',

@@ -8,14 +8,12 @@ import {
   TenantCharges,
   TenantMessageUsage,
   TenantWhatsAppConfig,
+  UpdateTenantWhatsAppConfigRequest,
 } from '../models/tenant-settings.model';
 
 /**
- * A tenant's own read-only view of its WhatsApp Business Account connection, AI provider setup, and
- * message usage (SaaS conversion Phase B). Connection/provider config used to be editable here too;
- * write access moved to the Platform Admin Console (see PlatformTenantConfigService) since both hold
- * real, security-sensitive credentials — see the backend's PlatformTenantConfigController doc comment
- * for why. This service only reads now.
+ * A tenant's own settings: its WhatsApp Business Account connection (owned jointly with the Platform Admin -
+ * either side can save and verify it), a read-only view of the AI provider setup, and usage and charges.
  */
 @Injectable({ providedIn: 'root' })
 export class TenantSettingsService {
@@ -27,6 +25,16 @@ export class TenantSettingsService {
    * not a missing resource. */
   getWhatsAppConfig(): Observable<TenantWhatsAppConfig | null> {
     return this.http.get<TenantWhatsAppConfig | null>(`${this.baseUrl}/whatsapp`);
+  }
+
+  /** Saves the tenant's own WhatsApp credentials. Clears any earlier verification - verify again afterwards. */
+  saveWhatsAppConfig(request: UpdateTenantWhatsAppConfigRequest): Observable<TenantWhatsAppConfig> {
+    return this.http.put<TenantWhatsAppConfig>(`${this.baseUrl}/whatsapp`, request);
+  }
+
+  /** Asks Meta whether the saved credentials reach the phone number; the answer comes back on the config. */
+  verifyWhatsAppConfig(): Observable<TenantWhatsAppConfig> {
+    return this.http.post<TenantWhatsAppConfig>(`${this.baseUrl}/whatsapp/verify`, {});
   }
 
   /** Null when the tenant has never configured one — defaults to Simulated for both Provider and
