@@ -21,9 +21,4 @@ describe('TenantSettingsService', () => {
     service.getWhatsAppConfig().subscribe();
     http.expectOne({ url: baseUrl + '/whatsapp', method: 'GET' }).flush(null);
   });
-
-  it('gets the AI config', () => {
-    service.getAiConfig().subscribe();
-    http.expectOne({ url: baseUrl + '/ai', method: 'GET' }).flush(null);
-  });
 });

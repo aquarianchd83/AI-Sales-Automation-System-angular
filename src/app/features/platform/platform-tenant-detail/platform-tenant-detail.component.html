@@ -342,24 +342,14 @@
           <span class="section-icon tone-violet"><mat-icon>smart_toy</mat-icon></span>
           <div>
             <h3>AI provider</h3>
-            <p>Chat and embedding models.</p>
+            <p>Platform-wide, not per tenant.</p>
           </div>
         </div>
-        <dl class="facts">
-          <dt>Chat provider</dt>
-          <dd>{{ aiConfig?.provider ?? 'Simulated' }}</dd>
-          <dt>Embedding provider</dt>
-          <dd>{{ aiConfig?.embeddingProvider ?? 'Simulated' }}</dd>
-        </dl>
-        <div class="card-actions">
-          <button mat-stroked-button color="primary" type="button" [disabled]="loadingConfig" (click)="editAiConfig()">
-            {{ aiConfig ? 'Edit' : 'Configure' }}
-          </button>
-          <button mat-stroked-button color="warn" type="button" *ngIf="aiConfig" (click)="deleteAiConfig()">
-            Delete
-          </button>
-        </div>
-        <p class="muted hint">Only a PlatformSuperAdmin can set or change this.</p>
+        <p class="muted hint">
+          Every tenant runs on the one AI provider, model and key set on the
+          <a routerLink="/platform/configuration">Configuration</a> screen. A trial uses its free allowance; a paid
+          tenant spends purchased AI credits.
+        </p>
       </mat-card>
     </aside>
   </div>

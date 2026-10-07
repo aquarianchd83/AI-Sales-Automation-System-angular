@@ -4,10 +4,8 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
-  TenantAiProviderConfig,
   TenantSettingCategory,
   TenantWhatsAppConfig,
-  UpdateTenantAiProviderConfigRequest,
   UpdateTenantSettingsRequest,
   UpdateTenantWhatsAppConfigRequest,
 } from '../models/tenant-settings.model';
@@ -42,18 +40,6 @@ export class PlatformTenantConfigService {
 
   deleteWhatsAppConfig(tenantId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl(tenantId)}/whatsapp-config`);
-  }
-
-  getAiConfig(tenantId: string): Observable<TenantAiProviderConfig | null> {
-    return this.http.get<TenantAiProviderConfig | null>(`${this.baseUrl(tenantId)}/ai-config`);
-  }
-
-  saveAiConfig(tenantId: string, request: UpdateTenantAiProviderConfigRequest): Observable<TenantAiProviderConfig> {
-    return this.http.put<TenantAiProviderConfig>(`${this.baseUrl(tenantId)}/ai-config`, request);
-  }
-
-  deleteAiConfig(tenantId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl(tenantId)}/ai-config`);
   }
 
   getConfigOverrides(tenantId: string): Observable<TenantSettingCategory[]> {

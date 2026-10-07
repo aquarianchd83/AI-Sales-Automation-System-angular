@@ -54,36 +54,6 @@ export interface UpdateTenantWhatsAppConfigRequest {
   appId?: string | null;
 }
 
-/** TenantAiProviderConfigDto. Same masking convention as TenantWhatsAppConfig, one flag per
- * provider's API key. */
-export interface TenantAiProviderConfig {
-  provider: string;
-  embeddingProvider: string;
-  hasAnthropicApiKey: boolean;
-  anthropicModel: string;
-  hasOpenAiApiKey: boolean;
-  openAiChatModel: string;
-  openAiEmbeddingModel: string;
-  hasGoogleApiKey: boolean;
-  googleChatModel: string;
-  googleEmbeddingModel: string;
-}
-
-/** UpdateTenantAiProviderConfigRequest — any null field leaves the current value (or built-in
- * default, on first save) unchanged; empty string clears an API key. */
-export interface UpdateTenantAiProviderConfigRequest {
-  provider?: string | null;
-  embeddingProvider?: string | null;
-  anthropicApiKey?: string | null;
-  anthropicModel?: string | null;
-  openAiApiKey?: string | null;
-  openAiChatModel?: string | null;
-  openAiEmbeddingModel?: string | null;
-  googleApiKey?: string | null;
-  googleChatModel?: string | null;
-  googleEmbeddingModel?: string | null;
-}
-
 /** TenantWhatsAppCategoryChargeDto — one template category's share. `category` is a TemplateCategory
  * name (Marketing/Utility/Authentication). */
 export interface TenantWhatsAppCategoryCharge {
@@ -126,13 +96,6 @@ export interface TenantCharges {
   totalEstimatedCostUsd: number;
   totalEstimatedCostLocal: number;
 }
-
-/** The chat providers a tenant can pick for AiProviderConfig.provider. */
-export const AI_CHAT_PROVIDERS: string[] = ['Simulated', 'Anthropic', 'OpenAI', 'Google'];
-
-/** The embedding providers a tenant can pick for AiProviderConfig.embeddingProvider — Anthropic
- * has no embeddings endpoint, so it is not offered here. */
-export const AI_EMBEDDING_PROVIDERS: string[] = ['Simulated', 'OpenAI', 'Google'];
 
 /**
  * TenantSettingItemDto — one tenant-overridable Campaigns/Media/Messaging/Ai tuning key (see the

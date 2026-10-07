@@ -6,7 +6,12 @@ import { Subject } from 'rxjs';
 import { finalize, takeUntil } from 'rxjs/operators';
 
 import {
+  AI_TRANSACTION_STATUS_LABELS,
+  AI_USAGE_SOURCE_LABELS,
+  AiTransaction,
+  AiTransactionStatus,
   CreditPack,
+  INSUFFICIENT_AI_CREDITS_MESSAGE,
   QUOTA_ENTRY_LABELS,
   QUOTA_GRANT_ORIGIN_LABELS,
   QUOTA_TYPES,
@@ -60,6 +65,8 @@ export class WalletComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly formatUnits = formatUnits;
   readonly ledgerColumns = ['when', 'quota', 'what', 'units', 'balance', 'note'];
+  readonly aiColumns = ['when', 'source', 'status', 'credits', 'balance', 'details'];
+  readonly aiStatus = AiTransactionStatus;
 
   readonly alertForm = this.fb.group({
     email: ['', [Validators.email, Validators.maxLength(256)]],
@@ -73,14 +80,18 @@ export class WalletComponent implements OnInit, OnDestroy {
   notifications: TenantNotification[] = [];
   ledger: PagedResult<QuotaLedgerEntry> = emptyPage<QuotaLedgerEntry>();
   ledgerFilter: QuotaType | null = null;
+  aiUsage: PagedResult<AiTransaction> = emptyPage<AiTransaction>();
 
   loading = true;
   loadingLedger = true;
+  loadingAiUsage = true;
   savingAlerts = false;
   buyingPackId: string | null = null;
 
   private ledgerPage = 1;
   private ledgerPageSize = DEFAULT_PAGE_SIZE;
+  private aiPage = 1;
+  private aiPageSize = DEFAULT_PAGE_SIZE;
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -96,6 +107,7 @@ export class WalletComponent implements OnInit, OnDestroy {
     this.billing.getSubscription().subscribe({ next: (subscription) => (this.subscription = subscription) });
     this.loadNotifications();
     this.loadLedger();
+    this.loadAiUsage();
     this.billing.getAlertSettings().subscribe({
       next: (settings) =>
         this.alertForm.reset({
@@ -114,6 +126,31 @@ export class WalletComponent implements OnInit, OnDestroy {
   /** Credits can only be bought against a live plan — the API says so too, this just explains it up front. */
   get canBuy(): boolean {
     return !!this.subscription?.planId && ['Active', 'PastDue'].includes(this.subscription.status);
+  }
+
+  /** AI is paused when the tenant has nothing left to spend on it — the platform's provider needs no setup from them. */
+  get aiPaused(): boolean {
+    const ai = this.balances.find((b) => b.type === QuotaType.AiConversations);
+    return !this.loading && !!ai && (ai.level === 'empty' || ai.level === 'none');
+  }
+
+  /** A paying tenant is told to buy credits; one still on trial, with no plan, is told to upgrade first. */
+  get aiPausedMessage(): string {
+    return this.canBuy
+      ? INSUFFICIENT_AI_CREDITS_MESSAGE
+      : 'Your free trial AI allowance is used up. Upgrade to a paid plan and purchase AI credits to continue using this feature.';
+  }
+
+  scrollToBuy(): void {
+    document.getElementById('buy-credits')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  aiStatusLabel(status: AiTransactionStatus): string {
+    return AI_TRANSACTION_STATUS_LABELS[status];
+  }
+
+  aiSourceLabel(row: AiTransaction): string {
+    return AI_USAGE_SOURCE_LABELS[row.source];
   }
 
   packsFor(type: QuotaType): CreditPack[] {
@@ -175,6 +212,7 @@ export class WalletComponent implements OnInit, OnDestroy {
             this.notify.success(`${pack.name} added.`);
             this.reloadBalances();
             this.loadLedger();
+            this.loadAiUsage();
           });
       });
   }
@@ -223,6 +261,20 @@ export class WalletComponent implements OnInit, OnDestroy {
     this.ledgerPage = event.pageIndex + 1;
     this.ledgerPageSize = event.pageSize;
     this.loadLedger();
+  }
+
+  onAiPage(event: PageEvent): void {
+    this.aiPage = event.pageIndex + 1;
+    this.aiPageSize = event.pageSize;
+    this.loadAiUsage();
+  }
+
+  private loadAiUsage(): void {
+    this.loadingAiUsage = true;
+    this.billing
+      .getAiUsage({ page: this.aiPage, pageSize: this.aiPageSize })
+      .pipe(finalize(() => (this.loadingAiUsage = false)))
+      .subscribe({ next: (page) => (this.aiUsage = page) });
   }
 
   private reloadBalances(): void {

@@ -35,6 +35,7 @@ describe('WalletComponent buying credits', () => {
       getNotifications: () => of([]),
       getAlertSettings: () => of({ email: null, phoneE164: null, whatsAppEnabled: false }),
       getLedger: jasmine.createSpy('getLedger').and.returnValue(of(emptyPage())),
+      getAiUsage: jasmine.createSpy('getAiUsage').and.returnValue(of(emptyPage())),
       acknowledgeNotification: () => of(void 0),
       purchaseCreditPack: jasmine
         .createSpy('purchaseCreditPack')

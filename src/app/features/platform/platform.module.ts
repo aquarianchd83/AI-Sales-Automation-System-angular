@@ -25,7 +25,6 @@ import { PlatformQuotaAdjustDialogComponent } from './platform-quota-adjust-dial
 import { PlatformRefundListComponent } from './platform-refund-list/platform-refund-list.component';
 import { PlatformRefundReviewDialogComponent } from './platform-refund-review-dialog/platform-refund-review-dialog.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
-import { PlatformTenantAiConfigDialogComponent } from './platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
 import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
 import { PlatformTenantFormDialogComponent } from './platform-tenant-form-dialog/platform-tenant-form-dialog.component';
@@ -86,7 +85,6 @@ const routes: Routes = [
     PlatformTenantDetailComponent,
     PlatformTenantFormDialogComponent,
     PlatformTenantWhatsAppConfigDialogComponent,
-    PlatformTenantAiConfigDialogComponent,
     PlatformTenantConfigOverridesDialogComponent,
     PlatformBillingComponent,
     PlatformPlanEditorComponent,
