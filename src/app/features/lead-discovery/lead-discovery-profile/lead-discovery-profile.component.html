@@ -39,14 +39,73 @@
             required
           />
           <mat-error>Describe the kind of business to look for.</mat-error>
+          <mat-hint>e.g. Eye clinic, Computer hardware distributor</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <textarea
+            matInput
+            formControlName="description"
+            rows="3"
+            [maxlength]="limits.description"
+            placeholder="What you sell and the kind of customer you want to find."
+          ></textarea>
+          <mat-hint>What you sell and the kind of customer you want to find.</mat-hint>
+          <mat-hint align="end">{{ form.controls.description.value.length | number }} / {{ limits.description | number }}</mat-hint>
         </mat-form-field>
 
         <div class="list-head">
           <span class="list-label">Search keywords</span>
-          <span class="count" [class.count--full]="lists.keywords.length >= limits.maxKeywords">
-            {{ lists.keywords.length }} / {{ limits.maxKeywords }}
+          <span class="list-head-actions">
+            <!-- AI suggest: what people type into Google to find this kind of business, from the target type and the
+                 description above. Nothing is added until you pick. -->
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              class="suggest-button"
+              (click)="suggestKeywords()"
+              [disabled]="!form.controls.description.value.trim() || suggesting"
+              [matTooltip]="form.controls.description.value.trim() ? 'Suggests the words people search for to find this kind of business' : 'Write a description first'"
+            >
+              <mat-icon>auto_awesome</mat-icon>
+              {{ suggesting ? 'Suggesting…' : 'AI suggest' }}
+            </button>
+            <span class="count" [class.count--full]="lists.keywords.length >= limits.maxKeywords">
+              {{ lists.keywords.length }} / {{ limits.maxKeywords }}
+            </span>
           </span>
         </div>
+
+        <div class="suggestions" *ngIf="suggestions.length" role="region" aria-label="Suggested keywords">
+          <div class="suggestions-head">
+            <span>
+              <strong>Suggested keywords</strong>
+              <span class="muted"> · {{ suggestionSource === 'AI' ? 'written by your AI assistant' : 'put together from your target business type' }}</span>
+            </span>
+            <span class="spacer"></span>
+            <button mat-button type="button" color="primary" (click)="addAllSuggestions()">Add all</button>
+            <button mat-icon-button type="button" aria-label="Dismiss suggestions" (click)="dismissSuggestions()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          <div class="suggestion-chips">
+            <button
+              *ngFor="let suggestion of suggestions"
+              type="button"
+              class="suggestion"
+              [attr.aria-label]="'Add ' + suggestion"
+              (click)="addSuggestion(suggestion)"
+            >
+              <mat-icon>add</mat-icon>{{ suggestion }}
+            </button>
+          </div>
+        </div>
+        <p class="muted no-suggestions" *ngIf="noSuggestions" role="status">
+          <mat-icon>info</mat-icon>
+          Nothing new to suggest - add your own below, or add more detail to the description.
+        </p>
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Add keywords</mat-label>
           <mat-chip-grid #keywordGrid aria-label="Search keywords">
@@ -65,7 +124,7 @@
               (matChipInputTokenEnd)="addKeyword($event)"
             />
           </mat-chip-grid>
-          <mat-hint>Each keyword is searched in every location. Press Enter or comma after each one.</mat-hint>
+          <mat-hint>Type a keyword and press Enter. Each keyword is searched in every location.</mat-hint>
         </mat-form-field>
         <p class="field-message field-message--error" *ngIf="listErrors.keywords as error" role="alert">
           <mat-icon>error_outline</mat-icon>{{ error }}
@@ -80,6 +139,58 @@
             {{ lists.locations.length }} / {{ limits.maxLocations }}
           </span>
         </div>
+        <!-- With a country on the profile: its cities by state, several can be ticked. Otherwise typed in. -->
+        <ng-container *ngIf="usesCityList; else typedLocations">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Select cities in {{ countryLabel }}</mat-label>
+            <mat-icon matPrefix>place</mat-icon>
+            <mat-select
+              [formControl]="locationSelect"
+              multiple
+              panelClass="city-panel"
+              (selectionChange)="onLocationsChosen($event.value)"
+              (openedChange)="onCityPanel($event)"
+            >
+              <mat-select-trigger>
+                {{ lists.locations.length ? lists.locations.length + ' selected' : '' }}
+              </mat-select-trigger>
+              <div class="city-search" (keydown)="stopKeys($event)">
+                <mat-icon>search</mat-icon>
+                <input
+                  type="text"
+                  [formControl]="citySearch"
+                  placeholder="Search a city or state"
+                  aria-label="Search cities"
+                  autocomplete="off"
+                />
+              </div>
+              <mat-optgroup *ngFor="let group of filteredCityGroups" [label]="group.name">
+                <mat-option
+                  *ngFor="let option of group.cities"
+                  [value]="option.value"
+                  [disabled]="locationsAtLimit && !isLocationSelected(option.value)"
+                >
+                  {{ option.city }}
+                </mat-option>
+              </mat-optgroup>
+              <div class="city-empty" *ngIf="!filteredCityGroups.length">No city or state matches "{{ citySearch.value }}".</div>
+            </mat-select>
+            <mat-hint>
+              Cities of {{ countryLabel }} by state - tick as many as you need.
+              <ng-container *ngIf="locationsAtLimit"> You have reached the limit of {{ limits.maxLocations }}.</ng-container>
+            </mat-hint>
+          </mat-form-field>
+          <mat-chip-set class="chosen-cities" *ngIf="lists.locations.length" aria-label="Chosen locations">
+            <mat-chip *ngFor="let location of lists.locations" (removed)="remove('locations', location)">
+              {{ location }}
+              <button matChipRemove type="button" [attr.aria-label]="'Remove ' + location">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip>
+          </mat-chip-set>
+        </ng-container>
+
+        <ng-template #typedLocations>
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Add locations</mat-label>
           <mat-icon matPrefix>place</mat-icon>
@@ -99,8 +210,10 @@
               (matChipInputTokenEnd)="addLocation($event)"
             />
           </mat-chip-grid>
-          <mat-hint>e.g. Chandigarh, or Andheri West, Mumbai. Press Enter after each one.</mat-hint>
+          <mat-hint>City, region or area, then Enter - e.g. Chandigarh, or Andheri West, Mumbai.</mat-hint>
         </mat-form-field>
+        <p class="muted hint-line">Choose your country on the Profile Information page to pick cities from a list instead.</p>
+        </ng-template>
         <p class="field-message field-message--error" *ngIf="listErrors.locations as error" role="alert">
           <mat-icon>error_outline</mat-icon>{{ error }}
         </p>
@@ -197,6 +310,7 @@
               placeholder="e.g. Has been in business for at least 3 years"
               (keydown.enter)="$event.preventDefault(); addCriterion()"
             />
+            <mat-hint>e.g. Has been in business for at least 3 years</mat-hint>
           </mat-form-field>
           <button
             mat-stroked-button

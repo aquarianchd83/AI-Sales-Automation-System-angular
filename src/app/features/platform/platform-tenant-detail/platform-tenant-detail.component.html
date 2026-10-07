@@ -314,6 +314,8 @@
               {{ tenant.whatsAppConnected ? 'Connected' : 'Not connected' }}
             </span>
           </dd>
+          <dt>Tenant's WhatsApp number</dt>
+          <dd>{{ tenant.whatsAppNumber || 'Not given yet' }}</dd>
           <dt *ngIf="whatsAppConfig?.phoneNumberId">Phone number ID</dt>
           <dd *ngIf="whatsAppConfig?.phoneNumberId">{{ whatsAppConfig?.phoneNumberId }}</dd>
           <dt *ngIf="whatsAppConfig?.isConnected">Verified</dt>

@@ -33,6 +33,12 @@ export function isWhatsAppVerified(config: TenantWhatsAppConfig | null | undefin
   return !!config?.isConnected && !!config.verifiedAtUtc;
 }
 
+/** TenantWhatsAppNumberDto - the WhatsApp number the tenant gave for its customers to message (null: none yet). Just
+ * the number; connecting it to WhatsApp is the separate connection form. */
+export interface TenantWhatsAppNumber {
+  whatsAppNumber: string | null;
+}
+
 /** UpdateTenantWhatsAppConfigRequest — accessToken/appSecret/webhookVerifyToken null (omitted)
  * leaves the stored value unchanged; empty string explicitly clears it. `appId` isn't a secret and
  * follows the plainer "blank leaves it unchanged" convention apiVersion/apiBaseUrl already use —

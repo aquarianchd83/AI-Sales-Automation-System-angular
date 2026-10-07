@@ -10,12 +10,15 @@ import {
   LEAD_DISCOVERY_CHECKBOX_FIELDS,
   LEAD_DISCOVERY_LIMITS,
   LeadDiscoveryProfile,
+  LeadKeywordSuggestions,
   SaveLeadDiscoveryProfileRequest,
   addListEntries,
 } from '../../../core/models/lead-discovery.model';
+import { CityGroup, cityGroupsFor, countryName, filterCityGroups } from '../../../core/models/city-catalog';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { TenantProfileService } from '../../../core/services/tenant-profile.service';
 
 const L = LEAD_DISCOVERY_LIMITS;
 
@@ -52,6 +55,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
   readonly form = this.fb.nonNullable.group({
     isEnabled: [false],
     targetBusinessType: ['', [Validators.required, Validators.maxLength(L.targetBusinessType)]],
+    description: ['', Validators.maxLength(L.description)],
     batchSize: [25, [Validators.required, Validators.min(1), Validators.max(L.maxBatchSize)]],
     minimumLeadScore: [60, [Validators.required, Validators.min(0), Validators.max(100)]],
     phoneRequired: [true],
@@ -77,10 +81,30 @@ export class LeadDiscoveryProfileComponent implements OnInit {
 
   readonly keywordInput = new FormControl('', { nonNullable: true });
   readonly locationInput = new FormControl('', { nonNullable: true });
+
+  /** The country the business was registered in (Profile Information), which decides the cities offered. */
+  countryCode: string | null = null;
+  countryLabel: string | null = null;
+  /** Every city of that country by state, plus anything already saved that the list lacks. Empty when the country is not
+   * set or has no list - the page then falls back to typing locations in. */
+  cityGroups: CityGroup[] = [];
+  /** cityGroups narrowed by the search box. A plain field, recomputed when the search or the groups change: this array is
+   * bound via *ngFor, so a getter returning a fresh array on every check would rebuild every option on every pass. */
+  filteredCityGroups: CityGroup[] = [];
+  readonly citySearch = new FormControl('', { nonNullable: true });
+  /** The dropdown's own selection; `lists.locations` stays the source of truth and this mirrors it. */
+  readonly locationSelect = new FormControl<string[]>([], { nonNullable: true });
   readonly criterionInput = new FormControl('', { nonNullable: true });
 
   lists: Record<ListKey, string[]> = { keywords: [], locations: [], additionalCriteria: [] };
   listErrors: Record<ListKey, string | null> = { keywords: null, locations: null, additionalCriteria: null };
+
+  /** What "AI suggest" last returned; empty once added or dismissed. Nothing is added until the tenant picks. */
+  suggestions: string[] = [];
+  suggestionSource: LeadKeywordSuggestions['source'] | null = null;
+  suggesting = false;
+  /** Set when the last request came back with nothing new to offer. */
+  noSuggestions = false;
 
   loading = true;
   loadFailed = false;
@@ -114,12 +138,63 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     private readonly fb: FormBuilder,
     private readonly leadDiscovery: LeadDiscoveryService,
     private readonly campaignService: CampaignService,
-    private readonly notify: NotificationService
-  ) {}
+    private readonly notify: NotificationService,
+    private readonly tenantProfile: TenantProfileService
+  ) {
+    this.citySearch.valueChanges.subscribe(() => this.refilterCities());
+  }
 
   ngOnInit(): void {
     this.load();
     this.loadCampaigns();
+    this.tenantProfile.getProfile().subscribe({
+      next: (profile) => {
+        this.countryCode = profile.countryCode;
+        this.countryLabel = countryName(profile.countryCode);
+        this.rebuildCities();
+      },
+      error: () => undefined, // no country: locations are typed in instead
+    });
+  }
+
+  /** The dropdown is used once the country is known and has cities. */
+  get usesCityList(): boolean {
+    return this.cityGroups.length > 0;
+  }
+
+  get locationsAtLimit(): boolean {
+    return this.lists.locations.length >= L.maxLocations;
+  }
+
+  isLocationSelected(value: string): boolean {
+    return this.lists.locations.includes(value);
+  }
+
+  /** The dropdown's selection changed: several cities can be ticked at once. */
+  onLocationsChosen(values: string[]): void {
+    this.lists = { ...this.lists, locations: values.slice(0, L.maxLocations) };
+    this.listErrors = { ...this.listErrors, locations: null };
+  }
+
+  /** Searching inside the dropdown must not trigger the select's own type-ahead or close it. */
+  stopKeys(event: Event): void {
+    event.stopPropagation();
+  }
+
+  onCityPanel(open: boolean): void {
+    if (!open) {
+      this.citySearch.setValue('');
+    }
+  }
+
+  private rebuildCities(): void {
+    this.cityGroups = cityGroupsFor(this.countryCode, this.lists.locations);
+    this.refilterCities();
+    this.locationSelect.setValue([...this.lists.locations], { emitEvent: false });
+  }
+
+  private refilterCities(): void {
+    this.filteredCityGroups = filterCityGroups(this.cityGroups, this.citySearch.value);
   }
 
   load(): void {
@@ -246,6 +321,48 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     return `Finds up to ${v.batchSize || 0} new ${type.toLowerCase()} leads per run${where}, keeping those scoring ${v.minimumLeadScore ?? 0} or more.`;
   }
 
+  /** "AI suggest": keywords from the description and the packages sold. */
+  suggestKeywords(): void {
+    const description = this.form.controls.description.value.trim();
+    if (!description || this.suggesting) {
+      return;
+    }
+    this.suggesting = true;
+    this.noSuggestions = false;
+    this.leadDiscovery
+      .suggestKeywords({
+        description,
+        targetBusinessType: this.form.controls.targetBusinessType.value.trim() || null,
+        existing: this.lists.keywords,
+      })
+      .pipe(finalize(() => (this.suggesting = false)))
+      .subscribe({
+        next: (result) => {
+          this.suggestions = result.keywords;
+          this.suggestionSource = result.source;
+          this.noSuggestions = result.keywords.length === 0;
+        },
+        error: () => undefined, // the error interceptor shows why
+      });
+  }
+
+  /** Adds one suggestion the way a typed keyword is added, and takes it off the list. */
+  addSuggestion(keyword: string): void {
+    if (this.add('keywords', keyword)) {
+      this.suggestions = this.suggestions.filter((s) => s !== keyword);
+    }
+  }
+
+  addAllSuggestions(): void {
+    this.add('keywords', this.suggestions.join(','));
+    this.suggestions = this.suggestions.filter((s) => !this.lists.keywords.some((k) => k.toLowerCase() === s.toLowerCase()));
+  }
+
+  dismissSuggestions(): void {
+    this.suggestions = [];
+    this.noSuggestions = false;
+  }
+
   addKeyword(event: MatChipInputEvent): void {
     if (this.add('keywords', event.value)) {
       event.chipInput.clear();
@@ -269,6 +386,9 @@ export class LeadDiscoveryProfileComponent implements OnInit {
   remove(key: ListKey, value: string): void {
     this.lists = { ...this.lists, [key]: this.lists[key].filter((v) => v !== value) };
     this.listErrors = { ...this.listErrors, [key]: null };
+    if (key === 'locations') {
+      this.locationSelect.setValue([...this.lists.locations], { emitEvent: false });
+    }
   }
 
   discard(): void {
@@ -298,6 +418,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     const request: SaveLeadDiscoveryProfileRequest = {
       isEnabled: v.isEnabled,
       targetBusinessType: v.targetBusinessType.trim(),
+      description: v.description.trim() || null,
       keywords: this.lists.keywords,
       locations: this.lists.locations,
       batchSize: v.batchSize,
@@ -348,6 +469,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     this.form.reset({
       isEnabled: profile.isEnabled,
       targetBusinessType: profile.targetBusinessType ?? '',
+      description: profile.description ?? '',
       batchSize: profile.batchSize,
       minimumLeadScore: profile.minimumLeadScore,
       phoneRequired: profile.phoneRequired || required('Phone'),
@@ -385,6 +507,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     this.keywordInput.setValue('');
     this.locationInput.setValue('');
     this.criterionInput.setValue('');
+    this.rebuildCities();
   }
 }
 

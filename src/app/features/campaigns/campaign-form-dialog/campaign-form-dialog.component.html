@@ -2,6 +2,10 @@
 
 <mat-dialog-content>
   <form [formGroup]="form" novalidate>
+    <h3 class="section-title" *ngIf="!isEdit">
+      <span class="section-number">1</span> Campaign details
+    </h3>
+
     <mat-form-field class="full-width">
       <mat-label>Name</mat-label>
       <!-- No cdkFocusInitial: forcing focus onto an outlined field before the dialog's
@@ -40,12 +44,111 @@
       Leave the date blank to start immediately on Start. If set, Start moves the campaign
       to Scheduled instead of Running until that date and time.
     </p>
+
+    <!-- A campaign needs something to say and somebody to say it to, so both are chosen here rather than
+         being left for a second visit. Follow-ups are added on the campaign afterwards. -->
+    <ng-container *ngIf="!isEdit">
+      <h3 class="section-title"><span class="section-number">2</span> Message</h3>
+
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingTemplates"></mat-progress-bar>
+
+      <div class="empty-note" role="status" *ngIf="noTemplates">
+        <mat-icon>info</mat-icon>
+        <div>
+          <strong>No approved message template yet</strong>
+          <p>
+            Campaigns send an approved WhatsApp template. Create one in Message templates and wait for WhatsApp to
+            approve it, then come back to create the campaign.
+          </p>
+        </div>
+      </div>
+
+      <ng-container *ngIf="!noTemplates && !loadingTemplates">
+        <mat-form-field class="full-width">
+          <mat-label>Initial message template</mat-label>
+          <mat-select formControlName="messageTemplateId">
+            <mat-option *ngFor="let template of templates" [value]="template.id">
+              {{ template.name }} <span class="muted">· {{ template.language }}</span>
+            </mat-option>
+          </mat-select>
+          <mat-hint>Only approved templates can be sent.</mat-hint>
+          <mat-error *ngIf="form.controls.messageTemplateId.hasError('required')">Choose the first message.</mat-error>
+        </mat-form-field>
+
+        <div class="template-preview" *ngIf="selectedTemplate as t">
+          <span class="preview-label muted">What customers receive</span>
+          <p>{{ t.bodyText }}</p>
+        </div>
+      </ng-container>
+
+      <h3 class="section-title"><span class="section-number">3</span> Audience</h3>
+
+      <div class="empty-note" role="status" *ngIf="noCustomers">
+        <mat-icon>info</mat-icon>
+        <div>
+          <strong>No customers yet</strong>
+          <p>Add at least one customer (with their opt-in) so there is somebody to send the campaign to, then come back.</p>
+        </div>
+      </div>
+
+      <ng-container *ngIf="!noCustomers">
+        <div class="picker">
+          <label class="picker-label">Customers</label>
+          <div class="chips" *ngIf="selectedCustomers.length">
+            <span class="chip" *ngFor="let customer of selectedCustomers">
+              {{ customer.label }}
+              <button type="button" class="chip-remove" (click)="removeCustomer(customer.id)" [attr.aria-label]="'Remove ' + customer.label">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </span>
+          </div>
+          <mat-form-field class="full-width">
+            <mat-label>Search customers</mat-label>
+            <input matInput [formControl]="customerSearch" [matAutocomplete]="customerAuto" placeholder="Name or phone…" />
+            <mat-autocomplete #customerAuto="matAutocomplete" (optionSelected)="onCustomerSelected($event)">
+              <mat-option *ngIf="loadingCustomers" disabled>Searching…</mat-option>
+              <mat-option *ngFor="let customer of customerOptions" [value]="customer">
+                {{ customer.firstName }} {{ customer.lastName }}
+                <span class="muted">· {{ customer.phoneNumberE164 }}</span>
+              </mat-option>
+            </mat-autocomplete>
+            <mat-hint>Name or phone…</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="picker" *ngIf="tagOptions.length || selectedTags.length">
+          <label class="picker-label">Or everyone with a tag</label>
+          <div class="chips" *ngIf="selectedTags.length">
+            <span class="chip" *ngFor="let name of selectedTags">
+              {{ name }}
+              <button type="button" class="chip-remove" (click)="removeTag(name)" [attr.aria-label]="'Remove ' + name">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </span>
+          </div>
+          <mat-form-field class="full-width">
+            <mat-label>Search tags</mat-label>
+            <input matInput [formControl]="tagSearch" [matAutocomplete]="tagAuto" placeholder="vip, newsletter…" />
+            <mat-autocomplete #tagAuto="matAutocomplete" (optionSelected)="onTagSelected($event)">
+              <mat-option *ngFor="let tag of tagOptions" [value]="tag">
+                {{ tag.name }} <span class="muted">· {{ tag.customerCount }}</span>
+              </mat-option>
+            </mat-autocomplete>
+            <mat-hint>vip, newsletter…</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <p class="schedule-hint muted audience-hint">
+          Only customers who have opted in are added. Pick at least one customer or tag.
+        </p>
+      </ng-container>
+    </ng-container>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button type="button" (click)="cancel()">Cancel</button>
-  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+  <button mat-flat-button color="primary" type="button" [disabled]="saving || !canSave" (click)="save()">
     {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create campaign' }}
   </button>
 </mat-dialog-actions>

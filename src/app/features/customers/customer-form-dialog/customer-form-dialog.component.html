@@ -10,7 +10,7 @@
           Will be saved as <strong>{{ normalized }}</strong>
         </mat-hint>
         <mat-hint *ngIf="!normalizedPhone">
-          An Indian mobile number, or any number with its country code.
+          An Indian mobile number, or any number with its country code. e.g. 9820098200
         </mat-hint>
         <mat-error *ngIf="form.controls.phoneNumberE164.hasError('required')">
           Phone number is required.
@@ -41,12 +41,20 @@
 
       <mat-form-field>
         <mat-label>Source</mat-label>
-        <input matInput formControlName="source" placeholder="Website, Referral, Import…" />
+        <mat-select formControlName="source">
+          <mat-option value="">Not set</mat-option>
+          <mat-option *ngFor="let option of sourceOptions" [value]="option.value">{{ option.label }}</mat-option>
+        </mat-select>
+        <mat-hint>Where this customer came from.</mat-hint>
       </mat-form-field>
 
       <mat-form-field class="span-2">
         <mat-label>Preferred language</mat-label>
-        <input matInput formControlName="preferredLanguage" placeholder="en, hi, es…" />
+        <mat-select formControlName="preferredLanguage">
+          <mat-option value="">Not set</mat-option>
+          <mat-option *ngFor="let option of languageOptions" [value]="option.value">{{ option.label }}</mat-option>
+        </mat-select>
+        <mat-hint>The language to message them in.</mat-hint>
       </mat-form-field>
     </div>
 

@@ -8,12 +8,13 @@
           <mat-label>Name</mat-label>
           <input matInput formControlName="name" placeholder="Order confirmation" />
           <mat-error *ngIf="form.controls.name.hasError('required')">Name is required.</mat-error>
+          <mat-hint>Order confirmation</mat-hint>
         </mat-form-field>
 
         <mat-form-field>
           <mat-label>WhatsApp template name</mat-label>
           <input matInput formControlName="whatsAppTemplateName" placeholder="order_confirmation" />
-          <mat-hint>The name registered with Meta — exact match required.</mat-hint>
+          <mat-hint>The name registered with Meta — exact match required. e.g. order_confirmation</mat-hint>
           <mat-error *ngIf="form.controls.whatsAppTemplateName.hasError('required')">
             Required.
           </mat-error>

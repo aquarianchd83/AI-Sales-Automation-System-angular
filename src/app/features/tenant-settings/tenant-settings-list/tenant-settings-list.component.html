@@ -1,9 +1,34 @@
 <div class="page">
   <app-page-header
+    *ngIf="!embedded"
     title="Settings"
-    subtitle="Your WhatsApp connection, message usage and charges."
+    subtitle="Your WhatsApp number, connection, message usage and charges."
   ></app-page-header>
 
+  <!-- The WhatsApp number: all onboarding asks here. Connecting it to WhatsApp comes later. -->
+  <mat-card class="detail-card number-card">
+    <h3>WhatsApp number</h3>
+    <p class="muted hint">
+      The WhatsApp number your customers will message, with the country code.
+      <ng-container *ngIf="embedded">Connecting it to WhatsApp comes later - your platform administrator can do that for you.</ng-container>
+    </p>
+    <mat-progress-bar mode="indeterminate" *ngIf="loadingNumber"></mat-progress-bar>
+    <form class="number-form" (ngSubmit)="saveNumber()" *ngIf="!loadingNumber" novalidate>
+      <mat-form-field appearance="outline" class="number-field">
+        <mat-label>WhatsApp number</mat-label>
+        <mat-icon matPrefix>chat</mat-icon>
+        <input matInput type="tel" [formControl]="whatsAppNumber" maxlength="32" placeholder="+91 98765 43210" autocomplete="tel" />
+        <mat-error *ngIf="whatsAppNumber.hasError('tooShort')">That looks too short - include the country code.</mat-error>
+        <mat-error *ngIf="whatsAppNumber.hasError('pattern')">Use digits, spaces, brackets, dashes and an optional leading +.</mat-error>
+        <mat-hint>+91 98765 43210</mat-hint>
+      </mat-form-field>
+      <button mat-flat-button color="primary" type="submit" [disabled]="savingNumber || whatsAppNumber.invalid || !numberChanged">
+        {{ savingNumber ? 'Saving…' : 'Save number' }}
+      </button>
+    </form>
+  </mat-card>
+
+  <ng-container *ngIf="!embedded">
   <mat-card class="detail-card whatsapp-card">
     <h3>WhatsApp connection</h3>
     <p class="muted hint">
@@ -119,4 +144,5 @@
       </div>
     </mat-card>
   </div>
+  </ng-container>
 </div>

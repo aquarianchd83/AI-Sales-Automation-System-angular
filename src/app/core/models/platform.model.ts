@@ -119,6 +119,8 @@ export interface PlatformTenantDetail {
   subscriptionStatus: SubscriptionStatus | null;
   currentPeriodEndUtc: string | null;
   whatsAppConnected: boolean;
+  /** The WhatsApp number the tenant gave during onboarding - what the operator connects to WhatsApp for it. */
+  whatsAppNumber?: string | null;
   messagesSentThisMonth: number;
   maxMessagesPerMonth: number | null;
   aiInteractionsThisMonth: number;

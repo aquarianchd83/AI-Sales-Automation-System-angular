@@ -1,5 +1,6 @@
 import { ActivatedRoute, Router } from '@angular/router';
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, Optional, ViewChild } from '@angular/core';
+import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import { FormControl } from '@angular/forms';
 import { CAMPAIGN_JOB_TYPES } from '../../../core/models/tenant-job.model';
 import { NotificationHubService } from '../../../core/services/notification-hub.service';
@@ -71,8 +72,15 @@ export class CampaignListComponent implements OnInit, OnDestroy {
     private readonly notify: NotificationService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
-    private readonly notificationHub: NotificationHubService
-  ) {}
+    private readonly notificationHub: NotificationHubService,
+    @Optional() @Inject(EMBEDDED_IN_ONBOARDING) embedded: boolean | null
+  ) {
+    this.embedded = !!embedded;
+  }
+
+  /** Inside onboarding's "Create Campaign" step: just the campaigns. The job schedules are an ongoing-operations
+   * concern (and the jobs only exist once a campaign does), so they are left out. */
+  readonly embedded: boolean;
 
   ngOnInit(): void {
     // A campaign job just ran (sends, follow-ups, retries or the completion job): statuses and counts on

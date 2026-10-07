@@ -16,3 +16,110 @@
   margin: -12px 0 16px;
   font-size: 12px;
 }
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.section-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e8eaf6;
+  color: #3949ab;
+  font-size: 12px;
+}
+
+.empty-note {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #fff8e1;
+  font-size: 13px;
+
+  mat-icon {
+    flex: none;
+    color: #a15c00;
+  }
+
+  p {
+    margin: 2px 0 0;
+  }
+}
+
+.template-preview {
+  margin: -4px 0 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f5f6f8;
+  font-size: 13px;
+
+  .preview-label {
+    font-size: 11px;
+  }
+
+  p {
+    margin: 4px 0 0;
+    white-space: pre-wrap;
+  }
+}
+
+.picker {
+  margin-bottom: 4px;
+}
+
+.picker-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 14px;
+  max-width: 100%;
+  background: #eceff1;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.chip-remove {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  color: rgba(0, 0, 0, 0.54);
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.audience-hint {
+  margin-top: 0;
+}

@@ -34,7 +34,10 @@
         <div>
           <span class="muted">Current plan</span>
           <h3>Free trial</h3>
-          <span class="muted">Choose a plan below to get started.</span>
+          <span class="muted" *ngIf="!embedded">Choose a plan below to get started.</span>
+          <span class="muted" *ngIf="embedded">
+            Choose a plan below, or carry on with your free trial and choose later - press Next either way.
+          </span>
         </div>
       </div>
     </ng-template>

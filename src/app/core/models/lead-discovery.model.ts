@@ -14,6 +14,8 @@
 export interface LeadDiscoveryProfile {
   isEnabled: boolean;
   targetBusinessType: string;
+  /** What the tenant says about this search; "AI suggest" draws the keywords from it and from the packages they sell. */
+  description?: string | null;
   keywords: string[];
   locations: string[];
   batchSize: number;
@@ -41,6 +43,7 @@ export interface LeadDiscoveryProfile {
 export interface SaveLeadDiscoveryProfileRequest {
   isEnabled: boolean;
   targetBusinessType: string;
+  description?: string | null;
   keywords: string[];
   locations: string[];
   batchSize: number;
@@ -55,6 +58,20 @@ export interface SaveLeadDiscoveryProfileRequest {
   autoConsentDiscoveredCustomers: boolean;
   autoCampaignStartMode: string;
   autoCampaignStartTime: string | null;
+}
+
+/** Body of POST /lead-discovery/keyword-suggestions. `existing` are never suggested again. */
+export interface SuggestLeadKeywordsRequest {
+  description: string;
+  targetBusinessType: string | null;
+  existing: string[];
+}
+
+/** KeywordSuggestionsDto - `source` is "AI" when the tenant's AI provider wrote them, "Common terms" when they were put
+ * together from what is already known; the screen says which. */
+export interface LeadKeywordSuggestions {
+  keywords: string[];
+  source: 'AI' | 'Common terms';
 }
 
 /** AutoCampaignEnrollmentDto — one auto-campaign enrollment outcome for one discovered customer, the
@@ -172,6 +189,7 @@ export const LEAD_DISCOVERY_LIMITS = {
   maxLocations: 25,
   maxAdditionalCriteria: 20,
   targetBusinessType: 200,
+  description: 1000,
   keyword: 100,
   location: 200,
   criterion: 500,

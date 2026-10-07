@@ -63,6 +63,17 @@ describe('BillingListComponent inside onboarding', () => {
     expect(root.textContent).not.toContain('Usage & credits');
   });
 
+  it('tells a tenant on its free trial it can carry on without choosing a plan', () => {
+    expect(render(true).querySelector('.subscription-card')!.textContent).toContain('carry on with your free trial');
+  });
+
+  it('keeps the usual wording on the full Billing page', () => {
+    const text = render(false).querySelector('.subscription-card')!.textContent!;
+
+    expect(text).toContain('Choose a plan below to get started.');
+    expect(text).not.toContain('carry on with your free trial');
+  });
+
   it('does not even ask for the history it is not showing', () => {
     render(true);
 
