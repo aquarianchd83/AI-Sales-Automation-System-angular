@@ -13,9 +13,10 @@ interface CategoryPanel {
   form: FormGroup<Record<string, FormControl<string>>>;
 }
 
-/** Categories with a screen of their own, so a tab here would only be a second place to edit the same keys:
- * MediaStorage is "AWS Settings", and App/Email/Sms are "Sign-in Delivery". The API still serves them. */
-const HIDDEN_CATEGORIES = ['MediaStorage', 'App', 'Email', 'Sms'];
+/** Categories kept off this page. Most have a screen of their own, so a tab here would only be a second place to edit the same keys:
+ * MediaStorage is "AWS Settings", App/Email/Sms are "Sign-in Delivery" and PlatformWhatsApp is "Platform WhatsApp". Razorpay is
+ * hidden by request. The API still serves all of them. */
+const HIDDEN_CATEGORIES = ['MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay'];
 
 /** List-value items are edited as comma-separated text and split/joined at the edges. */
 const LIST_SEPARATOR = ',';

@@ -10,7 +10,7 @@ const category = (name: string) => ({ category: name, items: [{ key: `${name}:Ke
 
 describe('SettingsListComponent', () => {
   it('leaves out the categories that have a settings screen of their own', () => {
-    const names = ['WhatsApp', 'AiProviders', 'Campaigns', 'MediaStorage', 'App', 'Email', 'Sms', 'Retention'];
+    const names = ['WhatsApp', 'AiProviders', 'Campaigns', 'MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'Retention'];
     TestBed.configureTestingModule({
       declarations: [SettingsListComponent],
       imports: [SharedModule, NoopAnimationsModule],
