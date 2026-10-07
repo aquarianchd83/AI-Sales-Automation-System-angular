@@ -175,6 +175,8 @@ export class ShellComponent implements OnInit, OnDestroy {
         },
         { label: 'Background Jobs', icon: 'schedule', route: '/platform/jobs', roles: [] },
         { label: 'AWS Settings', icon: 'cloud', route: '/platform/aws-settings', roles: [] },
+        // The platform-wide system settings, including the one AI provider (AiProviders) every tenant runs on.
+        { label: 'System Settings', icon: 'settings', route: '/settings', roles: [] },
         { label: 'Sign-in Delivery', icon: 'forward_to_inbox', route: '/platform/delivery-settings', roles: [] },
         { label: 'Razorpay Test', icon: 'credit_card', route: '/platform/razorpay-test', roles: [] },
       ],
