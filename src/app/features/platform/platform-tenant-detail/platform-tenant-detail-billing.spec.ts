@@ -64,7 +64,7 @@ describe('PlatformTenantDetailComponent billing cards', () => {
         { provide: PlatformTenantService, useValue: { getById: () => of(tenant) } },
         { provide: PlatformBillingService, useValue: { getPlans: () => of([]) } },
         { provide: PlatformJobService, useValue: { getForTenant: () => of(null) } },
-        { provide: PlatformTenantConfigService, useValue: { getWhatsAppConfig: () => of(null), getAiConfig: () => of(null), getConfigOverrides: () => of([]) } },
+        { provide: PlatformTenantConfigService, useValue: { getWhatsAppConfig: () => of(null), getConfigOverrides: () => of([]) } },
         { provide: TimeZoneService, useValue: { getTimezones: () => of([]) } },
         { provide: BillingService, useValue: { getRegions: () => of([]) } },
         { provide: ImpersonationSessionService, useValue: {} },

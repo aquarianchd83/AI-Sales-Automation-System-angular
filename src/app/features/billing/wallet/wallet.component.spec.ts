@@ -4,6 +4,10 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
 import {
+  AiTransaction,
+  AiTransactionStatus,
+  AiUsageSource,
+  AiDenialReason,
   CreditPack,
   QuotaBalance,
   QuotaEntryType,
@@ -48,9 +52,12 @@ const PACK: CreditPack = {
 };
 
 describe('WalletComponent', () => {
-  function render(options: { planId: string | null; status?: string } = { planId: 'plan-1' }): HTMLElement {
+  function render(
+    options: { planId: string | null; status?: string; balances?: QuotaBalance[]; aiUsage?: AiTransaction[] } = { planId: 'plan-1' }
+  ): HTMLElement {
     const billing = {
-      getQuota: () => of(BALANCES),
+      getQuota: () => of(options.balances ?? BALANCES),
+      getAiUsage: () => of({ ...emptyPage<AiTransaction>(), items: options.aiUsage ?? [], totalCount: (options.aiUsage ?? []).length, totalPages: 1 }),
       getCreditPacks: () => of([PACK]),
       getSubscription: () =>
         of(options.planId ? { planId: options.planId, planName: 'Starter', status: options.status ?? 'Active', currentPeriodStartUtc: null, currentPeriodEndUtc: null } : null),
@@ -152,5 +159,53 @@ describe('WalletComponent', () => {
 
     expect(inputs[0].value).toBe('billing@acme.test');
     expect(inputs[1].value).toBe('+919876543210');
+  });
+  describe('AI credits', () => {
+    const empty = (balance: number): QuotaBalance[] =>
+      BALANCES.map((b) => (b.quotaType === QuotaType.AiConversations ? { ...b, balance, capacity: 50, grants: [] } : b));
+
+    it('tells a paying tenant to buy credits when the AI allowance is gone', () => {
+      const el = render({ planId: 'plan-1', balances: empty(0) });
+      const banner = el.querySelector('.ai-paused');
+
+      expect(text(banner)).toContain('Insufficient AI credits. Please purchase additional credits to continue using this feature.');
+      expect(text(banner)).toContain('Buy AI credits');
+    });
+
+    it('tells a tenant with no plan to upgrade instead of offering credits', () => {
+      const banner = render({ planId: null, balances: empty(0) }).querySelector('.ai-paused');
+
+      expect(text(banner)).toContain('Upgrade to a paid plan');
+      expect(text(banner)).toContain('Choose a plan');
+    });
+
+    it('shows no banner while there are AI credits left', () => {
+      expect(render().querySelector('.ai-paused')).toBeNull();
+    });
+
+    it('lists AI requests with a refunded failure shown as such', () => {
+      const row: AiTransaction = {
+        id: 't1',
+        operation: 'ConversationReply',
+        source: AiUsageSource.Paid,
+        status: AiTransactionStatus.Failed,
+        denialReason: AiDenialReason.None,
+        provider: 'OpenAI',
+        model: 'gpt-5-nano',
+        creditsBefore: 5,
+        creditsConsumed: 1,
+        creditsAfter: 5,
+        creditsRefunded: 1,
+        failureReason: 'The AI provider did not return a usable answer.',
+        requestedAtUtc: '2026-10-01T10:00:00Z',
+        completedAtUtc: '2026-10-01T10:00:01Z',
+      };
+
+      const card = render({ planId: 'plan-1', aiUsage: [row] }).querySelector('.ai-usage');
+
+      expect(text(card)).toContain('Failed — credit returned');
+      expect(text(card)).toContain('The AI provider did not return a usable answer.');
+      expect(text(card)).not.toContain('gpt-5-nano');
+    });
   });
 });

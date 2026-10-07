@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
-  TenantAiProviderConfig,
   TenantCharges,
   TenantMessageUsage,
   TenantWhatsAppConfig,
@@ -46,12 +45,6 @@ export class TenantSettingsService {
   /** Asks Meta whether the saved credentials reach the phone number; the answer comes back on the config. */
   verifyWhatsAppConfig(): Observable<TenantWhatsAppConfig> {
     return this.http.post<TenantWhatsAppConfig>(`${this.baseUrl}/whatsapp/verify`, {});
-  }
-
-  /** Null when the tenant has never configured one — defaults to Simulated for both Provider and
-   * EmbeddingProvider in that case. */
-  getAiConfig(): Observable<TenantAiProviderConfig | null> {
-    return this.http.get<TenantAiProviderConfig | null>(`${this.baseUrl}/ai`);
   }
 
   /** How much of this calendar month's WhatsApp message quota the tenant has used. */

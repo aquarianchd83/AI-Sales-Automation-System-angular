@@ -225,6 +225,66 @@ export interface QuotaLedgerQuery {
   quotaType?: QuotaType;
 }
 
+/** Where the credit an AI request spent came from. A trial allowance is never purchased credit. */
+export enum AiUsageSource {
+  Trial = 0,
+  Paid = 1,
+}
+
+export enum AiTransactionStatus {
+  /** Credit spent, provider call under way. */
+  Authorized = 0,
+  Completed = 1,
+  /** The platform or provider failed and the credit was given back. */
+  Failed = 2,
+  /** Refused before anything was spent. */
+  Blocked = 3,
+}
+
+export enum AiDenialReason {
+  None = 0,
+  TrialLimitReached = 1,
+  TrialExpired = 2,
+  InsufficientCredits = 3,
+  SubscriptionExpired = 4,
+  SubscriptionCancelled = 5,
+  AccountInactive = 6,
+}
+
+export const AI_TRANSACTION_STATUS_LABELS: Record<AiTransactionStatus, string> = {
+  [AiTransactionStatus.Authorized]: 'In progress',
+  [AiTransactionStatus.Completed]: 'Completed',
+  [AiTransactionStatus.Failed]: 'Failed — credit returned',
+  [AiTransactionStatus.Blocked]: 'Not run',
+};
+
+export const AI_USAGE_SOURCE_LABELS: Record<AiUsageSource, string> = {
+  [AiUsageSource.Trial]: 'Free trial',
+  [AiUsageSource.Paid]: 'Credits',
+};
+
+/** The sentence shown wherever an AI request was refused for want of credit. */
+export const INSUFFICIENT_AI_CREDITS_MESSAGE =
+  'Insufficient AI credits. Please purchase additional credits to continue using this feature.';
+
+/** AiTransactionDto — one metered AI request: what it cost, what happened, and why it was refused if it was. */
+export interface AiTransaction {
+  id: string;
+  operation: string;
+  source: AiUsageSource;
+  status: AiTransactionStatus;
+  denialReason: AiDenialReason;
+  provider: string;
+  model: string;
+  creditsBefore: number;
+  creditsConsumed: number;
+  creditsAfter: number;
+  creditsRefunded: number;
+  failureReason: string | null;
+  requestedAtUtc: string;
+  completedAtUtc: string | null;
+}
+
 /** CreditPackDto — priced in the tenant's own currency; priceCents stays the base USD price. */
 export interface CreditPack {
   id: string;

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  AiTransaction,
   BillingAlertSettings,
   BillingCapabilities,
   CreditPack,
@@ -84,6 +85,11 @@ export class BillingService {
         ...(query.quotaType != null ? { QuotaType: String(query.quotaType) } : {}),
       },
     });
+  }
+
+  /** The tenant's AI request history, newest first — credits before/spent/after, and failures that were refunded. */
+  getAiUsage(query: PagedQuery): Observable<PagedResult<AiTransaction>> {
+    return this.http.get<PagedResult<AiTransaction>>(`${this.baseUrl}/ai-usage`, { params: toPagedParams(query) });
   }
 
   getCreditPacks(): Observable<CreditPack[]> {

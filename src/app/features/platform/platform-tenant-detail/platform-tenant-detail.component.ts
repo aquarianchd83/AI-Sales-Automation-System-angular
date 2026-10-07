@@ -25,7 +25,7 @@ import {
   formatCharge,
   formatUnits,
 } from '../../../core/models/billing.model';
-import { TenantAiProviderConfig, TenantSettingCategory, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
+import { TenantSettingCategory, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { ImpersonationSessionService } from '../../../core/services/impersonation-session.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -38,7 +38,6 @@ import { TimeZoneService } from '../../../core/services/timezone.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PlatformQuotaAdjustDialogComponent } from '../platform-quota-adjust-dialog/platform-quota-adjust-dialog.component';
 import { PlatformRefundReviewDialogComponent } from '../platform-refund-review-dialog/platform-refund-review-dialog.component';
-import { PlatformTenantAiConfigDialogComponent } from '../platform-tenant-ai-config-dialog/platform-tenant-ai-config-dialog.component';
 import { PlatformTenantConfigOverridesDialogComponent } from '../platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
 import { PlatformTenantWhatsAppConfigDialogComponent } from '../platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
 
@@ -69,7 +68,6 @@ export class PlatformTenantDetailComponent implements OnInit {
   savingCountry = false;
 
   whatsAppConfig: TenantWhatsAppConfig | null = null;
-  aiConfig: TenantAiProviderConfig | null = null;
   loadingConfig = true;
 
   configOverrides: TenantSettingCategory[] = [];
@@ -326,36 +324,6 @@ export class PlatformTenantDetailComponent implements OnInit {
     );
   }
 
-  editAiConfig(): void {
-    this.dialog
-      .open(PlatformTenantAiConfigDialogComponent, {
-        data: { tenantId: this.tenantId, tenantName: this.tenant?.name ?? '', config: this.aiConfig },
-        width: '720px',
-        maxWidth: '95vw',
-        disableClose: true,
-      })
-      .afterClosed()
-      .subscribe((saved) => {
-        if (saved) {
-          this.loadConfig();
-        }
-      });
-  }
-
-  deleteAiConfig(): void {
-    this.confirmAndRun(
-      {
-        title: 'Delete AI provider configuration?',
-        message: `${this.tenant?.name} will fall back to the built-in Simulated provider until it's reconfigured.`,
-        confirmLabel: 'Delete',
-        destructive: true,
-      },
-      () => this.config.deleteAiConfig(this.tenantId),
-      'AI provider configuration deleted.',
-      () => this.loadConfig()
-    );
-  }
-
   editConfigOverrides(): void {
     this.dialog
       .open(PlatformTenantConfigOverridesDialogComponent, {
@@ -421,11 +389,8 @@ export class PlatformTenantDetailComponent implements OnInit {
   private loadConfig(): void {
     this.loadingConfig = true;
     this.config.getWhatsAppConfig(this.tenantId).subscribe({
-      next: (config) => (this.whatsAppConfig = config),
-    });
-    this.config.getAiConfig(this.tenantId).subscribe({
       next: (config) => {
-        this.aiConfig = config;
+        this.whatsAppConfig = config;
         this.loadingConfig = false;
       },
       error: () => (this.loadingConfig = false),
