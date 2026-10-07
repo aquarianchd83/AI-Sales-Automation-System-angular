@@ -4,7 +4,9 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
 import { TenantCharges } from '../../../core/models/tenant-settings.model';
+import { NotificationService } from '../../../core/services/notification.service';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
+import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import { SharedModule } from '../../../shared/shared.module';
 import { TenantSettingsListComponent } from './tenant-settings-list.component';
 
@@ -40,15 +42,22 @@ describe('TenantSettingsListComponent', () => {
   }
 
   beforeEach(() => {
-    service = jasmine.createSpyObj('TenantSettingsService', ['getWhatsAppConfig', 'getUsage', 'getCharges']);
+    service = jasmine.createSpyObj('TenantSettingsService', [
+      'getWhatsAppConfig', 'getUsage', 'getCharges', 'getWhatsAppNumber', 'saveWhatsAppNumber',
+    ]);
     service.getWhatsAppConfig.and.returnValue(of(null));
+    service.getWhatsAppNumber.and.returnValue(of({ whatsAppNumber: null }));
+    service.saveWhatsAppNumber.and.callFake((n) => of({ whatsAppNumber: n }));
     service.getUsage.and.returnValue(of({ messagesSentThisMonth: 120, maxMessagesPerMonth: 1000 }));
     service.getCharges.and.returnValue(of(charges));
 
     TestBed.configureTestingModule({
       declarations: [TenantSettingsListComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
-      providers: [{ provide: TenantSettingsService, useValue: service }],
+      providers: [
+        { provide: TenantSettingsService, useValue: service },
+        { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error']) },
+      ],
     });
   });
 
@@ -86,5 +95,85 @@ describe('TenantSettingsListComponent', () => {
 
     expect(text()).toContain("We couldn't load your charges right now.");
     expect(text()).toContain('Usage this month');
+  });
+
+  describe('the WhatsApp number', () => {
+    const input = (): HTMLInputElement => (fixture.nativeElement as HTMLElement).querySelector('.number-card input')!;
+    const saveButton = (): HTMLButtonElement => (fixture.nativeElement as HTMLElement).querySelector('.number-card button[type=submit]')!;
+    const type = (value: string): void => {
+      input().value = value;
+      input().dispatchEvent(new Event('input'));
+      input().dispatchEvent(new Event('blur')); // touched, as it is once the user leaves the field
+      fixture.detectChanges();
+    };
+
+    it('is asked for first, and starts from the number already given', () => {
+      service.getWhatsAppNumber.and.returnValue(of({ whatsAppNumber: '+91 98765 43210' }));
+      create();
+
+      expect(input().value).toBe('+91 98765 43210');
+      expect(saveButton().disabled).toBeTrue(); // nothing changed yet
+    });
+
+    it('saves just the number, trimmed', () => {
+      create();
+      type('  +91 98765 43210 ');
+
+      saveButton().click();
+      fixture.detectChanges();
+
+      expect(service.saveWhatsAppNumber).toHaveBeenCalledOnceWith('+91 98765 43210');
+      expect(saveButton().disabled).toBeTrue();
+    });
+
+    it('clears it when emptied', () => {
+      service.getWhatsAppNumber.and.returnValue(of({ whatsAppNumber: '+91 98765 43210' }));
+      create();
+      type('');
+
+      saveButton().click();
+
+      expect(service.saveWhatsAppNumber).toHaveBeenCalledOnceWith(null);
+    });
+
+    it('refuses what is not a phone number, and says why', () => {
+      create();
+
+      for (const bad of ['call me', '12345', '+91 98765 43210 ext 5']) {
+        type(bad);
+        expect(saveButton().disabled).withContext(bad).toBeTrue();
+      }
+      type('12345');
+      expect((fixture.nativeElement as HTMLElement).textContent).toContain('too short');
+      expect(service.saveWhatsAppNumber).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('inside onboarding', () => {
+    beforeEach(() => {
+      TestBed.overrideProvider(EMBEDDED_IN_ONBOARDING, { useValue: true });
+      TestBed.configureTestingModule({ providers: [{ provide: EMBEDDED_IN_ONBOARDING, useValue: true }] });
+    });
+
+    it('asks only for the number - no credentials, usage, charges or job links', () => {
+      create();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(root.querySelector('.number-card')).toBeTruthy();
+      expect(root.textContent).toContain('Connecting it to WhatsApp comes later');
+      expect(root.querySelector('app-whatsapp-connection-form')).toBeNull();
+      expect(root.textContent).not.toContain('Charges this month');
+      expect(root.textContent).not.toContain('Manage job schedules');
+      expect(root.querySelector('app-page-header')).toBeNull();
+    });
+
+    it('does not fetch what it is not showing', () => {
+      create();
+
+      expect(service.getWhatsAppNumber).toHaveBeenCalled();
+      expect(service.getWhatsAppConfig).not.toHaveBeenCalled();
+      expect(service.getUsage).not.toHaveBeenCalled();
+      expect(service.getCharges).not.toHaveBeenCalled();
+    });
   });
 });

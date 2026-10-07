@@ -6,6 +6,7 @@
       <mat-label>Package name</mat-label>
       <input matInput formControlName="name" [maxlength]="limits.name" placeholder="e.g. Gold" />
       <mat-error *ngIf="form.controls.name.hasError('required')">A name is required.</mat-error>
+      <mat-hint>e.g. Gold</mat-hint>
     </mat-form-field>
 
     <mat-form-field class="full-width">
@@ -38,6 +39,7 @@
     <mat-form-field class="full-width">
       <mat-label>Features (one per line)</mat-label>
       <textarea matInput formControlName="features" rows="5" placeholder="Monthly report&#10;Dedicated manager"></textarea>
+      <mat-hint>e.g. Monthly report, Dedicated manager</mat-hint>
       <mat-error *ngIf="form.controls.features.hasError('tooManyFeatures')">
         List at most {{ limits.maxFeatures }} features.
       </mat-error>

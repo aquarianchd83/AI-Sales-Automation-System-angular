@@ -10,6 +10,7 @@
     </button>
   </app-page-header>
 
+  <ng-container *ngIf="!embedded">
   <mat-expansion-panel class="jobs-panel" expanded *appHasRole="['Admin']">
     <mat-expansion-panel-header>
       <mat-panel-title>Campaign jobs</mat-panel-title>
@@ -19,6 +20,7 @@
     </mat-expansion-panel-header>
     <app-tenant-job-list [embedded]="true" [jobTypes]="campaignJobTypes"></app-tenant-job-list>
   </mat-expansion-panel>
+  </ng-container>
 
   <mat-card class="table-card">
     <div class="filters">

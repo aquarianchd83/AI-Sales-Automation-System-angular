@@ -34,9 +34,10 @@
           <mat-form-field appearance="outline">
             <mat-label>Product or brand name</mat-label>
             <input matInput formControlName="productName" [maxlength]="limits.productName" placeholder="e.g. SunVolt Home Solar" />
+            <mat-hint>e.g. SunVolt Home Solar</mat-hint>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="span-2">
+          <mat-form-field appearance="outline">
             <mat-label>Industry</mat-label>
             <input
               matInput
@@ -50,7 +51,51 @@
             <mat-autocomplete #industryAuto="matAutocomplete">
               <mat-option *ngFor="let option of filteredIndustries" [value]="option">{{ option }}</mat-option>
             </mat-autocomplete>
+            <mat-hint>Pick a suggestion or type your own</mat-hint>
           </mat-form-field>
+
+          <!-- The industry is a broad group (Healthcare); this is what the business actually is. -->
+          <mat-form-field appearance="outline">
+            <mat-label>Sub-category (optional)</mat-label>
+            <input
+              matInput
+              formControlName="industrySubcategory"
+              [maxlength]="limits.industrySubcategory"
+              placeholder="e.g. Eye clinic, Dental clinic, Diagnostic lab"
+            />
+            <mat-hint>e.g. Eye clinic, Dental clinic, Diagnostic lab</mat-hint>
+          </mat-form-field>
+
+          <!-- AI suggest: a clearer wording of what is written below. Nothing is replaced until you use it. -->
+          <div class="span-2 suggest-row description-suggest">
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              (click)="refineDescription()"
+              [disabled]="!form.controls.businessDescription.value.trim() || refiningDescription"
+              [matTooltip]="form.controls.businessDescription.value.trim() ? '' : 'Write a first draft of the description first'"
+            >
+              <mat-icon>auto_awesome</mat-icon>
+              {{ refiningDescription ? 'Refining…' : 'AI suggest' }}
+            </button>
+            <span class="muted suggest-hint">Refines the wording of your description below. You choose whether to use it.</span>
+          </div>
+
+          <div class="span-2 suggestions description-proposal" *ngIf="descriptionProposal as proposal" role="region" aria-label="Suggested description">
+            <div class="suggestions-head">
+              <span>
+                <strong>Suggested description</strong>
+                <span class="muted"> · {{ proposal.source === 'AI' ? 'written by your AI assistant' : 'your text, tidied up (AI is not available right now)' }}</span>
+              </span>
+              <span class="spacer"></span>
+              <button mat-button type="button" color="primary" (click)="useDescriptionProposal()">Use this</button>
+              <button mat-icon-button type="button" aria-label="Dismiss suggestion" (click)="dismissDescriptionProposal()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <p class="proposal-text">{{ proposal.description }}</p>
+          </div>
 
           <mat-form-field appearance="outline" class="span-2">
             <mat-label>Business description</mat-label>
@@ -66,6 +111,7 @@
               {{ form.controls.businessDescription.value.length | number }} / {{ limits.businessDescription | number }}
             </mat-hint>
             <mat-error>Business description is required.</mat-error>
+            <mat-hint>What you sell, who you sell to, and what makes you different.</mat-hint>
           </mat-form-field>
         </div>
       </mat-card>
@@ -86,6 +132,7 @@
             <mat-icon matPrefix>language</mat-icon>
             <input matInput formControlName="websiteUrl" type="url" [maxlength]="limits.websiteUrl" placeholder="https://www.example.com" />
             <mat-error>Enter a full address starting with http:// or https://.</mat-error>
+            <mat-hint>https://www.example.com</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -93,6 +140,7 @@
             <mat-icon matPrefix>mail</mat-icon>
             <input matInput formControlName="supportEmail" type="email" required [maxlength]="limits.supportEmail" placeholder="support@example.com" />
             <mat-error>{{ form.controls.supportEmail.hasError('required') ? 'Support email is required.' : 'Enter a valid email address.' }}</mat-error>
+            <mat-hint>support@example.com</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -100,50 +148,14 @@
             <mat-icon matPrefix>call</mat-icon>
             <input matInput formControlName="supportPhone" type="tel" required [maxlength]="limits.supportPhone" placeholder="+91 98765 43210" />
             <mat-error>{{ form.controls.supportPhone.hasError('required') ? 'Support phone is required.' : 'Use digits, spaces, brackets, dashes and an optional leading +.' }}</mat-error>
+            <mat-hint>+91 98765 43210</mat-hint>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="span-2">
             <mat-label>Working hours</mat-label>
             <mat-icon matPrefix>schedule</mat-icon>
             <input matInput formControlName="workingHours" [maxlength]="limits.workingHours" placeholder="Mon-Sat, 9am-6pm" />
-          </mat-form-field>
-        </div>
-      </mat-card>
-
-      <!-- Audience -->
-      <mat-card class="section">
-        <div class="section-head">
-          <span class="section-icon tone-blue"><mat-icon>groups</mat-icon></span>
-          <div>
-            <h2>Audience</h2>
-            <p>Who you want to reach. Your application setup uses these answers too.</p>
-          </div>
-        </div>
-
-        <div class="field-grid">
-          <mat-form-field appearance="outline" class="span-2">
-            <mat-label>Target audience</mat-label>
-            <textarea
-              matInput
-              formControlName="targetAudience"
-              rows="3"
-              [maxlength]="limits.targetAudience"
-              placeholder="Age, interests, where they live, what they need."
-            ></textarea>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Target customer type</mat-label>
-            <mat-select formControlName="targetCustomerType">
-              <mat-option value="">Not set</mat-option>
-              <mat-option *ngFor="let type of customerTypes" [value]="type.value">{{ type.label }}</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Target location</mat-label>
-            <mat-icon matPrefix>place</mat-icon>
-            <input matInput formControlName="targetLocation" [maxlength]="limits.targetLocation" placeholder="e.g. Chandigarh, Mohali, Panchkula" />
+            <mat-hint>Mon-Sat, 9am-6pm</mat-hint>
           </mat-form-field>
         </div>
       </mat-card>
@@ -228,7 +240,7 @@
               (matChipInputTokenEnd)="addKeyword($event)"
             />
           </mat-chip-grid>
-          <mat-hint>Press Enter or comma after each one. Pasting a comma-separated list works too.</mat-hint>
+          <mat-hint>Type a keyword and press Enter. A comma works too, and so does pasting a comma-separated list.</mat-hint>
         </mat-form-field>
         <p class="keyword-error" *ngIf="keywordError" role="alert">
           <mat-icon>error_outline</mat-icon>{{ keywordError }}

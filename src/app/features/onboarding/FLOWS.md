@@ -38,13 +38,13 @@ that module's own routes - nothing is rebuilt for onboarding. The tenant never l
 | # | Step | Weight | Screen (shown in the panel) | Complete when |
 | - | ---- | -----: | ------ | ------------- |
 | 1 | Profile Information | 10% | `/profile` | name, industry, description, support email and phone, and country are saved |
-| 2 | Select Package Plan | 10% | `/billing` | the tenant has a plan that is not cancelled |
-| 3 | Create Customer Package | 15% | `/packages` | an active customer package exists (the API refuses one before a plan, and maps it to the plan) |
-| 4 | Lead Discovery Profile | 10% | `/lead-discovery/profile` | a profile with a business type and at least one location is saved |
-| 5 | WhatsApp Configuration | 15% | `/tenant-settings` | the connection is saved **and verified with Meta** since the last save |
-| 6 | Configure Message Template | 10% | `/message-templates` | an active template exists that Meta has not rejected (pending counts) |
-| 7 | Create Customer | 10% | `/customers` | a customer exists |
-| 8 | Create Campaign | 10% | `/campaigns` | a campaign with at least one message step and one customer exists |
+| 2 | Select Package Plan | 10% | `/billing` | the tenant has a plan that is not cancelled, **or is still on its free trial** (an ended trial with no plan reopens it) |
+| 3 | Create Customer Package | 15% | `/packages` | an active customer package exists (the API maps it to the plan; a tenant on a free trial may create one before choosing a plan) |
+| 4 | WhatsApp Configuration | 15% | `/tenant-settings` | the tenant has given the WhatsApp **number** its customers will message (just the number - no credentials here). A connection Meta has already verified also counts |
+| 5 | Configure Message Template | 10% | `/message-templates` | an active template exists that Meta has not rejected (pending counts) |
+| 6 | Create Customer | 10% | `/customers` | a customer exists |
+| 7 | Create Campaign | 10% | `/campaigns` | a campaign with at least one message step and one customer exists |
+| 8 | Lead Discovery Profile | 10% | `/lead-discovery/profile` | a profile with a business type and at least one location is saved |
 | 9 | Knowledge Base / Voucher | 10% | `/knowledge-base` | an uploaded article of the tenant has finished processing |
 
 ## 2. States, progress and resume
@@ -109,9 +109,12 @@ The tenant's Admin works through the steps; every other tenant user sees the sam
 Admin finishes. While onboarding is incomplete the sidenav is hidden. A step's screen can still be opened at its own
 address (a bookmark, a link); it then shows a bar with "Check this step" and "Back to setup".
 
-## 4. WhatsApp: shared ownership
+## 4. WhatsApp: the number first, the connection later
 
-The tenant's Admin and the Platform Admin both own the WhatsApp connection: the same form on the tenant's Settings
-page and in the Platform Admin Console writes the same row. "Verify connection" asks Meta for the phone number with
-the stored token; the answer (number and verified name, or Meta's error) is recorded, and any later save clears it,
-so step 5 is only complete for credentials that are verified as they are now.
+Early in setup the wizard asks only for the **WhatsApp number** customers will message - one field, saved on the tenant
+(`Tenant.WhatsAppNumber`). Inside the wizard the Settings screen shows just that card; the credentials form, usage and
+charges are left out (the screen is told it is embedded). Connecting the number to WhatsApp - phone number ID, access
+token, app secret, then **Verify connection** - happens later: the tenant's Admin can do it on the full Settings page,
+or the platform administrator does it for them; the Platform console's tenant detail shows the number the tenant gave.
+Both write the same connection row, and any save clears the earlier verification so a "verified" tick always describes
+the credentials as they are now. A tenant whose connection Meta has already verified is not asked for the number again.

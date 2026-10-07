@@ -9,6 +9,8 @@ export interface TenantProfile {
   companyName: string;
   productName: string | null;
   industry: string | null;
+  /** The speciality within the industry - "Eye clinic" under Healthcare - which the industry alone is too general to say. */
+  industrySubcategory?: string | null;
   businessDescription: string | null;
   websiteUrl: string | null;
   supportEmail: string | null;
@@ -33,6 +35,7 @@ export interface UpdateTenantBusinessProfileRequest {
   companyName: string;
   productName: string | null;
   industry: string | null;
+  industrySubcategory: string | null;
   businessDescription: string | null;
   websiteUrl: string | null;
   supportEmail: string | null;
@@ -49,6 +52,7 @@ export const TENANT_PROFILE_LIMITS = {
   companyName: 200,
   productName: 200,
   industry: 100,
+  industrySubcategory: 100,
   businessDescription: 2000,
   websiteUrl: 300,
   supportEmail: 256,
@@ -97,8 +101,23 @@ export interface KeywordSuggestions {
 /** Body of POST /tenant-profile/keyword-suggestions. `existing` are never suggested again. */
 export interface SuggestKeywordsRequest {
   industry: string;
+  industrySubcategory?: string | null;
   businessDescription: string | null;
   existing: string[];
+}
+
+/** RefinedDescriptionDto - `source` is "AI" when the tenant's AI provider rewrote the description and "Tidied" when it
+ * could only be cleaned up (spacing and punctuation); the screen says which. */
+export interface RefinedDescription {
+  description: string;
+  source: 'AI' | 'Tidied';
+}
+
+/** Body of POST /tenant-profile/description-refinement. */
+export interface RefineDescriptionRequest {
+  description: string;
+  industry: string | null;
+  industrySubcategory: string | null;
 }
 
 export function blankToNull(value: string): string | null {

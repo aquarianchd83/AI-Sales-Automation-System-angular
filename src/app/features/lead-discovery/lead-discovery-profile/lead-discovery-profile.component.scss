@@ -384,3 +384,135 @@ mat-icon[matPrefix] {
     grid-row: 1;
   }
 }
+
+// AI suggest, above the keywords.
+.suggest-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.suggest-hint {
+  font-size: 13px;
+}
+
+.suggestions {
+  margin-bottom: 14px;
+  padding: 10px 14px 12px;
+  border-radius: 10px;
+  background: rgba(0, 121, 107, 0.07);
+}
+
+.suggestions-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 12px 4px 6px;
+  border: 1px solid rgba(0, 121, 107, 0.4);
+  border-radius: 16px;
+  background: #fff;
+  color: #00695c;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: rgba(0, 121, 107, 0.12);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00796b;
+    outline-offset: 2px;
+  }
+}
+
+.no-suggestions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+// AI suggest sits at the right of the "Search keywords" heading, beside the count.
+.list-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.suggest-button {
+  height: 32px;
+  line-height: 30px;
+  font-size: 13px;
+}
+
+// Locations: the search box sits at the top of the dropdown panel, above the states.
+.city-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+
+  mat-icon {
+    color: rgba(0, 0, 0, 0.54);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font: inherit;
+  }
+}
+
+.city-empty {
+  padding: 12px 16px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+}
+
+.chosen-cities {
+  display: block;
+  margin: -4px 0 8px;
+}
+
+.hint-line {
+  margin: -6px 0 0;
+  font-size: 12px;
+}

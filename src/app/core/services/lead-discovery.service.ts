@@ -13,9 +13,11 @@ import {
   AutoCampaignEnrollment,
   DiscoveredLead,
   LeadDiscoveryProfile,
+  LeadKeywordSuggestions,
   LeadDiscoveryRun,
   LeadDiscoverySpend,
   SaveLeadDiscoveryProfileRequest,
+  SuggestLeadKeywordsRequest,
 } from '../models/lead-discovery.model';
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
 
@@ -31,6 +33,11 @@ export class LeadDiscoveryService {
 
   getProfile(): Observable<LeadDiscoveryProfile> {
     return this.http.get<LeadDiscoveryProfile>(`${this.baseUrl}/profile`);
+  }
+
+  /** "AI suggest": search keywords from the description and the packages the tenant sells. Nothing is saved. */
+  suggestKeywords(request: SuggestLeadKeywordsRequest): Observable<LeadKeywordSuggestions> {
+    return this.http.post<LeadKeywordSuggestions>(`${this.baseUrl}/keyword-suggestions`, request);
   }
 
   /** Fails with PlanLimitExceeded when batchSize is above the plan's per-run cap. */

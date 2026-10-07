@@ -8,6 +8,7 @@ import {
   TenantCharges,
   TenantMessageUsage,
   TenantWhatsAppConfig,
+  TenantWhatsAppNumber,
   UpdateTenantWhatsAppConfigRequest,
 } from '../models/tenant-settings.model';
 
@@ -25,6 +26,16 @@ export class TenantSettingsService {
    * not a missing resource. */
   getWhatsAppConfig(): Observable<TenantWhatsAppConfig | null> {
     return this.http.get<TenantWhatsAppConfig | null>(`${this.baseUrl}/whatsapp`);
+  }
+
+  /** The WhatsApp number the tenant gave for its customers to message. */
+  getWhatsAppNumber(): Observable<TenantWhatsAppNumber> {
+    return this.http.get<TenantWhatsAppNumber>(`${this.baseUrl}/whatsapp-number`);
+  }
+
+  /** Saves just the number (blank clears it). Connecting it to WhatsApp is separate (saveWhatsAppConfig). */
+  saveWhatsAppNumber(whatsAppNumber: string | null): Observable<TenantWhatsAppNumber> {
+    return this.http.put<TenantWhatsAppNumber>(`${this.baseUrl}/whatsapp-number`, { whatsAppNumber });
   }
 
   /** Saves the tenant's own WhatsApp credentials. Clears any earlier verification - verify again afterwards. */

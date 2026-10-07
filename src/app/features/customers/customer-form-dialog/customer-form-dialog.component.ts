@@ -8,6 +8,7 @@ import { Observable, forkJoin, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize, switchMap } from 'rxjs/operators';
 
 import { Customer } from '../../../core/models/customer.model';
+import { CUSTOMER_LANGUAGES, CUSTOMER_SOURCES, withCurrent } from '../../../core/models/customer-options';
 import { CustomerService } from '../../../core/services/customer.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Tag } from '../../../core/models/tag.model';
@@ -28,6 +29,12 @@ export class CustomerFormDialogComponent {
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
   readonly isEdit = this.data.mode === 'edit';
 
+  /** Source and preferred language are chosen from a list, plus whatever the customer already has. */
+  private readonly sourceChoice = withCurrent(CUSTOMER_SOURCES, this.data.customer?.source);
+  private readonly languageChoice = withCurrent(CUSTOMER_LANGUAGES, this.data.customer?.preferredLanguage);
+  readonly sourceOptions = this.sourceChoice.options;
+  readonly languageOptions = this.languageChoice.options;
+
   readonly form = this.fb.nonNullable.group({
     phoneNumberE164: [
       this.data.customer?.phoneNumberE164 ?? '',
@@ -36,8 +43,8 @@ export class CustomerFormDialogComponent {
     firstName: [this.data.customer?.firstName ?? ''],
     lastName: [this.data.customer?.lastName ?? ''],
     email: [this.data.customer?.email ?? '', [Validators.email]],
-    source: [this.data.customer?.source ?? ''],
-    preferredLanguage: [this.data.customer?.preferredLanguage ?? ''],
+    source: [this.sourceChoice.value],
+    preferredLanguage: [this.languageChoice.value],
   });
 
   /**

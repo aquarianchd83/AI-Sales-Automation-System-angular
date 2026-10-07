@@ -141,3 +141,24 @@ dd {
 .whatsapp-card {
   margin-bottom: 16px;
 }
+
+.number-card {
+  margin-bottom: 16px;
+}
+
+.number-form {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  .number-field {
+    flex: 1;
+    min-width: 260px;
+    max-width: 420px;
+  }
+
+  button {
+    margin-top: 4px;
+  }
+}

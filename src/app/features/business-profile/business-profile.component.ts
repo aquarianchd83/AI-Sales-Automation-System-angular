@@ -9,10 +9,10 @@ import { RegionOption, TimeZoneOption } from '../../core/models/billing.model';
 import {
   INDUSTRY_SUGGESTIONS,
   PHONE_PATTERN,
-  TARGET_CUSTOMER_TYPES,
   TENANT_PROFILE_LIMITS,
   TenantProfile,
   KeywordSuggestions,
+  RefinedDescription,
   UpdateTenantBusinessProfileRequest,
   WEBSITE_PATTERN,
   addDomainKeywords,
@@ -40,7 +40,6 @@ const L = TENANT_PROFILE_LIMITS;
 })
 export class BusinessProfileComponent implements OnInit {
   readonly limits = L;
-  readonly customerTypes = TARGET_CUSTOMER_TYPES;
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
 
   readonly form = this.fb.nonNullable.group({
@@ -48,14 +47,13 @@ export class BusinessProfileComponent implements OnInit {
     productName: ['', Validators.maxLength(L.productName)],
     // Industry, description, support email and phone, and country are what onboarding's first step needs.
     industry: ['', [Validators.required, Validators.maxLength(L.industry)]],
+    // Optional: Healthcare is general, "Eye clinic" is what the business actually is.
+    industrySubcategory: ['', Validators.maxLength(L.industrySubcategory)],
     businessDescription: ['', [Validators.required, Validators.maxLength(L.businessDescription)]],
     websiteUrl: ['', [Validators.maxLength(L.websiteUrl), Validators.pattern(WEBSITE_PATTERN)]],
     supportEmail: ['', [Validators.required, Validators.maxLength(L.supportEmail), Validators.email]],
     supportPhone: ['', [Validators.required, Validators.maxLength(L.supportPhone), Validators.pattern(PHONE_PATTERN)]],
     workingHours: ['', Validators.maxLength(L.workingHours)],
-    targetAudience: ['', Validators.maxLength(L.targetAudience)],
-    targetLocation: ['', Validators.maxLength(L.targetLocation)],
-    targetCustomerType: [''],
     timezone: ['', Validators.required],
     countryCode: ['', Validators.required],
     stateCode: [''],
@@ -71,6 +69,10 @@ export class BusinessProfileComponent implements OnInit {
   suggestionSource: KeywordSuggestions['source'] | null = null;
   suggestedFor = '';
   suggesting = false;
+
+  /** What "AI suggest" last proposed for the description. Nothing replaces the tenant's text until they use it. */
+  descriptionProposal: RefinedDescription | null = null;
+  refiningDescription = false;
   /** Set when the last request came back with nothing to offer. */
   noSuggestions = false;
 
@@ -140,8 +142,6 @@ export class BusinessProfileComponent implements OnInit {
       v.websiteUrl,
       v.supportEmail,
       v.supportPhone,
-      v.targetAudience,
-      v.targetLocation,
       this.keywords.length ? 'yes' : '',
     ];
     const done = checks.filter((value) => value.trim().length > 0).length;
@@ -168,6 +168,39 @@ export class BusinessProfileComponent implements OnInit {
     this.keywordError = result.error;
   }
 
+  /** "AI suggest" on the description: a refined version of what the tenant wrote, shown beside it to accept or dismiss. */
+  refineDescription(): void {
+    const description = this.form.controls.businessDescription.value.trim();
+    if (!description || this.refiningDescription) {
+      return;
+    }
+    this.refiningDescription = true;
+    this.profileService
+      .refineDescription({
+        description,
+        industry: blankToNull(this.form.controls.industry.value),
+        industrySubcategory: blankToNull(this.form.controls.industrySubcategory.value),
+      })
+      .pipe(finalize(() => (this.refiningDescription = false)))
+      .subscribe({
+        next: (result) => (this.descriptionProposal = result),
+        error: () => undefined, // the error interceptor shows why
+      });
+  }
+
+  useDescriptionProposal(): void {
+    if (!this.descriptionProposal) {
+      return;
+    }
+    this.form.controls.businessDescription.setValue(this.descriptionProposal.description);
+    this.form.controls.businessDescription.markAsDirty();
+    this.descriptionProposal = null;
+  }
+
+  dismissDescriptionProposal(): void {
+    this.descriptionProposal = null;
+  }
+
   /** "AI suggest": keywords for the selected industry. Nothing is added until the tenant picks. */
   suggestKeywords(): void {
     const industry = this.form.controls.industry.value.trim();
@@ -179,6 +212,7 @@ export class BusinessProfileComponent implements OnInit {
     this.profileService
       .suggestKeywords({
         industry,
+        industrySubcategory: blankToNull(this.form.controls.industrySubcategory.value),
         businessDescription: blankToNull(this.form.controls.businessDescription.value),
         existing: this.keywords,
       })
@@ -237,15 +271,17 @@ export class BusinessProfileComponent implements OnInit {
       companyName: v.companyName.trim(),
       productName: blankToNull(v.productName),
       industry: blankToNull(v.industry),
+      industrySubcategory: blankToNull(v.industrySubcategory),
       businessDescription: blankToNull(v.businessDescription),
       websiteUrl: blankToNull(v.websiteUrl),
       supportEmail: blankToNull(v.supportEmail),
       supportPhone: blankToNull(v.supportPhone),
       domainKeywords: this.keywords,
       workingHours: blankToNull(v.workingHours),
-      targetAudience: blankToNull(v.targetAudience),
-      targetLocation: blankToNull(v.targetLocation),
-      targetCustomerType: blankToNull(v.targetCustomerType),
+      // Who to reach is gathered on the Lead Discovery profile, not here - keep whatever is already stored.
+      targetAudience: this.saved.targetAudience ?? null,
+      targetLocation: this.saved.targetLocation ?? null,
+      targetCustomerType: this.saved.targetCustomerType ?? null,
     };
 
     const steps: Observable<TenantProfile>[] = [this.profileService.updateBusinessProfile(request)];
@@ -276,14 +312,12 @@ export class BusinessProfileComponent implements OnInit {
       companyName: profile.companyName,
       productName: profile.productName ?? '',
       industry: profile.industry ?? '',
+      industrySubcategory: profile.industrySubcategory ?? '',
       businessDescription: profile.businessDescription ?? '',
       websiteUrl: profile.websiteUrl ?? '',
       supportEmail: profile.supportEmail ?? '',
       supportPhone: profile.supportPhone ?? '',
       workingHours: profile.workingHours ?? '',
-      targetAudience: profile.targetAudience ?? '',
-      targetLocation: profile.targetLocation ?? '',
-      targetCustomerType: profile.targetCustomerType ?? '',
       timezone: profile.timezone,
       countryCode: profile.countryCode ?? '',
       stateCode: profile.stateCode ?? '',
