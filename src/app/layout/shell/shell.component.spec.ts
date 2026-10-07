@@ -131,6 +131,7 @@ describe('ShellComponent sidenav', () => {
       'cloud_syncWhatsApp Connections',
       'scheduleBackground Jobs',
       'cloudAWS Settings',
+      'settingsSystem Settings',
       'forward_to_inboxSign-in Delivery',
       'credit_cardRazorpay Test',
       'receipt_longLogs',
