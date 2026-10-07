@@ -9,6 +9,26 @@
   padding: 24px;
 }
 
+.grouped-form {
+  padding: 0;
+  gap: 16px;
+}
+
+.group-card {
+  padding: 20px 24px;
+}
+
+.group-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.group-hint {
+  margin: 2px 0 8px;
+  font-size: 12px;
+}
+
 .setting-row {
   display: flex;
   align-items: flex-start;

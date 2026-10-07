@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { PlatformWhatsAppSettings } from '../../../core/models/platform-whatsapp.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformWhatsAppSettingsService } from '../../../core/services/platform-whatsapp-settings.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { PlatformWhatsAppSettingsComponent } from './platform-whatsapp-settings.component';
 
@@ -37,6 +38,7 @@ describe('PlatformWhatsAppSettingsComponent', () => {
       providers: [
         { provide: PlatformWhatsAppSettingsService, useValue: service },
         { provide: NotificationService, useValue: notify },
+        { provide: SettingsService, useValue: { getCategory: () => of({ category: 'WhatsApp', items: [] }), update: () => of(undefined) } },
       ],
     });
 

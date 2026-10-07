@@ -21,7 +21,7 @@
     <mat-accordion multi class="config-accordion">
 
     <!-- Countries -->
-    <mat-expansion-panel class="config-panel"  [expanded]="open['countries']" (opened)="open['countries'] = true" (closed)="open['countries'] = false">
+    <mat-expansion-panel class="config-panel" *ngIf="show('countries')" [expanded]="open['countries']" (opened)="open['countries'] = true" (closed)="open['countries'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Countries<mat-icon class="panel-warn" *ngIf="sectionInvalid('countries')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>Which countries are offered</mat-panel-description>
@@ -46,7 +46,7 @@
     </mat-expansion-panel>
 
     <!-- Tax -->
-    <mat-expansion-panel class="config-panel"  [expanded]="open['tax']" (opened)="open['tax'] = true" (closed)="open['tax'] = false">
+    <mat-expansion-panel class="config-panel" *ngIf="show('tax')" [expanded]="open['tax']" (opened)="open['tax'] = true" (closed)="open['tax'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Tax<mat-icon class="panel-warn" *ngIf="sectionInvalid('tax')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>GST / VAT added on top of prices</mat-panel-description>
@@ -79,7 +79,7 @@
     </mat-expansion-panel>
 
     <!-- Exchange rate -->
-    <mat-expansion-panel class="config-panel"  [expanded]="open['fx']" (opened)="open['fx'] = true" (closed)="open['fx'] = false">
+    <mat-expansion-panel class="config-panel" *ngIf="show('fx')" [expanded]="open['fx']" (opened)="open['fx'] = true" (closed)="open['fx'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Exchange rate<mat-icon class="panel-warn" *ngIf="sectionInvalid('fx')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>Rupees per US dollar</mat-panel-description>
@@ -101,7 +101,7 @@
     </mat-expansion-panel>
 
     <!-- Typical usage, for costing plans -->
-    <mat-expansion-panel class="config-panel" formGroupName="costing" [expanded]="open['costing']" (opened)="open['costing'] = true" (closed)="open['costing'] = false">
+    <mat-expansion-panel class="config-panel" formGroupName="costing" *ngIf="show('costing')" [expanded]="open['costing']" (opened)="open['costing'] = true" (closed)="open['costing'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Typical usage (for costing plans)<mat-icon class="panel-warn" *ngIf="sectionInvalid('costing')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>How a plan's quota is priced</mat-panel-description>
@@ -165,7 +165,7 @@
     </mat-expansion-panel>
 
     <!-- Refund policy -->
-    <mat-expansion-panel class="config-panel" formGroupName="refunds" [expanded]="open['refunds']" (opened)="open['refunds'] = true" (closed)="open['refunds'] = false">
+    <mat-expansion-panel class="config-panel" formGroupName="refunds" *ngIf="show('refunds')" [expanded]="open['refunds']" (opened)="open['refunds'] = true" (closed)="open['refunds'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Refund policy<mat-icon class="panel-warn" *ngIf="sectionInvalid('refunds')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>Windows and limits for refunds</mat-panel-description>
@@ -203,7 +203,7 @@
     </mat-expansion-panel>
 
     <!-- Billing alerts -->
-    <mat-expansion-panel class="config-panel" formGroupName="alerts" [expanded]="open['alerts']" (opened)="open['alerts'] = true" (closed)="open['alerts'] = false">
+    <mat-expansion-panel class="config-panel" formGroupName="alerts" *ngIf="show('alerts')" [expanded]="open['alerts']" (opened)="open['alerts'] = true" (closed)="open['alerts'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Billing alerts<mat-icon class="panel-warn" *ngIf="sectionInvalid('alerts')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>WhatsApp low-balance template</mat-panel-description>
@@ -229,7 +229,7 @@
     </mat-expansion-panel>
 
     <!-- Trial quota -->
-    <mat-expansion-panel class="config-panel" formGroupName="trial" [expanded]="open['trial']" (opened)="open['trial'] = true" (closed)="open['trial'] = false">
+    <mat-expansion-panel class="config-panel" formGroupName="trial" *ngIf="show('trial')" [expanded]="open['trial']" (opened)="open['trial'] = true" (closed)="open['trial'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Trial quota<mat-icon class="panel-warn" *ngIf="sectionInvalid('trial')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>Free allowance for a trial</mat-panel-description>
@@ -260,7 +260,7 @@
       estimate - the provider's own invoice is the authority. Re-check them when a provider changes its prices.
     </p>
 
-    <mat-expansion-panel class="config-panel"  [expanded]="open['whatsapp']" (opened)="open['whatsapp'] = true" (closed)="open['whatsapp'] = false">
+    <mat-expansion-panel class="config-panel" *ngIf="show('whatsapp')" [expanded]="open['whatsapp']" (opened)="open['whatsapp'] = true" (closed)="open['whatsapp'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>WhatsApp messages<mat-icon class="panel-warn" *ngIf="sectionInvalid('whatsapp')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>Price per message, by category and country</mat-panel-description>
@@ -299,7 +299,7 @@
       </div>
     </mat-expansion-panel>
 
-    <mat-expansion-panel class="config-panel"  [expanded]="open['lead']" (opened)="open['lead'] = true" (closed)="open['lead'] = false">
+    <mat-expansion-panel class="config-panel" *ngIf="show('lead')" [expanded]="open['lead']" (opened)="open['lead'] = true" (closed)="open['lead'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Lead discovery<mat-icon class="panel-warn" *ngIf="sectionInvalid('lead')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>Web search and model token prices</mat-panel-description>
@@ -360,7 +360,7 @@
       <button mat-stroked-button type="button" (click)="addLeadModel()"><mat-icon>add</mat-icon> Add model</button>
     </mat-expansion-panel>
 
-    <mat-expansion-panel class="config-panel"  [expanded]="open['ai']" (opened)="open['ai'] = true" (closed)="open['ai'] = false">
+    <mat-expansion-panel class="config-panel" *ngIf="show('ai')" [expanded]="open['ai']" (opened)="open['ai'] = true" (closed)="open['ai'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>AI conversations<mat-icon class="panel-warn" *ngIf="sectionInvalid('ai')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
         <mat-panel-description>Model token prices</mat-panel-description>

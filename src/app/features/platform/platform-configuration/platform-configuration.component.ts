@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Optional } from '@angular/core';
 import { AbstractControl, FormArray, FormGroup, NonNullableFormBuilder, ValidationErrors, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import {
@@ -95,8 +96,18 @@ export class PlatformConfigurationComponent implements OnInit {
     private readonly configuration: PlatformConfigurationService,
     private readonly notify: NotificationService,
     private readonly billing: BillingService,
-    private readonly platformBilling: PlatformBillingService
-  ) {}
+    private readonly platformBilling: PlatformBillingService,
+    @Optional() route: ActivatedRoute | null
+  ) {
+    this.sections = (route?.snapshot?.data?.['sections'] as string[] | undefined) ?? null;
+  }
+
+  /** Route data can cut the page down to some sections (AI Provider Charges); null shows them all. */
+  private readonly sections: string[] | null;
+
+  show(key: string): boolean {
+    return !this.sections || this.sections.includes(key);
+  }
 
   /** The rate table's rows - the countries that are switched on. */
   get countries(): FormArray<FormGroup> {

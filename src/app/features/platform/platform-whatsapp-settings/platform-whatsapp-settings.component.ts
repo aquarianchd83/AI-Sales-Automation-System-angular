@@ -4,6 +4,8 @@ import { finalize } from 'rxjs/operators';
 
 import { DeliveryTestResult } from '../../../core/models/platform.model';
 import { PlatformWhatsAppSettings, UpdatePlatformWhatsAppSettingsRequest } from '../../../core/models/platform-whatsapp.model';
+import { SettingCategory, SettingItem } from '../../../core/models/settings.model';
+import { SettingsService } from '../../../core/services/settings.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformWhatsAppSettingsService } from '../../../core/services/platform-whatsapp-settings.service';
 
@@ -28,6 +30,25 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
     apiBaseUrl: ['', [Validators.pattern(/^https:\/\/\S+$/i)]],
   });
 
+  /** The shared Meta app and webhook keys (the WhatsApp category of the System settings): which provider the platform runs, the app that receives
+   * every tenant's webhooks, and the simulator's failure rate. Saved on their own - a secret left blank keeps what is stored. */
+  readonly appForm = this.fb.group({
+    provider: '',
+    simulatedFailureRatePercent: '',
+    appId: '',
+    appSecret: '',
+    webhookVerifyToken: '',
+  });
+  readonly appKeys: Record<string, string> = {
+    provider: 'WhatsApp:Provider',
+    simulatedFailureRatePercent: 'WhatsApp:SimulatedFailureRatePercent',
+    appId: 'WhatsApp:AppId',
+    appSecret: 'WhatsApp:AppSecret',
+    webhookVerifyToken: 'WhatsApp:WebhookVerifyToken',
+  };
+  appItems: Record<string, SettingItem> = {};
+  savingApp = false;
+
   /** Where the test goes. Not part of the settings, so outside the form (and its "unsaved changes" state). */
   readonly testTo = this.fb.control('', [Validators.pattern(/^\s*\+[0-9 ()-]{8,20}\s*$/)]);
 
@@ -42,6 +63,7 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
   constructor(
     private readonly fb: NonNullableFormBuilder,
     private readonly settings: PlatformWhatsAppSettingsService,
+    private readonly systemSettings: SettingsService,
     private readonly notify: NotificationService
   ) {}
 
@@ -67,8 +89,73 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
       });
   }
 
+  /** A secret never arrives with a value; show only whether one is stored. */
+  appHint(control: string): string | null {
+    const item = this.appItems[control];
+    return item?.isSecret ? (item.hasValue ? item.valueHint || 'Currently set - leave blank to keep' : 'Not set') : null;
+  }
+
+  discard(): void {
+    this.load();
+    this.loadApp();
+  }
+
+  loadApp(): void {
+    this.systemSettings.getCategory('WhatsApp').subscribe({ next: (category) => this.applyApp(category) });
+  }
+
+  private saveApp(): void {
+    if (this.savingApp || this.appForm.pristine) {
+      return;
+    }
+    const values: Record<string, string | null> = {};
+    for (const [control, key] of Object.entries(this.appKeys)) {
+      const c = this.appForm.get(control)!;
+      if (c.dirty && !(this.appItems[control]?.isSecret && !c.value)) {
+        values[key] = String(c.value).trim();
+      }
+    }
+    if (!Object.keys(values).length) {
+      this.notify.info('No changes to save.');
+      return;
+    }
+    this.savingApp = true;
+    this.systemSettings
+      .update('WhatsApp', values)
+      .pipe(finalize(() => (this.savingApp = false)))
+      .subscribe({
+        next: () => {
+          this.notify.success('WhatsApp app settings saved.');
+          this.loadApp();
+        },
+      });
+  }
+
+  private applyApp(category: SettingCategory): void {
+    const reset: Record<string, string> = {};
+    this.appItems = {};
+    for (const [control, key] of Object.entries(this.appKeys)) {
+      const item = category.items.find((i) => i.key === key);
+      if (item) {
+        this.appItems[control] = item;
+      }
+      reset[control] = item && !item.isSecret ? item.value ?? '' : '';
+    }
+    this.appForm.reset(reset);
+  }
+
+  /** Nothing to save on either part of the page. */
+  get pristine(): boolean {
+    return this.form.pristine && this.appForm.pristine;
+  }
+
+  /** One Save for the whole page: the number and its settings, then the shared Meta app keys. */
   save(): void {
-    if (this.saving || this.form.pristine) {
+    if (this.saving || this.savingApp || this.pristine) {
+      return;
+    }
+    if (this.form.pristine) {
+      this.saveApp();
       return;
     }
     this.form.markAllAsTouched();
@@ -91,6 +178,9 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
         next: (settings) => {
           this.notify.success('Platform WhatsApp saved. It applies from the next request - no restart needed.');
           this.apply(settings);
+          if (!this.appForm.pristine) {
+            this.saveApp();
+          }
         },
         error: () => {
           // ErrorInterceptor toasts it.
@@ -105,7 +195,7 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
       this.testTo.markAsTouched();
       return;
     }
-    if (!this.form.pristine) {
+    if (!this.pristine) {
       this.notify.error('Save the settings first - the test uses the saved number.');
       return;
     }

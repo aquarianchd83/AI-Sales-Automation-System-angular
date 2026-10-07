@@ -113,7 +113,7 @@ describe('ShellComponent sidenav', () => {
   it('groups the platform console nav the same way, with no tenant items', () => {
     const root = render(['PlatformSuperAdmin']);
 
-    expect(labels(root)).toEqual(['Tenants', 'Revenue', 'WhatsApp Notices', 'Infrastructure', 'Monitoring', 'Account']);
+    expect(labels(root)).toEqual(['Tenants', 'Revenue', 'WhatsApp Notices', 'Infrastructure', 'Configuration', 'Monitoring', 'Account']);
     expect(items(root)).toEqual([
       'dashboardDashboard',
       'businessTenants',
@@ -130,10 +130,14 @@ describe('ShellComponent sidenav', () => {
       'perm_mediaNotice Media',
       'cloud_syncWhatsApp Connections',
       'scheduleBackground Jobs',
+      'smart_toyAI Providers',
+      'tuneTenant Settings',
       'cloudAWS Settings',
-      'settingsSystem Settings',
-      'forward_to_inboxSign-in Delivery',
-      'credit_cardRazorpay Test',
+      'forward_to_inboxSMTP/SMS Settings',
+      'scienceRazorpay Test',
+      'request_quoteAI Provider Charges',
+      'ads_clickMeta Ads',
+      'settingsSystem',
       'receipt_longLogs',
       'historyAudit Log',
       'account_circleMy Profile',

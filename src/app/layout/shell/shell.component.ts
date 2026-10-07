@@ -174,11 +174,20 @@ export class ShellComponent implements OnInit, OnDestroy {
           roles: [],
         },
         { label: 'Background Jobs', icon: 'schedule', route: '/platform/jobs', roles: [] },
+      ],
+    },
+    {
+      // The platform-wide system settings, split in two: the one AI provider (AiProviders) every tenant runs on, and the rest.
+      label: 'Configuration',
+      items: [
+        { label: 'AI Providers', icon: 'smart_toy', route: '/settings/ai-providers', roles: [] },
+        { label: 'Tenant Settings', icon: 'tune', route: '/settings/tenant', roles: [] },
         { label: 'AWS Settings', icon: 'cloud', route: '/platform/aws-settings', roles: [] },
-        // The platform-wide system settings, including the one AI provider (AiProviders) every tenant runs on.
-        { label: 'System Settings', icon: 'settings', route: '/settings', roles: [] },
-        { label: 'Sign-in Delivery', icon: 'forward_to_inbox', route: '/platform/delivery-settings', roles: [] },
-        { label: 'Razorpay Test', icon: 'credit_card', route: '/platform/razorpay-test', roles: [] },
+        { label: 'SMTP/SMS Settings', icon: 'forward_to_inbox', route: '/platform/delivery-settings', roles: [] },
+        { label: 'Razorpay Test', icon: 'science', route: '/platform/razorpay-test', roles: [] },
+        { label: 'AI Provider Charges', icon: 'request_quote', route: '/platform/ai-charges', roles: [] },
+        { label: 'Meta Ads', icon: 'ads_click', route: '/settings/meta-ads', roles: [] },
+        { label: 'System', icon: 'settings', route: '/settings/system', roles: [] },
       ],
     },
     {

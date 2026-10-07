@@ -54,6 +54,8 @@ const routes: Routes = [
       { path: 'usage', component: PlatformUsageComponent },
       { path: 'payments', component: PlatformPaymentListComponent },
       { path: 'configuration', component: PlatformConfigurationComponent },
+      // The same page, cut down to what the AI providers charge: WhatsApp message, lead discovery and AI conversation rates.
+      { path: 'ai-charges', component: PlatformConfigurationComponent, data: { sections: ['whatsapp', 'lead', 'ai'] } },
       // The old usage-invoice screen was retired with prepaid billing.
       { path: 'invoices', pathMatch: 'full', redirectTo: 'payments' },
       { path: 'invoices/:id', redirectTo: 'payments' },

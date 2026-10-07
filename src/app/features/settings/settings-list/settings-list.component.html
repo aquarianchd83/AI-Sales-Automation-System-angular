@@ -1,6 +1,6 @@
 <div class="page">
   <app-page-header
-    title="Configuration"
+    [title]="title"
     subtitle="System settings, grouped by category. Changes take effect after the API reloads them."
   >
     <button
@@ -21,53 +21,70 @@
     <p>No configuration categories are registered yet.</p>
   </div>
 
-  <mat-card class="settings-card" *ngIf="!loading && panels.length">
+  <!-- One category's whole form. Rendered either as a tab (System) or as stacked provider cards (AI Providers). -->
+  <ng-template #panelForm let-panel>
+    <form class="category-form" [class.grouped-form]="grouped" [formGroup]="panel.form" (ngSubmit)="save(panel)">
+      <ng-container *ngFor="let group of panel.groups">
+        <mat-card class="settings-card group-card" *ngIf="grouped; else plainGroup">
+          <h3 class="group-title">{{ group.name }}</h3>
+          <p class="muted group-hint" *ngIf="group.hint">{{ group.hint }}</p>
+          <ng-container *ngTemplateOutlet="rows; context: { $implicit: group.items }"></ng-container>
+        </mat-card>
+        <ng-template #plainGroup>
+          <ng-container *ngTemplateOutlet="rows; context: { $implicit: group.items }"></ng-container>
+        </ng-template>
+      </ng-container>
+
+    <ng-template #rows let-items>
+      <div class="setting-row" *ngFor="let item of items">
+        <div class="setting-meta">
+          <span class="setting-key">{{ item.key }}</span>
+          <span class="muted setting-description" *ngIf="item.description">{{ item.description }}</span>
+          <span class="setting-hint" *ngIf="item.isSecret">
+            <mat-icon inline="true">lock</mat-icon>
+            {{ item.hasValue ? (item.valueHint || 'Currently set') : 'Not set' }}
+          </span>
+        </div>
+  
+        <mat-form-field class="setting-input" subscriptSizing="dynamic">
+          <mat-label>{{ item.isList ? 'Comma-separated values' : 'Value' }}</mat-label>
+          <textarea *ngIf="item.isList; else singleValue" matInput rows="2" [formControlName]="item.key"></textarea>
+          <ng-template #singleValue>
+            <input
+              matInput
+              [type]="item.isSecret ? 'password' : 'text'"
+              [placeholder]="item.isSecret ? (item.hasValue ? 'Leave blank to keep current value' : 'Not set') : ''"
+              [formControlName]="item.key"
+              autocomplete="off"
+            />
+          </ng-template>
+        </mat-form-field>
+      </div>
+    </ng-template>
+
+      <div class="category-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          [disabled]="panel.form.pristine || saving[panel.category.category]"
+        >
+          {{ saving[panel.category.category] ? 'Saving…' : 'Save changes' }}
+        </button>
+      </div>
+    </form>
+  </ng-template>
+
+  <ng-container *ngIf="!loading && grouped">
+    <ng-container *ngFor="let panel of panels">
+      <ng-container *ngTemplateOutlet="panelForm; context: { $implicit: panel }"></ng-container>
+    </ng-container>
+  </ng-container>
+
+  <mat-card class="settings-card" *ngIf="!loading && !grouped && panels.length">
     <mat-tab-group animationDuration="0ms">
       <mat-tab *ngFor="let panel of panels" [label]="panel.category.category">
-        <form class="category-form" [formGroup]="panel.form" (ngSubmit)="save(panel)">
-          <div class="setting-row" *ngFor="let item of panel.category.items">
-            <div class="setting-meta">
-              <span class="setting-key">{{ item.key }}</span>
-              <span class="muted setting-description" *ngIf="item.description">
-                {{ item.description }}
-              </span>
-              <span class="setting-hint" *ngIf="item.isSecret">
-                <mat-icon inline="true">lock</mat-icon>
-                {{ item.hasValue ? (item.valueHint || 'Currently set') : 'Not set' }}
-              </span>
-            </div>
-
-            <mat-form-field class="setting-input" subscriptSizing="dynamic">
-              <mat-label>{{ item.isList ? 'Comma-separated values' : 'Value' }}</mat-label>
-              <textarea
-                *ngIf="item.isList; else singleValue"
-                matInput
-                rows="2"
-                [formControlName]="item.key"
-              ></textarea>
-              <ng-template #singleValue>
-                <input
-                  matInput
-                  [type]="item.isSecret ? 'password' : 'text'"
-                  [placeholder]="item.isSecret ? (item.hasValue ? 'Leave blank to keep current value' : 'Not set') : ''"
-                  [formControlName]="item.key"
-                  autocomplete="off"
-                />
-              </ng-template>
-            </mat-form-field>
-          </div>
-
-          <div class="category-actions">
-            <button
-              mat-flat-button
-              color="primary"
-              type="submit"
-              [disabled]="panel.form.pristine || saving[panel.category.category]"
-            >
-              {{ saving[panel.category.category] ? 'Saving…' : 'Save changes' }}
-            </button>
-          </div>
-        </form>
+        <ng-container *ngTemplateOutlet="panelForm; context: { $implicit: panel }"></ng-container>
       </mat-tab>
     </mat-tab-group>
   </mat-card>

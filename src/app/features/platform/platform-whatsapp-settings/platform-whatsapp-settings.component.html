@@ -15,9 +15,9 @@
     <div class="save-bar">
       <span class="muted">Stored in the database only. Changes apply from the next request, no restart.</span>
       <span class="spacer"></span>
-      <button mat-button type="button" [disabled]="saving || form.pristine" (click)="load()">Discard changes</button>
-      <button mat-flat-button color="primary" type="submit" [disabled]="saving || form.pristine">
-        {{ saving ? 'Saving…' : 'Save' }}
+      <button mat-button type="button" [disabled]="saving || savingApp || pristine" (click)="discard()">Discard changes</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving || savingApp || pristine">
+        {{ saving || savingApp ? 'Saving…' : 'Save' }}
       </button>
     </div>
 
@@ -71,6 +71,39 @@
       </div>
 
       <mat-checkbox formControlName="removeAccessToken" *ngIf="current?.hasAccessToken">Remove the stored access token</mat-checkbox>
+    </mat-card>
+
+    <mat-card class="wa-card" [formGroup]="appForm">
+      <h2>Meta app &amp; webhook</h2>
+      <p class="muted">
+        The Meta app shared by every tenant's WhatsApp connection: its webhooks arrive here. Provider changes need an API restart to take effect.
+      </p>
+      <div class="field-grid">
+        <mat-form-field class="field">
+          <mat-label>Provider</mat-label>
+          <input matInput formControlName="provider" autocomplete="off" placeholder="Simulated or Meta" />
+          <mat-hint>"Simulated" or "Meta".</mat-hint>
+        </mat-form-field>
+        <mat-form-field class="field">
+          <mat-label>Simulated failure rate (%)</mat-label>
+          <input matInput formControlName="simulatedFailureRatePercent" autocomplete="off" inputmode="numeric" />
+          <mat-hint>Only used by the simulator.</mat-hint>
+        </mat-form-field>
+        <mat-form-field class="field">
+          <mat-label>App id</mat-label>
+          <input matInput formControlName="appId" autocomplete="off" />
+        </mat-form-field>
+        <mat-form-field class="field">
+          <mat-label>App secret</mat-label>
+          <input matInput type="password" formControlName="appSecret" autocomplete="new-password" />
+          <mat-hint>{{ appHint('appSecret') }}</mat-hint>
+        </mat-form-field>
+        <mat-form-field class="field">
+          <mat-label>Webhook verify token</mat-label>
+          <input matInput type="password" formControlName="webhookVerifyToken" autocomplete="new-password" />
+          <mat-hint>{{ appHint('webhookVerifyToken') }}</mat-hint>
+        </mat-form-field>
+      </div>
     </mat-card>
 
     <mat-card class="wa-card">
