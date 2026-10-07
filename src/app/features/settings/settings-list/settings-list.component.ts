@@ -13,6 +13,10 @@ interface CategoryPanel {
   form: FormGroup<Record<string, FormControl<string>>>;
 }
 
+/** Categories with a screen of their own, so a tab here would only be a second place to edit the same keys:
+ * MediaStorage is "AWS Settings", and App/Email/Sms are "Sign-in Delivery". The API still serves them. */
+const HIDDEN_CATEGORIES = ['MediaStorage', 'App', 'Email', 'Sms'];
+
 /** List-value items are edited as comma-separated text and split/joined at the edges. */
 const LIST_SEPARATOR = ',';
 
@@ -121,7 +125,9 @@ export class SettingsListComponent implements OnInit {
     this.loading = true;
     this.settings.getAll().subscribe({
       next: (categories) => {
-        this.panels = categories.map((category) => this.buildPanel(category));
+        this.panels = categories
+          .filter((category) => !HIDDEN_CATEGORIES.includes(category.category))
+          .map((category) => this.buildPanel(category));
         this.loading = false;
       },
       error: () => {
