@@ -8,7 +8,7 @@
 
   <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading && !loadFailed" novalidate>
     <div class="save-bar">
-      <span class="muted">Changes apply from the next request - no restart. Charges are entered in USD, as the providers bill them.</span>
+      <span class="muted">Changes apply from the next request - no restart.<ng-container *ngIf="show('ai')"> Charges are entered in USD, as the providers bill them.</ng-container></span>
       <span class="spacer"></span>
       <button mat-button type="button" (click)="setAll(true)">Expand all</button>
       <button mat-button type="button" (click)="setAll(false)">Collapse all</button>
@@ -254,8 +254,8 @@
     </mat-expansion-panel>
 
     <!-- Charges -->
-    <h2 class="group-title">Charges</h2>
-    <p class="muted group-note">
+    <h2 class="group-title" *ngIf="show('ai')">Charges</h2>
+    <p class="muted group-note" *ngIf="show('ai')">
       What each metered thing costs, in USD. These are list prices kept by hand, so every figure built from them is an
       estimate - the provider's own invoice is the authority. Re-check them when a provider changes its prices.
     </p>

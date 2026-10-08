@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { SettingCategory, UpdateSettingsRequest } from '../models/settings.model';
+import { AiProviderCheck, SettingCategory, UpdateSettingsRequest } from '../models/settings.model';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
@@ -25,6 +25,11 @@ export class SettingsService {
     return this.http.put<void>(`${this.baseUrl}/${category}`, {
       values,
     } as UpdateSettingsRequest);
+  }
+
+  /** Tries each SAVED AI provider key (or just `provider`'s) against its provider (lists models, spends nothing). Always 200 - each result says whether it worked. */
+  verifyAiProviders(provider?: string): Observable<AiProviderCheck[]> {
+    return this.http.post<AiProviderCheck[]>(`${this.baseUrl}/ai-providers/verify`, {}, { params: provider ? { provider } : {} });
   }
 
   /** Tells the API to re-read configuration from its store into the live process. */

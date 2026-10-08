@@ -6,7 +6,7 @@ import { finalize } from 'rxjs/operators';
 
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { NotificationService } from '../../../core/services/notification.service';
-import { SettingCategory, SettingItem } from '../../../core/models/settings.model';
+import { AiProviderCheck, SettingCategory, SettingItem } from '../../../core/models/settings.model';
 import { SettingsService } from '../../../core/services/settings.service';
 
 interface SettingGroup {
@@ -44,6 +44,10 @@ export class SettingsListComponent implements OnInit {
   reloading = false;
   saving: Record<string, boolean> = {};
   title = 'Configuration';
+  /** The provider whose Verify is running, or null. */
+  verifying: string | null = null;
+  /** The last Verify result per provider name ("Anthropic", "OpenAI", "Google"); cleared when the page reloads. */
+  checks: Record<string, AiProviderCheck> = {};
 
   /** True on a screen that shows chosen categories only (AI Providers): each category's keys are split into one panel per
    * sub-group (General, Anthropic, OpenAI, Google) instead of one long list. */
@@ -89,6 +93,47 @@ export class SettingsListComponent implements OnInit {
       .map(([name, items]) => ({ name, hint: name === own ? '' : `Connection details for ${name}.`, items }));
   }
 
+  /** Only the AI Providers screen has providers to verify. */
+  get canVerify(): boolean {
+    return !!this.only?.includes('AiProviders');
+  }
+
+  /** True for a card that is one provider's connection (Anthropic, OpenAI, Google) rather than the shared General settings. */
+  verifiable(group: SettingGroup): boolean {
+    return this.canVerify && ['Anthropic', 'OpenAI', 'Google'].includes(group.name);
+  }
+
+  /** Verifies one provider's SAVED key, so a pending edit has to be saved first. */
+  verify(provider: string): void {
+    if (this.verifying) {
+      return;
+    }
+    if (this.panels.some((p) => p.groups.some((g) => g.name === provider && this.groupDirty(p, g)))) {
+      this.notify.info('Save your changes first - Verify tests the saved key.');
+      return;
+    }
+    this.verifying = provider;
+    this.settings
+      .verifyAiProviders(provider)
+      .pipe(finalize(() => (this.verifying = null)))
+      .subscribe({
+        next: (results) => {
+          const check = results.find((r) => r.provider === provider);
+          if (!check) {
+            return;
+          }
+          this.checks = { ...this.checks, [provider]: check };
+          if (check.success) {
+            this.notify.success(check.message);
+          } else if (check.configured) {
+            this.notify.error(check.message);
+          } else {
+            this.notify.info(check.message);
+          }
+        },
+      });
+  }
+
   /** Secrets never arrive with a value — blank means "leave the stored secret alone". */
   fieldValue(item: SettingItem): string {
     if (item.isSecret) {
@@ -104,10 +149,11 @@ export class SettingsListComponent implements OnInit {
     return item.value ?? '';
   }
 
-  save(panel: CategoryPanel): void {
+  /** Saves the changed fields of the whole category, or - when a card's own Save is pressed - only that card's (`group`). */
+  save(panel: CategoryPanel, group?: SettingGroup): void {
     const values: Record<string, string | null> = {};
 
-    for (const item of panel.category.items) {
+    for (const item of group?.items ?? panel.category.items) {
       const control = panel.form.controls[item.key];
       if (!control.dirty) {
         continue;
@@ -131,16 +177,41 @@ export class SettingsListComponent implements OnInit {
     }
 
     const category = panel.category.category;
-    this.saving = { ...this.saving, [category]: true };
+    const busy = this.savingKey(panel, group);
+    this.saving = { ...this.saving, [busy]: true };
     this.settings
       .update(category, values)
-      .pipe(finalize(() => (this.saving = { ...this.saving, [category]: false })))
+      .pipe(finalize(() => (this.saving = { ...this.saving, [busy]: false })))
       .subscribe({
         next: () => {
-          this.notify.success(`${category} settings saved.`);
-          this.refreshCategory(category);
+          this.notify.success(`${group ? group.name : category} settings saved.`);
+          // Edits in the other cards are still unsaved: carry them across the reload.
+          const kept = group ? this.dirtyValues(panel, group) : {};
+          this.refreshCategory(category, kept);
         },
       });
+  }
+
+  /** The key of `saving` for a whole category or one card of it. */
+  savingKey(panel: CategoryPanel, group?: SettingGroup): string {
+    return group ? `${panel.category.category}:${group.name}` : panel.category.category;
+  }
+
+  /** True when any field in the card has been edited and not saved. */
+  groupDirty(panel: CategoryPanel, group: SettingGroup): boolean {
+    return group.items.some((item) => panel.form.controls[item.key]?.dirty);
+  }
+
+  /** The edited values outside `group`, to put back after the category reloads. */
+  private dirtyValues(panel: CategoryPanel, group: SettingGroup): Record<string, string> {
+    const inGroup = new Set(group.items.map((i) => i.key));
+    const kept: Record<string, string> = {};
+    for (const [key, control] of Object.entries(panel.form.controls)) {
+      if (!inGroup.has(key) && control.dirty) {
+        kept[key] = control.value;
+      }
+    }
+    return kept;
   }
 
   reload(): void {
@@ -186,10 +257,14 @@ export class SettingsListComponent implements OnInit {
     });
   }
 
-  private refreshCategory(category: string): void {
+  private refreshCategory(category: string, keep: Record<string, string> = {}): void {
     this.settings.getCategory(category).subscribe({
       next: (updated) => {
         const panel = this.buildPanel(updated);
+        for (const [key, value] of Object.entries(keep)) {
+          panel.form.controls[key]?.setValue(value);
+          panel.form.controls[key]?.markAsDirty();
+        }
         this.panels = this.panels.map((p) => (p.category.category === category ? panel : p));
       },
     });

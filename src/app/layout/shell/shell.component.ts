@@ -152,7 +152,6 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
         { label: 'Payments', icon: 'receipt_long', route: '/platform/payments', roles: [] },
         { label: 'Refund Requests', icon: 'assignment_return', route: '/platform/refunds', roles: [] },
-        { label: 'Configuration', icon: 'tune', route: '/platform/configuration', roles: [] },
       ],
     },
     {
@@ -180,6 +179,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       // The platform-wide system settings, split in two: the one AI provider (AiProviders) every tenant runs on, and the rest.
       label: 'Configuration',
       items: [
+        { label: 'General', icon: 'tune', route: '/platform/configuration', roles: [] },
         { label: 'AI Providers', icon: 'smart_toy', route: '/settings/ai-providers', roles: [] },
         { label: 'Tenant Settings', icon: 'tune', route: '/settings/tenant', roles: [] },
         { label: 'AWS Settings', icon: 'cloud', route: '/platform/aws-settings', roles: [] },

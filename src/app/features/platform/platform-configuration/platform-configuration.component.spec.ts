@@ -1,3 +1,4 @@
+import { ActivatedRoute } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
@@ -61,7 +62,7 @@ const config = (): PlatformConfiguration => ({
 });
 
 describe('PlatformConfigurationComponent', () => {
-  function render(loaded = config()) {
+  function render(loaded = config(), sections?: string[]) {
     const get = jasmine.createSpy('get').and.returnValue(of(loaded));
     const save = jasmine.createSpy('save').and.callFake((c: PlatformConfiguration) => of(c));
     const success = jasmine.createSpy('success');
@@ -74,6 +75,7 @@ describe('PlatformConfigurationComponent', () => {
         { provide: PlatformConfigurationService, useValue: { get, save } },
         { provide: NotificationService, useValue: { success } },
         { provide: PlatformBillingService, useValue: { getPlanCostDefaults } },
+        { provide: ActivatedRoute, useValue: { snapshot: { data: sections ? { sections } : {} } } },
         { provide: BillingService, useValue: { getStates: () => of([{ code: 'MH', name: 'Maharashtra' }, { code: 'KA', name: 'Karnataka' }]) } },
       ],
     });
@@ -97,11 +99,16 @@ describe('PlatformConfigurationComponent', () => {
       'Refund policy',
       'Billing alerts',
       'Trial quota',
-      'WhatsApp messages',
-      'Lead discovery',
-      'AI conversations',
     ]);
     expect(root.querySelectorAll('mat-expansion-panel.mat-expanded').length).toBe(0);
+    expect(text(root)).not.toContain('Charges');
+  });
+
+  it('shows only the rate tables on the AI Provider Charges screen', () => {
+    const { root } = render(config(), ['whatsapp', 'lead', 'ai']);
+
+    const titles = Array.from(root.querySelectorAll('mat-panel-title')).map((h) => text(h).trim());
+    expect(titles).toEqual(['WhatsApp messages', 'Lead discovery', 'AI conversations']);
   });
 
   it('expands and collapses everything at once', () => {
@@ -109,7 +116,7 @@ describe('PlatformConfigurationComponent', () => {
 
     component.setAll(true);
     fixture.detectChanges();
-    expect(root.querySelectorAll('mat-expansion-panel.mat-expanded').length).toBe(10);
+    expect(root.querySelectorAll('mat-expansion-panel.mat-expanded').length).toBe(7);
 
     component.setAll(false);
     fixture.detectChanges();
@@ -145,7 +152,7 @@ describe('PlatformConfigurationComponent', () => {
   });
 
   it('has no separate quota-weights setting: the weights follow the message prices', () => {
-    const { component, root, fixture } = render();
+    const { component, root, fixture } = render(config(), ['whatsapp', 'lead', 'ai']);
 
     expect(text(root)).not.toContain('WhatsApp quota weights');
     expect(component.form.contains('quotaWeights')).toBeFalse();

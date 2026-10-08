@@ -17,6 +17,9 @@ import { PlatformBillingService } from '../../../core/services/platform-billing.
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformConfigurationService } from '../../../core/services/platform-configuration.service';
 
+/** The rate tables, shown on the AI Provider Charges screen instead of the main Configuration page. */
+const CHARGE_SECTIONS = ['whatsapp', 'lead', 'ai'];
+
 const nonNegative = [Validators.required, Validators.min(0)];
 
 /**
@@ -102,11 +105,11 @@ export class PlatformConfigurationComponent implements OnInit {
     this.sections = (route?.snapshot?.data?.['sections'] as string[] | undefined) ?? null;
   }
 
-  /** Route data can cut the page down to some sections (AI Provider Charges); null shows them all. */
+  /** Route data can pick the sections (AI Provider Charges); without it the page shows everything except the charges, which live on that screen. */
   private readonly sections: string[] | null;
 
   show(key: string): boolean {
-    return !this.sections || this.sections.includes(key);
+    return this.sections ? this.sections.includes(key) : !CHARGE_SECTIONS.includes(key);
   }
 
   /** The rate table's rows - the countries that are switched on. */

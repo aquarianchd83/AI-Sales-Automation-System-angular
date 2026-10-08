@@ -18,6 +18,16 @@
   padding: 20px 24px;
 }
 
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .spacer {
+    flex: 1;
+  }
+}
+
 .group-title {
   margin: 0;
   font-size: 16px;
@@ -90,4 +100,17 @@
   width: 40px;
   height: 40px;
   opacity: 0.5;
+}
+
+.verify-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: #2e7d32;
+
+  &--fail {
+    color: #c62828;
+  }
 }

@@ -26,8 +26,29 @@
     <form class="category-form" [class.grouped-form]="grouped" [formGroup]="panel.form" (ngSubmit)="save(panel)">
       <ng-container *ngFor="let group of panel.groups">
         <mat-card class="settings-card group-card" *ngIf="grouped; else plainGroup">
-          <h3 class="group-title">{{ group.name }}</h3>
+          <div class="group-head">
+            <h3 class="group-title">{{ group.name }}</h3>
+            <button mat-stroked-button type="button" *ngIf="verifiable(group)" [disabled]="!!verifying" (click)="verify(group.name)">
+              <mat-icon>{{ verifying === group.name ? 'hourglass_empty' : 'verified' }}</mat-icon>
+              {{ verifying === group.name ? 'Verifying…' : 'Verify' }}
+            </button>
+            <span class="spacer"></span>
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              *ngIf="grouped"
+              [disabled]="!groupDirty(panel, group) || saving[savingKey(panel, group)]"
+              (click)="save(panel, group)"
+            >
+              {{ saving[savingKey(panel, group)] ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
           <p class="muted group-hint" *ngIf="group.hint">{{ group.hint }}</p>
+          <div class="verify-result" *ngIf="checks[group.name] as check" [class.verify-result--fail]="check.configured && !check.success" role="status">
+            <mat-icon>{{ check.success ? 'check_circle' : check.configured ? 'error' : 'info' }}</mat-icon>
+            <span>{{ check.message }}<ng-container *ngIf="check.isActive"> (in use)</ng-container></span>
+          </div>
           <ng-container *ngTemplateOutlet="rows; context: { $implicit: group.items }"></ng-container>
         </mat-card>
         <ng-template #plainGroup>
@@ -62,7 +83,7 @@
       </div>
     </ng-template>
 
-      <div class="category-actions">
+      <div class="category-actions" *ngIf="!grouped">
         <button
           mat-flat-button
           color="primary"

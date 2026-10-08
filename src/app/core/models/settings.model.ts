@@ -35,3 +35,12 @@ export interface SettingCategory {
 export interface UpdateSettingsRequest {
   values: Record<string, string | null>;
 }
+
+/** AiProviderCheckDto. One provider's key tried against the provider itself (POST /settings/ai-providers/verify). */
+export interface AiProviderCheck {
+  provider: string;
+  configured: boolean;
+  isActive: boolean;
+  success: boolean;
+  message: string;
+}
