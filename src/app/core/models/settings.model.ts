@@ -44,3 +44,10 @@ export interface AiProviderCheck {
   success: boolean;
   message: string;
 }
+
+/** Categories that have a screen of their own (or are kept off the settings screens), so the "System" settings on the General page are
+ * whatever is left: everything not listed here. */
+export const CATEGORIES_WITH_OWN_SCREEN = [
+  'AiProviders', 'MetaAds', 'Campaigns', 'Media', 'Messaging', 'Ai',
+  'MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'WhatsApp',
+];

@@ -403,4 +403,25 @@
     </mat-accordion>
   </form>
 
+  <!-- System: the settings no other screen owns, saved on their own. -->
+  <mat-card class="config-card" *ngFor="let panel of systemPanels" [formGroup]="panel.form">
+    <h2>System - {{ panel.category.category }}</h2>
+    <div class="system-row" *ngFor="let item of panel.category.items">
+      <div class="system-meta">
+        <strong class="system-key">{{ item.key }}</strong>
+        <span class="muted" *ngIf="item.description">{{ item.description }}</span>
+      </div>
+      <mat-form-field subscriptSizing="dynamic" class="system-input">
+        <mat-label>Value</mat-label>
+        <input matInput [type]="item.isSecret ? 'password' : 'text'" [formControlName]="item.key" autocomplete="off" />
+        <mat-hint *ngIf="systemHint(item)">{{ systemHint(item) }}</mat-hint>
+      </mat-form-field>
+    </div>
+    <div class="system-actions">
+      <button mat-flat-button color="primary" type="button" [disabled]="panel.form.pristine || panel.saving" (click)="saveSystem(panel)">
+        {{ panel.saving ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  </mat-card>
+
 </div>

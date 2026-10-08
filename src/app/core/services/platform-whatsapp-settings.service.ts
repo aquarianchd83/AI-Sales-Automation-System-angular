@@ -21,6 +21,11 @@ export class PlatformWhatsAppSettingsService {
     return this.http.put<PlatformWhatsAppSettings>(this.baseUrl, request);
   }
 
+  /** Asks Meta about the SAVED number, token and Business Account id without sending any message. Always answers 200. */
+  verify(): Observable<DeliveryTestResult> {
+    return this.http.post<DeliveryTestResult>(`${this.baseUrl}/verify`, {});
+  }
+
   /** Sends Meta's sample template from the SAVED number. Always answers 200; the result says whether it worked. */
   test(to: string): Observable<DeliveryTestResult> {
     return this.http.post<DeliveryTestResult>(`${this.baseUrl}/test`, { to });

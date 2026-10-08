@@ -15,6 +15,8 @@ import { IndianState } from '../../../core/models/billing.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { SettingsService } from '../../../core/services/settings.service';
+import { CATEGORIES_WITH_OWN_SCREEN, SettingCategory, SettingItem } from '../../../core/models/settings.model';
 import { PlatformConfigurationService } from '../../../core/services/platform-configuration.service';
 
 /** The rate tables, shown on the AI Provider Charges screen instead of the main Configuration page. */
@@ -86,6 +88,10 @@ export class PlatformConfigurationComponent implements OnInit {
     alerts: false, trial: false, whatsapp: false, lead: false, ai: false,
   };
 
+  /** The "System" settings - the settings categories no other screen owns (data retention) - shown at the bottom of the General page and
+   * saved on their own, since they are plain key/value settings rather than part of the platform configuration document. */
+  systemPanels: { category: SettingCategory; form: FormGroup; saving: boolean }[] = [];
+
   states: IndianState[] = [];
   /** Where the platform averages the "fill from" button would use come from, once fetched. */
   averagesSource: { ai: string; lead: string } | null = null;
@@ -100,6 +106,7 @@ export class PlatformConfigurationComponent implements OnInit {
     private readonly notify: NotificationService,
     private readonly billing: BillingService,
     private readonly platformBilling: PlatformBillingService,
+    private readonly systemSettings: SettingsService,
     @Optional() route: ActivatedRoute | null
   ) {
     this.sections = (route?.snapshot?.data?.['sections'] as string[] | undefined) ?? null;
@@ -153,6 +160,56 @@ export class PlatformConfigurationComponent implements OnInit {
   ngOnInit(): void {
     this.billing.getStates('IN').subscribe({ next: (states) => (this.states = states), error: () => (this.states = []) });
     this.load();
+    if (this.show('countries')) {
+      this.loadSystem();
+    }
+  }
+
+  loadSystem(): void {
+    this.systemSettings.getAll().subscribe({
+      next: (categories) =>
+        (this.systemPanels = categories
+          .filter((c) => !CATEGORIES_WITH_OWN_SCREEN.includes(c.category))
+          .map((category) => ({ category, form: this.systemForm(category), saving: false }))),
+      error: () => (this.systemPanels = []),
+    });
+  }
+
+  /** A secret never arrives with a value: blank means keep what is stored. */
+  systemHint(item: SettingItem): string | null {
+    return item.isSecret ? (item.hasValue ? item.valueHint || 'Currently set - leave blank to keep' : 'Not set') : null;
+  }
+
+  saveSystem(panel: { category: SettingCategory; form: FormGroup; saving: boolean }): void {
+    const values: Record<string, string | null> = {};
+    for (const item of panel.category.items) {
+      const control = panel.form.controls[item.key];
+      if (control.dirty && !(item.isSecret && !control.value)) {
+        values[item.key] = String(control.value).trim();
+      }
+    }
+    if (!Object.keys(values).length || panel.saving) {
+      return;
+    }
+    panel.saving = true;
+    this.systemSettings
+      .update(panel.category.category, values)
+      .pipe(finalize(() => (panel.saving = false)))
+      .subscribe({
+        next: () => {
+          this.notify.success(`${panel.category.category} settings saved.`);
+          this.systemSettings.getCategory(panel.category.category).subscribe({
+            next: (updated) => {
+              panel.category = updated;
+              panel.form = this.systemForm(updated);
+            },
+          });
+        },
+      });
+  }
+
+  private systemForm(category: SettingCategory): FormGroup {
+    return this.fb.group(Object.fromEntries(category.items.map((i) => [i.key, i.isSecret ? '' : i.value ?? ''])));
   }
 
   load(): void {

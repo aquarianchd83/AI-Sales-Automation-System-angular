@@ -137,7 +137,6 @@ describe('ShellComponent sidenav', () => {
       'scienceRazorpay Test',
       'request_quoteAI Provider Charges',
       'ads_clickMeta Ads',
-      'settingsSystem',
       'receipt_longLogs',
       'historyAudit Log',
       'account_circleMy Profile',

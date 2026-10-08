@@ -9,11 +9,12 @@ const TENANT_CATEGORIES = ['Campaigns', 'Media', 'Messaging', 'Ai'];
 
 /** `categories` picks what a screen shows: only those categories, or (`exclude`) everything but them. */
 const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'system' },
+  // The remaining (system) settings now live on the General page.
+  { path: '', pathMatch: 'full', redirectTo: '/platform/configuration' },
+  { path: 'system', redirectTo: '/platform/configuration' },
   { path: 'ai-providers', component: SettingsListComponent, data: { title: 'AI Providers', categories: ['AiProviders'] } },
   { path: 'tenant', component: SettingsListComponent, data: { title: 'Tenant Settings', categories: TENANT_CATEGORIES } },
   { path: 'meta-ads', component: SettingsListComponent, data: { title: 'Meta Ads', categories: ['MetaAds'] } },
-  { path: 'system', component: SettingsListComponent, data: { title: 'System', exclude: ['AiProviders', 'MetaAds', ...TENANT_CATEGORIES] } },
 ];
 
 @NgModule({

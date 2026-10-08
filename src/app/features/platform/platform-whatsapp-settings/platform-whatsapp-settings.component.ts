@@ -57,6 +57,9 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
   loadFailed = false;
   saving = false;
   testing = false;
+  verifying = false;
+  /** The outcome of the last Verify; cleared as soon as anything on the page changes. */
+  verifyResult: DeliveryTestResult | null = null;
   /** The outcome of the last test; cleared as soon as the form changes, since it no longer describes what is on screen. */
   testResult: DeliveryTestResult | null = null;
 
@@ -69,7 +72,10 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    this.form.valueChanges.subscribe(() => (this.testResult = null));
+    this.form.valueChanges.subscribe(() => {
+      this.testResult = null;
+      this.verifyResult = null;
+    });
   }
 
   /** The last four characters of the stored token, never the value. */
@@ -182,6 +188,29 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
             this.saveApp();
           }
         },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
+  }
+
+  /** Asks Meta whether the saved number and token work, without sending any message. */
+  verify(): void {
+    if (this.verifying) {
+      return;
+    }
+    if (!this.pristine) {
+      this.notify.error('Save the settings first - Verify checks the saved number.');
+      return;
+    }
+
+    this.verifying = true;
+    this.verifyResult = null;
+    this.settings
+      .verify()
+      .pipe(finalize(() => (this.verifying = false)))
+      .subscribe({
+        next: (result) => (this.verifyResult = result),
         error: () => {
           // ErrorInterceptor toasts it.
         },

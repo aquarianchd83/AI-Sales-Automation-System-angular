@@ -8,6 +8,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { BillingService } from '../../../core/services/billing.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { PlatformConfigurationService } from '../../../core/services/platform-configuration.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { PlatformConfigurationComponent } from './platform-configuration.component';
 
@@ -75,6 +76,7 @@ describe('PlatformConfigurationComponent', () => {
         { provide: PlatformConfigurationService, useValue: { get, save } },
         { provide: NotificationService, useValue: { success } },
         { provide: PlatformBillingService, useValue: { getPlanCostDefaults } },
+        { provide: SettingsService, useValue: { getAll: () => of([]), getCategory: () => of({ category: 'Retention', items: [] }), update: () => of(undefined) } },
         { provide: ActivatedRoute, useValue: { snapshot: { data: sections ? { sections } : {} } } },
         { provide: BillingService, useValue: { getStates: () => of([{ code: 'MH', name: 'Maharashtra' }, { code: 'KA', name: 'Karnataka' }]) } },
       ],

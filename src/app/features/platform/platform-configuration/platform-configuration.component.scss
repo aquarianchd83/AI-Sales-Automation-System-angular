@@ -144,3 +144,32 @@ mat-panel-description {
   color: var(--mat-sys-error, #b3261e);
   margin: 8px 0 0;
 }
+
+.system-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 8px 0;
+}
+
+.system-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 260px;
+  padding-top: 8px;
+}
+
+.system-key {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+}
+
+.system-input {
+  flex: 2 1 320px;
+}
+
+.system-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}

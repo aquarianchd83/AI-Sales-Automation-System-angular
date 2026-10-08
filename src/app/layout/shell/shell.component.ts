@@ -187,7 +187,6 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Razorpay Test', icon: 'science', route: '/platform/razorpay-test', roles: [] },
         { label: 'AI Provider Charges', icon: 'request_quote', route: '/platform/ai-charges', roles: [] },
         { label: 'Meta Ads', icon: 'ads_click', route: '/settings/meta-ads', roles: [] },
-        { label: 'System', icon: 'settings', route: '/settings/system', roles: [] },
       ],
     },
     {

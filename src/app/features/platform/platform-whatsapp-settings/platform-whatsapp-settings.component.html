@@ -125,6 +125,23 @@
     </mat-card>
 
     <mat-card class="wa-card">
+      <h2>Verify the connection</h2>
+      <p class="muted">
+        Asks Meta whether the saved phone number id, access token and Business Account id work. Nothing is sent to anyone.
+      </p>
+      <div class="test-row">
+        <button mat-flat-button color="primary" type="button" [disabled]="verifying || saving" (click)="verify()">
+          <mat-icon>{{ verifying ? 'hourglass_empty' : 'verified' }}</mat-icon>
+          {{ verifying ? 'Verifying…' : 'Verify' }}
+        </button>
+      </div>
+      <div class="test-result" [class.test-result--fail]="!verifyResult.success" *ngIf="verifyResult" role="status" aria-live="polite">
+        <mat-icon>{{ verifyResult.success ? 'check_circle' : 'error' }}</mat-icon>
+        <div><strong>{{ verifyResult.message }}</strong></div>
+      </div>
+    </mat-card>
+
+    <mat-card class="wa-card">
       <h2>Test the connection</h2>
       <p class="muted">
         Sends Meta's own sample message (<code>hello_world</code>) from the saved number, to prove the number and token work. It needs no approval
