@@ -10,7 +10,7 @@
     <h3>WhatsApp number</h3>
     <p class="muted hint">
       The WhatsApp number your customers will message, with the country code.
-      <ng-container *ngIf="embedded">Connecting it to WhatsApp comes later - your platform administrator can do that for you.</ng-container>
+      Next, connect it to WhatsApp with Meta below.
     </p>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingNumber"></mat-progress-bar>
     <form class="number-form" (ngSubmit)="saveNumber()" *ngIf="!loadingNumber" novalidate>
@@ -28,12 +28,21 @@
     </form>
   </mat-card>
 
+  <!-- Connect with Meta: the supported way to link the number - on this page and in onboarding's WhatsApp step. -->
+  <mat-card class="detail-card meta-card" *ngIf="!loadingWhatsApp">
+    <app-meta-connect-card
+      [config]="whatsAppConfig"
+      [phoneNumber]="savedWhatsAppNumber"
+      (changed)="whatsAppConfig = $event"
+    ></app-meta-connect-card>
+  </mat-card>
+
   <ng-container *ngIf="!embedded">
   <mat-card class="detail-card whatsapp-card">
-    <h3>WhatsApp connection</h3>
+    <h3>Enter details manually</h3>
     <p class="muted hint">
-      The number your customers message. You and your platform administrator can both set it up; whoever changes it,
-      verify the connection afterwards.
+      Only if you cannot use Connect with Meta above. You and your platform administrator can both set this up;
+      whoever changes it, verify the connection afterwards.
     </p>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
     <app-whatsapp-connection-form

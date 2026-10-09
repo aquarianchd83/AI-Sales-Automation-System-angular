@@ -1,11 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 
 import { TenantCharges } from '../../../core/models/tenant-settings.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
+import { MetaSignupService } from '../../../core/services/meta-signup.service';
 import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import { SharedModule } from '../../../shared/shared.module';
 import { TenantSettingsListComponent } from './tenant-settings-list.component';
@@ -56,6 +57,13 @@ describe('TenantSettingsListComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: TenantSettingsService, useValue: service },
+        {
+          provide: MetaSignupService,
+          useValue: jasmine.createSpyObj('MetaSignupService', {
+            getConfig: of({ enabled: true, appId: '1', configurationId: '2', apiVersion: 'v21.0', issue: null }),
+            getStatus: NEVER,
+          }),
+        },
         { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error']) },
       ],
     });
@@ -155,12 +163,13 @@ describe('TenantSettingsListComponent', () => {
       TestBed.configureTestingModule({ providers: [{ provide: EMBEDDED_IN_ONBOARDING, useValue: true }] });
     });
 
-    it('asks only for the number - no credentials, usage, charges or job links', () => {
+    it('asks only for the number and Connect with Meta - no manual credentials, usage, charges or job links', () => {
       create();
       const root = fixture.nativeElement as HTMLElement;
 
       expect(root.querySelector('.number-card')).toBeTruthy();
-      expect(root.textContent).toContain('Connecting it to WhatsApp comes later');
+      expect(root.querySelector('app-meta-connect-card')).toBeTruthy();
+      expect(root.textContent).toContain('Connect with Meta');
       expect(root.querySelector('app-whatsapp-connection-form')).toBeNull();
       expect(root.textContent).not.toContain('Charges this month');
       expect(root.textContent).not.toContain('Manage job schedules');
@@ -171,7 +180,7 @@ describe('TenantSettingsListComponent', () => {
       create();
 
       expect(service.getWhatsAppNumber).toHaveBeenCalled();
-      expect(service.getWhatsAppConfig).not.toHaveBeenCalled();
+      expect(service.getWhatsAppConfig).toHaveBeenCalled(); // Connect with Meta needs the saved connection
       expect(service.getUsage).not.toHaveBeenCalled();
       expect(service.getCharges).not.toHaveBeenCalled();
     });

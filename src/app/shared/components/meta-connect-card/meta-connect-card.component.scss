@@ -1,0 +1,150 @@
+:host {
+  display: block;
+}
+
+.connect-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  h3 {
+    margin: 0 0 4px;
+  }
+
+  p {
+    margin: 0;
+    max-width: 52ch;
+  }
+}
+
+.connect-button {
+  flex: none;
+}
+
+mat-progress-bar {
+  margin: 12px 0;
+}
+
+.status,
+.issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+
+  mat-icon {
+    flex: none;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.status--active {
+  background: rgba(0, 121, 107, 0.1);
+
+  mat-icon {
+    color: #00796b;
+  }
+}
+
+.issue {
+  background: rgba(237, 108, 2, 0.1);
+
+  mat-icon {
+    color: #e65100;
+  }
+
+  &--retry {
+    background: rgba(2, 119, 189, 0.08);
+
+    mat-icon {
+      color: #0277bd;
+    }
+  }
+
+  .issue-body {
+    gap: 4px;
+  }
+
+  .reference {
+    font-size: 12px;
+  }
+
+  .issue-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+}
+
+.steps {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+
+    mat-icon {
+      flex: none;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: rgba(0, 0, 0, 0.38);
+    }
+
+    div {
+      display: flex;
+      flex-wrap: wrap;
+      column-gap: 8px;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .step-title {
+    font-weight: 500;
+  }
+
+  .step-status {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .step-detail {
+    flex-basis: 100%;
+  }
+
+  .step--Completed mat-icon {
+    color: #00796b;
+  }
+
+  .step--ActionRequired mat-icon {
+    color: #e65100;
+  }
+
+  .step--Failed mat-icon {
+    color: #d32f2f;
+  }
+}
+
+.templates {
+  margin-top: 12px;
+}

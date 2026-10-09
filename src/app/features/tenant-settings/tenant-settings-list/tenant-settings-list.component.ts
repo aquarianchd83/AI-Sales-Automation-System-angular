@@ -70,8 +70,8 @@ export class TenantSettingsListComponent implements OnInit {
   readonly saveWhatsApp = (request: UpdateTenantWhatsAppConfigRequest) => this.tenantSettings.saveWhatsAppConfig(request);
   readonly verifyWhatsApp = () => this.tenantSettings.verifyWhatsAppConfig();
 
-  /** Inside onboarding's "WhatsApp" step only the number is asked for: connecting it to WhatsApp (credentials,
-   * verification) comes later, so the connection form, usage and charges are left out. */
+  /** Inside onboarding's "WhatsApp" step only the number and "Connect with Meta" are shown: the manual connection form,
+   * usage and charges are left out. */
   readonly embedded: boolean;
 
   /** The number customers will message - the one thing onboarding needs here. */
@@ -89,6 +89,11 @@ export class TenantSettingsListComponent implements OnInit {
     @Optional() @Inject(EMBEDDED_IN_ONBOARDING) embedded: boolean | null
   ) {
     this.embedded = !!embedded;
+  }
+
+  /** The number as saved, for the connect card to show. */
+  get savedWhatsAppNumber(): string | null {
+    return this.savedNumber || null;
   }
 
   get numberChanged(): boolean {
@@ -124,10 +129,7 @@ export class TenantSettingsListComponent implements OnInit {
       error: () => (this.loadingNumber = false),
     });
 
-    if (this.embedded) {
-      return; // the rest of the page is not part of this step
-    }
-
+    // Both here and inside onboarding's WhatsApp step: "Connect with Meta" needs to know what is already connected.
     this.tenantSettings.getWhatsAppConfig().subscribe({
       next: (config) => {
         this.whatsAppConfig = config;
@@ -135,6 +137,10 @@ export class TenantSettingsListComponent implements OnInit {
       },
       error: () => (this.loadingWhatsApp = false),
     });
+
+    if (this.embedded) {
+      return; // the rest of the page is not part of this step
+    }
 
     this.tenantSettings.getUsage().subscribe({
       next: (usage) => {

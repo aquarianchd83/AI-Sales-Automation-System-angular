@@ -1,0 +1,83 @@
+<div class="connect">
+  <div class="connect-head">
+    <div>
+      <h3>Connect with Meta</h3>
+      <p class="muted hint">
+        Sign in to Meta once and we set up WhatsApp for you - there are no IDs, tokens or webhook settings to find.
+        <ng-container *ngIf="phoneNumber">Choose or add <strong>{{ phoneNumber }}</strong> when Meta asks for your number.</ng-container>
+      </p>
+    </div>
+    <button mat-flat-button color="primary" type="button" class="connect-button" (click)="connect()" [disabled]="!canConnect">
+      <mat-icon>link</mat-icon>
+      {{ working === 'connect' ? 'Connecting…' : connected ? 'Reconnect with Meta' : 'Connect with Meta' }}
+    </button>
+  </div>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="busy"></mat-progress-bar>
+
+  <div class="status status--active" role="status" *ngIf="active">
+    <mat-icon>verified</mat-icon>
+    <div>
+      <strong>WhatsApp is active</strong>
+      <span>{{ config?.verifiedDisplayPhoneNumber || config?.phoneNumberId }}<ng-container *ngIf="config?.verifiedName"> · {{ config?.verifiedName }}</ng-container></span>
+    </div>
+  </div>
+
+  <div class="issue" [ngClass]="'issue--' + (i.retryable ? 'retry' : 'action')" role="alert" *ngIf="issue as i">
+    <mat-icon>{{ i.primaryAction === 'Retry' ? 'sync_problem' : 'info' }}</mat-icon>
+    <div class="issue-body">
+      <strong>{{ i.title }}</strong>
+      <span>{{ i.message }}</span>
+      <span class="muted" *ngIf="i.primaryAction === 'ContactSupport' || i.secondaryAction === 'ContactSupport'">
+        Please contact platform support.
+      </span>
+      <span class="muted reference" *ngIf="i.reference">Reference: {{ i.reference }}</span>
+      <div class="issue-actions">
+        <ng-container *ngFor="let action of [i.primaryAction, i.secondaryAction]; let first = first">
+          <ng-container [ngSwitch]="action">
+            <a mat-stroked-button *ngSwitchCase="'Verify'" [href]="metaSettingsUrl" target="_blank" rel="noopener noreferrer">
+              <mat-icon>open_in_new</mat-icon> {{ actionLabel(action) }}
+            </a>
+            <a mat-stroked-button *ngSwitchCase="'AddCredits'" routerLink="/billing/wallet">{{ actionLabel(action) }}</a>
+            <button
+              mat-stroked-button
+              type="button"
+              *ngSwitchCase="'Retry'"
+              [color]="first ? 'primary' : undefined"
+              [disabled]="busy"
+              (click)="run(action)"
+            >
+              {{ actionLabel(action) }}
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              *ngSwitchCase="'Reconnect'"
+              [color]="first ? 'primary' : undefined"
+              [disabled]="!canConnect"
+              (click)="run(action)"
+            >
+              {{ actionLabel(action) }}
+            </button>
+          </ng-container>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <ul class="steps" *ngIf="steps.length && (connected || issue)">
+    <li *ngFor="let step of steps" [ngClass]="'step--' + step.status">
+      <mat-icon>{{ stepIcon(step) }}</mat-icon>
+      <div>
+        <span class="step-title">{{ step.title }}</span>
+        <span class="step-status">{{ statusLabel(step) }}</span>
+        <span class="muted step-detail" *ngIf="step.detail">{{ step.detail }}</span>
+      </div>
+    </li>
+  </ul>
+
+  <p class="muted hint templates" *ngIf="result?.templates as t">
+    Message templates on this account: {{ t.approved }} approved, {{ t.pending }} awaiting Meta, {{ t.rejected }} rejected.
+    Only approved templates can be sent in campaigns.
+  </p>
+</div>
