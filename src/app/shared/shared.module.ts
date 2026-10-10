@@ -13,6 +13,7 @@ import { MaterialModule } from './material.module';
 import { ZonedDatePipe } from './pipes/zoned-date.pipe';
 import { TenantJobListComponent } from './components/tenant-job-list/tenant-job-list.component';
 import { TenantJobScheduleDialogComponent } from './components/tenant-job-schedule-dialog/tenant-job-schedule-dialog.component';
+import { MetaConnectCardComponent } from './components/meta-connect-card/meta-connect-card.component';
 import { WhatsAppConnectionFormComponent } from './components/whatsapp-connection-form/whatsapp-connection-form.component';
 
 const DECLARATIONS = [
@@ -26,6 +27,7 @@ const DECLARATIONS = [
   TenantJobListComponent,
   TenantJobScheduleDialogComponent,
   WhatsAppConnectionFormComponent,
+  MetaConnectCardComponent,
 ];
 
 /** Re-exported building blocks for feature modules. Holds no providers. */
