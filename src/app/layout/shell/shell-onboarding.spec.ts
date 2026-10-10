@@ -80,6 +80,13 @@ describe('ShellComponent during onboarding', () => {
     expect(bar.querySelector('a[href="/onboarding"]')).toBeTruthy();
   });
 
+  it('hides the billing alerts bell while setup is in progress', () => {
+    status$ = new BehaviorSubject<OnboardingStatus | null>(status(2));
+    const { root } = render();
+
+    expect(root.querySelector('.bell')).toBeNull();
+  });
+
   it('does not repeat the bar on the wizard itself', () => {
     status$ = new BehaviorSubject<OnboardingStatus | null>(status(2));
     const { root } = render(['Admin'], '/onboarding');

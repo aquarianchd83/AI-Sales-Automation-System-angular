@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { NonNullableFormBuilder, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
@@ -43,7 +43,11 @@ export class WhatsAppConnectionFormComponent implements OnChanges {
   verifying = false;
   showAdvanced = false;
 
-  constructor(private readonly fb: NonNullableFormBuilder, private readonly notify: NotificationService) {}
+  constructor(
+    private readonly fb: NonNullableFormBuilder,
+    private readonly notify: NotificationService,
+    private readonly host: ElementRef<HTMLElement>
+  ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['config']) {
@@ -67,8 +71,15 @@ export class WhatsAppConnectionFormComponent implements OnChanges {
   }
 
   onSave(): void {
-    if (this.form.invalid || this.saving) {
+    if (this.saving) {
+      return;
+    }
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // The field that is wrong can be scrolled out of sight above Save: say so, and take the user to it.
+      this.notify.error('Fill in the Phone number ID and the WhatsApp Business Account ID before saving.');
+      this.host.nativeElement.querySelector<HTMLElement>('input.ng-invalid')?.scrollIntoView({ block: 'center' });
+      this.host.nativeElement.querySelector<HTMLElement>('input.ng-invalid')?.focus();
       return;
     }
     if (!this.config?.hasAccessToken && !this.form.controls.accessToken.value) {

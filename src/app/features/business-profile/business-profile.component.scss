@@ -359,15 +359,3 @@ mat-icon[matPrefix] {
     font-size: 18px;
   }
 }
-
-// AI suggest for the description: the proposal sits between the button and the text it would replace.
-.description-suggest {
-  margin-bottom: 0;
-}
-
-.proposal-text {
-  margin: 0;
-  white-space: pre-wrap;
-  font-size: 14px;
-  line-height: 1.5;
-}

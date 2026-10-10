@@ -11,7 +11,7 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
 import { ONBOARDING_AREAS, OnboardingArea, areaFor } from '../step-panel/onboarding-areas';
 
 /**
- * "Complete Your Application Setup" - the onboarding widget a tenant lands on after signing in until all nine
+ * "Complete Your Application Setup" - the onboarding widget a tenant lands on after signing in until all six
  * steps are done. Two parts: the weighted step list on the left, and on the right the step itself - title, its real
  * screen shown in place, then Previous / Next.
  *

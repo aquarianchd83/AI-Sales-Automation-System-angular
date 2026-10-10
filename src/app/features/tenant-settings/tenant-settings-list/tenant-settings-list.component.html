@@ -20,7 +20,7 @@
         <input matInput type="tel" [formControl]="whatsAppNumber" maxlength="32" placeholder="+91 98765 43210" autocomplete="tel" />
         <mat-error *ngIf="whatsAppNumber.hasError('tooShort')">That looks too short - include the country code.</mat-error>
         <mat-error *ngIf="whatsAppNumber.hasError('pattern')">Use digits, spaces, brackets, dashes and an optional leading +.</mat-error>
-        <mat-hint>+91 98765 43210</mat-hint>
+        <mat-hint>Start with the country code, for example +91 for India.</mat-hint>
       </mat-form-field>
       <button mat-flat-button color="primary" type="submit" [disabled]="savingNumber || whatsAppNumber.invalid || !numberChanged">
         {{ savingNumber ? 'Saving…' : 'Save number' }}

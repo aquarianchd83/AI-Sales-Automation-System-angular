@@ -66,37 +66,6 @@
             <mat-hint>e.g. Eye clinic, Dental clinic, Diagnostic lab</mat-hint>
           </mat-form-field>
 
-          <!-- AI suggest: a clearer wording of what is written below. Nothing is replaced until you use it. -->
-          <div class="span-2 suggest-row description-suggest">
-            <button
-              mat-stroked-button
-              color="primary"
-              type="button"
-              (click)="refineDescription()"
-              [disabled]="!form.controls.businessDescription.value.trim() || refiningDescription"
-              [matTooltip]="form.controls.businessDescription.value.trim() ? '' : 'Write a first draft of the description first'"
-            >
-              <mat-icon>auto_awesome</mat-icon>
-              {{ refiningDescription ? 'Refining…' : 'AI suggest' }}
-            </button>
-            <span class="muted suggest-hint">Refines the wording of your description below. You choose whether to use it.</span>
-          </div>
-
-          <div class="span-2 suggestions description-proposal" *ngIf="descriptionProposal as proposal" role="region" aria-label="Suggested description">
-            <div class="suggestions-head">
-              <span>
-                <strong>Suggested description</strong>
-                <span class="muted"> · {{ proposal.source === 'AI' ? 'written by your AI assistant' : 'your text, tidied up (AI is not available right now)' }}</span>
-              </span>
-              <span class="spacer"></span>
-              <button mat-button type="button" color="primary" (click)="useDescriptionProposal()">Use this</button>
-              <button mat-icon-button type="button" aria-label="Dismiss suggestion" (click)="dismissDescriptionProposal()">
-                <mat-icon>close</mat-icon>
-              </button>
-            </div>
-            <p class="proposal-text">{{ proposal.description }}</p>
-          </div>
-
           <mat-form-field appearance="outline" class="span-2">
             <mat-label>Business description</mat-label>
             <textarea

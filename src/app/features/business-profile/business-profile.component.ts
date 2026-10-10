@@ -12,7 +12,6 @@ import {
   TENANT_PROFILE_LIMITS,
   TenantProfile,
   KeywordSuggestions,
-  RefinedDescription,
   UpdateTenantBusinessProfileRequest,
   WEBSITE_PATTERN,
   addDomainKeywords,
@@ -70,9 +69,6 @@ export class BusinessProfileComponent implements OnInit {
   suggestedFor = '';
   suggesting = false;
 
-  /** What "AI suggest" last proposed for the description. Nothing replaces the tenant's text until they use it. */
-  descriptionProposal: RefinedDescription | null = null;
-  refiningDescription = false;
   /** Set when the last request came back with nothing to offer. */
   noSuggestions = false;
 
@@ -166,39 +162,6 @@ export class BusinessProfileComponent implements OnInit {
     const result = addDomainKeywords(this.keywords, raw);
     this.keywords = result.keywords;
     this.keywordError = result.error;
-  }
-
-  /** "AI suggest" on the description: a refined version of what the tenant wrote, shown beside it to accept or dismiss. */
-  refineDescription(): void {
-    const description = this.form.controls.businessDescription.value.trim();
-    if (!description || this.refiningDescription) {
-      return;
-    }
-    this.refiningDescription = true;
-    this.profileService
-      .refineDescription({
-        description,
-        industry: blankToNull(this.form.controls.industry.value),
-        industrySubcategory: blankToNull(this.form.controls.industrySubcategory.value),
-      })
-      .pipe(finalize(() => (this.refiningDescription = false)))
-      .subscribe({
-        next: (result) => (this.descriptionProposal = result),
-        error: () => undefined, // the error interceptor shows why
-      });
-  }
-
-  useDescriptionProposal(): void {
-    if (!this.descriptionProposal) {
-      return;
-    }
-    this.form.controls.businessDescription.setValue(this.descriptionProposal.description);
-    this.form.controls.businessDescription.markAsDirty();
-    this.descriptionProposal = null;
-  }
-
-  dismissDescriptionProposal(): void {
-    this.descriptionProposal = null;
   }
 
   /** "AI suggest": keywords for the selected industry. Nothing is added until the tenant picks. */

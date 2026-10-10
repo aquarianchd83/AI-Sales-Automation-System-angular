@@ -78,6 +78,16 @@ describe('WhatsAppConnectionFormComponent', () => {
     expect(notify.error).toHaveBeenCalledWith('Enter the access token.');
   });
 
+  it('says so when a required field is empty instead of silently doing nothing', () => {
+    create(null);
+    component.form.patchValue({ phoneNumberId: '', whatsAppBusinessAccountId: '', accessToken: 'tok', appSecret: 'sec' });
+
+    component.onSave();
+
+    expect(save).not.toHaveBeenCalled();
+    expect(notify.error).toHaveBeenCalledWith('Fill in the Phone number ID and the WhatsApp Business Account ID before saving.');
+  });
+
   it('keeps stored secrets when their fields are left blank', () => {
     create(saved);
     component.form.patchValue({ phoneNumberId: '1098766' });

@@ -53,7 +53,7 @@
 
       <span class="spacer"></span>
 
-      <ng-container *ngIf="showBillingBell">
+      <ng-container *ngIf="showBillingBell && !onboardingActive">
         <button mat-icon-button type="button" class="bell" #billingTrigger="matMenuTrigger" [matMenuTriggerFor]="alertsMenu" aria-label="Billing alerts">
           <mat-icon>{{ unreadBillingCount ? 'notifications_active' : 'notifications_none' }}</mat-icon>
           <span class="bell-count" *ngIf="unreadBillingCount">{{ unreadBillingCount > 9 ? '9+' : unreadBillingCount }}</span>

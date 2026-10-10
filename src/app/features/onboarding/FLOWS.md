@@ -37,15 +37,14 @@ that module's own routes - nothing is rebuilt for onboarding. The tenant never l
 
 | # | Step | Weight | Screen (shown in the panel) | Complete when |
 | - | ---- | -----: | ------ | ------------- |
-| 1 | Profile Information | 10% | `/profile` | name, industry, description, support email and phone, and country are saved |
-| 2 | Select Package Plan | 10% | `/billing` | the tenant has a plan that is not cancelled, **or is still on its free trial** (an ended trial with no plan reopens it) |
-| 3 | Create Customer Package | 15% | `/packages` | an active customer package exists (the API maps it to the plan; a tenant on a free trial may create one before choosing a plan) |
-| 4 | WhatsApp Configuration | 15% | `/tenant-settings` | the tenant has given the WhatsApp **number** its customers will message (just the number - no credentials here). A connection Meta has already verified also counts |
-| 5 | Configure Message Template | 10% | `/message-templates` | an active template exists that Meta has not rejected (pending counts) |
-| 6 | Create Customer | 10% | `/customers` | a customer exists |
-| 7 | Create Campaign | 10% | `/campaigns` | a campaign with at least one message step and one customer exists |
-| 8 | Lead Discovery Profile | 10% | `/lead-discovery/profile` | a profile with a business type and at least one location is saved |
-| 9 | Knowledge Base / Voucher | 10% | `/knowledge-base` | an uploaded article of the tenant has finished processing |
+| 1 | Profile Information | 15% | `/profile` | name, industry, description, support email and phone, and country are saved |
+| 2 | Select Package Plan | 15% | `/billing` | the tenant has a plan that is not cancelled, **or is still on its free trial** (an ended trial with no plan reopens it) |
+| 3 | Create Customer Package | 20% | `/packages` | an active customer package exists (the API maps it to the plan; a tenant on a free trial may create one before choosing a plan) |
+| 4 | WhatsApp Configuration | 20% | `/tenant-settings` | the tenant has given the WhatsApp **number** its customers will message (just the number - no credentials here). A connection Meta has already verified also counts |
+| 5 | Lead Discovery Profile | 15% | `/lead-discovery/profile` | a profile with a business type and at least one location is saved |
+| 6 | Knowledge Base / Voucher | 15% | `/knowledge-base` | an uploaded article of the tenant has finished processing |
+
+The message template, first customer and first campaign were once steps of their own; they are no longer part of setup (the screens are still in the menu). Finishing the setup also switches on the tenant's lead discovery job, which is created paused.
 
 ## 2. States, progress and resume
 
