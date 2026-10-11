@@ -2,57 +2,32 @@
   <app-page-header
     *ngIf="!embedded"
     title="Settings"
-    subtitle="Your WhatsApp number, connection, message usage and charges."
+    subtitle="Your WhatsApp connection, message usage and charges."
   ></app-page-header>
 
-  <!-- The WhatsApp number: all onboarding asks here. Connecting it to WhatsApp comes later. -->
-  <mat-card class="detail-card number-card">
-    <h3>WhatsApp number</h3>
-    <p class="muted hint">
-      The WhatsApp number your customers will message, with the country code.
-      Next, connect it to WhatsApp with Meta below.
-    </p>
-    <mat-progress-bar mode="indeterminate" *ngIf="loadingNumber"></mat-progress-bar>
-    <form class="number-form" (ngSubmit)="saveNumber()" *ngIf="!loadingNumber" novalidate>
-      <mat-form-field appearance="outline" class="number-field">
-        <mat-label>WhatsApp number</mat-label>
-        <mat-icon matPrefix>chat</mat-icon>
-        <input matInput type="tel" [formControl]="whatsAppNumber" maxlength="32" placeholder="+91 98765 43210" autocomplete="tel" />
-        <mat-error *ngIf="whatsAppNumber.hasError('tooShort')">That looks too short - include the country code.</mat-error>
-        <mat-error *ngIf="whatsAppNumber.hasError('pattern')">Use digits, spaces, brackets, dashes and an optional leading +.</mat-error>
-        <mat-hint>Start with the country code, for example +91 for India.</mat-hint>
-      </mat-form-field>
-      <button mat-flat-button color="primary" type="submit" [disabled]="savingNumber || whatsAppNumber.invalid || !numberChanged">
-        {{ savingNumber ? 'Saving…' : 'Save number' }}
-      </button>
-    </form>
-  </mat-card>
+  <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
 
-  <!-- Connect with Meta: the supported way to link the number - on this page and in onboarding's WhatsApp step. -->
+  <!-- Connect with Meta: the tenant's whole WhatsApp job - on this page and in onboarding's WhatsApp step. Meta's window asks for the number. -->
   <mat-card class="detail-card meta-card" *ngIf="!loadingWhatsApp">
-    <app-meta-connect-card
-      [config]="whatsAppConfig"
-      [phoneNumber]="savedWhatsAppNumber"
-      (changed)="whatsAppConfig = $event"
-    ></app-meta-connect-card>
+    <app-meta-connect-card [config]="whatsAppConfig" (changed)="whatsAppConfig = $event"></app-meta-connect-card>
   </mat-card>
 
   <ng-container *ngIf="!embedded">
-  <mat-card class="detail-card whatsapp-card">
-    <h3>Enter details manually</h3>
+  <mat-expansion-panel class="manual-panel" *ngIf="!loadingWhatsApp">
+    <mat-expansion-panel-header>
+      <mat-panel-title><mat-icon>tune</mat-icon> Enter details manually</mat-panel-title>
+      <mat-panel-description>Only if you cannot use Connect with Meta above</mat-panel-description>
+    </mat-expansion-panel-header>
     <p class="muted hint">
-      Only if you cannot use Connect with Meta above. You and your platform administrator can both set this up;
-      whoever changes it, verify the connection afterwards.
+      You and your platform administrator can both set this up; whoever changes it, verify the connection afterwards.
     </p>
-    <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
     <app-whatsapp-connection-form
-      *ngIf="!loadingWhatsApp"
       [config]="whatsAppConfig"
       [save]="saveWhatsApp"
       [verify]="verifyWhatsApp"
       (changed)="whatsAppConfig = $event"
     ></app-whatsapp-connection-form>
-  </mat-card>
+  </mat-expansion-panel>
 
   <div class="detail-grid">
     <mat-card class="detail-card">

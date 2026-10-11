@@ -42,6 +42,9 @@ const TENANT_ADMIN_ONLY = [AppRole.Admin];
  * dismiss it on another. */
 const DISMISSED_ANNOUNCEMENTS_KEY = 'wsa.dismissedAnnouncementIds';
 
+/** localStorage key for the nav groups this browser has collapsed - a per-viewer convenience, like the dismissed announcements. */
+const COLLAPSED_NAV_KEY = 'wsa.collapsedNavSections';
+
 @Component({
   selector: 'app-shell',
   templateUrl: './shell.component.html',
@@ -57,7 +60,7 @@ export class ShellComponent implements OnInit, OnDestroy {
    * separate rather than merged into one role-filtered list.
    *
    * Grouped by what the user is doing (talking to customers, managing the pipeline, preparing
-   * content, running the workspace) so thirteen links scan as four short lists.
+   * content, reading results, setting up the business, managing the team, billing) so the links scan as short lists.
    */
   readonly tenantNavSections: NavSection[] = [
     {
@@ -100,15 +103,30 @@ export class ShellComponent implements OnInit, OnDestroy {
       ],
     },
     {
-      label: 'Workspace',
+      label: 'Insights',
       items: [
         { label: 'Reports', icon: 'bar_chart', route: '/reports', roles: REPORT_ROLES },
         { label: 'Agent Performance', icon: 'monitoring', route: '/agent-performance', roles: TENANT_ADMIN_ONLY },
+      ],
+    },
+    {
+      label: 'Business',
+      items: [
         { label: 'Business Profile', icon: 'storefront', route: '/profile', roles: TENANT_ADMIN_ONLY },
         { label: 'Social Ads', icon: 'public', route: '/social-ads', roles: TENANT_ADMIN_ONLY },
-        { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
         { label: 'Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
+      ],
+    },
+    {
+      label: 'Team & Security',
+      items: [
+        { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
         { label: 'Audit Log', icon: 'history', route: '/audit-log', roles: TENANT_ADMIN_ONLY },
+      ],
+    },
+    {
+      label: 'Billing',
+      items: [
         { label: 'Billing', icon: 'payments', route: '/billing', roles: TENANT_ADMIN_ONLY, exact: true },
         { label: 'Usage & Credits', icon: 'data_usage', route: '/billing/wallet', roles: TENANT_ADMIN_ONLY },
         { label: 'Test Notifications', icon: 'science', route: '/billing/notifications/test', roles: TENANT_ADMIN_ONLY },
@@ -219,6 +237,48 @@ export class ShellComponent implements OnInit, OnDestroy {
    * Items themselves are still filtered by *appHasRole in the template. */
   isSectionVisible(section: NavSection): boolean {
     return section.items.some((item) => this.auth.hasAnyRole(item.roles));
+  }
+
+  /** Nav groups the user has folded away, by label. Remembered on this browser; a group holding the page being viewed never folds. */
+  private collapsedSections = this.loadCollapsedSections();
+
+  isCollapsed(section: NavSection): boolean {
+    return !!section.label && this.collapsedSections.has(section.label) && !this.holdsCurrentPage(section);
+  }
+
+  toggleSection(section: NavSection): void {
+    if (!section.label || this.holdsCurrentPage(section)) {
+      return;
+    }
+    if (!this.collapsedSections.delete(section.label)) {
+      this.collapsedSections.add(section.label);
+    }
+    try {
+      localStorage.setItem(COLLAPSED_NAV_KEY, JSON.stringify([...this.collapsedSections]));
+    } catch {
+      // Private window or blocked storage: the fold still works for this visit.
+    }
+  }
+
+  /** True when the page on screen is one of the group's items, so the group stays open around it. */
+  private holdsCurrentPage(section: NavSection): boolean {
+    return section.items.some((item) =>
+      this.router.isActive(item.route, {
+        paths: item.exact ? 'exact' : 'subset',
+        queryParams: 'ignored',
+        fragment: 'ignored',
+        matrixParams: 'ignored',
+      })
+    );
+  }
+
+  private loadCollapsedSections(): Set<string> {
+    try {
+      const saved = JSON.parse(localStorage.getItem(COLLAPSED_NAV_KEY) ?? '[]');
+      return new Set(Array.isArray(saved) ? saved.filter((v): v is string => typeof v === 'string') : []);
+    } catch {
+      return new Set();
+    }
   }
 
   readonly currentUser$: Observable<User | null> = this.auth.currentUser$;

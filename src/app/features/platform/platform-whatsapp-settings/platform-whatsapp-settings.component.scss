@@ -1,16 +1,13 @@
-.wa-card {
-  padding: 16px 20px 20px;
-  margin-bottom: 16px;
+$ok: #1b7f5c;
+$warn: #b3261e;
+$line: rgba(0, 0, 0, 0.09);
 
-  h2 {
-    margin: 0 0 4px;
-    font-size: 18px;
-  }
-
-  p {
-    margin: 0 0 16px;
-  }
+.wa-page {
+  max-width: 1120px;
+  margin: 0 auto;
 }
+
+// ---- save bar ----------------------------------------------------------------------------------------------------------
 
 .save-bar {
   display: flex;
@@ -19,10 +16,159 @@
   flex-wrap: wrap;
   position: sticky;
   top: 0;
-  z-index: 2;
-  padding: 12px 0;
-  margin-bottom: 8px;
-  background: var(--mat-sys-surface, #fff);
+  z-index: 3;
+  padding: 10px 16px;
+  margin: 16px 0;
+  background: #fff;
+  border: 1px solid $line;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  &__text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+
+    mat-icon {
+      flex: none;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: rgba(0, 0, 0, 0.54);
+    }
+  }
+}
+
+// ---- overview tiles ----------------------------------------------------------------------------------------------------
+
+.overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.tile {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid $line;
+  border-left: 4px solid rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+
+  &--ok {
+    border-left-color: $ok;
+    .tile__icon {
+      background: rgba($ok, 0.12);
+      color: $ok;
+    }
+  }
+
+  &--warn {
+    border-left-color: $warn;
+    .tile__icon {
+      background: rgba($warn, 0.1);
+      color: $warn;
+    }
+  }
+
+  &__icon {
+    flex: none;
+    box-sizing: content-box;
+    padding: 8px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  &__body {
+    min-width: 0;
+
+    strong {
+      display: block;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+  }
+
+  &__label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.54);
+  }
+}
+
+// ---- section cards -----------------------------------------------------------------------------------------------------
+
+.wa-card {
+  display: block;
+  padding: 20px 24px 24px;
+  margin-bottom: 16px;
+  border: 1px solid $line;
+  border-radius: 12px;
+  box-shadow: none;
+
+  &--empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 40px 24px;
+    text-align: center;
+  }
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+
+  > div {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  h2 {
+    margin: 2px 0 4px;
+    font-size: 17px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 0;
+    max-width: 70ch;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  &__icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(0, 121, 107, 0.1);
+    color: #00796b;
+  }
+
+  &__toggle {
+    flex: none;
+    margin-top: 6px;
+  }
 }
 
 .field {
@@ -31,28 +177,50 @@
 
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px 16px;
-  margin-bottom: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 20px;
 }
 
-.status {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 16px;
+.field--wide {
+  grid-column: 1 / -1;
+}
 
-  p {
-    margin: 2px 0 0;
+mat-checkbox {
+  display: block;
+  margin-top: 4px;
+}
+
+// ---- advanced panel ----------------------------------------------------------------------------------------------------
+
+.wa-panel {
+  padding: 0;
+
+  ::ng-deep .mat-expansion-panel-body {
+    padding: 8px 24px 16px;
   }
 
-  &--warn mat-icon {
-    color: var(--mat-sys-error, #b3261e);
+  mat-panel-title {
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+  }
+
+  mat-panel-description {
+    min-width: 0;
   }
 }
 
-.toggle-row {
-  margin: 4px 0 16px;
+// ---- verify / test -----------------------------------------------------------------------------------------------------
+
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 16px;
+
+  .wa-card {
+    margin-bottom: 0;
+  }
 }
 
 .test-row {
@@ -62,7 +230,7 @@
   flex-wrap: wrap;
 
   mat-form-field {
-    flex: 1 1 260px;
+    flex: 1 1 240px;
   }
 
   button {
@@ -75,13 +243,38 @@
   gap: 12px;
   align-items: flex-start;
   margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba($ok, 0.08);
 
   > mat-icon {
     flex: none;
-    color: var(--mat-sys-primary, #2e7d32);
+    color: $ok;
   }
 
-  &--fail > mat-icon {
-    color: var(--mat-sys-error, #b3261e);
+  &--fail {
+    background: rgba($warn, 0.07);
+
+    > mat-icon {
+      color: $warn;
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-head {
+    flex-wrap: wrap;
+
+    &__toggle {
+      margin-left: 54px;
+    }
+  }
+
+  .check-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

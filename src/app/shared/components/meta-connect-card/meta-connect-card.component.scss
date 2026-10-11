@@ -1,122 +1,265 @@
+$teal: #00796b;
+$ok: #1b7f5c;
+$warn: #e65100;
+$bad: #d32f2f;
+$info: #0277bd;
+$line: rgba(0, 0, 0, 0.09);
+
 :host {
   display: block;
 }
 
+// ---- header ------------------------------------------------------------------------------------------------------------
+
 .connect-head {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+}
+
+.connect-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba($teal, 0.1);
+  color: $teal;
+}
+
+.connect-title {
+  flex: 1 1 280px;
+  min-width: 0;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 
   h3 {
-    margin: 0 0 4px;
+    margin: 0;
+    font-size: 17px;
+    font-weight: 500;
   }
 
   p {
-    margin: 0;
-    max-width: 52ch;
+    margin: 4px 0 0;
+    max-width: 62ch;
+    font-size: 13px;
+    line-height: 1.5;
   }
 }
 
 .connect-button {
   flex: none;
+  align-self: center;
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.07);
+  color: rgba(0, 0, 0, 0.62);
+
+  &--active,
+  &--connected {
+    background: rgba($ok, 0.12);
+    color: $ok;
+  }
+
+  &--attention {
+    background: rgba($warn, 0.12);
+    color: $warn;
+  }
+
+  &--unavailable {
+    background: rgba($info, 0.1);
+    color: $info;
+  }
 }
 
 mat-progress-bar {
-  margin: 12px 0;
+  margin: 14px 0 0;
 }
 
-.status,
-.issue {
+// ---- notices -----------------------------------------------------------------------------------------------------------
+
+.notice {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin-top: 14px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border-left: 4px solid $warn;
+  background: rgba($warn, 0.08);
   font-size: 13px;
 
-  mat-icon {
+  > mat-icon {
     flex: none;
+    color: $warn;
+  }
+
+  &--ok {
+    border-left-color: $ok;
+    background: rgba($ok, 0.09);
+    > mat-icon {
+      color: $ok;
+    }
+  }
+
+  &--info,
+  &--retry {
+    border-left-color: $info;
+    background: rgba($info, 0.08);
+    > mat-icon {
+      color: $info;
+    }
+  }
+
+  strong {
+    font-size: 14px;
+  }
+}
+
+.notice-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notice-where {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.notice-detail {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 14px;
+  margin: 6px 0 2px;
+
+  dt {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  dd {
+    margin: 0;
+    line-height: 1.45;
+  }
+}
+
+.reference {
+  font-size: 12px;
+}
+
+.notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// ---- before anything has started ---------------------------------------------------------------------------------------
+
+.how {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    border: 1px solid $line;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.015);
   }
 
   div {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    min-width: 0;
-    overflow-wrap: anywhere;
+    font-size: 13px;
   }
 }
 
-.status--active {
-  background: rgba(0, 121, 107, 0.1);
-
-  mat-icon {
-    color: #00796b;
-  }
+.how-n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: $teal;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.issue {
-  background: rgba(237, 108, 2, 0.1);
-
-  mat-icon {
-    color: #e65100;
-  }
-
-  &--retry {
-    background: rgba(2, 119, 189, 0.08);
-
-    mat-icon {
-      color: #0277bd;
-    }
-  }
-
-  .issue-body {
-    gap: 4px;
-  }
-
-  .reference {
-    font-size: 12px;
-  }
-
-  .issue-actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 6px;
-  }
-}
+// ---- progress ----------------------------------------------------------------------------------------------------------
 
 .steps {
   list-style: none;
-  margin: 14px 0 0;
+  margin: 18px 0 0;
   padding: 0;
-  display: grid;
-  gap: 8px;
+  border: 1px solid $line;
+  border-radius: 10px;
+  overflow: hidden;
 
   li {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
+    padding: 11px 14px;
     font-size: 13px;
 
-    mat-icon {
+    & + li {
+      border-top: 1px solid $line;
+    }
+
+    > mat-icon {
       flex: none;
       font-size: 20px;
       width: 20px;
       height: 20px;
-      color: rgba(0, 0, 0, 0.38);
+      color: rgba(0, 0, 0, 0.32);
     }
+  }
 
-    div {
-      display: flex;
-      flex-wrap: wrap;
-      column-gap: 8px;
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
+  .step-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .step-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 12px;
   }
 
   .step-title {
@@ -125,26 +268,52 @@ mat-progress-bar {
 
   .step-status {
     font-size: 12px;
-    opacity: 0.7;
+    color: rgba(0, 0, 0, 0.54);
   }
 
   .step-detail {
-    flex-basis: 100%;
+    font-size: 12px;
   }
 
-  .step--Completed mat-icon {
-    color: #00796b;
+  .step--Completed > mat-icon {
+    color: $ok;
   }
 
-  .step--ActionRequired mat-icon {
-    color: #e65100;
+  .step--ActionRequired {
+    background: rgba($warn, 0.05);
+
+    > mat-icon,
+    .step-status {
+      color: $warn;
+    }
   }
 
-  .step--Failed mat-icon {
-    color: #d32f2f;
+  .step--Failed {
+    background: rgba($bad, 0.05);
+
+    > mat-icon,
+    .step-status {
+      color: $bad;
+    }
   }
 }
 
 .templates {
   margin-top: 12px;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .connect-button {
+    width: 100%;
+  }
+
+  .notice-detail {
+    grid-template-columns: 1fr;
+    gap: 0;
+
+    dd {
+      margin-bottom: 6px;
+    }
+  }
 }
