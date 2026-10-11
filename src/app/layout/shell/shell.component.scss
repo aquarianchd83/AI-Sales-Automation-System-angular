@@ -291,6 +291,12 @@
   }
 }
 
+.account-button ::ng-deep .mdc-button__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .account-text {
   display: flex;
   flex-direction: column;
