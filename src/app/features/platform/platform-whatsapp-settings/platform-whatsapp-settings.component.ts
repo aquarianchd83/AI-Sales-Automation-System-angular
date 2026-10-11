@@ -38,6 +38,8 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
     appId: '',
     appSecret: '',
     webhookVerifyToken: '',
+    embeddedSignupConfigId: '',
+    embeddedSignupEnabled: true,
   });
   readonly appKeys: Record<string, string> = {
     provider: 'WhatsApp:Provider',
@@ -45,8 +47,12 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
     appId: 'WhatsApp:AppId',
     appSecret: 'WhatsApp:AppSecret',
     webhookVerifyToken: 'WhatsApp:WebhookVerifyToken',
+    embeddedSignupConfigId: 'WhatsApp:EmbeddedSignupConfigId',
+    embeddedSignupEnabled: 'WhatsApp:EmbeddedSignupEnabled',
   };
   appItems: Record<string, SettingItem> = {};
+  /** True once the shared Meta app keys have been read, so "what is missing" is never claimed from an empty page. */
+  appLoaded = false;
   savingApp = false;
 
   /** Where the test goes. Not part of the settings, so outside the form (and its "unsaved changes" state). */
@@ -72,6 +78,7 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.loadApp();
     this.form.valueChanges.subscribe(() => {
       this.testResult = null;
       this.verifyResult = null;
@@ -99,6 +106,31 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
   appHint(control: string): string | null {
     const item = this.appItems[control];
     return item?.isSecret ? (item.hasValue ? item.valueHint || 'Currently set - leave blank to keep' : 'Not set') : null;
+  }
+
+  /** What "Connect with Meta" still needs before tenants can use it, from the SAVED values (not what is typed but unsaved). */
+  get signupMissing(): string[] {
+    const set = (control: string): boolean => {
+      const item = this.appItems[control];
+      return item?.isSecret ? !!item.hasValue : !!item?.value?.trim();
+    };
+    return [
+      ['appId', 'App id'],
+      ['appSecret', 'App secret'],
+      ['embeddedSignupConfigId', 'Embedded Signup config id'],
+    ]
+      .filter(([control]) => !set(control))
+      .map(([, label]) => label);
+  }
+
+  /** The saved on/off switch. On unless it was explicitly saved as "false" (the API treats an empty value the same way). */
+  get signupSwitchedOn(): boolean {
+    return (this.appItems['embeddedSignupEnabled']?.value ?? '').trim().toLowerCase() !== 'false';
+  }
+
+  /** Tenants can use "Connect with Meta": switched on and every value it needs is saved. */
+  get signupAvailable(): boolean {
+    return this.signupSwitchedOn && !this.signupMissing.length;
   }
 
   discard(): void {
@@ -138,7 +170,7 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
   }
 
   private applyApp(category: SettingCategory): void {
-    const reset: Record<string, string> = {};
+    const reset: Record<string, string | boolean> = {};
     this.appItems = {};
     for (const [control, key] of Object.entries(this.appKeys)) {
       const item = category.items.find((i) => i.key === key);
@@ -147,7 +179,9 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
       }
       reset[control] = item && !item.isSecret ? item.value ?? '' : '';
     }
+    reset['embeddedSignupEnabled'] = this.signupSwitchedOn;
     this.appForm.reset(reset);
+    this.appLoaded = true;
   }
 
   /** Nothing to save on either part of the page. */

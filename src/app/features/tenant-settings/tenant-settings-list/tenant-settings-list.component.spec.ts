@@ -44,11 +44,9 @@ describe('TenantSettingsListComponent', () => {
 
   beforeEach(() => {
     service = jasmine.createSpyObj('TenantSettingsService', [
-      'getWhatsAppConfig', 'getUsage', 'getCharges', 'getWhatsAppNumber', 'saveWhatsAppNumber',
+      'getWhatsAppConfig', 'getUsage', 'getCharges', 'getWhatsAppNumber',
     ]);
     service.getWhatsAppConfig.and.returnValue(of(null));
-    service.getWhatsAppNumber.and.returnValue(of({ whatsAppNumber: null }));
-    service.saveWhatsAppNumber.and.callFake((n) => of({ whatsAppNumber: n }));
     service.getUsage.and.returnValue(of({ messagesSentThisMonth: 120, maxMessagesPerMonth: 1000 }));
     service.getCharges.and.returnValue(of(charges));
 
@@ -106,54 +104,15 @@ describe('TenantSettingsListComponent', () => {
   });
 
   describe('the WhatsApp number', () => {
-    const input = (): HTMLInputElement => (fixture.nativeElement as HTMLElement).querySelector('.number-card input')!;
-    const saveButton = (): HTMLButtonElement => (fixture.nativeElement as HTMLElement).querySelector('.number-card button[type=submit]')!;
-    const type = (value: string): void => {
-      input().value = value;
-      input().dispatchEvent(new Event('input'));
-      input().dispatchEvent(new Event('blur')); // touched, as it is once the user leaves the field
-      fixture.detectChanges();
-    };
-
-    it('is asked for first, and starts from the number already given', () => {
-      service.getWhatsAppNumber.and.returnValue(of({ whatsAppNumber: '+91 98765 43210' }));
+    it('is never typed here - Meta asks for it, so there is no number field or save button', () => {
       create();
+      const root = fixture.nativeElement as HTMLElement;
 
-      expect(input().value).toBe('+91 98765 43210');
-      expect(saveButton().disabled).toBeTrue(); // nothing changed yet
-    });
-
-    it('saves just the number, trimmed', () => {
-      create();
-      type('  +91 98765 43210 ');
-
-      saveButton().click();
-      fixture.detectChanges();
-
-      expect(service.saveWhatsAppNumber).toHaveBeenCalledOnceWith('+91 98765 43210');
-      expect(saveButton().disabled).toBeTrue();
-    });
-
-    it('clears it when emptied', () => {
-      service.getWhatsAppNumber.and.returnValue(of({ whatsAppNumber: '+91 98765 43210' }));
-      create();
-      type('');
-
-      saveButton().click();
-
-      expect(service.saveWhatsAppNumber).toHaveBeenCalledOnceWith(null);
-    });
-
-    it('refuses what is not a phone number, and says why', () => {
-      create();
-
-      for (const bad of ['call me', '12345', '+91 98765 43210 ext 5']) {
-        type(bad);
-        expect(saveButton().disabled).withContext(bad).toBeTrue();
-      }
-      type('12345');
-      expect((fixture.nativeElement as HTMLElement).textContent).toContain('too short');
-      expect(service.saveWhatsAppNumber).not.toHaveBeenCalled();
+      expect(root.querySelector('.number-card')).toBeNull();
+      expect(root.querySelector('input[type=tel]')).toBeNull();
+      expect(text()).not.toContain('Save number');
+      expect(service.getWhatsAppNumber).not.toHaveBeenCalled();
+      expect(root.querySelector('app-meta-connect-card')).toBeTruthy();
     });
   });
 
@@ -163,11 +122,10 @@ describe('TenantSettingsListComponent', () => {
       TestBed.configureTestingModule({ providers: [{ provide: EMBEDDED_IN_ONBOARDING, useValue: true }] });
     });
 
-    it('asks only for the number and Connect with Meta - no manual credentials, usage, charges or job links', () => {
+    it('shows only Connect with Meta - no manual credentials, usage, charges or job links', () => {
       create();
       const root = fixture.nativeElement as HTMLElement;
 
-      expect(root.querySelector('.number-card')).toBeTruthy();
       expect(root.querySelector('app-meta-connect-card')).toBeTruthy();
       expect(root.textContent).toContain('Connect with Meta');
       expect(root.querySelector('app-whatsapp-connection-form')).toBeNull();
@@ -179,7 +137,6 @@ describe('TenantSettingsListComponent', () => {
     it('does not fetch what it is not showing', () => {
       create();
 
-      expect(service.getWhatsAppNumber).toHaveBeenCalled();
       expect(service.getWhatsAppConfig).toHaveBeenCalled(); // Connect with Meta needs the saved connection
       expect(service.getUsage).not.toHaveBeenCalled();
       expect(service.getCharges).not.toHaveBeenCalled();

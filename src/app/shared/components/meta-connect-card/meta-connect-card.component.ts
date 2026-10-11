@@ -9,10 +9,25 @@ import { NotificationService } from '../../../core/services/notification.service
 /** Where a tenant finishes a verification Meta asks for (business verification, number verification, account status). */
 export const META_BUSINESS_SETTINGS_URL = 'https://business.facebook.com/settings/security';
 
+/** What each setup step means, in words a non-technical person can follow. */
+const STEP_HELP: Record<string, string> = {
+  authorization: 'You sign in to Meta and allow access.',
+  assets: "You choose or add your WhatsApp number in Meta's window.",
+  credentials: 'We keep the access safe on our servers.',
+  registration: 'Your number is switched on for messaging.',
+  webhook: 'Customer replies reach this app.',
+  templates: 'Pre-approved messages you can send in campaigns.',
+  verification: 'Meta confirms that everything works.',
+};
+
+/** The one badge at the top of the card. */
+export type ConnectState = 'unavailable' | 'active' | 'attention' | 'connected' | 'idle';
+
 /**
- * The "Connect with Meta" card: one button that takes the tenant through Meta's own sign-in and then sets WhatsApp up for them -
- * no ids, tokens or webhook settings to find or paste. Shows each step's status, and when Meta blocks one, a plain-language
- * explanation with the next action (never Meta's raw error). Steps already done stay done: Retry resumes from the first one not.
+ * The "Connect with Meta" card: one button that takes the tenant through Meta's own sign-in - the tenant picks or adds their WhatsApp
+ * number there - and then sets WhatsApp up for them: no ids, tokens, webhook settings or number to type. Shows each step's status, and
+ * when Meta blocks one, a plain-language explanation of what happened and what to do next (never Meta's raw error). Steps already done
+ * stay done: Retry resumes from the first one not.
  *
  * Used on the tenant's Settings page, which is also the onboarding wizard's WhatsApp step.
  */
@@ -24,8 +39,6 @@ export const META_BUSINESS_SETTINGS_URL = 'https://business.facebook.com/setting
 export class MetaConnectCardComponent implements OnInit {
   /** The saved connection, if any (null: not connected yet). */
   @Input() config: TenantWhatsAppConfig | null = null;
-  /** The number the tenant entered, shown so they know which one to pick in Meta's window. */
-  @Input() phoneNumber: string | null = null;
   /** After a sign-in or a retry: the connection as it stands now. */
   @Output() changed = new EventEmitter<TenantWhatsAppConfig>();
 
@@ -71,8 +84,81 @@ export class MetaConnectCardComponent implements OnInit {
     return this.result?.status === 'Completed' && !!this.config?.verifiedAtUtc;
   }
 
+  /** The platform has not finished setting up its Meta app (known once the config has loaded). The tenant can do nothing about it. */
+  get unavailable(): boolean {
+    return !!this.clientConfig && !this.clientConfig.enabled;
+  }
+
+  /** What went wrong on this connection. The platform-not-ready case is `unavailable`, shown on its own so it never hides this. */
   get issue(): MetaIssue | null {
-    return this.localIssue ?? this.result?.issue ?? this.clientConfig?.issue ?? null;
+    return this.localIssue ?? this.result?.issue ?? null;
+  }
+
+  /** The one button reads "Reconnect" whenever a connection exists or Meta asked for a new sign-in. */
+  get reconnect(): boolean {
+    return this.connected || this.issue?.primaryAction === 'Reconnect' || this.issue?.secondaryAction === 'Reconnect';
+  }
+
+  /** What the badge says: the platform not ready, a working connection, a blocked step, a saved-but-unchecked one, or nothing yet. */
+  get state(): ConnectState {
+    if (this.unavailable) {
+      return 'unavailable';
+    }
+    if (this.active) {
+      return 'active';
+    }
+    if (this.issue || this.steps.some((s) => s.status === 'ActionRequired' || s.status === 'Failed')) {
+      return 'attention';
+    }
+    return this.connected ? 'connected' : 'idle';
+  }
+
+  get stateLabel(): string {
+    switch (this.state) {
+      case 'unavailable':
+        return 'Not available yet';
+      case 'active':
+        return 'Connected';
+      case 'attention':
+        return 'Needs attention';
+      case 'connected':
+        return this.working === 'status' ? 'Checking…' : 'Connected';
+      default:
+        return 'Not connected';
+    }
+  }
+
+  /** The number Meta confirmed, once there is one. */
+  get connectedNumber(): string | null {
+    return this.config?.verifiedDisplayPhoneNumber || null;
+  }
+
+  /** The step Meta stopped at, by its title. */
+  get blockedStepTitle(): string | null {
+    const key = this.issue?.step;
+    return this.steps.find((s) => s.key === key)?.title ?? null;
+  }
+
+  /** What to do about the issue, in one sentence. */
+  nextStep(issue: MetaIssue): string {
+    switch (issue.primaryAction) {
+      case 'Reconnect':
+        return 'Press "Reconnect with Meta" and approve everything Meta asks for. What is already set up is kept.';
+      case 'Retry':
+        return 'Your progress is saved. Press "Retry" and it carries on from this step.';
+      case 'Verify':
+        return 'Finish the check in your Meta Business settings, then come back and press "Retry".';
+      case 'AddCredits':
+        return 'Add credits to your wallet, then come back and press "Retry".';
+      case 'ContactSupport':
+        return 'Please contact support and quote the reference below.';
+      default:
+        return '';
+    }
+  }
+
+  stepHelp(step: MetaSignupStep): string {
+    return STEP_HELP[step.key] ?? '';
   }
 
   get steps(): MetaSignupStep[] {

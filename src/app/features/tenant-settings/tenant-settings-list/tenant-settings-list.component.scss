@@ -138,28 +138,26 @@ dd {
   }
 }
 
-.meta-card,
-.whatsapp-card {
+.meta-card {
   margin-bottom: 16px;
+  padding: 24px;
 }
 
-.number-card {
+.manual-panel {
   margin-bottom: 16px;
-}
 
-.number-form {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 12px;
-
-  .number-field {
-    flex: 1;
-    min-width: 260px;
-    max-width: 420px;
+  mat-panel-title {
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
   }
 
-  button {
-    margin-top: 4px;
+  mat-panel-description {
+    min-width: 0;
+  }
+
+  .hint {
+    margin: 0 0 16px;
   }
 }

@@ -108,12 +108,12 @@ The tenant's Admin works through the steps; every other tenant user sees the sam
 Admin finishes. While onboarding is incomplete the sidenav is hidden. A step's screen can still be opened at its own
 address (a bookmark, a link); it then shows a bar with "Check this step" and "Back to setup".
 
-## 4. WhatsApp: the number first, the connection later
+## 4. WhatsApp: one button, Meta asks for the number
 
-Early in setup the wizard asks only for the **WhatsApp number** customers will message - one field, saved on the tenant
-(`Tenant.WhatsAppNumber`). Inside the wizard the Settings screen shows just that card; the credentials form, usage and
-charges are left out (the screen is told it is embedded). Connecting the number to WhatsApp - phone number ID, access
-token, app secret, then **Verify connection** - happens later: the tenant's Admin can do it on the full Settings page,
-or the platform administrator does it for them; the Platform console's tenant detail shows the number the tenant gave.
-Both write the same connection row, and any save clears the earlier verification so a "verified" tick always describes
-the credentials as they are now. A tenant whose connection Meta has already verified is not asked for the number again.
+The wizard's WhatsApp step is one card: **Connect with Meta**. The tenant types no number and no credentials - Meta's own window asks them to
+sign in and choose or add the number, and the API sets up the rest (registration, webhooks, templates, a final check). The number Meta
+confirms is saved on the tenant (`Tenant.WhatsAppNumber`), which is what completes the step; a number given before this flow existed, or a
+connection Meta has already verified, also counts. If Meta stops at any step the card says what happened and what to do next, in plain
+words, with a reference to quote - never Meta's raw error. If the platform has not finished setting up its Meta app (or has switched
+"Connect with Meta" off), the tenant sees a short "not available yet" note instead of a button. Manual credentials remain on the full
+Settings page, under "Enter details manually", for the tenant's Admin or the platform administrator.

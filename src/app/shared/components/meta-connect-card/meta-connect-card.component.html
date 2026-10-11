@@ -1,38 +1,58 @@
-<div class="connect">
-  <div class="connect-head">
-    <div>
-      <h3>Connect with Meta</h3>
-      <p class="muted hint">
-        Sign in to Meta once and we set up WhatsApp for you - there are no IDs, tokens or webhook settings to find.
-        <ng-container *ngIf="phoneNumber">Choose or add <strong>{{ phoneNumber }}</strong> when Meta asks for your number.</ng-container>
+<section class="connect">
+  <header class="connect-head">
+    <span class="connect-icon"><mat-icon>chat</mat-icon></span>
+    <div class="connect-title">
+      <div class="connect-title__row">
+        <h3>WhatsApp connection</h3>
+        <span class="badge" [ngClass]="'badge--' + state">{{ stateLabel }}</span>
+      </div>
+      <p class="muted" *ngIf="!active">
+        Connect your WhatsApp number through Meta. You sign in to Meta and choose or add your number there - nothing to type or copy here.
       </p>
+      <p class="muted" *ngIf="active">Customers can message you and your campaigns can send on WhatsApp.</p>
     </div>
-    <button mat-flat-button color="primary" type="button" class="connect-button" (click)="connect()" [disabled]="!canConnect">
+    <button mat-flat-button color="primary" type="button" class="connect-button" (click)="connect()" [disabled]="!canConnect" *ngIf="!unavailable">
       <mat-icon>link</mat-icon>
-      {{ working === 'connect' ? 'Connecting…' : connected ? 'Reconnect with Meta' : 'Connect with Meta' }}
+      {{ working === 'connect' ? 'Connecting…' : reconnect ? 'Reconnect with Meta' : 'Connect with Meta' }}
     </button>
-  </div>
+  </header>
 
   <mat-progress-bar mode="indeterminate" *ngIf="busy"></mat-progress-bar>
 
-  <div class="status status--active" role="status" *ngIf="active">
-    <mat-icon>verified</mat-icon>
-    <div>
-      <strong>WhatsApp is active</strong>
-      <span>{{ config?.verifiedDisplayPhoneNumber || config?.phoneNumberId }}<ng-container *ngIf="config?.verifiedName"> · {{ config?.verifiedName }}</ng-container></span>
+  <!-- The platform has not finished setting up its Meta app: nothing the tenant can do. -->
+  <div class="notice notice--info" role="status" *ngIf="unavailable">
+    <mat-icon>schedule</mat-icon>
+    <div class="notice-body">
+      <strong>WhatsApp connection isn't available yet</strong>
+      <span>Your service provider is finishing the setup. Nothing is needed from you - the Connect button will appear here once it is ready.</span>
     </div>
   </div>
 
-  <div class="issue" [ngClass]="'issue--' + (i.retryable ? 'retry' : 'action')" role="alert" *ngIf="issue as i">
+  <!-- Connected and confirmed by Meta. -->
+  <div class="notice notice--ok" role="status" *ngIf="active">
+    <mat-icon>verified</mat-icon>
+    <div class="notice-body">
+      <strong>WhatsApp is active</strong>
+      <span>{{ connectedNumber || config?.phoneNumberId }}<ng-container *ngIf="config?.verifiedName"> · {{ config?.verifiedName }}</ng-container></span>
+    </div>
+  </div>
+
+  <!-- Meta stopped at a step: what happened, and what to do about it. -->
+  <div class="notice" [ngClass]="'notice--' + (i.retryable ? 'retry' : 'action')" role="alert" *ngIf="issue as i">
     <mat-icon>{{ i.primaryAction === 'Retry' ? 'sync_problem' : 'info' }}</mat-icon>
-    <div class="issue-body">
+    <div class="notice-body">
       <strong>{{ i.title }}</strong>
-      <span>{{ i.message }}</span>
-      <span class="muted" *ngIf="i.primaryAction === 'ContactSupport' || i.secondaryAction === 'ContactSupport'">
-        Please contact platform support.
-      </span>
+      <span class="notice-where" *ngIf="blockedStepTitle">Stopped at: {{ blockedStepTitle }}</span>
+      <dl class="notice-detail">
+        <dt>What happened</dt>
+        <dd>{{ i.message }}</dd>
+        <ng-container *ngIf="nextStep(i) as next">
+          <dt>What to do next</dt>
+          <dd>{{ next }}</dd>
+        </ng-container>
+      </dl>
       <span class="muted reference" *ngIf="i.reference">Reference: {{ i.reference }}</span>
-      <div class="issue-actions">
+      <div class="notice-actions">
         <ng-container *ngFor="let action of [i.primaryAction, i.secondaryAction]; let first = first">
           <ng-container [ngSwitch]="action">
             <a mat-stroked-button *ngSwitchCase="'Verify'" [href]="metaSettingsUrl" target="_blank" rel="noopener noreferrer">
@@ -49,29 +69,39 @@
             >
               {{ actionLabel(action) }}
             </button>
-            <button
-              mat-stroked-button
-              type="button"
-              *ngSwitchCase="'Reconnect'"
-              [color]="first ? 'primary' : undefined"
-              [disabled]="!canConnect"
-              (click)="run(action)"
-            >
-              {{ actionLabel(action) }}
-            </button>
+            <!-- 'Reconnect' is the single button at the top of the card, not repeated here. -->
           </ng-container>
         </ng-container>
       </div>
     </div>
   </div>
 
+  <!-- Nothing started yet: what is about to happen. -->
+  <ol class="how" *ngIf="!connected && !issue && !steps.length && !unavailable">
+    <li>
+      <span class="how-n">1</span>
+      <div><strong>Click "Connect with Meta"</strong><span class="muted">A Meta window opens.</span></div>
+    </li>
+    <li>
+      <span class="how-n">2</span>
+      <div><strong>Sign in and pick your number</strong><span class="muted">Choose an existing WhatsApp number or add a new one.</span></div>
+    </li>
+    <li>
+      <span class="how-n">3</span>
+      <div><strong>We do the rest</strong><span class="muted">Messaging is set up for you automatically.</span></div>
+    </li>
+  </ol>
+
+  <!-- Progress, one line per step. -->
   <ul class="steps" *ngIf="steps.length && (connected || issue)">
     <li *ngFor="let step of steps" [ngClass]="'step--' + step.status">
       <mat-icon>{{ stepIcon(step) }}</mat-icon>
-      <div>
-        <span class="step-title">{{ step.title }}</span>
-        <span class="step-status">{{ statusLabel(step) }}</span>
-        <span class="muted step-detail" *ngIf="step.detail">{{ step.detail }}</span>
+      <div class="step-main">
+        <div class="step-line">
+          <span class="step-title">{{ step.title }}</span>
+          <span class="step-status">{{ statusLabel(step) }}</span>
+        </div>
+        <span class="muted step-detail">{{ step.detail || stepHelp(step) }}</span>
       </div>
     </li>
   </ul>
@@ -80,4 +110,4 @@
     Message templates on this account: {{ t.approved }} approved, {{ t.pending }} awaiting Meta, {{ t.rejected }} rejected.
     Only approved templates can be sent in campaigns.
   </p>
-</div>
+</section>

@@ -4,55 +4,82 @@
 }
 
 .shell-sidenav {
-  width: 240px;
+  width: 256px;
   background: #ffffff;
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  border-right: 1px solid rgba(0, 0, 0, 0.07);
+  // The brand stays put; only the links scroll.
+  ::ng-deep .mat-drawer-inner-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 18px 20px 14px;
+  gap: 12px;
+  flex: none;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .brand-logo {
   display: grid;
   place-items: center;
   flex: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #00796b, #3949ab);
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #00897b, #3949ab);
+  box-shadow: 0 2px 6px rgba(0, 121, 107, 0.35);
   color: #fff;
 
   mat-icon {
-    width: 20px;
-    height: 20px;
-    font-size: 20px;
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
   }
 }
 
 .brand-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  min-width: 0;
+  line-height: 1.25;
 }
 
 .brand-title {
   font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.1px;
 }
 
 .brand-subtitle {
   font-size: 11px;
-  color: rgba(0, 0, 0, 0.5);
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #00796b;
 }
 
 /* Plain links rather than mat-nav-list: MDC list items carry fixed 48px heights and padding
    that fight a compact, grouped layout. */
 .nav {
-  padding: 4px 12px 20px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px 12px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.16);
+  }
 }
 
 .nav-section {
@@ -61,17 +88,67 @@
   gap: 2px;
 
   & + & {
-    margin-top: 18px;
+    margin-top: 10px;
   }
 }
 
+.nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+// A group heading is a button: click to fold the group away. The chevron is drawn in CSS so the heading's text stays just its label.
 .nav-section-label {
-  padding: 0 12px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.4);
+  text-align: left;
+  color: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+
+  &::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    margin-right: 3px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 160ms ease;
+  }
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.035);
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00796b;
+    outline-offset: -2px;
+  }
+}
+
+.nav-section--collapsed {
+  .nav-items {
+    display: none;
+  }
+
+  .nav-section-label::after {
+    transform: rotate(-45deg);
+  }
 }
 
 .nav-item {
@@ -79,9 +156,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 38px;
+  height: 40px;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   font-size: 14px;
   color: rgba(0, 0, 0, 0.72);
@@ -94,17 +171,34 @@
     height: 20px;
     font-size: 20px;
     color: rgba(0, 0, 0, 0.45);
+    transition: color 120ms ease;
+  }
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(0, 0, 0, 0.045);
     color: rgba(0, 0, 0, 0.87);
+
+    mat-icon {
+      color: rgba(0, 0, 0, 0.7);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00796b;
+    outline-offset: -2px;
   }
 }
 
-// routerLinkActive marks the current section.
+// routerLinkActive marks the current page.
 .nav-active {
-  background: rgba(0, 121, 107, 0.1);
+  background: linear-gradient(90deg, rgba(0, 121, 107, 0.14), rgba(0, 121, 107, 0.06));
   color: #00695c;
   font-weight: 500;
 
@@ -116,16 +210,20 @@
     content: '';
     position: absolute;
     left: 0;
-    top: 9px;
-    bottom: 9px;
+    top: 10px;
+    bottom: 10px;
     width: 3px;
     border-radius: 0 3px 3px 0;
     background: #00796b;
   }
 
   &:hover {
-    background: rgba(0, 121, 107, 0.14);
+    background: linear-gradient(90deg, rgba(0, 121, 107, 0.18), rgba(0, 121, 107, 0.09));
     color: #00695c;
+
+    mat-icon {
+      color: #00796b;
+    }
   }
 }
 

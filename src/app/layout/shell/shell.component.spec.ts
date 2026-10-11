@@ -61,7 +61,7 @@ describe('ShellComponent sidenav', () => {
   it('groups a tenant admin nav into labelled sections', () => {
     const root = render(['Admin']);
 
-    expect(labels(root)).toEqual(['Engage', 'CRM', 'Content', 'Workspace']);
+    expect(labels(root)).toEqual(['Engage', 'CRM', 'Content', 'Insights', 'Business', 'Team & Security', 'Billing']);
     expect(items(root)).toEqual([
       'dashboardDashboard',
       'inboxInbox',
@@ -79,8 +79,8 @@ describe('ShellComponent sidenav', () => {
       'monitoringAgent Performance',
       'storefrontBusiness Profile',
       'publicSocial Ads',
-      'manage_accountsUsers & Roles',
       'settingsSettings',
+      'manage_accountsUsers & Roles',
       'historyAudit Log',
       'paymentsBilling',
       'data_usageUsage & Credits',
@@ -88,7 +88,29 @@ describe('ShellComponent sidenav', () => {
     ]);
   });
 
-  it('drops the whole Workspace section for a sales agent', () => {
+  it('folds a group away when its heading is clicked, and opens it again', () => {
+    localStorage.removeItem('wsa.collapsedNavSections');
+    const fixture = createFixture(['Admin']);
+    const root = fixture.nativeElement as HTMLElement;
+    const heading = () => Array.from(root.querySelectorAll<HTMLButtonElement>('.nav-section-label')).find((b) => b.textContent!.trim() === 'Content')!;
+    const section = () => heading().closest('.nav-section')!;
+
+    expect(heading().getAttribute('aria-expanded')).toBe('true');
+    expect(section().classList).not.toContain('nav-section--collapsed');
+
+    heading().click();
+    fixture.detectChanges();
+    expect(heading().getAttribute('aria-expanded')).toBe('false');
+    expect(section().classList).toContain('nav-section--collapsed');
+    expect(localStorage.getItem('wsa.collapsedNavSections')).toBe('["Content"]');
+
+    heading().click();
+    fixture.detectChanges();
+    expect(section().classList).not.toContain('nav-section--collapsed');
+    localStorage.removeItem('wsa.collapsedNavSections');
+  });
+
+  it('drops every admin-only section for a sales agent', () => {
     const root = render(['SalesAgent']);
 
     expect(labels(root)).toEqual(['Engage', 'CRM', 'Content']);

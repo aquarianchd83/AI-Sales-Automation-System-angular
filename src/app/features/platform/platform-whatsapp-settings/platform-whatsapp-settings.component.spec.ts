@@ -3,6 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
 import { PlatformWhatsAppSettings } from '../../../core/models/platform-whatsapp.model';
+import { SettingItem } from '../../../core/models/settings.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformWhatsAppSettingsService } from '../../../core/services/platform-whatsapp-settings.service';
 import { SettingsService } from '../../../core/services/settings.service';
@@ -26,7 +27,10 @@ describe('PlatformWhatsAppSettingsComponent', () => {
   let service: jasmine.SpyObj<PlatformWhatsAppSettingsService>;
   let notify: jasmine.SpyObj<NotificationService>;
 
-  const create = (settings: PlatformWhatsAppSettings) => {
+  const item = (key: string, over: Partial<SettingItem> = {}): SettingItem =>
+    ({ key, isSecret: false, hasValue: false, value: '', ...over } as SettingItem);
+
+  const create = (settings: PlatformWhatsAppSettings, appItems: SettingItem[] = []) => {
     service = jasmine.createSpyObj('PlatformWhatsAppSettingsService', ['get', 'save', 'test']);
     service.get.and.returnValue(of(settings));
     service.save.and.callFake(() => of(settings));
@@ -38,7 +42,7 @@ describe('PlatformWhatsAppSettingsComponent', () => {
       providers: [
         { provide: PlatformWhatsAppSettingsService, useValue: service },
         { provide: NotificationService, useValue: notify },
-        { provide: SettingsService, useValue: { getCategory: () => of({ category: 'WhatsApp', items: [] }), update: () => of(undefined) } },
+        { provide: SettingsService, useValue: { getCategory: () => of({ category: 'WhatsApp', items: appItems }), update: () => of(undefined) } },
       ],
     });
 
@@ -63,6 +67,53 @@ describe('PlatformWhatsAppSettingsComponent', () => {
 
     TestBed.resetTestingModule();
     expect(create(stored({ isConfigured: false, enabled: false, canManageTemplates: false })).text()).toContain('switched off');
+  });
+
+  it('names what is still missing for tenants to use Connect with Meta', () => {
+    const { component, text } = create(stored(), [
+      item('WhatsApp:AppId', { value: '123' }),
+      item('WhatsApp:AppSecret', { isSecret: true, hasValue: true }),
+    ]);
+
+    expect(component.signupMissing).toEqual(['Embedded Signup config id']);
+    expect(text()).toContain('switched off for tenants');
+    expect(text()).toContain('Embedded Signup config id');
+  });
+
+  it('says Connect with Meta is available once app id, secret and config id are all saved', () => {
+    const { component, text } = create(stored(), [
+      item('WhatsApp:AppId', { value: '123' }),
+      item('WhatsApp:AppSecret', { isSecret: true, hasValue: true }),
+      item('WhatsApp:EmbeddedSignupConfigId', { value: '456' }),
+    ]);
+
+    expect(component.signupMissing).toEqual([]);
+    expect(text()).toContain('is available to tenants');
+  });
+
+  it('can be switched off for tenants even when every value is saved, and saves the switch as "false"', () => {
+    const { component, text } = create(stored(), [
+      item('WhatsApp:AppId', { value: '123' }),
+      item('WhatsApp:AppSecret', { isSecret: true, hasValue: true }),
+      item('WhatsApp:EmbeddedSignupConfigId', { value: '456' }),
+      item('WhatsApp:EmbeddedSignupEnabled', { value: 'false' }),
+    ]);
+
+    expect(component.signupAvailable).toBeFalse();
+    expect(component.appForm.controls.embeddedSignupEnabled.value).toBeFalse();
+    expect(text()).toContain('switched off for tenants');
+    expect(text()).toContain('Turned off with the switch');
+  });
+
+  it('treats a missing switch value as on', () => {
+    const { component } = create(stored(), [
+      item('WhatsApp:AppId', { value: '123' }),
+      item('WhatsApp:AppSecret', { isSecret: true, hasValue: true }),
+      item('WhatsApp:EmbeddedSignupConfigId', { value: '456' }),
+    ]);
+
+    expect(component.signupSwitchedOn).toBeTrue();
+    expect(component.signupAvailable).toBeTrue();
   });
 
   it('asks for the business account id when templates cannot be managed yet', () => {

@@ -50,7 +50,6 @@ describe('MetaConnectCardComponent', () => {
     service.getConfig.and.returnValue(of(clientConfig));
     fixture = TestBed.createComponent(MetaConnectCardComponent);
     fixture.componentInstance.config = config;
-    fixture.componentInstance.phoneNumber = '+91 98765 43210';
     fixture.detectChanges();
   }
 
@@ -65,20 +64,52 @@ describe('MetaConnectCardComponent', () => {
     });
   });
 
-  it('offers Connect with Meta and names the number to pick', () => {
+  it('offers Connect with Meta, explains the steps and asks for no number', () => {
     create(null);
 
     expect(button('Connect with Meta')!.hasAttribute('disabled')).toBeFalse();
-    expect(el().textContent).toContain('+91 98765 43210');
+    expect(el().textContent).toContain('Sign in and pick your number');
+    expect(el().querySelector('input')).toBeNull();
     expect(service.getStatus).not.toHaveBeenCalled();
   });
 
-  it('explains, without a button to nowhere, when the platform has not set Meta up', () => {
+  it('tells the tenant plainly, with no dead button, when the platform has not set Meta up', () => {
     create(null, { ...enabled, enabled: false, issue: issue({ title: 'Connect with Meta is not available yet', primaryAction: 'ContactSupport' }) });
 
-    expect(button('Connect with Meta')!.hasAttribute('disabled')).toBeTrue();
-    expect(el().textContent).toContain('not available yet');
-    expect(el().textContent).toContain('contact platform support');
+    expect(button('Connect with Meta')).toBeUndefined();
+    expect(el().textContent).toContain("isn't available yet");
+    expect(el().textContent).toContain('Nothing is needed from you');
+    expect(el().textContent).not.toContain('contact platform support');
+  });
+
+  it('does not let a saved-connection problem hide that the platform is not ready', () => {
+    service.getStatus.and.returnValue(of({
+      status: 'ActionRequired',
+      steps: [{ key: 'verification', title: 'Final check', status: 'ActionRequired', detail: 'Your Meta connection has expired' }],
+      issue: issue({ code: 'token_expired', title: 'Your Meta connection has expired', primaryAction: 'Reconnect' }),
+      config: connected,
+      templates: null,
+    }));
+    create(connected, { ...enabled, enabled: false, issue: null });
+
+    expect(el().textContent).toContain('Your Meta connection has expired');
+    expect(el().textContent).toContain("isn't available yet");
+    expect(button('Reconnect with Meta')).toBeUndefined();
+  });
+
+  it('offers exactly one Reconnect button when the Meta connection has expired', () => {
+    service.getStatus.and.returnValue(of({
+      status: 'ActionRequired',
+      steps: [{ key: 'verification', title: 'Final check', status: 'ActionRequired', detail: 'Your Meta connection has expired' }],
+      issue: issue({ code: 'token_expired', title: 'Your Meta connection has expired', primaryAction: 'Reconnect' }),
+      config: connected,
+      templates: null,
+    }));
+    create(connected);
+
+    const reconnects = Array.from(el().querySelectorAll<HTMLElement>('button, a')).filter((b) => b.textContent!.includes('Reconnect with Meta'));
+    expect(reconnects.length).toBe(1);
+    expect(reconnects[0].hasAttribute('disabled')).toBeFalse();
   });
 
   it('shows a cancelled sign-in as an instruction to reconnect, with nothing raw from Meta', async () => {
@@ -98,7 +129,12 @@ describe('MetaConnectCardComponent', () => {
     fixture.detectChanges();
 
     expect(service.complete).toHaveBeenCalledWith(cancel);
-    expect(el().querySelector('[role=alert]')!.textContent).toContain('Meta sign-in was not completed');
+    const alert = el().querySelector('[role=alert]')!.textContent!;
+    expect(alert).toContain('Meta sign-in was not completed');
+    expect(alert).toContain('Stopped at: Meta authorization');
+    expect(alert).toContain('What happened');
+    expect(alert).toContain('What to do next');
+    expect(alert).toContain('Reconnect with Meta');
     expect(el().textContent).toContain('Action required');
     expect(button('Reconnect with Meta')).toBeTruthy();
   });

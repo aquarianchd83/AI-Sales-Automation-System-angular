@@ -11,28 +11,38 @@
       <span class="brand-logo"><mat-icon>forum</mat-icon></span>
       <div class="brand-text">
         <span class="brand-title">Sales Automation</span>
-        <span class="brand-subtitle">Admin Panel</span>
+        <span class="brand-subtitle">{{ isPlatformSuperAdmin ? 'Platform admin' : 'Workspace' }}</span>
       </div>
     </div>
 
-    <nav class="nav">
+    <nav class="nav" aria-label="Main">
       <ng-container *ngFor="let section of navSections">
-        <div class="nav-section" *ngIf="isSectionVisible(section)">
-          <div class="nav-section-label" *ngIf="section.label">{{ section.label }}</div>
-          <ng-container *ngFor="let item of section.items">
-            <a
-              class="nav-item"
-              matRipple
-              *appHasRole="item.roles"
-              [routerLink]="item.route"
-              routerLinkActive="nav-active"
-              [routerLinkActiveOptions]="{ exact: !!item.exact }"
-              (click)="drawer.mode === 'over' ? drawer.close() : null"
-            >
-              <mat-icon>{{ item.icon }}</mat-icon>
-              <span>{{ item.label }}</span>
-            </a>
-          </ng-container>
+        <div class="nav-section" *ngIf="isSectionVisible(section)" [class.nav-section--collapsed]="isCollapsed(section)">
+          <button
+            type="button"
+            class="nav-section-label"
+            *ngIf="section.label"
+            [attr.aria-expanded]="!isCollapsed(section)"
+            (click)="toggleSection(section)"
+          >{{ section.label }}</button>
+          <div class="nav-items">
+            <ng-container *ngFor="let item of section.items">
+              <a
+                class="nav-item"
+                matRipple
+                *appHasRole="item.roles"
+                [routerLink]="item.route"
+                routerLinkActive="nav-active"
+                ariaCurrentWhenActive="page"
+                [routerLinkActiveOptions]="{ exact: !!item.exact }"
+                [title]="item.label"
+                (click)="drawer.mode === 'over' ? drawer.close() : null"
+              >
+                <mat-icon>{{ item.icon }}</mat-icon>
+                <span>{{ item.label }}</span>
+              </a>
+            </ng-container>
+          </div>
         </div>
       </ng-container>
     </nav>

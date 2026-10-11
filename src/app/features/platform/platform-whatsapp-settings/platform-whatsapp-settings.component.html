@@ -1,52 +1,130 @@
-<div class="page">
+<div class="page wa-page">
   <app-page-header
     title="Platform WhatsApp"
-    subtitle="The WhatsApp number the platform sends notices from - plan expiring, credits running out, refunds. Not a tenant's own number."
+    subtitle="Set up the Meta app tenants connect through, and the number the platform sends its own notices from."
   ></app-page-header>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
-  <mat-card *ngIf="loadFailed" class="wa-card">
+  <mat-card *ngIf="loadFailed" class="wa-card wa-card--empty">
+    <mat-icon>cloud_off</mat-icon>
     <p>The platform WhatsApp settings could not be loaded.</p>
     <button mat-stroked-button type="button" (click)="load()">Try again</button>
   </mat-card>
 
   <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading && !loadFailed" novalidate>
+    <!-- Save bar -->
     <div class="save-bar">
-      <span class="muted">Stored in the database only. Changes apply from the next request, no restart.</span>
+      <div class="save-bar__text">
+        <mat-icon>{{ pristine ? 'check' : 'edit' }}</mat-icon>
+        <span *ngIf="pristine" class="muted">All changes saved. Settings apply from the next request - no restart.</span>
+        <span *ngIf="!pristine"><strong>Unsaved changes</strong></span>
+      </div>
       <span class="spacer"></span>
-      <button mat-button type="button" [disabled]="saving || savingApp || pristine" (click)="discard()">Discard changes</button>
+      <button mat-button type="button" [disabled]="saving || savingApp || pristine" (click)="discard()">Discard</button>
       <button mat-flat-button color="primary" type="submit" [disabled]="saving || savingApp || pristine">
-        {{ saving || savingApp ? 'Saving…' : 'Save' }}
+        {{ saving || savingApp ? 'Saving…' : 'Save changes' }}
       </button>
     </div>
 
-    <div class="status" [class.status--warn]="!current?.isConfigured">
-      <mat-icon>{{ current?.isConfigured ? 'check_circle' : 'warning' }}</mat-icon>
-      <div>
-        <strong *ngIf="current?.isConfigured">Tenant notices can be sent on WhatsApp</strong>
-        <strong *ngIf="!current?.isConfigured && current?.hasAccessToken && !current?.enabled">
-          The platform WhatsApp number is switched off - notices go by email and in-app only
-        </strong>
-        <strong *ngIf="!current?.isConfigured && !(current?.hasAccessToken && !current?.enabled)">
-          No platform WhatsApp number is set up - notices go by email and in-app only
-        </strong>
-        <p class="muted" *ngIf="current?.isConfigured && !current?.canManageTemplates">
-          Add the WhatsApp Business Account id to create and review the notice templates on Meta.
-        </p>
-        <p class="muted" *ngIf="current?.canManageTemplates">
-          Templates are managed on the Notice Templates page. A notice goes on WhatsApp once Meta has approved its template.
-        </p>
+    <!-- Overview -->
+    <div class="overview">
+      <div class="tile" [class.tile--ok]="appLoaded && signupAvailable" [class.tile--warn]="appLoaded && !signupAvailable">
+        <mat-icon class="tile__icon">{{ signupAvailable ? 'link' : 'link_off' }}</mat-icon>
+        <div class="tile__body">
+          <span class="tile__label">Tenants · Connect with Meta</span>
+          <ng-container *ngIf="appLoaded">
+            <strong *ngIf="signupAvailable">"Connect with Meta" is available to tenants</strong>
+            <strong *ngIf="!signupAvailable">"Connect with Meta" is switched off for tenants</strong>
+            <p class="muted" *ngIf="!signupSwitchedOn">
+              Turned off with the switch in <em>Tenant WhatsApp Configuration</em> below. Tenants see a short "not available yet" note.
+            </p>
+            <p class="muted" *ngIf="signupSwitchedOn && signupMissing.length">
+              Still needed in <em>Tenant WhatsApp Configuration</em> below: {{ signupMissing.join(', ') }}. Tenants see a short "not available yet" note until then.
+            </p>
+            <p class="muted" *ngIf="signupAvailable">
+              A tenant only enters their WhatsApp number and presses Connect with Meta; everything else is set up for them.
+            </p>
+          </ng-container>
+          <p class="muted" *ngIf="!appLoaded">Checking…</p>
+        </div>
+      </div>
+
+      <div class="tile" [class.tile--ok]="current?.isConfigured" [class.tile--warn]="!current?.isConfigured">
+        <mat-icon class="tile__icon">{{ current?.isConfigured ? 'notifications_active' : 'notifications_off' }}</mat-icon>
+        <div class="tile__body">
+          <span class="tile__label">Platform · Notices to tenants</span>
+          <strong *ngIf="current?.isConfigured">Tenant notices can be sent on WhatsApp</strong>
+          <strong *ngIf="!current?.isConfigured && current?.hasAccessToken && !current?.enabled">
+            The platform WhatsApp number is switched off - notices go by email and in-app only
+          </strong>
+          <strong *ngIf="!current?.isConfigured && !(current?.hasAccessToken && !current?.enabled)">
+            No platform WhatsApp number is set up - notices go by email and in-app only
+          </strong>
+          <p class="muted" *ngIf="current?.isConfigured && !current?.canManageTemplates">
+            Add the WhatsApp Business Account id to create and review the notice templates on Meta.
+          </p>
+          <p class="muted" *ngIf="current?.canManageTemplates">
+            Templates are managed on the Notice Templates page. A notice goes on WhatsApp once Meta has approved its template.
+          </p>
+        </div>
       </div>
     </div>
 
-    <mat-card class="wa-card">
-      <h2>The number</h2>
-      <p class="muted">
-        From Meta's WhatsApp Manager (API setup). Use a permanent System User access token - a temporary token stops working after about a day.
-      </p>
+    <!-- 1. Meta app -->
+    <mat-card class="wa-card" [formGroup]="appForm">
+      <header class="card-head">
+        <span class="card-head__icon"><mat-icon>hub</mat-icon></span>
+        <div>
+          <h2>Tenant WhatsApp Configuration</h2>
+          <p class="muted">
+            The one Meta app shared by every tenant. Tenants sign in to it with "Connect with Meta", and their WhatsApp webhooks arrive here.
+            Switch it off to pause "Connect with Meta" for all tenants without losing the values below.
+          </p>
+        </div>
+        <mat-slide-toggle class="card-head__toggle" formControlName="embeddedSignupEnabled" color="primary">
+          {{ appForm.controls.embeddedSignupEnabled.value ? 'On' : 'Off' }}
+        </mat-slide-toggle>
+      </header>
 
-      <mat-slide-toggle class="toggle-row" formControlName="enabled" color="primary">Send tenant notices on WhatsApp</mat-slide-toggle>
+      <div class="field-grid">
+        <mat-form-field class="field">
+          <mat-label>App id</mat-label>
+          <input matInput formControlName="appId" autocomplete="off" />
+          <mat-hint>Public. From the app's dashboard on Meta.</mat-hint>
+        </mat-form-field>
+        <mat-form-field class="field">
+          <mat-label>App secret</mat-label>
+          <input matInput type="password" formControlName="appSecret" autocomplete="new-password" />
+          <mat-hint>{{ appHint('appSecret') }}</mat-hint>
+        </mat-form-field>
+        <mat-form-field class="field">
+          <mat-label>Embedded Signup config id</mat-label>
+          <input matInput formControlName="embeddedSignupConfigId" autocomplete="off" inputmode="numeric" />
+          <mat-hint>From the app's WhatsApp Embedded Signup configuration. With the app id and secret, it turns on "Connect with Meta".</mat-hint>
+        </mat-form-field>
+        <mat-form-field class="field">
+          <mat-label>Webhook verify token</mat-label>
+          <input matInput type="password" formControlName="webhookVerifyToken" autocomplete="new-password" />
+          <mat-hint>{{ appHint('webhookVerifyToken') }}</mat-hint>
+        </mat-form-field>
+      </div>
+    </mat-card>
+
+    <!-- 2. Platform number -->
+    <mat-card class="wa-card">
+      <header class="card-head">
+        <span class="card-head__icon"><mat-icon>chat</mat-icon></span>
+        <div>
+          <h2>Platform Notice Template Configuration</h2>
+          <p class="muted">
+            The WhatsApp account the platform uses to send and manage its own notice templates - plan expiring, credits running out, refunds.
+            This is the platform's account, not a tenant's. Take the ids from Meta's WhatsApp Manager (API setup) and use a permanent System User
+            access token, since a temporary one stops working after about a day.
+          </p>
+        </div>
+        <mat-slide-toggle class="card-head__toggle" formControlName="enabled" color="primary">Send notices on WhatsApp</mat-slide-toggle>
+      </header>
 
       <div class="field-grid">
         <mat-form-field class="field">
@@ -63,7 +141,7 @@
           <mat-error>Enter the numeric id (digits only).</mat-error>
         </mat-form-field>
 
-        <mat-form-field class="field">
+        <mat-form-field class="field field--wide">
           <mat-label>Access token</mat-label>
           <input matInput type="password" autocomplete="new-password" formControlName="accessToken" [readonly]="form.controls.removeAccessToken.value" />
           <mat-hint>{{ storedTokenHint ? 'Stored: ' + storedTokenHint + ' - leave blank to keep' : 'None stored' }}</mat-hint>
@@ -73,98 +151,87 @@
       <mat-checkbox formControlName="removeAccessToken" *ngIf="current?.hasAccessToken">Remove the stored access token</mat-checkbox>
     </mat-card>
 
-    <mat-card class="wa-card" [formGroup]="appForm">
-      <h2>Meta app &amp; webhook</h2>
-      <p class="muted">
-        The Meta app shared by every tenant's WhatsApp connection: its webhooks arrive here. Provider changes need an API restart to take effect.
-      </p>
+    <!-- 3. Advanced -->
+    <mat-expansion-panel class="wa-card wa-panel" [formGroup]="appForm">
+      <mat-expansion-panel-header>
+        <mat-panel-title><mat-icon>tune</mat-icon> Advanced</mat-panel-title>
+        <mat-panel-description>Provider, API version and address - leave as they are unless Meta tells you otherwise</mat-panel-description>
+      </mat-expansion-panel-header>
+
       <div class="field-grid">
         <mat-form-field class="field">
           <mat-label>Provider</mat-label>
           <input matInput formControlName="provider" autocomplete="off" placeholder="Simulated or Meta" />
-          <mat-hint>"Simulated" or "Meta".</mat-hint>
+          <mat-hint>"Simulated" or "Meta". A change needs an API restart.</mat-hint>
         </mat-form-field>
         <mat-form-field class="field">
           <mat-label>Simulated failure rate (%)</mat-label>
           <input matInput formControlName="simulatedFailureRatePercent" autocomplete="off" inputmode="numeric" />
           <mat-hint>Only used by the simulator.</mat-hint>
         </mat-form-field>
-        <mat-form-field class="field">
-          <mat-label>App id</mat-label>
-          <input matInput formControlName="appId" autocomplete="off" />
-        </mat-form-field>
-        <mat-form-field class="field">
-          <mat-label>App secret</mat-label>
-          <input matInput type="password" formControlName="appSecret" autocomplete="new-password" />
-          <mat-hint>{{ appHint('appSecret') }}</mat-hint>
-        </mat-form-field>
-        <mat-form-field class="field">
-          <mat-label>Webhook verify token</mat-label>
-          <input matInput type="password" formControlName="webhookVerifyToken" autocomplete="new-password" />
-          <mat-hint>{{ appHint('webhookVerifyToken') }}</mat-hint>
-        </mat-form-field>
-      </div>
-    </mat-card>
-
-    <mat-card class="wa-card">
-      <h2>Advanced</h2>
-      <p class="muted">Leave as they are unless Meta tells you otherwise.</p>
-      <div class="field-grid">
-        <mat-form-field class="field">
+        <mat-form-field class="field" [formGroup]="form">
           <mat-label>API version</mat-label>
           <input matInput formControlName="apiVersion" autocomplete="off" placeholder="v19.0" />
           <mat-error>Use a version like v19.0.</mat-error>
         </mat-form-field>
-
-        <mat-form-field class="field">
+        <mat-form-field class="field" [formGroup]="form">
           <mat-label>API address</mat-label>
           <input matInput formControlName="apiBaseUrl" autocomplete="off" placeholder="https://graph.facebook.com/" />
           <mat-error>Enter an https:// address.</mat-error>
         </mat-form-field>
       </div>
-    </mat-card>
+    </mat-expansion-panel>
 
-    <mat-card class="wa-card">
-      <h2>Verify the connection</h2>
-      <p class="muted">
-        Asks Meta whether the saved phone number id, access token and Business Account id work. Nothing is sent to anyone.
-      </p>
-      <div class="test-row">
-        <button mat-flat-button color="primary" type="button" [disabled]="verifying || saving" (click)="verify()">
-          <mat-icon>{{ verifying ? 'hourglass_empty' : 'verified' }}</mat-icon>
-          {{ verifying ? 'Verifying…' : 'Verify' }}
-        </button>
-      </div>
-      <div class="test-result" [class.test-result--fail]="!verifyResult.success" *ngIf="verifyResult" role="status" aria-live="polite">
-        <mat-icon>{{ verifyResult.success ? 'check_circle' : 'error' }}</mat-icon>
-        <div><strong>{{ verifyResult.message }}</strong></div>
-      </div>
-    </mat-card>
+    <!-- 4. Check and test -->
+    <div class="check-grid">
+      <mat-card class="wa-card">
+        <header class="card-head">
+          <span class="card-head__icon"><mat-icon>verified</mat-icon></span>
+          <div>
+            <h2>Verify the connection</h2>
+            <p class="muted">Asks Meta whether the saved phone number id, access token and Business Account id work. Nothing is sent to anyone.</p>
+          </div>
+        </header>
+        <div class="test-row">
+          <button mat-flat-button color="primary" type="button" [disabled]="verifying || saving" (click)="verify()">
+            <mat-icon>{{ verifying ? 'hourglass_empty' : 'verified' }}</mat-icon>
+            {{ verifying ? 'Verifying…' : 'Verify' }}
+          </button>
+        </div>
+        <div class="test-result" [class.test-result--fail]="!verifyResult.success" *ngIf="verifyResult" role="status" aria-live="polite">
+          <mat-icon>{{ verifyResult.success ? 'check_circle' : 'error' }}</mat-icon>
+          <div><strong>{{ verifyResult.message }}</strong></div>
+        </div>
+      </mat-card>
 
-    <mat-card class="wa-card">
-      <h2>Test the connection</h2>
-      <p class="muted">
-        Sends Meta's own sample message (<code>hello_world</code>) from the saved number, to prove the number and token work. It needs no approval
-        of yours - every new WhatsApp Business Account has it.
-      </p>
-
-      <div class="test-row">
-        <mat-form-field class="field" subscriptSizing="dynamic">
-          <mat-label>Send a test message to</mat-label>
-          <input matInput type="tel" [formControl]="testTo" autocomplete="off" placeholder="+919876543210" />
-          <mat-hint>A WhatsApp number with the country code.</mat-hint>
-          <mat-error>Enter the number starting with + and the country code.</mat-error>
-        </mat-form-field>
-        <button mat-stroked-button type="button" [disabled]="testing || saving" (click)="sendTest()">
-          <mat-icon>{{ testing ? 'hourglass_empty' : 'send' }}</mat-icon>
-          {{ testing ? 'Sending…' : 'Send test message' }}
-        </button>
-      </div>
-
-      <div class="test-result" [class.test-result--fail]="!testResult.success" *ngIf="testResult" role="status" aria-live="polite">
-        <mat-icon>{{ testResult.success ? 'check_circle' : 'error' }}</mat-icon>
-        <div><strong>{{ testResult.message }}</strong></div>
-      </div>
-    </mat-card>
+      <mat-card class="wa-card">
+        <header class="card-head">
+          <span class="card-head__icon"><mat-icon>send</mat-icon></span>
+          <div>
+            <h2>Send a test message</h2>
+            <p class="muted">
+              Sends Meta's own sample message (<code>hello_world</code>) from the saved number. It needs no approval - every new WhatsApp Business
+              Account has it.
+            </p>
+          </div>
+        </header>
+        <div class="test-row">
+          <mat-form-field class="field" subscriptSizing="dynamic">
+            <mat-label>Send a test message to</mat-label>
+            <input matInput type="tel" [formControl]="testTo" autocomplete="off" placeholder="+919876543210" />
+            <mat-hint>A WhatsApp number with the country code.</mat-hint>
+            <mat-error>Enter the number starting with + and the country code.</mat-error>
+          </mat-form-field>
+          <button mat-stroked-button type="button" [disabled]="testing || saving" (click)="sendTest()">
+            <mat-icon>{{ testing ? 'hourglass_empty' : 'send' }}</mat-icon>
+            {{ testing ? 'Sending…' : 'Send test message' }}
+          </button>
+        </div>
+        <div class="test-result" [class.test-result--fail]="!testResult.success" *ngIf="testResult" role="status" aria-live="polite">
+          <mat-icon>{{ testResult.success ? 'check_circle' : 'error' }}</mat-icon>
+          <div><strong>{{ testResult.message }}</strong></div>
+        </div>
+      </mat-card>
+    </div>
   </form>
 </div>
