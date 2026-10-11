@@ -381,7 +381,35 @@ export class ShellComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** The nav group ("category") and entry the router is currently on - shown in the toolbar as an eyebrow + title. */
+  currentCategory: string | null = null;
+  currentTitle = '';
+
+  /** Longest nav route that prefixes the url wins, so /platform/tenants/42 still reads "Tenants". */
+  private updateHeading(url: string): void {
+    const path = url.split(/[?#]/)[0];
+    let best: { section: NavSection; item: NavItem } | null = null;
+    for (const section of this.navSections) {
+      for (const item of section.items) {
+        const hit = path === item.route || path.startsWith(item.route + '/');
+        if (hit && (!best || item.route.length > best.item.route.length)) {
+          best = { section, item };
+        }
+      }
+    }
+    this.currentCategory = best?.section.label ?? null;
+    this.currentTitle = best?.item.label ?? '';
+  }
+
   ngOnInit(): void {
+    this.updateHeading(this.router.url);
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((e) => this.updateHeading(e.urlAfterRedirects));
+
     // Unconditional - the sidenav's open/close toggle works the same in a support session as
     // anywhere else, so it isn't gated behind the isImpersonating early return below.
     this.isHandset$.pipe(takeUntil(this.destroy$)).subscribe((isHandset) => {

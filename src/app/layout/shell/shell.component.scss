@@ -4,9 +4,10 @@
 }
 
 .shell-sidenav {
-  width: 256px;
-  background: #ffffff;
-  border-right: 1px solid rgba(0, 0, 0, 0.07);
+  width: 264px;
+  background: linear-gradient(180deg, #0f172a 0%, #111c36 100%);
+  border-right: 0;
+  color: #cbd5e1;
   // The brand stays put; only the links scroll.
   ::ng-deep .mat-drawer-inner-container {
     display: flex;
@@ -20,8 +21,8 @@
   align-items: center;
   gap: 12px;
   flex: none;
-  padding: 18px 20px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 20px 20px 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .brand-logo {
@@ -31,8 +32,8 @@
   width: 38px;
   height: 38px;
   border-radius: 11px;
-  background: linear-gradient(135deg, #00897b, #3949ab);
-  box-shadow: 0 2px 6px rgba(0, 121, 107, 0.35);
+  background: linear-gradient(135deg, #14b8a6, #6366f1);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.35);
   color: #fff;
 
   mat-icon {
@@ -53,14 +54,15 @@
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.1px;
+  color: #f8fafc;
 }
 
 .brand-subtitle {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  color: #00796b;
+  color: #5eead4;
 }
 
 /* Plain links rather than mat-nav-list: MDC list items carry fixed 48px heights and padding
@@ -68,9 +70,9 @@
 .nav {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 12px 12px 24px;
+  padding: 14px 12px 24px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -78,7 +80,7 @@
 
   &::-webkit-scrollbar-thumb {
     border-radius: 3px;
-    background: rgba(0, 0, 0, 0.16);
+    background: rgba(148, 163, 184, 0.3);
   }
 }
 
@@ -88,7 +90,7 @@
   gap: 2px;
 
   & + & {
-    margin-top: 10px;
+    margin-top: 14px;
   }
 }
 
@@ -110,12 +112,12 @@
   border-radius: 6px;
   background: none;
   font: inherit;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.8px;
+  letter-spacing: 1.1px;
   text-transform: uppercase;
   text-align: left;
-  color: rgba(0, 0, 0, 0.45);
+  color: #64748b;
   cursor: pointer;
   transition: color 120ms ease, background 120ms ease;
 
@@ -131,12 +133,12 @@
   }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.035);
-    color: rgba(0, 0, 0, 0.7);
+    background: rgba(148, 163, 184, 0.08);
+    color: #cbd5e1;
   }
 
   &:focus-visible {
-    outline: 2px solid #00796b;
+    outline: 2px solid #5eead4;
     outline-offset: -2px;
   }
 }
@@ -160,8 +162,8 @@
   padding: 0 12px;
   border-radius: 10px;
   overflow: hidden;
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.72);
+  font-size: 13.5px;
+  color: #cbd5e1;
   text-decoration: none;
   transition: background 120ms ease, color 120ms ease;
 
@@ -170,7 +172,7 @@
     width: 20px;
     height: 20px;
     font-size: 20px;
-    color: rgba(0, 0, 0, 0.45);
+    color: #64748b;
     transition: color 120ms ease;
   }
 
@@ -182,55 +184,92 @@
   }
 
   &:hover {
-    background: rgba(0, 0, 0, 0.045);
-    color: rgba(0, 0, 0, 0.87);
+    background: rgba(148, 163, 184, 0.1);
+    color: #f8fafc;
 
     mat-icon {
-      color: rgba(0, 0, 0, 0.7);
+      color: #94a3b8;
     }
   }
 
   &:focus-visible {
-    outline: 2px solid #00796b;
+    outline: 2px solid #5eead4;
     outline-offset: -2px;
   }
 }
 
 // routerLinkActive marks the current page.
 .nav-active {
-  background: linear-gradient(90deg, rgba(0, 121, 107, 0.14), rgba(0, 121, 107, 0.06));
-  color: #00695c;
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0.22), rgba(99, 102, 241, 0.1));
+  color: #fff;
   font-weight: 500;
 
   mat-icon {
-    color: #00796b;
+    color: #5eead4;
   }
 
   &::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 10px;
-    bottom: 10px;
+    top: 9px;
+    bottom: 9px;
     width: 3px;
     border-radius: 0 3px 3px 0;
-    background: #00796b;
+    background: #2dd4bf;
   }
 
   &:hover {
-    background: linear-gradient(90deg, rgba(0, 121, 107, 0.18), rgba(0, 121, 107, 0.09));
-    color: #00695c;
+    background: linear-gradient(90deg, rgba(20, 184, 166, 0.28), rgba(99, 102, 241, 0.14));
+    color: #fff;
 
     mat-icon {
-      color: #00796b;
+      color: #5eead4;
     }
   }
 }
 
+// A white, slim top bar: category eyebrow + page title on the left, alerts and the account on the right.
 .shell-toolbar {
   position: sticky;
   top: 0;
   z-index: 5;
+  height: 64px;
+  padding: 0 20px;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(10px);
+  color: var(--app-ink);
+  border-bottom: 1px solid var(--app-border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.toolbar-heading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  margin-left: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--app-border);
+  line-height: 1.2;
+}
+
+.toolbar-category {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--app-primary);
+}
+
+.toolbar-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
 }
 
 .spacer {
@@ -240,26 +279,63 @@
 .account-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  height: 46px;
+  padding: 0 8px 0 6px;
+  border-radius: 999px;
+  color: var(--app-ink);
+  text-align: left;
+
+  &:hover {
+    background: var(--app-surface-muted);
+  }
+}
+
+.account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
 }
 
 .account-name {
-  max-width: 180px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.account-role {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--app-muted);
 }
 
 .avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.24);
+  background: linear-gradient(135deg, #14b8a6, #6366f1);
+  color: #fff;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 720px) {
+  .account-text,
+  .toolbar-category {
+    display: none;
+  }
+
+  .toolbar-heading {
+    padding-left: 10px;
+  }
 }
 
 .menu-header {
@@ -281,6 +357,7 @@
 .shell-content {
   display: block;
   min-height: calc(100vh - 64px);
+  background: var(--app-bg);
 }
 
 .impersonation-banner {
@@ -356,7 +433,8 @@
   height: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: #ef5350;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px #fff;
   color: #fff;
   font-size: 10px;
   font-weight: 600;

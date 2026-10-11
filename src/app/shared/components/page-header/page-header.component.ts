@@ -19,16 +19,20 @@ import { Component, Input } from '@angular/core';
         align-items: center;
         gap: 12px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--app-border);
       }
       h1 {
         margin: 0;
-        font-size: 22px;
-        font-weight: 500;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
       }
       p {
         margin: 4px 0 0;
-        font-size: 13px;
+        font-size: 13.5px;
+        color: var(--app-muted);
       }
     `,
   ],

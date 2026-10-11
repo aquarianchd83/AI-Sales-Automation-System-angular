@@ -34,7 +34,7 @@
   padding: 24px;
 
   &.current {
-    border: 2px solid var(--mdc-theme-primary, #00695c);
+    border: 2px solid var(--mdc-theme-primary, #0f766e);
   }
 
   h3 {
@@ -66,7 +66,7 @@
 
     &::before {
       content: '✓ ';
-      color: #00695c;
+      color: #0f766e;
       font-weight: 700;
     }
   }
