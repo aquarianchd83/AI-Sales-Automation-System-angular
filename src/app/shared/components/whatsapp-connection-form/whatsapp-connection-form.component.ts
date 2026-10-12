@@ -3,7 +3,12 @@ import { NonNullableFormBuilder, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
-import { TenantWhatsAppConfig, UpdateTenantWhatsAppConfigRequest, isWhatsAppVerified } from '../../../core/models/tenant-settings.model';
+import {
+  TenantWhatsAppConfig,
+  UpdateTenantWhatsAppConfigRequest,
+  WhatsAppConnectionMode,
+  isWhatsAppVerified,
+} from '../../../core/models/tenant-settings.model';
 import { NotificationService } from '../../../core/services/notification.service';
 
 export type WhatsAppConnectionState = 'not-configured' | 'unverified' | 'failed' | 'verified';
@@ -25,6 +30,8 @@ export class WhatsAppConnectionFormComponent implements OnChanges {
   @Input() config: TenantWhatsAppConfig | null = null;
   @Input() save!: (request: UpdateTenantWhatsAppConfigRequest) => Observable<TenantWhatsAppConfig>;
   @Input() verify!: () => Observable<TenantWhatsAppConfig>;
+  /** The mode to record with the connection when it is saved. Hosts that do not choose one (the Platform Admin Console) leave it unset. */
+  @Input() connectionMode?: WhatsAppConnectionMode;
   /** The connection after a save or a verification. */
   @Output() changed = new EventEmitter<TenantWhatsAppConfig>();
 
@@ -99,6 +106,9 @@ export class WhatsAppConnectionFormComponent implements OnChanges {
       apiBaseUrl: raw.apiBaseUrl || undefined,
       appId: raw.appId || undefined,
     };
+    if (this.connectionMode) {
+      request.connectionMode = this.connectionMode;
+    }
     // Only a newly typed secret is sent; a blank field means "keep what is stored".
     if (raw.accessToken) {
       request.accessToken = raw.accessToken.trim();
@@ -118,7 +128,14 @@ export class WhatsAppConnectionFormComponent implements OnChanges {
           this.config = config;
           this.reset();
           this.changed.emit(config);
-          this.notify.success('WhatsApp connection saved. Now verify it.');
+          // The tenant endpoint checks with Meta as part of the save; the platform endpoint does not, so it still asks for a verify.
+          if (isWhatsAppVerified(config)) {
+            this.notify.success('WhatsApp connection saved and confirmed by Meta.');
+          } else if (config.verificationError) {
+            this.notify.error(`Saved, but Meta did not accept it: ${config.verificationError}`);
+          } else {
+            this.notify.success('WhatsApp connection saved. Now verify it.');
+          }
         },
         error: () => undefined, // the error interceptor shows why
       });

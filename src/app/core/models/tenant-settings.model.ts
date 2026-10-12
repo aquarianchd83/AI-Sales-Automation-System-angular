@@ -26,7 +26,15 @@ export interface TenantWhatsAppConfig {
   /** The number and display name as Meta reported them on a successful verification. */
   verifiedDisplayPhoneNumber?: string | null;
   verifiedName?: string | null;
+  /** How the tenant chose to connect. Null: not chosen yet (connections saved before this existed) - read as Automatic. */
+  connectionMode?: WhatsAppConnectionMode | null;
 }
+
+/** "Automatic" is Connect with Meta; "Manual" is entering the details by hand. */
+export type WhatsAppConnectionMode = 'Automatic' | 'Manual';
+
+/** What the screen shows when the tenant has not chosen yet. */
+export const DEFAULT_WHATSAPP_CONNECTION_MODE: WhatsAppConnectionMode = 'Automatic';
 
 /** Saved, and confirmed live by Meta since. */
 export function isWhatsAppVerified(config: TenantWhatsAppConfig | null | undefined): boolean {
@@ -52,6 +60,8 @@ export interface UpdateTenantWhatsAppConfigRequest {
   apiBaseUrl?: string | null;
   webhookVerifyToken?: string | null;
   appId?: string | null;
+  /** Saved with the connection; omitted by hosts that do not choose one (the Platform Admin Console). */
+  connectionMode?: WhatsAppConnectionMode | null;
 }
 
 /** TenantWhatsAppCategoryChargeDto — one template category's share. `category` is a TemplateCategory

@@ -3,7 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NEVER, of, throwError } from 'rxjs';
 
-import { TenantCharges } from '../../../core/models/tenant-settings.model';
+import { TenantCharges, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
 import { MetaSignupService } from '../../../core/services/meta-signup.service';
@@ -44,7 +44,7 @@ describe('TenantSettingsListComponent', () => {
 
   beforeEach(() => {
     service = jasmine.createSpyObj('TenantSettingsService', [
-      'getWhatsAppConfig', 'getUsage', 'getCharges', 'getWhatsAppNumber',
+      'getWhatsAppConfig', 'getUsage', 'getCharges', 'getWhatsAppNumber', 'setWhatsAppConnectionMode',
     ]);
     service.getWhatsAppConfig.and.returnValue(of(null));
     service.getUsage.and.returnValue(of({ messagesSentThisMonth: 120, maxMessagesPerMonth: 1000 }));
@@ -103,6 +103,109 @@ describe('TenantSettingsListComponent', () => {
     expect(text()).toContain('Usage this month');
   });
 
+  describe('connection mode', () => {
+    const connected: TenantWhatsAppConfig = {
+      phoneNumberId: '1098765',
+      whatsAppBusinessAccountId: '2233445',
+      hasAccessToken: true,
+      hasAppSecret: true,
+      apiVersion: 'v19.0',
+      apiBaseUrl: 'https://graph.facebook.com/',
+      isConnected: true,
+      hasWebhookVerifyToken: false,
+      appId: null,
+      connectionMode: null,
+    };
+
+    const root = () => fixture.nativeElement as HTMLElement;
+    const toggles = () => Array.from(root().querySelectorAll<HTMLElement>('mat-button-toggle'));
+    const checkedModes = () => toggles().filter((t) => t.classList.contains('mat-button-toggle-checked')).map((t) => t.textContent?.trim());
+    const click = (label: string) => {
+      toggles().find((t) => t.textContent?.includes(label))!.querySelector('button')!.click();
+      fixture.detectChanges();
+    };
+    const metaCardHidden = () => root().querySelector('.meta-card')!.classList.contains('mode-hidden');
+    const manualHidden = () => root().querySelector('.manual-panel')!.classList.contains('mode-hidden');
+
+    it('starts on Automatic when nothing was chosen, with exactly one option selected and the manual side hidden', () => {
+      create();
+
+      expect(checkedModes().length).toBe(1);
+      expect(checkedModes()[0]).toContain('Automatic Connection');
+      expect(metaCardHidden()).toBeFalse();
+      expect(manualHidden()).toBeTrue();
+    });
+
+    it('shows the saved mode when the page opens', () => {
+      service.getWhatsAppConfig.and.returnValue(of({ ...connected, connectionMode: 'Manual' }));
+      create();
+
+      expect(checkedModes()).toEqual([jasmine.stringMatching('Manual Connection') as unknown as string]);
+      expect(metaCardHidden()).toBeTrue();
+      expect(manualHidden()).toBeFalse();
+    });
+
+    it('treats a connection saved before modes existed as Automatic and does not write anything', () => {
+      service.getWhatsAppConfig.and.returnValue(of({ ...connected, connectionMode: null }));
+      create();
+
+      expect(checkedModes()[0]).toContain('Automatic Connection');
+      expect(service.setWhatsAppConnectionMode).not.toHaveBeenCalled();
+    });
+
+    it('selecting one mode deselects the other, in both directions, and saves each', () => {
+      service.getWhatsAppConfig.and.returnValue(of({ ...connected, connectionMode: 'Automatic' }));
+      service.setWhatsAppConnectionMode.and.callFake((mode) => of({ ...connected, connectionMode: mode }));
+      create();
+
+      click('Manual Connection');
+      expect(service.setWhatsAppConnectionMode).toHaveBeenCalledOnceWith('Manual');
+      expect(checkedModes().length).toBe(1);
+      expect(checkedModes()[0]).toContain('Manual Connection');
+      expect(manualHidden()).toBeFalse();
+      expect(metaCardHidden()).toBeTrue();
+
+      click('Automatic Connection');
+      expect(service.setWhatsAppConnectionMode).toHaveBeenCalledWith('Automatic');
+      expect(checkedModes().length).toBe(1);
+      expect(checkedModes()[0]).toContain('Automatic Connection');
+      expect(metaCardHidden()).toBeFalse();
+      expect(manualHidden()).toBeTrue();
+    });
+
+    it('does not claim a mode that failed to save: the previous one stays selected and nothing is announced', () => {
+      service.getWhatsAppConfig.and.returnValue(of({ ...connected, connectionMode: 'Automatic' }));
+      service.setWhatsAppConnectionMode.and.returnValue(throwError(() => new Error('boom')));
+      create();
+      const notify = TestBed.inject(NotificationService) as jasmine.SpyObj<NotificationService>;
+
+      click('Manual Connection');
+
+      expect(checkedModes()).toEqual([jasmine.stringMatching('Automatic Connection') as unknown as string]);
+      expect(metaCardHidden()).toBeFalse();
+      expect(manualHidden()).toBeTrue();
+      expect(notify.success).not.toHaveBeenCalled();
+    });
+
+    it('with nothing connected yet it only chooses the side to show - there is no record to write', () => {
+      create();
+
+      click('Manual Connection');
+
+      expect(service.setWhatsAppConnectionMode).not.toHaveBeenCalled();
+      expect(checkedModes()[0]).toContain('Manual Connection');
+      expect(manualHidden()).toBeFalse();
+    });
+
+    it('sends Manual with the connection when the manual form saves it', () => {
+      create();
+
+      const form = root().querySelector('app-whatsapp-connection-form');
+      expect(form).toBeTruthy();
+      expect(fixture.debugElement.query((d) => d.name === 'app-whatsapp-connection-form').componentInstance.connectionMode).toBe('Manual');
+    });
+  });
+
   describe('the WhatsApp number', () => {
     it('is never typed here - Meta asks for it, so there is no number field or save button', () => {
       create();
@@ -129,6 +232,8 @@ describe('TenantSettingsListComponent', () => {
       expect(root.querySelector('app-meta-connect-card')).toBeTruthy();
       expect(root.textContent).toContain('Connect with Meta');
       expect(root.querySelector('app-whatsapp-connection-form')).toBeNull();
+      expect(root.querySelector('mat-button-toggle-group')).toBeNull(); // no mode choice here: Connect with Meta only
+      expect(root.querySelector('.meta-card')!.classList.contains('mode-hidden')).toBeFalse();
       expect(root.textContent).not.toContain('Charges this month');
       expect(root.textContent).not.toContain('Manage job schedules');
       expect(root.querySelector('app-page-header')).toBeNull();
