@@ -1,0 +1,214 @@
+<div class="page">
+  <app-page-header
+    title="Content Studio — charges & activity"
+    subtitle="Every step that used your studio credits: what it was, what it cost, and what came back when something failed."
+  >
+    <a mat-stroked-button routerLink="/billing/wallet">
+      <mat-icon>data_usage</mat-icon>
+      Usage &amp; credits
+    </a>
+  </app-page-header>
+
+  <div class="notice notice--urgent" *ngIf="!loadingOverview && !enabled">
+    <mat-icon>info</mat-icon>
+    <div class="notice-text">
+      <strong>Content Studio isn't switched on yet</strong>
+      <span>Nothing can be charged until your platform administrator turns it on. Any past activity is still listed below.</span>
+    </div>
+  </div>
+
+  <mat-tab-group animationDuration="0ms" mat-stretch-tabs="false">
+    <mat-tab label="Charges & activity">
+      <mat-progress-bar mode="indeterminate" *ngIf="loadingOverview"></mat-progress-bar>
+
+      <div class="balance-grid" *ngIf="!loadingOverview">
+        <mat-card class="balance-card" *ngFor="let b of balances" [ngClass]="'balance-card--' + b.level">
+          <div class="balance-head">
+            <mat-icon>{{ typeIcons[b.type] }}</mat-icon>
+            <span>{{ typeLabels[b.type] }}</span>
+          </div>
+          <div class="balance-number">{{ formatUnits(b.balance) }}</div>
+          <div class="muted balance-sub" *ngIf="b.level === 'none'">Nothing included yet — buy credits or ask for a plan that includes them.</div>
+          <div class="muted balance-sub" *ngIf="b.level === 'empty'">Used up — studio steps that need this are paused.</div>
+          <div class="muted balance-sub" *ngIf="b.level === 'low'">Running low — {{ b.percentLeft | number: '1.0-0' }}% left.</div>
+          <div class="muted balance-sub" *ngIf="b.level === 'ok'">of {{ formatUnits(b.capacity) }} available</div>
+
+          <mat-progress-bar
+            *ngIf="b.level !== 'none'"
+            mode="determinate"
+            [value]="b.percentLeft"
+            [color]="b.level === 'ok' ? 'primary' : 'warn'"
+          ></mat-progress-bar>
+
+          <dl class="totals" *ngIf="b.totals">
+            <div><dt>Last 30 days</dt><dd>{{ formatUnits(b.totals.net) }} used</dd></div>
+            <div><dt>Charged</dt><dd>{{ formatUnits(b.totals.charged) }}</dd></div>
+            <div><dt>Refunded</dt><dd>{{ formatUnits(b.totals.refunded) }}</dd></div>
+            <div *ngIf="b.totals.blocked"><dt>Refused</dt><dd class="units-out">{{ b.totals.blocked }}</dd></div>
+          </dl>
+        </mat-card>
+      </div>
+
+      <mat-card class="section-card filters-card">
+        <div class="filters">
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Period</mat-label>
+            <mat-select [(value)]="period" (selectionChange)="onFilterChange()">
+              <mat-option *ngFor="let p of periods" [value]="p">{{ p.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Activity</mat-label>
+            <mat-select [(value)]="kindFilter" (selectionChange)="onFilterChange()">
+              <mat-option [value]="null">All activities</mat-option>
+              <mat-option *ngFor="let k of kinds" [value]="k">{{ kindLabels[k] }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Credits</mat-label>
+            <mat-select [(value)]="quotaFilter" (selectionChange)="onFilterChange()">
+              <mat-option [value]="null">All credits</mat-option>
+              <mat-option *ngFor="let t of studioQuotaTypes" [value]="t">{{ typeLabels[t] }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Result</mat-label>
+            <mat-select [(value)]="statusFilter" (selectionChange)="onFilterChange()">
+              <mat-option [value]="null">Any result</mat-option>
+              <mat-option *ngFor="let s of statuses" [value]="s">{{ statusLabels[s] }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field subscriptSizing="dynamic" class="filters-search">
+            <mat-label>Search</mat-label>
+            <input matInput [formControl]="search" placeholder="Description or service" autocomplete="off" />
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <button mat-button type="button" *ngIf="hasFilters" (click)="clearFilters()">Clear filters</button>
+        </div>
+      </mat-card>
+
+      <div class="split" [class.split--detail]="!!selected">
+        <mat-card class="section-card list-card">
+          <mat-progress-bar mode="indeterminate" *ngIf="loadingActivity"></mat-progress-bar>
+
+          <div class="table-scroll" *ngIf="activity.items.length">
+            <table mat-table [dataSource]="activity.items" class="activity-table">
+              <ng-container matColumnDef="when">
+                <th mat-header-cell *matHeaderCellDef>When</th>
+                <td mat-cell *matCellDef="let row">{{ row.requestedAtUtc | zonedDate: 'short' }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="activity">
+                <th mat-header-cell *matHeaderCellDef>Activity</th>
+                <td mat-cell *matCellDef="let row">
+                  <div class="activity-kind">{{ row.kindLabel }}</div>
+                  <div class="muted activity-desc">{{ row.description }}</div>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="quota">
+                <th mat-header-cell *matHeaderCellDef>Credits</th>
+                <td mat-cell *matCellDef="let row">{{ typeLabel(row.quotaType) }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="units">
+                <th mat-header-cell *matHeaderCellDef class="num">Cost</th>
+                <td mat-cell *matCellDef="let row" class="num" [class.units-out]="row.status !== statusEnum.Blocked && row.netUnits > 0">
+                  {{ unitsLabel(row) }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="balance">
+                <th mat-header-cell *matHeaderCellDef class="num">Balance after</th>
+                <td mat-cell *matCellDef="let row" class="num">{{ formatUnits(row.balanceAfter) }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Result</th>
+                <td mat-cell *matCellDef="let row"><span [class]="statusClass(row.status)">{{ statusLabel(row.status) }}</span></td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="columns"></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: columns"
+                class="activity-row"
+                [class.activity-row--selected]="selected?.id === row.id"
+                tabindex="0"
+                (click)="select(row)"
+                (keydown.enter)="select(row)"
+              ></tr>
+            </table>
+          </div>
+
+          <div class="empty-state" *ngIf="!loadingActivity && !activity.items.length">
+            <mat-icon class="empty-icon">receipt_long</mat-icon>
+            <p *ngIf="!hasFilters">No studio activity yet. Anything that uses your studio credits will be listed here.</p>
+            <p *ngIf="hasFilters">Nothing matches these filters.</p>
+          </div>
+
+          <mat-paginator
+            *ngIf="activity.totalCount > 0"
+            [length]="activity.totalCount"
+            [pageSize]="activity.pageSize"
+            [pageIndex]="activity.page - 1"
+            [pageSizeOptions]="pageSizeOptions"
+            showFirstLastButtons
+            (page)="onPage($event)"
+          ></mat-paginator>
+        </mat-card>
+
+        <mat-card class="section-card detail-card" *ngIf="selected as row">
+          <div class="detail-head">
+            <h3>{{ row.kindLabel }}</h3>
+            <button mat-icon-button type="button" aria-label="Close details" (click)="selected = null"><mat-icon>close</mat-icon></button>
+          </div>
+          <p class="detail-desc">{{ row.description }}</p>
+          <span [class]="statusClass(row.status)">{{ statusLabel(row.status) }}</span>
+
+          <dl class="detail-list">
+            <div><dt>Credits</dt><dd>{{ typeLabel(row.quotaType) }}</dd></div>
+            <div><dt>Charged</dt><dd>{{ formatUnits(row.units) }}</dd></div>
+            <div *ngIf="row.unitsRefunded"><dt>Given back</dt><dd class="units-in">{{ formatUnits(row.unitsRefunded) }}</dd></div>
+            <div><dt>You paid in the end</dt><dd>{{ formatUnits(row.netUnits) }}</dd></div>
+            <div><dt>Balance after</dt><dd>{{ formatUnits(row.balanceAfter) }}</dd></div>
+            <div><dt>Started</dt><dd>{{ row.requestedAtUtc | zonedDate: 'medium' }}</dd></div>
+            <div *ngIf="row.completedAtUtc"><dt>Finished</dt><dd>{{ row.completedAtUtc | zonedDate: 'medium' }}</dd></div>
+            <div *ngIf="row.actorName"><dt>Started by</dt><dd>{{ row.actorName }}</dd></div>
+            <div *ngIf="row.provider"><dt>Service used</dt><dd>{{ row.provider }}</dd></div>
+            <div *ngIf="row.referenceType"><dt>Belongs to</dt><dd>{{ row.referenceType }} {{ row.referenceId }}</dd></div>
+            <div *ngIf="row.detail"><dt>Note</dt><dd>{{ row.detail }}</dd></div>
+            <div><dt>Reference</dt><dd class="mono">{{ row.operationKey }}</dd></div>
+          </dl>
+
+          <p class="muted hint">Quote the reference if you ask support about this charge.</p>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Settings">
+      <mat-card class="section-card settings-card">
+        <h3>Who can approve content</h3>
+        <p class="muted hint">
+          Content has to be approved before it can be published. You can change this at any time; it applies to content
+          waiting for approval straight away.
+        </p>
+
+        <mat-radio-group class="policy-group" [formControl]="policy">
+          <mat-radio-button *ngFor="let p of policies" [value]="p">{{ policyLabels[p] }}</mat-radio-button>
+        </mat-radio-group>
+
+        <div>
+          <button mat-flat-button color="primary" type="button" [disabled]="savingSettings || !policyDirty()" (click)="saveSettings()">
+            {{ savingSettings ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
+      </mat-card>
+    </mat-tab>
+  </mat-tab-group>
+</div>

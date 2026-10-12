@@ -152,6 +152,12 @@ const routes: Routes = [
         loadChildren: () => import('./features/social-ads/social-ads.module').then((m) => m.SocialAdsModule),
       },
       {
+        path: 'content-studio',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () => import('./features/content-studio/content-studio.module').then((m) => m.ContentStudioModule),
+      },
+      {
         path: 'audit-log',
         canActivate: [roleGuard],
         data: { roles: TENANT_ADMIN_ROLES },

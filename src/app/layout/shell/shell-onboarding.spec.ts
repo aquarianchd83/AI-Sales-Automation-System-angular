@@ -10,6 +10,7 @@ import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
+import { ContentStudioService } from '../../core/services/content-studio.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { OnboardingService } from '../../core/services/onboarding.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
@@ -54,6 +55,7 @@ describe('ShellComponent during onboarding', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountRecoveryService, useValue: { resendVerificationEmail: () => of(undefined) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
+        { provide: ContentStudioService, useValue: { getOverview: () => of({ enabled: false, approvalPolicy: 0, balances: [], last30Days: [] }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },

@@ -128,21 +128,33 @@ export enum QuotaType {
   WhatsAppMessages = 0,
   AiConversations = 1,
   LeadCandidates = 2,
+  ContentGenerations = 3,
+  VideoRenders = 4,
 }
 
 export const QUOTA_TYPE_LABELS: Record<QuotaType, string> = {
   [QuotaType.WhatsAppMessages]: 'WhatsApp messages',
   [QuotaType.AiConversations]: 'AI conversations',
   [QuotaType.LeadCandidates]: 'Lead candidates',
+  [QuotaType.ContentGenerations]: 'Content generations',
+  [QuotaType.VideoRenders]: 'Video renders',
 };
 
 export const QUOTA_TYPE_ICONS: Record<QuotaType, string> = {
   [QuotaType.WhatsAppMessages]: 'chat',
   [QuotaType.AiConversations]: 'smart_toy',
   [QuotaType.LeadCandidates]: 'travel_explore',
+  [QuotaType.ContentGenerations]: 'auto_awesome',
+  [QuotaType.VideoRenders]: 'movie',
 };
 
-export const QUOTA_TYPES: QuotaType[] = [QuotaType.WhatsAppMessages, QuotaType.AiConversations, QuotaType.LeadCandidates];
+export const QUOTA_TYPES: QuotaType[] = [
+  QuotaType.WhatsAppMessages,
+  QuotaType.AiConversations,
+  QuotaType.LeadCandidates,
+  QuotaType.ContentGenerations,
+  QuotaType.VideoRenders,
+];
 
 export enum QuotaGrantOrigin {
   PlanAllocation = 0,

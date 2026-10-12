@@ -27,6 +27,7 @@
           >{{ section.label }}</button>
           <div class="nav-items">
             <ng-container *ngFor="let item of section.items">
+              <ng-container *ngIf="!item.visible || item.visible()">
               <a
                 class="nav-item"
                 matRipple
@@ -41,6 +42,7 @@
                 <mat-icon>{{ item.icon }}</mat-icon>
                 <span>{{ item.label }}</span>
               </a>
+              </ng-container>
             </ng-container>
           </div>
         </div>

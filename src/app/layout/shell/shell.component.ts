@@ -12,6 +12,7 @@ import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { TenantNotification, isUrgentNotification, tenantNotificationRoute } from '../../core/models/billing.model';
 import { BillingService } from '../../core/services/billing.service';
+import { ContentStudioService } from '../../core/services/content-studio.service';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
@@ -26,6 +27,8 @@ interface NavItem {
   roles: string[];
   /** Highlight only on an exact route match - for a parent route whose child has its own nav entry. */
   exact?: boolean;
+  /** Hidden while this returns false - for an entry whose screen only exists once the platform switches its module on. */
+  visible?: () => boolean;
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -115,6 +118,18 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Business Profile', icon: 'storefront', route: '/profile', roles: TENANT_ADMIN_ONLY },
         { label: 'Social Ads', icon: 'public', route: '/social-ads', roles: TENANT_ADMIN_ONLY },
         { label: 'Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
+      ],
+    },
+    {
+      label: 'Content Studio',
+      items: [
+        {
+          label: 'Charges & Activity',
+          icon: 'receipt_long',
+          route: '/content-studio',
+          roles: TENANT_ADMIN_ONLY,
+          visible: () => this.studioEnabled,
+        },
       ],
     },
     {
@@ -236,7 +251,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   /** Hides a section heading when the user can see none of its items (e.g. Workspace for an agent).
    * Items themselves are still filtered by *appHasRole in the template. */
   isSectionVisible(section: NavSection): boolean {
-    return section.items.some((item) => this.auth.hasAnyRole(item.roles));
+    return section.items.some((item) => this.auth.hasAnyRole(item.roles) && (!item.visible || item.visible()));
   }
 
   /** Nav groups the user has folded away, by label. Remembered on this browser; a group holding the page being viewed never folds. */
@@ -318,6 +333,9 @@ export class ShellComponent implements OnInit, OnDestroy {
   /** Unread billing alerts (running low, used up, credits expiring, refund decisions) - a tenant admin's bell.
    * Never shown to the platform operator, and skipped in a support session so looking at a tenant's alerts can
    * never mark them read. */
+  /** True once the platform has switched the AI Content Studio on; until then its sidenav entry stays hidden. */
+  studioEnabled = false;
+
   readonly showBillingBell = !this.isPlatformSuperAdmin && !this.auth.isImpersonating && this.auth.hasAnyRole(TENANT_ADMIN_ONLY);
   billingAlerts: TenantNotification[] = [];
   /** The tenant's own IANA timezone — billing notification times are shown in it, whoever is reading. Null
@@ -344,6 +362,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly announcementService: AnnouncementService,
     private readonly account: AccountService,
     private readonly billing: BillingService,
+    private readonly contentStudio: ContentStudioService,
     private readonly platformNotifications: PlatformNotificationService,
     private readonly notificationHub: NotificationHubService,
     private readonly tenantProfile: TenantProfileService,
@@ -452,6 +471,11 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.account.getProfile().subscribe({ error: () => undefined });
 
     if (this.showBillingBell) {
+      this.contentStudio.getOverview().subscribe({
+        next: (overview) => (this.studioEnabled = overview.enabled),
+        error: () => undefined,
+      });
+
       this.tenantProfile.getProfile().subscribe({
         next: (profile) => (this.tenantTimezone = profile.timezone ?? null),
         error: () => undefined,
