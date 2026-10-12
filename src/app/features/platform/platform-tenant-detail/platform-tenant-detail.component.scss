@@ -1,7 +1,7 @@
 $radius: 14px;
 
 $tones: (
-  'teal': (#00796b, #e0f2f1),
+  'teal': (#0d9488, #e0f2f1),
   'blue': (#1e88e5, #e3f2fd),
   'violet': (#7b1fa2, #f3e5f5),
   'green': (#2e7d32, #e8f5e9),
@@ -231,7 +231,7 @@ mat-slide-toggle {
   height: 64px;
   border-radius: 18px;
   background: #e0f2f1;
-  color: #00695c;
+  color: #0f766e;
   font-size: 22px;
   font-weight: 600;
 }
@@ -243,7 +243,7 @@ mat-slide-toggle {
   font-size: 12px;
   font-weight: 500;
   background: #e8eaf6;
-  color: #3949ab;
+  color: #6366f1;
 }
 
 @media (max-width: 1000px) {

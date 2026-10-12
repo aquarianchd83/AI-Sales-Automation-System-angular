@@ -5,13 +5,18 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(135deg, #00695c 0%, #263238 100%);
+  background: radial-gradient(circle at 15% 10%, rgba(20, 184, 166, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(99, 102, 241, 0.35), transparent 45%),
+    #0f172a;
 }
 
 .login-card {
   width: 100%;
-  max-width: 420px;
-  padding: 32px 28px;
+  max-width: 432px;
+  padding: 36px 32px;
+  border: 0;
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(2, 6, 23, 0.45) !important;
 }
 
 .login-brand {

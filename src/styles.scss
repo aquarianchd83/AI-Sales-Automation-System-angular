@@ -6,8 +6,8 @@
 
 @include mat.core();
 
-$app-primary: mat.define-palette(mat.$teal-palette, 700, 400, 900);
-$app-accent: mat.define-palette(mat.$indigo-palette, A200, A100, A400);
+$app-primary: mat.define-palette(mat.$teal-palette, 600, 300, 800);
+$app-accent: mat.define-palette(mat.$indigo-palette, 500, 300, 700);
 $app-warn: mat.define-palette(mat.$red-palette);
 
 $app-theme: mat.define-light-theme(
@@ -50,16 +50,50 @@ body {
   height: 100%;
 }
 
+/* ---- design tokens: one place to retune the whole application ---- */
+:root {
+  --app-bg: #f4f6fb;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f1f5f9;
+  --app-border: #e2e8f0;
+  --app-ink: #0f172a;
+  --app-text: #334155;
+  --app-muted: #64748b;
+  --app-primary: #0d9488;
+  --app-primary-strong: #0f766e;
+  --app-accent: #6366f1;
+  --app-radius: 14px;
+  --app-radius-sm: 10px;
+  --app-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.05);
+  --app-shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
 body {
   margin: 0;
   font-family: Roboto, 'Helvetica Neue', sans-serif;
-  background: #f5f6f8;
+  background: var(--app-bg);
+  color: var(--app-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--app-ink);
+  letter-spacing: -0.2px;
 }
 
 /* ---- small layout utilities used across feature pages ---- */
 
 .page {
-  padding: 24px;
+  padding: 28px 32px;
+  max-width: 1480px;
+  margin: 0 auto;
+
+  @media (max-width: 720px) {
+    padding: 20px 16px;
+  }
 }
 
 .page-toolbar {
@@ -97,13 +131,13 @@ table.mat-mdc-table {
 }
 
 .muted {
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--app-muted);
 }
 
 .empty-state {
-  padding: 48px 24px;
+  padding: 56px 24px;
   text-align: center;
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--app-muted);
 }
 
 /* ---- Material overrides: long text pushes the layout down, never draws over it ---- */
@@ -297,4 +331,193 @@ table.mat-mdc-table {
 .category-chip--authentication {
   background: #f3e5f5;
   color: #7b1fa2;
+}
+
+
+/* ================================================================
+   Professional surface layer - applied to every screen (platform and tenant)
+   ================================================================ */
+
+/* Cards: white, softly rounded, hairline border instead of Material's heavy elevation. */
+.mat-mdc-card {
+  border-radius: var(--app-radius);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow) !important;
+  color: var(--app-text);
+
+  .mat-mdc-card-title {
+    color: var(--app-ink);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .mat-mdc-card-subtitle {
+    color: var(--app-muted);
+  }
+}
+
+/* Page headings rendered by <app-page-header> and by screens that carry their own h1. */
+.page h1,
+app-page-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--app-ink);
+}
+
+/* Tables: quiet uppercase header row, airy rows, soft hover. */
+.mat-mdc-table {
+  background: transparent;
+
+  .mat-mdc-header-row {
+    height: 46px;
+    background: var(--app-surface-muted);
+  }
+
+  .mat-mdc-header-cell {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--app-muted);
+    border-bottom: 1px solid var(--app-border);
+  }
+
+  .mat-mdc-row {
+    transition: background 120ms ease;
+
+    &:hover {
+      background: #f8fafc;
+    }
+  }
+
+  .mat-mdc-cell {
+    font-size: 13.5px;
+    color: var(--app-text);
+    border-bottom-color: #eef2f7;
+  }
+
+  .mat-mdc-row:last-child .mat-mdc-cell {
+    border-bottom: 0;
+  }
+}
+
+.table-card {
+  padding: 0;
+}
+
+/* Buttons: pill-ish radius, no shouting text-transform, a gradient on the primary action. */
+.mat-mdc-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-raised-button,
+.mat-mdc-outlined-button {
+  border-radius: 10px;
+  letter-spacing: 0.1px;
+  font-weight: 500;
+}
+
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary {
+  background-image: linear-gradient(135deg, #0d9488, #0f766e);
+  box-shadow: 0 1px 2px rgba(15, 118, 110, 0.35);
+
+  &:disabled {
+    background-image: none;
+  }
+}
+
+.mat-mdc-outlined-button:not(:disabled) {
+  border-color: var(--app-border);
+}
+
+.mat-mdc-icon-button {
+  color: var(--app-muted);
+}
+
+/* Form fields: a tinted fill so inputs read as inputs on white cards. */
+.mat-mdc-text-field-wrapper.mdc-text-field--outlined {
+  background: #fff;
+}
+
+.mdc-text-field--outlined .mdc-notched-outline__leading,
+.mdc-text-field--outlined .mdc-notched-outline__notch,
+.mdc-text-field--outlined .mdc-notched-outline__trailing {
+  border-color: #cbd5e1;
+}
+
+/* Dialogs and menus */
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: 16px !important;
+  box-shadow: var(--app-shadow-lg) !important;
+}
+
+.mat-mdc-dialog-title {
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.mat-mdc-menu-panel {
+  border-radius: 12px !important;
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow-lg) !important;
+}
+
+/* Tabs and paginator */
+.mat-mdc-tab-header {
+  border-bottom: 1px solid var(--app-border);
+}
+
+.mat-mdc-tab .mdc-tab__text-label {
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  text-transform: none;
+}
+
+.mat-mdc-paginator {
+  background: transparent;
+  border-top: 1px solid var(--app-border);
+}
+
+/* Chips */
+.mat-mdc-chip.mat-mdc-standard-chip {
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* Status chips: a leading dot gives every state a scannable marker. */
+.status-chip,
+.category-chip {
+  border-radius: 999px;
+}
+
+.status-chip::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+
+/* Expansion panels and lists follow the card language. */
+.mat-expansion-panel {
+  border-radius: var(--app-radius) !important;
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow) !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  border-radius: 12px !important;
+}
+
+/* Thin, modern scrollbars everywhere. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+::selection {
+  background: rgba(13, 148, 136, 0.22);
 }
