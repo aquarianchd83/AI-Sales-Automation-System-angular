@@ -55,6 +55,41 @@ describe('SettingsListComponent', () => {
     expect(root.querySelectorAll('input').length).toBe(3);
   });
 
+  it('offers a dropdown for a setting with fixed choices and a text box for one without', () => {
+    TestBed.configureTestingModule({
+      declarations: [SettingsListComponent],
+      imports: [SharedModule, NoopAnimationsModule],
+      providers: [
+        {
+          provide: SettingsService,
+          useValue: {
+            getAll: () =>
+              of([
+                {
+                  category: 'ContentStudio',
+                  items: [
+                    { key: 'ContentStudio:Enabled', value: 'false', isSecret: false, isList: false, description: null, options: ['true', 'false'] },
+                    { key: 'ContentStudio:StorageMode', value: 'PublicBucket', isSecret: false, isList: false, description: null, options: ['PublicBucket', 'SignedUrls'] },
+                    { key: 'ContentStudio:StorageKeyPrefix', value: 'studio', isSecret: false, isList: false, description: null },
+                  ],
+                },
+              ]),
+          },
+        },
+        { provide: ActivatedRoute, useValue: { snapshot: { data: { categories: ['ContentStudio'] } } } },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(SettingsListComponent);
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelectorAll('mat-select').length).toBe(2);
+    expect(root.querySelectorAll('input').length).toBe(1);
+    expect(fixture.componentInstance.panels[0].form.get('ContentStudio:Enabled')?.value).toBe('false');
+    expect(fixture.componentInstance.panels[0].form.get('ContentStudio:StorageMode')?.value).toBe('PublicBucket');
+  });
+
   it('shows only the AI providers on its own screen', () => {
     expect(panelsFor({ categories: ['AiProviders'] })).toEqual(['AiProviders']);
   });

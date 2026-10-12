@@ -1,0 +1,80 @@
+.questions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.question {
+  padding: 16px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+
+  &--error {
+    border-color: #b3261e;
+  }
+}
+
+.prompt {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.number {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 12px;
+  line-height: 24px;
+  text-align: center;
+}
+
+.required {
+  margin-left: 4px;
+  color: #b3261e;
+}
+
+.help {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.full {
+  width: 100%;
+}
+
+.short {
+  width: 220px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 16px;
+}
+
+.field-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.error {
+  margin-top: 6px;
+  color: #b3261e;
+  font-size: 12px;
+}
+
+.empty {
+  padding: 24px;
+  text-align: center;
+}

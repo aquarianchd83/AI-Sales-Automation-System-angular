@@ -1,0 +1,146 @@
+<div class="page">
+  <app-page-header
+    title="Studio questionnaires"
+    subtitle="What the AI Content Studio asks each business. One generic template, plus one per industry. A published version never changes."
+  >
+    <button mat-flat-button color="primary" type="button" (click)="startNew()">
+      <mat-icon>add</mat-icon>
+      New template
+    </button>
+  </app-page-header>
+
+  <div class="split" [class.split--detail]="panel !== 'none'">
+    <mat-card class="section-card list-card">
+      <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+      <button
+        type="button"
+        class="template-row"
+        *ngFor="let t of templates"
+        [class.template-row--selected]="detail?.template?.id === t.id"
+        (click)="select(t)"
+      >
+        <span class="template-main">
+          <strong>{{ t.title }}</strong>
+          <span class="muted">{{ t.key }} · {{ t.industry || 'Any industry' }}</span>
+        </span>
+        <span class="template-tags">
+          <span class="tag tag--live" *ngIf="t.publishedVersion">Live v{{ t.publishedVersion }}</span>
+          <span class="tag tag--draft" *ngIf="t.latestVersion > (t.publishedVersion || 0)">Draft v{{ t.latestVersion }}</span>
+          <span class="tag" *ngIf="!t.isActive">Off</span>
+        </span>
+      </button>
+
+      <div class="empty-state" *ngIf="!loading && !templates.length">
+        <mat-icon class="empty-icon">quiz</mat-icon>
+        <p>No templates yet. Create the generic one first, so every tenant has a questionnaire.</p>
+      </div>
+    </mat-card>
+
+    <mat-card class="section-card editor-card" *ngIf="panel !== 'none'">
+      <mat-progress-bar mode="indeterminate" *ngIf="busy"></mat-progress-bar>
+
+      <div class="detail-head">
+        <h3>{{ isNew ? 'New template' : detail?.template?.title }}</h3>
+        <button mat-icon-button type="button" aria-label="Close" (click)="close()"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <form [formGroup]="meta" class="meta-grid" novalidate>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Key</mat-label>
+          <input matInput formControlName="key" autocomplete="off" placeholder="eye-care" />
+          <mat-hint>Lower-case letters, digits and hyphens. Cannot be changed later.</mat-hint>
+          <mat-error>Use 2-60 lower-case letters, digits or hyphens, starting with a letter.</mat-error>
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Title</mat-label>
+          <input matInput formControlName="title" autocomplete="off" />
+          <mat-error>A title is needed.</mat-error>
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Industry</mat-label>
+          <input matInput formControlName="industry" autocomplete="off" placeholder="Leave blank for every industry" />
+          <mat-hint>Matched against a business's industry (not case-sensitive).</mat-hint>
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Description</mat-label>
+          <input matInput formControlName="description" autocomplete="off" />
+        </mat-form-field>
+        <mat-slide-toggle formControlName="isActive" *ngIf="!isNew">Offer to tenants</mat-slide-toggle>
+        <div class="meta-actions" *ngIf="!isNew">
+          <button mat-stroked-button type="button" [disabled]="busy || meta.invalid || meta.pristine" (click)="saveDetails()">Save details</button>
+        </div>
+      </form>
+
+      <div class="versions" *ngIf="!isNew && detail">
+        <span class="muted">Versions</span>
+        <button
+          type="button"
+          class="version-chip"
+          *ngFor="let v of detail.versions"
+          [class.version-chip--on]="version?.number === v.number"
+          (click)="pickVersion(v)"
+        >
+          v{{ v.number }}
+          <span class="muted">{{ v.status === statusEnum.Published ? 'published' : 'draft' }}</span>
+        </button>
+        <button mat-button type="button" *ngIf="!hasDraft" [disabled]="busy" (click)="newVersion()">
+          <mat-icon>add</mat-icon>
+          New version
+        </button>
+      </div>
+
+      <div class="definition" *ngIf="isNew || version">
+        <div class="definition-bar">
+          <mat-button-toggle-group [(value)]="view" aria-label="Definition or preview">
+            <mat-button-toggle value="definition">Definition</mat-button-toggle>
+            <mat-button-toggle value="preview">Preview</mat-button-toggle>
+          </mat-button-toggle-group>
+          <span class="muted" *ngIf="!isDraft">Published - read only. Create a new version to change it.</span>
+          <button mat-button type="button" *ngIf="isNew" (click)="loadStarter()">Reset to starter</button>
+        </div>
+
+        <textarea
+          *ngIf="view === 'definition'"
+          class="json"
+          rows="22"
+          spellcheck="false"
+          aria-label="Questionnaire definition (JSON)"
+          [readOnly]="!isDraft"
+          [(ngModel)]="json"
+          (ngModelChange)="validation = null"
+        ></textarea>
+
+        <div class="preview" *ngIf="view === 'preview'">
+          <p class="muted" *ngIf="!previewDefinition">The definition is not valid JSON yet, so there is nothing to preview.</p>
+          <app-questionnaire-form
+            *ngIf="previewDefinition"
+            [definition]="previewDefinition"
+            [answers]="previewAnswers"
+            (answersChange)="previewAnswers = $event"
+          ></app-questionnaire-form>
+        </div>
+
+        <div class="validation" *ngIf="validation" role="status" [class.validation--ok]="validation.valid">
+          <strong *ngIf="validation.valid">Valid - {{ validation.questionCount }} question(s).</strong>
+          <ng-container *ngIf="!validation.valid">
+            <strong>{{ validation.issues.length }} problem(s) to fix:</strong>
+            <ul>
+              <li *ngFor="let issue of validation.issues"><code>{{ issue.key }}</code> {{ issue.message }}</li>
+            </ul>
+          </ng-container>
+        </div>
+
+        <div class="definition-actions">
+          <button mat-stroked-button type="button" [disabled]="busy" (click)="validate()">Check</button>
+          <button mat-flat-button color="primary" type="button" *ngIf="isNew" [disabled]="busy" (click)="create()">Create as draft</button>
+          <button mat-stroked-button type="button" *ngIf="!isNew && isDraft" [disabled]="busy || !jsonDirty" (click)="saveDraft()">Save draft</button>
+          <button mat-flat-button color="primary" type="button" *ngIf="!isNew && isDraft" [disabled]="busy" (click)="publish()">
+            <mat-icon>publish</mat-icon>
+            Publish v{{ version?.number }}
+          </button>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+</div>

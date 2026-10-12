@@ -9,6 +9,7 @@ import {
   TenantWhatsAppConfig,
   TenantWhatsAppNumber,
   UpdateTenantWhatsAppConfigRequest,
+  WhatsAppConnectionMode,
 } from '../models/tenant-settings.model';
 
 /**
@@ -35,6 +36,11 @@ export class TenantSettingsService {
   /** Saves just the number (blank clears it). Connecting it to WhatsApp is separate (saveWhatsAppConfig). */
   saveWhatsAppNumber(whatsAppNumber: string | null): Observable<TenantWhatsAppNumber> {
     return this.http.put<TenantWhatsAppNumber>(`${this.baseUrl}/whatsapp-number`, { whatsAppNumber });
+  }
+
+  /** Records Automatic or Manual on the tenant's saved connection - nothing else changes. Fails (409) before anything is connected. */
+  setWhatsAppConnectionMode(mode: WhatsAppConnectionMode): Observable<TenantWhatsAppConfig> {
+    return this.http.put<TenantWhatsAppConfig>(`${this.baseUrl}/whatsapp/connection-mode`, { mode });
   }
 
   /** Saves the tenant's own WhatsApp credentials. Clears any earlier verification - verify again afterwards. */

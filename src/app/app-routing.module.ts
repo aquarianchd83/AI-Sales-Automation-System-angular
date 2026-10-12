@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { authGuard, guestGuard, homeRedirectGuard, roleGuard } from './core/guards/auth.guard';
 import { onboardingGuard } from './core/guards/onboarding.guard';
+import { STUDIO_CONTENT_ROLES } from './core/models/content-studio.model';
 import { PLATFORM_ADMIN_ROLES } from './core/models/platform.model';
 import { SETTINGS_ADMIN_ROLES } from './core/models/settings.model';
 import { REPORT_ROLES, TENANT_ADMIN_ROLES, TENANT_ROLES, USER_ADMIN_ROLES } from './core/models/user.model';
@@ -150,6 +151,12 @@ const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: TENANT_ADMIN_ROLES },
         loadChildren: () => import('./features/social-ads/social-ads.module').then((m) => m.SocialAdsModule),
+      },
+      {
+        path: 'content-studio',
+        canActivate: [roleGuard],
+        data: { roles: STUDIO_CONTENT_ROLES },
+        loadChildren: () => import('./features/content-studio/content-studio.module').then((m) => m.ContentStudioModule),
       },
       {
         path: 'audit-log',

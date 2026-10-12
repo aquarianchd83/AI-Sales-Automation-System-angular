@@ -143,6 +143,39 @@ dd {
   padding: 24px;
 }
 
+.mode-card {
+  margin-bottom: 16px;
+
+  .mode-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 24px;
+  }
+
+  h3 {
+    margin: 0 0 4px;
+  }
+
+  .hint {
+    margin: 0;
+  }
+
+  .mode-toggle mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    vertical-align: text-bottom;
+  }
+}
+
+/* The mode not chosen: kept in the page (so nothing is re-fetched or lost) but not shown. */
+.mode-hidden {
+  display: none !important;
+}
+
 .manual-panel {
   margin-bottom: 16px;
 

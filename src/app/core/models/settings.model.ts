@@ -23,6 +23,8 @@ export interface SettingItem {
   value: string | null;
   hasValue: boolean;
   valueHint: string | null;
+  /** When present the value must be one of these, so the console shows a dropdown rather than a text box. */
+  options?: string[] | null;
 }
 
 /** SettingCategoryDto. */
@@ -49,5 +51,5 @@ export interface AiProviderCheck {
  * whatever is left: everything not listed here. */
 export const CATEGORIES_WITH_OWN_SCREEN = [
   'AiProviders', 'MetaAds', 'Campaigns', 'Media', 'Messaging', 'Ai',
-  'MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'WhatsApp',
+  'MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'WhatsApp', 'ContentStudio',
 ];

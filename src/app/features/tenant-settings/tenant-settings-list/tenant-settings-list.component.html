@@ -7,16 +7,46 @@
 
   <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
 
-  <!-- Connect with Meta: the tenant's whole WhatsApp job - on this page and in onboarding's WhatsApp step. Meta's window asks for the number. -->
-  <mat-card class="detail-card meta-card" *ngIf="!loadingWhatsApp">
+  <!-- How WhatsApp is connected: exactly one of the two, kept on the tenant's connection. Not part of onboarding's WhatsApp step, which is Connect with Meta only. -->
+  <mat-card class="detail-card mode-card" *ngIf="!embedded && !loadingWhatsApp">
+    <div class="mode-head">
+      <div>
+        <h3>Connection mode</h3>
+        <p class="muted hint">
+          {{ mode === 'Automatic'
+            ? 'Automatic: you sign in to Meta and we set WhatsApp up for you.'
+            : 'Manual: you enter your WhatsApp Business details yourself.' }}
+        </p>
+      </div>
+      <mat-button-toggle-group
+        #modeGroup="matButtonToggleGroup"
+        class="mode-toggle"
+        aria-label="Connection mode"
+        [value]="mode"
+        [disabled]="savingMode"
+        (change)="selectMode($event.value)"
+      >
+        <mat-button-toggle value="Automatic" aria-label="Automatic connection">
+          <mat-icon>link</mat-icon> Automatic Connection
+        </mat-button-toggle>
+        <mat-button-toggle value="Manual" aria-label="Manual connection">
+          <mat-icon>tune</mat-icon> Manual Connection
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+  </mat-card>
+
+  <!-- Automatic: Connect with Meta - the tenant's whole WhatsApp job here and in onboarding's WhatsApp step. Meta's window asks for the number.
+       The side not chosen is hidden, not destroyed, so switching back costs no extra calls and loses nothing typed. -->
+  <mat-card class="detail-card meta-card" [class.mode-hidden]="mode !== 'Automatic' && !embedded" *ngIf="!loadingWhatsApp">
     <app-meta-connect-card [config]="whatsAppConfig" (changed)="whatsAppConfig = $event"></app-meta-connect-card>
   </mat-card>
 
   <ng-container *ngIf="!embedded">
-  <mat-expansion-panel class="manual-panel" *ngIf="!loadingWhatsApp">
+  <mat-expansion-panel class="manual-panel" [class.mode-hidden]="mode !== 'Manual'" [expanded]="mode === 'Manual'" *ngIf="!loadingWhatsApp">
     <mat-expansion-panel-header>
       <mat-panel-title><mat-icon>tune</mat-icon> Enter details manually</mat-panel-title>
-      <mat-panel-description>Only if you cannot use Connect with Meta above</mat-panel-description>
+      <mat-panel-description>Your WhatsApp Business details, typed in</mat-panel-description>
     </mat-expansion-panel-header>
     <p class="muted hint">
       You and your platform administrator can both set this up; whoever changes it, verify the connection afterwards.
@@ -25,6 +55,7 @@
       [config]="whatsAppConfig"
       [save]="saveWhatsApp"
       [verify]="verifyWhatsApp"
+      connectionMode="Manual"
       (changed)="whatsAppConfig = $event"
     ></app-whatsapp-connection-form>
   </mat-expansion-panel>

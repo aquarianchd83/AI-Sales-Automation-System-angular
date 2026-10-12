@@ -9,6 +9,7 @@ import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
 import { OnboardingService } from '../../core/services/onboarding.service';
 import { BillingService } from '../../core/services/billing.service';
+import { ContentStudioService } from '../../core/services/content-studio.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotification } from '../../core/models/platform.model';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
@@ -39,6 +40,7 @@ describe('ShellComponent sidenav', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountRecoveryService, useValue: { resendVerificationEmail: resend } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
+        { provide: ContentStudioService, useValue: { getStatus: () => of({ enabled: false }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of(platformAlerts) } },
@@ -142,6 +144,7 @@ describe('ShellComponent sidenav', () => {
       'manage_accountsUsers',
       'campaignAnnouncements',
       'menu_bookKnowledge Base',
+      'quizStudio Questionnaires',
       'paymentsPackage',
       'data_usageUsage & Quotas',
       'receipt_longPayments',

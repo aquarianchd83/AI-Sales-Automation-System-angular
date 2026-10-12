@@ -81,7 +81,7 @@ export interface PlatformCreditPackFormDialogData {
 export class PlatformCreditPackFormDialogComponent implements OnInit, OnDestroy {
   readonly formatCharge = formatCharge;
   readonly isEditMode = this.data.pack !== null;
-  readonly quotaTypes = [QuotaType.WhatsAppMessages, QuotaType.AiConversations, QuotaType.LeadCandidates];
+  readonly quotaTypes = [QuotaType.WhatsAppMessages, QuotaType.AiConversations, QuotaType.LeadCandidates, QuotaType.ContentGenerations, QuotaType.VideoRenders];
   readonly quotaLabels = QUOTA_TYPE_LABELS;
 
   readonly form = this.fb.group({

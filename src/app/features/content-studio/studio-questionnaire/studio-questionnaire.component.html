@@ -1,0 +1,76 @@
+<div class="page">
+  <app-page-header
+    title="Business questionnaire"
+    subtitle="Tell the studio about your business. What you say here becomes facts you check once, and the studio only ever says what you've verified."
+  >
+    <a mat-stroked-button routerLink="/content-studio/facts">
+      <mat-icon>fact_check</mat-icon>
+      Business facts
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="section-card empty-card" *ngIf="!loading && state && !state.available">
+    <mat-icon class="empty-icon">quiz</mat-icon>
+    <p>{{ state.message }}</p>
+  </mat-card>
+
+  <ng-container *ngIf="state?.available">
+    <div class="notice" *ngIf="completion" role="status">
+      <mat-icon>check_circle</mat-icon>
+      <div class="notice-text">
+        <strong>Questionnaire completed</strong>
+        <span>
+          {{ completion.created }} new and {{ completion.updated }} changed fact(s) are waiting to be checked<ng-container *ngIf="completion.retired">; {{ completion.retired }} retired</ng-container>.
+          Review and verify them so the studio can use them.
+        </span>
+      </div>
+      <a mat-flat-button color="primary" routerLink="/content-studio/facts">Review facts</a>
+    </div>
+
+    <div class="notice notice--warn" *ngIf="state?.newerVersionAvailable" role="status">
+      <mat-icon>update</mat-icon>
+      <div class="notice-text">
+        <strong>There's a newer version of this questionnaire</strong>
+        <span>Update your answers to move to it. Everything you already said that still fits is kept.</span>
+      </div>
+      <button mat-flat-button color="primary" type="button" [disabled]="restarting" (click)="restart()">Update my answers</button>
+    </div>
+
+    <mat-card class="section-card">
+      <div class="head">
+        <div>
+          <h3>{{ state?.templateTitle }}</h3>
+          <span class="muted version">Version {{ state?.versionNumber }}<ng-container *ngIf="state?.completedAtUtc"> · completed {{ state?.completedAtUtc | zonedDate: 'mediumDate' }}</ng-container></span>
+        </div>
+
+        <div class="progress" *ngIf="editable">
+          <span class="muted">{{ progress.answered }} of {{ progress.total }} required answered</span>
+          <mat-progress-bar mode="determinate" [value]="progress.percent"></mat-progress-bar>
+        </div>
+
+        <button mat-stroked-button type="button" *ngIf="state?.status === status.Completed && !state?.newerVersionAvailable" [disabled]="restarting" (click)="restart()">
+          <mat-icon>edit</mat-icon>
+          Update my answers
+        </button>
+      </div>
+
+      <app-questionnaire-form
+        [definition]="state?.definition ?? null"
+        [answers]="answers"
+        [errors]="errors"
+        [readonly]="!editable"
+        (answersChange)="onAnswers($event)"
+      ></app-questionnaire-form>
+
+      <div class="actions" *ngIf="editable">
+        <span class="muted" *ngIf="dirty">You have unsaved changes.</span>
+        <button mat-stroked-button type="button" [disabled]="saving || !dirty" (click)="save()">{{ saving ? 'Saving…' : 'Save progress' }}</button>
+        <button mat-flat-button color="primary" type="button" [disabled]="completing || saving" (click)="complete()">
+          {{ completing ? 'Completing…' : 'Complete questionnaire' }}
+        </button>
+      </div>
+    </mat-card>
+  </ng-container>
+</div>

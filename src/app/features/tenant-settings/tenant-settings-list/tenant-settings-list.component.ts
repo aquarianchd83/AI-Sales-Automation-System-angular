@@ -1,12 +1,17 @@
-import { Component, Inject, OnInit, Optional } from '@angular/core';
+import { Component, Inject, OnInit, Optional, ViewChild } from '@angular/core';
+import { MatButtonToggleGroup } from '@angular/material/button-toggle';
+import { finalize } from 'rxjs/operators';
 
 import { formatCharge } from '../../../core/models/billing.model';
 import {
+  DEFAULT_WHATSAPP_CONNECTION_MODE,
   TenantCharges,
   TenantMessageUsage,
   TenantWhatsAppConfig,
   UpdateTenantWhatsAppConfigRequest,
+  WhatsAppConnectionMode,
 } from '../../../core/models/tenant-settings.model';
+import { NotificationService } from '../../../core/services/notification.service';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
 import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 
@@ -57,11 +62,49 @@ export class TenantSettingsListComponent implements OnInit {
   /** Inside onboarding's "WhatsApp" step only "Connect with Meta" is shown: the manual connection form, usage and charges are left out. */
   readonly embedded: boolean;
 
+  /** The one way the tenant connects: Connect with Meta, or details typed in. Exactly one at a time - the toggle group is single-select. */
+  mode: WhatsAppConnectionMode = DEFAULT_WHATSAPP_CONNECTION_MODE;
+  savingMode = false;
+  @ViewChild('modeGroup') private modeGroup?: MatButtonToggleGroup;
+
   constructor(
     private readonly tenantSettings: TenantSettingsService,
+    private readonly notify: NotificationService,
     @Optional() @Inject(EMBEDDED_IN_ONBOARDING) embedded: boolean | null
   ) {
     this.embedded = !!embedded;
+  }
+
+  /**
+   * The tenant picked a mode. With a saved connection it is recorded on it first and only shown as chosen once the API confirms;
+   * a failure puts the toggle back and says so. With nothing connected yet there is no record to hold it, so it only decides which
+   * side is shown, and is saved together with the connection (the manual form sends it; Connect with Meta records Automatic).
+   */
+  selectMode(next: WhatsAppConnectionMode): void {
+    if (next === this.mode || this.savingMode) {
+      return;
+    }
+    if (!this.whatsAppConfig) {
+      this.mode = next;
+      return;
+    }
+    this.savingMode = true;
+    this.tenantSettings
+      .setWhatsAppConnectionMode(next)
+      .pipe(finalize(() => (this.savingMode = false)))
+      .subscribe({
+        next: (config) => {
+          this.whatsAppConfig = config;
+          this.mode = config.connectionMode ?? next;
+          this.notify.success(this.mode === 'Automatic' ? 'Connection mode: Automatic.' : 'Connection mode: Manual.');
+        },
+        error: () => {
+          // Not saved: show the mode that is. (The error interceptor says why.)
+          if (this.modeGroup) {
+            this.modeGroup.value = this.mode;
+          }
+        },
+      });
   }
 
   ngOnInit(): void {
@@ -69,6 +112,7 @@ export class TenantSettingsListComponent implements OnInit {
     this.tenantSettings.getWhatsAppConfig().subscribe({
       next: (config) => {
         this.whatsAppConfig = config;
+        this.mode = config?.connectionMode ?? DEFAULT_WHATSAPP_CONNECTION_MODE;
         this.loadingWhatsApp = false;
       },
       error: () => (this.loadingWhatsApp = false),

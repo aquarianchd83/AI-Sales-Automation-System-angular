@@ -10,6 +10,7 @@ import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
 import { OnboardingService } from '../../core/services/onboarding.service';
 import { BillingService } from '../../core/services/billing.service';
+import { ContentStudioService } from '../../core/services/content-studio.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
@@ -50,6 +51,7 @@ describe('ShellComponent platform bell', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountRecoveryService, useValue: { resendVerificationEmail: () => of(undefined) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
+        { provide: ContentStudioService, useValue: { getStatus: () => of({ enabled: false }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent, acknowledge, acknowledgeAll, delete: deleteSpy } },
