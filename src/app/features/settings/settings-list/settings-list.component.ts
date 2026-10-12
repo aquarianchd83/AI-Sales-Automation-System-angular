@@ -28,7 +28,7 @@ interface CategoryPanel {
 const HIDDEN_CATEGORIES = ['MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'WhatsApp'];
 
 /** Panel headings for a category's own keys on the grouped screens. */
-const CATEGORY_LABELS: Record<string, string> = { AiProviders: 'General', MetaAds: 'Meta Ads', Ai: 'AI' };
+const CATEGORY_LABELS: Record<string, string> = { AiProviders: 'General', MetaAds: 'Meta Ads', Ai: 'AI', ContentStudio: 'Content Studio' };
 
 /** List-value items are edited as comma-separated text and split/joined at the edges. */
 const LIST_SEPARATOR = ',';

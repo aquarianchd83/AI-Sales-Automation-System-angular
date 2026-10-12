@@ -12,6 +12,7 @@ import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { TenantNotification, isUrgentNotification, tenantNotificationRoute } from '../../core/models/billing.model';
 import { BillingService } from '../../core/services/billing.service';
+import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { ContentStudioService } from '../../core/services/content-studio.service';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
@@ -123,11 +124,14 @@ export class ShellComponent implements OnInit, OnDestroy {
     {
       label: 'Content Studio',
       items: [
+        { label: 'Business Questionnaire', icon: 'quiz', route: '/content-studio/questionnaire', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
+        { label: 'Business Facts', icon: 'fact_check', route: '/content-studio/facts', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
         {
           label: 'Charges & Activity',
           icon: 'receipt_long',
           route: '/content-studio',
           roles: TENANT_ADMIN_ONLY,
+          exact: true,
           visible: () => this.studioEnabled,
         },
       ],
@@ -176,6 +180,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Users', icon: 'manage_accounts', route: '/platform/users', roles: [] },
         { label: 'Announcements', icon: 'campaign', route: '/platform/announcements', roles: [] },
         { label: 'Knowledge Base', icon: 'menu_book', route: '/platform/knowledge', roles: [] },
+        { label: 'Studio Questionnaires', icon: 'quiz', route: '/platform/studio-questionnaires', roles: [] },
       ],
     },
     {
@@ -336,6 +341,9 @@ export class ShellComponent implements OnInit, OnDestroy {
   /** True once the platform has switched the AI Content Studio on; until then its sidenav entry stays hidden. */
   studioEnabled = false;
 
+  /** Admins and Sales Managers get the studio's questionnaire and facts links - never the platform operator, and not in a support session. */
+  readonly showStudioNav = !this.isPlatformSuperAdmin && !this.auth.isImpersonating && this.auth.hasAnyRole(STUDIO_CONTENT_ROLES);
+
   readonly showBillingBell = !this.isPlatformSuperAdmin && !this.auth.isImpersonating && this.auth.hasAnyRole(TENANT_ADMIN_ONLY);
   billingAlerts: TenantNotification[] = [];
   /** The tenant's own IANA timezone — billing notification times are shown in it, whoever is reading. Null
@@ -470,12 +478,14 @@ export class ShellComponent implements OnInit, OnDestroy {
     // clearSession documents for the cached user).
     this.account.getProfile().subscribe({ error: () => undefined });
 
-    if (this.showBillingBell) {
-      this.contentStudio.getOverview().subscribe({
-        next: (overview) => (this.studioEnabled = overview.enabled),
+    if (this.showStudioNav) {
+      this.contentStudio.getStatus().subscribe({
+        next: (status) => (this.studioEnabled = status.enabled),
         error: () => undefined,
       });
+    }
 
+    if (this.showBillingBell) {
       this.tenantProfile.getProfile().subscribe({
         next: (profile) => (this.tenantTimezone = profile.timezone ?? null),
         error: () => undefined,

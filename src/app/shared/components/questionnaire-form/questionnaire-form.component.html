@@ -1,0 +1,73 @@
+<div class="questions">
+  <section class="question" *ngFor="let q of visible; trackBy: trackByKey" [class.question--error]="errorFor(q.key)" [attr.data-question]="q.key">
+    <div class="prompt">
+      <span class="number">{{ numberOf(q) }}</span>
+      <div class="prompt-text">
+        <strong>{{ q.prompt }}</strong>
+        <span class="required" *ngIf="q.required" aria-label="required">*</span>
+        <div class="help muted" *ngIf="q.helpText">{{ q.helpText }}</div>
+      </div>
+    </div>
+
+    <div class="answer" [ngSwitch]="q.type">
+      <mat-form-field *ngSwitchCase="'ShortText'" subscriptSizing="dynamic" class="full">
+        <mat-label>Your answer</mat-label>
+        <input matInput [disabled]="readonly" [value]="text(q)" [attr.maxlength]="q.maxLength || 200" autocomplete="off" (input)="setText(q, $any($event.target).value)" />
+      </mat-form-field>
+
+      <mat-form-field *ngSwitchCase="'LongText'" subscriptSizing="dynamic" class="full">
+        <mat-label>Your answer</mat-label>
+        <textarea matInput rows="3" [disabled]="readonly" [value]="text(q)" [attr.maxlength]="q.maxLength || 4000" (input)="setText(q, $any($event.target).value)"></textarea>
+      </mat-form-field>
+
+      <mat-form-field *ngSwitchCase="'Number'" subscriptSizing="dynamic" class="short">
+        <mat-label>Your answer</mat-label>
+        <input matInput type="number" [disabled]="readonly" [value]="numberValue(q)" [attr.min]="q.min" [attr.max]="q.max" (input)="setNumber(q, $any($event.target).value)" />
+      </mat-form-field>
+
+      <mat-button-toggle-group *ngSwitchCase="'Boolean'" [disabled]="readonly" [value]="boolValue(q)" (change)="setBool(q, $event.value)" aria-label="Yes or no">
+        <mat-button-toggle [value]="true">Yes</mat-button-toggle>
+        <mat-button-toggle [value]="false">No</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <mat-radio-group *ngSwitchCase="'SingleChoice'" class="choices" [disabled]="readonly" [value]="chosen(q)" (change)="setChoice(q, $event.value)">
+        <mat-radio-button *ngFor="let option of q.options" [value]="option.value">{{ option.label }}</mat-radio-button>
+      </mat-radio-group>
+
+      <div *ngSwitchCase="'MultiChoice'" class="choices">
+        <mat-checkbox *ngFor="let option of q.options" [disabled]="readonly" [checked]="isPicked(q, option.value)" (change)="togglePick(q, option.value, $event.checked)">
+          {{ option.label }}
+        </mat-checkbox>
+      </div>
+
+      <div *ngSwitchCase="'Structured'" class="fields">
+        <div class="field" *ngFor="let f of q.fields" [attr.data-field]="f.key">
+          <ng-container [ngSwitch]="f.type">
+            <mat-form-field *ngSwitchCase="'Number'" subscriptSizing="dynamic">
+              <mat-label>{{ f.label }}<ng-container *ngIf="f.required"> *</ng-container></mat-label>
+              <input matInput type="number" [disabled]="readonly" [value]="fieldNumber(q, f)" (input)="setFieldNumber(q, f, $any($event.target).value)" />
+            </mat-form-field>
+
+            <div *ngSwitchCase="'Boolean'" class="field-toggle">
+              <span>{{ f.label }}<ng-container *ngIf="f.required"> *</ng-container></span>
+              <mat-button-toggle-group [disabled]="readonly" [value]="fieldBool(q, f)" (change)="setFieldBool(q, f, $event.value)" [attr.aria-label]="f.label">
+                <mat-button-toggle [value]="true">Yes</mat-button-toggle>
+                <mat-button-toggle [value]="false">No</mat-button-toggle>
+              </mat-button-toggle-group>
+            </div>
+
+            <mat-form-field *ngSwitchDefault subscriptSizing="dynamic">
+              <mat-label>{{ f.label }}<ng-container *ngIf="f.required"> *</ng-container></mat-label>
+              <input matInput [disabled]="readonly" [value]="fieldText(q, f)" autocomplete="off" (input)="setFieldText(q, f, $any($event.target).value)" />
+            </mat-form-field>
+          </ng-container>
+          <div class="error" *ngIf="errorFor(q.key + '.' + f.key) as fieldError">{{ fieldError }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="error" role="alert" *ngIf="errorFor(q.key) as message">{{ message }}</div>
+  </section>
+
+  <p class="muted empty" *ngIf="!visible.length">There are no questions to answer.</p>
+</div>

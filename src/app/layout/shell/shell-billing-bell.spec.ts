@@ -55,7 +55,7 @@ describe('ShellComponent billing bell', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountRecoveryService, useValue: { resendVerificationEmail: () => of(undefined) } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
-        { provide: ContentStudioService, useValue: { getOverview: () => of({ enabled: false, approvalPolicy: 0, balances: [], last30Days: [] }) } },
+        { provide: ContentStudioService, useValue: { getStatus: () => of({ enabled: false }) } },
         { provide: BillingService, useValue: { getNotifications, acknowledgeNotification, acknowledgeAllNotifications, deleteNotification } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'America/New_York' }) } },

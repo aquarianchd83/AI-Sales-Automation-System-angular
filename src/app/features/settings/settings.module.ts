@@ -5,7 +5,7 @@ import { SharedModule } from '../../shared/shared.module';
 import { SettingsListComponent } from './settings-list/settings-list.component';
 
 /** The tenant-facing defaults, one panel each on the Tenant Settings screen. */
-const TENANT_CATEGORIES = ['Campaigns', 'Media', 'Messaging', 'Ai'];
+const TENANT_CATEGORIES = ['Campaigns', 'Media', 'Messaging', 'Ai', 'ContentStudio'];
 
 /** `categories` picks what a screen shows: only those categories, or (`exclude`) everything but them. */
 const routes: Routes = [
