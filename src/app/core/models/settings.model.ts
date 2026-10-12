@@ -23,6 +23,8 @@ export interface SettingItem {
   value: string | null;
   hasValue: boolean;
   valueHint: string | null;
+  /** When present the value must be one of these, so the console shows a dropdown rather than a text box. */
+  options?: string[] | null;
 }
 
 /** SettingCategoryDto. */

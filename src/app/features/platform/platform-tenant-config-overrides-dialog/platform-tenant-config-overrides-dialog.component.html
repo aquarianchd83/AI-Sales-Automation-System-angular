@@ -7,6 +7,11 @@
         <div class="setting-row" *ngFor="let item of category.items">
           <mat-form-field class="full-width" subscriptSizing="dynamic">
             <mat-label>{{ item.key }}</mat-label>
+            <mat-select *ngIf="item.options?.length; else textValue" [formControlName]="item.key">
+              <mat-option value="">Use the platform default ({{ item.globalValue }})</mat-option>
+              <mat-option *ngFor="let option of item.options" [value]="option">{{ option }}</mat-option>
+            </mat-select>
+            <ng-template #textValue>
             <textarea
               *ngIf="item.isList; else singleValue"
               matInput
@@ -15,6 +20,7 @@
             ></textarea>
             <ng-template #singleValue>
               <input matInput [formControlName]="item.key" autocomplete="off" />
+            </ng-template>
             </ng-template>
             <mat-hint>
               Platform default: {{ item.globalValue }}{{ item.description ? ' — ' + item.description : '' }}
@@ -25,7 +31,7 @@
     </mat-tab-group>
 
     <p class="muted note">
-      A blank field inherits the platform default (Configuration → Settings). Only a PlatformSuperAdmin
+      A blank field inherits the platform default (Platform → Configuration → Tenant Settings). Only a PlatformSuperAdmin
       can set or change this — the tenant's own admin sees only the effective value.
     </p>
   </form>

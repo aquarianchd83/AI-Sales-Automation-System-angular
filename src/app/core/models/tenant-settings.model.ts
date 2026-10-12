@@ -111,6 +111,8 @@ export interface TenantSettingItem {
   globalValue: string;
   overrideValue: string | null;
   effectiveValue: string;
+  /** When present the value must be one of these, so the screen offers a dropdown. */
+  options?: string[] | null;
 }
 
 export interface TenantSettingCategory {
