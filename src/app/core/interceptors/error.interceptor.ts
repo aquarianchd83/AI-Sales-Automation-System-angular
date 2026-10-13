@@ -9,6 +9,7 @@ import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { AnalyticsService } from '../services/analytics.service';
 import { NotificationService } from '../services/notification.service';
 
 /** ASP.NET Core ProblemDetails / ValidationProblemDetails shape. */
@@ -26,13 +27,20 @@ interface ProblemDetails {
  */
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
-  constructor(private readonly notify: NotificationService) {}
+  constructor(
+    private readonly notify: NotificationService,
+    private readonly analytics: AnalyticsService
+  ) {}
 
   intercept(req: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     return next.handle(req).pipe(
       catchError((error: unknown) => {
-        if (error instanceof HttpErrorResponse && error.status !== 401) {
-          this.notify.error(this.toMessage(error));
+        if (error instanceof HttpErrorResponse) {
+          // 401s are recorded too: a user bounced back to /login is a prime "stuck" signal.
+          this.analytics.trackApiError(req.method, error.url ?? req.url, error.status);
+          if (error.status !== 401) {
+            this.notify.error(this.toMessage(error));
+          }
         }
         return throwError(() => error);
       })
