@@ -110,8 +110,29 @@ function detail(
     research,
     currencyCode: 'INR',
     currencySymbol: '₹',
+    verificationCounts: { passed: 0, failed: 0, pending: 0, error: 0, notChecked: 0 },
   };
 }
+
+const row = (over: Partial<LeadDiscoveryExecutionCustomer>): LeadDiscoveryExecutionCustomer => ({
+  id: 'r1',
+  customerId: 'c1',
+  discoveredLeadId: 'l1',
+  customerName: 'Eye clinic 1',
+  phone: '+919800000001',
+  status: 'Created',
+  isInvalid: false,
+  errorMessage: null,
+  errorDetails: null,
+  retriedFromId: null,
+  processedAtUtc: null,
+  verificationStatus: 'Pass',
+  verificationReasonCode: null,
+  verificationReason: null,
+  verifiedAtUtc: null,
+  crmCustomerName: 'Sim Owner 1',
+  ...over,
+});
 
 describe('LeadDiscoveryExecutionDetailComponent', () => {
   let fixture: ComponentFixture<LeadDiscoveryExecutionDetailComponent>;
@@ -204,27 +225,51 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
     expect(navigate).toHaveBeenCalledWith(['..'], jasmine.anything());
   });
 
-  describe('customer history icon', () => {
-    const row = (over: Partial<LeadDiscoveryExecutionCustomer>): LeadDiscoveryExecutionCustomer => ({
-      id: 'r1',
-      customerId: 'c1',
-      discoveredLeadId: 'l1',
-      customerName: 'Eye clinic 1',
-      phone: '+919800000001',
-      status: 'Created',
-      isInvalid: false,
-      errorMessage: null,
-      errorDetails: null,
-      retriedFromId: null,
-      processedAtUtc: null,
-      verificationStatus: 'Pass',
-      verificationReasonCode: null,
-      verificationReason: null,
-      verifiedAtUtc: null,
-      crmCustomerName: 'Sim Owner 1',
-      ...over,
+  describe('DND check results', () => {
+    const rows = (): LeadDiscoveryExecutionCustomer[] => [
+      row({ id: 'r1', verificationStatus: 'Pass' }),
+      row({ id: 'r2', customerId: null, status: 'Skipped', verificationStatus: 'Fail' }),
+      row({ id: 'r3', customerId: null, status: 'Pending', verificationStatus: 'Error' }),
+      row({ id: 'r4', customerId: null, status: 'Skipped', verificationStatus: 'NotChecked' }),
+    ];
+
+    function createWithCounts(customers: LeadDiscoveryExecutionCustomer[], counts = { passed: 1, failed: 1, pending: 0, error: 1, notChecked: 1 }): void {
+      service.getExecution.and.returnValue(of({ ...detail(), customers, verificationCounts: counts }));
+      create();
+    }
+
+    const tableRows = () => (fixture.nativeElement as HTMLElement).querySelectorAll('tr.mat-mdc-row, tr[mat-row]').length;
+
+    it('shows how the numbers came out when the check ran', () => {
+      createWithCounts(rows());
+
+      const t = text();
+      expect(t).toContain('DND passed');
+      expect(t).toContain('DND failed (no customer)');
+      expect(t).toContain('Check error (retry)');
     });
 
+    it('shows no DND counts or filter when the check did not run', () => {
+      createWithCounts([row({ verificationStatus: 'NotChecked' })], { passed: 0, failed: 0, pending: 0, error: 0, notChecked: 1 });
+
+      expect(text()).not.toContain('DND passed');
+      expect((fixture.nativeElement as HTMLElement).querySelector('.customer-filter')).toBeNull();
+    });
+
+    it('filters the customers by DND check result and shows the checked-at time column', () => {
+      createWithCounts(rows());
+      expect(tableRows()).toBe(4);
+      expect(text()).toContain('Checked at');
+
+      fixture.componentInstance.verificationFilter = 'Fail';
+      fixture.detectChanges();
+
+      expect(tableRows()).toBe(1);
+      expect(text()).toContain('1 of 4');
+    });
+  });
+
+  describe('customer history icon', () => {
     function createWith(customers: LeadDiscoveryExecutionCustomer[]): void {
       service.getExecution.and.returnValue(of({ ...detail(), customers }));
       create();
