@@ -149,6 +149,9 @@ export interface Campaign {
   audienceCount: number;
   steps: CampaignStep[];
   createdAt: string;
+  /** Set when the tenant retired the campaign (kept as a record, closed to change). */
+  retiredAt?: string | null;
+  retiredReason?: string | null;
 }
 
 export interface CreateCampaignRequest {
@@ -200,6 +203,8 @@ export interface CampaignAudienceMember {
   lastMessageSentAt: string | null;
   nextFollowUpDueAt: string | null;
   stoppedReason: string | null;
+  /** The customer's own opt-in status - not the campaign status above. */
+  optInStatus?: string;
 }
 
 export interface CampaignProgress {
@@ -566,4 +571,41 @@ export function stepOutcomeChipClass(outcome: string): string {
 
 export function stepOutcomeLabel(outcome: string): string {
   return CAMPAIGN_STEP_OUTCOME_LABELS[outcome as CampaignStepOutcome] ?? outcome;
+}
+
+/** Longest reason RetireCampaignRequest accepts. */
+export const RETIRE_REASON_MAX_LENGTH = 500;
+
+/** CampaignService.RetireAsync: Draft, Stopped or Completed, and not already retired. Retiring keeps the
+ * campaign, its audience and its messages, but closes it to change; lead discovery then starts a new one. */
+export function canRetireCampaign(campaign: Pick<Campaign, 'status' | 'retiredAt'>): boolean {
+  return !campaign.retiredAt && canDeleteCampaign(campaign.status);
+}
+
+/** One labelled fact inside a journey step. */
+export interface CampaignJourneyDetail {
+  label: string;
+  value: string;
+}
+
+/** CampaignJourneyStepDto. `dimension` says which of the three separate things moved: Consent (the customer's opt-in), Campaign
+ * (their processing status in this campaign) or Message (a send). `state` is the status they moved to. */
+export interface CampaignJourneyStep {
+  key: string;
+  title: string;
+  dimension: 'Consent' | 'Campaign' | 'Message' | string;
+  state: string;
+  occurredAtUtc: string | null;
+  summary: string;
+  details: CampaignJourneyDetail[];
+}
+
+/** CampaignCustomerJourneyDto — consent, campaign status and every message for one customer in one campaign, first step first. */
+export interface CampaignCustomerJourney {
+  customerId: string;
+  customerName: string;
+  phoneNumberE164: string;
+  optInStatus: string;
+  campaignStatus: string;
+  steps: CampaignJourneyStep[];
 }

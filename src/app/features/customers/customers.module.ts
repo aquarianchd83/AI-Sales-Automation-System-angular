@@ -7,6 +7,7 @@ import { CustomerFormDialogComponent } from './customer-form-dialog/customer-for
 import { CustomerImportDialogComponent } from './customer-import-dialog/customer-import-dialog.component';
 import { CustomerListComponent } from './customer-list/customer-list.component';
 import { CustomerOptInDialogComponent } from './customer-opt-in-dialog/customer-opt-in-dialog.component';
+import { CustomerSettingsDialogComponent } from './customer-settings-dialog/customer-settings-dialog.component';
 import { SharedModule } from '../../shared/shared.module';
 
 const routes: Routes = [
@@ -22,6 +23,7 @@ const routes: Routes = [
     CustomerFormDialogComponent,
     CustomerImportDialogComponent,
     CustomerOptInDialogComponent,
+    CustomerSettingsDialogComponent,
   ],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })

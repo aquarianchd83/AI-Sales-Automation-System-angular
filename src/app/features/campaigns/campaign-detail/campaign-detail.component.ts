@@ -35,8 +35,10 @@ import { CampaignAudienceDialogComponent } from '../campaign-audience-dialog/cam
 import { CampaignFormDialogComponent } from '../campaign-form-dialog/campaign-form-dialog.component';
 import { CampaignService } from '../../../core/services/campaign.service';
 import { CampaignStepDialogComponent, CampaignStepDialogData } from '../campaign-step-dialog/campaign-step-dialog.component';
+import { CampaignCustomerJourneyDialogComponent } from '../campaign-customer-journey-dialog/campaign-customer-journey-dialog.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
+import { optInStatusChipClass, optInStatusLabel } from '../../../core/models/customer.model';
 import { CAMPAIGN_JOB_TYPES } from '../../../core/models/tenant-job.model';
 import { NotificationHubService } from '../../../core/services/notification-hub.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -55,6 +57,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   readonly customerStatusOrder = CAMPAIGN_CUSTOMER_STATUS_ORDER;
   readonly customerStatusDescription = CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS;
   readonly customerStatusClass = campaignCustomerStatusChipClass;
+  readonly optInChip = optInStatusChipClass;
+  readonly optInText = optInStatusLabel;
   readonly customerStatusDescriptionFor = campaignCustomerStatusDescription;
   readonly statusClass = campaignStatusChipClass;
   readonly audiencePageSizeOptions = PAGE_SIZE_OPTIONS;
@@ -152,6 +156,17 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   onAudiencePage(event: PageEvent): void {
     this.audienceQuery = { ...this.audienceQuery, page: event.pageIndex + 1, pageSize: event.pageSize };
     this.reloadAudience$.next();
+  }
+
+  /** One audience member's journey through this campaign: consent, campaign status and every message, step by step. */
+  showCustomerHistory(member: CampaignAudienceMember): void {
+    if (!this.campaign) {
+      return;
+    }
+    this.dialog.open(CampaignCustomerJourneyDialogComponent, {
+      data: { campaignId: this.campaign.id, customerId: member.customerId, displayName: this.audienceDisplayName(member) },
+      width: '640px',
+    });
   }
 
   audienceDisplayName(member: CampaignAudienceMember): string {
@@ -421,7 +436,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
             const rest = result.considered - result.sent;
             this.notify.success(`Sent ${result.sent} message${result.sent === 1 ? '' : 's'}${rest ? `, ${rest} not sent` : ''}.`);
           }
-          this.reload();
+          // Sending a step moves progress, delivery and the audience rows, but not the campaign record itself,
+          // so it is not refetched here.
           this.refreshProgress();
           this.reloadAudience$.next();
         },

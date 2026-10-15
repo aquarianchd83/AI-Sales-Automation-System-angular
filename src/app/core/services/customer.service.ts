@@ -11,6 +11,8 @@ import {
   BulkDeleteCustomersResult,
   CreateCustomerRequest,
   Customer,
+  CustomerConsentSetting,
+  CustomerHistoryEvent,
   CustomerImportResult,
   OptInCustomerRequest,
   UpdateCustomerRequest,
@@ -32,6 +34,19 @@ export class CustomerService {
 
   getById(id: string): Observable<Customer> {
     return this.http.get<Customer>(`${this.baseUrl}/${id}`);
+  }
+
+  getHistory(id: string): Observable<CustomerHistoryEvent[]> {
+    return this.http.get<CustomerHistoryEvent[]>(`${this.baseUrl}/${id}/history`);
+  }
+
+  getConsentSetting(): Observable<CustomerConsentSetting> {
+    return this.http.get<CustomerConsentSetting>(`${this.baseUrl}/consent-setting`);
+  }
+
+  /** Admin only. Applies to customers created from now on. */
+  setConsentSetting(consentRequired: boolean): Observable<CustomerConsentSetting> {
+    return this.http.put<CustomerConsentSetting>(`${this.baseUrl}/consent-setting`, { consentRequired });
   }
 
   create(request: CreateCustomerRequest): Observable<Customer> {

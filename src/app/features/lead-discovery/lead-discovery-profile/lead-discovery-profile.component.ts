@@ -61,6 +61,8 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     phoneRequired: [true],
     emailRequired: [false],
     independentBusiness: [false],
+    // Off by default, matching the backend: nothing is checked unless the tenant turns it on.
+    dndCheckEnabled: [false],
     fields: this.fb.nonNullable.group({
       ContactPerson: [false],
       Address: [false],
@@ -72,7 +74,6 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     // Nullable (not nonNullable-coerced to ''), so "nothing picked" is unambiguous - an empty string
     // would collide with a real campaign id in mat-select's value comparison.
     sourceCampaignId: this.fb.control<string | null>(null),
-    autoConsentDiscoveredCustomers: [false],
     autoCampaignStartMode: ['Immediate'],
     // Native <input type="time"> value ("HH:mm") or null - nullable like sourceCampaignId, for the
     // same reason: distinguishing "nothing picked" is only needed while start mode isn't NextDayWithTime.
@@ -426,13 +427,13 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       phoneRequired: v.phoneRequired,
       emailRequired: v.emailRequired,
       independentBusiness: v.independentBusiness,
+      dndCheckEnabled: v.dndCheckEnabled,
       minimumLeadScore: v.minimumLeadScore,
       additionalCriteria: this.lists.additionalCriteria,
       autoCampaignEnabled: v.autoCampaignEnabled,
       // Sent as-is, even while the toggle above is off, so turning auto campaign off and back on
       // remembers the last-picked source campaign instead of forcing a re-pick every time.
       sourceCampaignId: v.sourceCampaignId,
-      autoConsentDiscoveredCustomers: v.autoConsentDiscoveredCustomers,
       autoCampaignStartMode: v.autoCampaignStartMode,
       // Sent as-is, even while start mode isn't NextDayWithTime, so switching back to it remembers the
       // last-picked time. "HH:mm" from the native time input, widened to the backend's "HH:mm:ss".
@@ -475,6 +476,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       phoneRequired: profile.phoneRequired || required('Phone'),
       emailRequired: profile.emailRequired || required('Email'),
       independentBusiness: profile.independentBusiness,
+      dndCheckEnabled: profile.dndCheckEnabled ?? false,
       fields: {
         ContactPerson: required('ContactPerson'),
         Address: required('Address'),
@@ -484,7 +486,6 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       },
       autoCampaignEnabled: profile.autoCampaignEnabled,
       sourceCampaignId: profile.sourceCampaignId,
-      autoConsentDiscoveredCustomers: profile.autoConsentDiscoveredCustomers,
       autoCampaignStartMode: profile.autoCampaignStartMode,
       // Backend "HH:mm:ss" narrowed to the native time input's "HH:mm".
       autoCampaignStartTime: profile.autoCampaignStartTime?.slice(0, 5) ?? null,

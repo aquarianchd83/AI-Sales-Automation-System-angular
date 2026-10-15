@@ -7,6 +7,8 @@ export enum OptInStatus {
   PendingOptIn = 'PendingOptIn',
   OptedIn = 'OptedIn',
   OptedOut = 'OptedOut',
+  /** A new customer of a tenant that requires consent, who has not given it yet (Customers page setting). Not consent. */
+  WaitingForConsent = 'WaitingForConsent',
 }
 
 /** CustomerDto. */
@@ -21,6 +23,10 @@ export interface Customer {
   optInTimestamp: string | null;
   /** How consent was captured — required whenever a customer is opted in. */
   optInSource: string | null;
+  /** Where the evidence lives — a message id, call id or form entry. Null until the customer opts in. */
+  optInProof: string | null;
+  /** What the consent covers: Transactional (service messages only) or Marketing (promotions too). */
+  optInScope: string | null;
   optOutTimestamp: string | null;
   /** How the opt-out was detected: ExactKeyword, PhrasePattern, AiDetected or Manual. Null for one
    * recorded before the field existed. An AiDetected opt-out is the one worth spot-checking — the
@@ -64,7 +70,21 @@ export interface UpdateCustomerRequest {
 export interface OptInCustomerRequest {
   source: string;
   capturedAt?: string | null;
+  /** Required: consent with no evidence is a claim, not a record. */
+  proof: string;
+  /** Required: booking-only consent must not become consent to promotions. */
+  scope: ConsentScope;
 }
+
+export type ConsentScope = 'Transactional' | 'Marketing';
+
+export const CONSENT_SCOPES: { value: ConsentScope; label: string; hint: string }[] = [
+  { value: 'Transactional', label: 'Service messages only', hint: 'Bookings, orders and replies. Never promotions.' },
+  { value: 'Marketing', label: 'Promotions too', hint: 'The customer agreed to receive offers and promotions.' },
+];
+
+/** OptInCustomerRequestValidator's MaximumLength on Proof. */
+export const OPT_IN_PROOF_MAX_LENGTH = 200;
 
 /** OptInCustomerRequestValidator's MaximumLength on Source. */
 export const OPT_IN_SOURCE_MAX_LENGTH = 100;
@@ -148,5 +168,77 @@ export function optOutSourceLabel(source: string | null | undefined): string {
     default:
       // Includes an opt-out recorded before the field existed — blank rather than a guess.
       return '—';
+  }
+}
+
+/** CustomerHistoryEventDto (GET /customers/{id}/history, oldest first). One step in the customer's processing
+ * timeline. executionId is the Lead Discovery batch and campaignId the campaign, when either applies;
+ * correlationId and providerReference are for troubleshooting with the provider. */
+export interface CustomerHistoryEvent {
+  id: string;
+  eventType: string;
+  occurredAtUtc: string;
+  previousStatus: string | null;
+  newStatus: string | null;
+  reason: string | null;
+  executionId: string | null;
+  campaignId: string | null;
+  correlationId: string | null;
+  providerReference: string | null;
+}
+
+/** Readable name for a CustomerHistoryEvent.eventType; an event kind this build does not know is shown as sent. */
+export function customerHistoryEventLabel(eventType: string): string {
+  switch (eventType) {
+    case 'Discovered':
+      return 'Customer discovered';
+    case 'CustomerNotCreated':
+      return 'Customer not created';
+    case 'VerificationSubmitted':
+      return 'Submitted for verification';
+    case 'VerificationPassed':
+      return 'Verification passed';
+    case 'VerificationFailed':
+      return 'Verification failed';
+    case 'VerificationError':
+      return 'Verification error';
+    case 'VerificationPending':
+      return 'Verification pending';
+    default:
+      return eventType;
+  }
+}
+
+/** CustomerConsentSettingDto (GET/PUT /customers/consent-setting). Required: new customers start WaitingForConsent;
+ * otherwise PendingOptIn. Only affects customers created from now on. */
+export interface CustomerConsentSetting {
+  consentRequired: boolean;
+}
+
+/** Words for a customer's opt-in status where there is room for them (the campaign audience grid). */
+export function optInStatusLabel(status: string | null | undefined): string {
+  switch (status) {
+    case OptInStatus.OptedIn:
+      return 'Opted in';
+    case OptInStatus.OptedOut:
+      return 'Opted out';
+    case OptInStatus.WaitingForConsent:
+      return 'Waiting for consent';
+    case OptInStatus.PendingOptIn:
+      return 'Pending opt-in';
+    default:
+      return '—';
+  }
+}
+
+/** The same chip colours the Customers page uses: green opted in, red opted out, amber while consent is still open. */
+export function optInStatusChipClass(status: string | null | undefined): string {
+  switch (status) {
+    case OptInStatus.OptedIn:
+      return 'status-chip status-chip--opted-in';
+    case OptInStatus.OptedOut:
+      return 'status-chip status-chip--opted-out';
+    default:
+      return 'status-chip status-chip--pending';
   }
 }

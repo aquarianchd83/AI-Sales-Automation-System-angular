@@ -143,6 +143,10 @@
                 <th mat-header-cell *matHeaderCellDef>Business</th>
                 <td mat-cell *matCellDef="let row">{{ row.customerName }}</td>
               </ng-container>
+              <ng-container matColumnDef="crmCustomerName">
+                <th mat-header-cell *matHeaderCellDef>Customer</th>
+                <td mat-cell *matCellDef="let row">{{ row.crmCustomerName || '—' }}</td>
+              </ng-container>
               <ng-container matColumnDef="phone">
                 <th mat-header-cell *matHeaderCellDef>Phone</th>
                 <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
@@ -151,9 +155,32 @@
                 <th mat-header-cell *matHeaderCellDef>Status</th>
                 <td mat-cell *matCellDef="let row"><span [class]="chipClass(row.status)">{{ row.status }}</span></td>
               </ng-container>
+              <ng-container matColumnDef="dnd">
+                <th mat-header-cell *matHeaderCellDef>DND check</th>
+                <td mat-cell *matCellDef="let row" [matTooltip]="row.verificationReason || ''">
+                  <span *ngIf="row.verificationStatus !== 'NotChecked'; else notChecked" [class]="verificationChip(row.verificationStatus)">{{ verificationText(row.verificationStatus) }}</span>
+                  <ng-template #notChecked>—</ng-template>
+                  <span *ngIf="row.verificationReasonCode" class="muted"> {{ row.verificationReasonCode }}</span>
+                </td>
+              </ng-container>
               <ng-container matColumnDef="error">
                 <th mat-header-cell *matHeaderCellDef>Note</th>
                 <td mat-cell *matCellDef="let row" [matTooltip]="row.errorDetails || ''">{{ row.errorMessage || '—' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="history">
+                <th mat-header-cell *matHeaderCellDef aria-label="History"></th>
+                <td mat-cell *matCellDef="let row" class="history-cell">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    class="history-button"
+                    matTooltip="Processing history"
+                    aria-label="Processing history"
+                    (click)="showCustomerHistory(row)"
+                  >
+                    <mat-icon>history</mat-icon>
+                  </button>
+                </td>
               </ng-container>
               <tr mat-header-row *matHeaderRowDef="customerColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: customerColumns"></tr>

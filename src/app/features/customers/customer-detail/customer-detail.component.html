@@ -89,6 +89,14 @@
           <dt>Consent source</dt>
           <dd>{{ c.optInSource || '—' }}</dd>
 
+          <dt>Consent proof</dt>
+          <dd>{{ c.optInProof || '—' }}</dd>
+
+          <dt>Consent covers</dt>
+          <dd>
+            {{ c.optInScope === 'Marketing' ? 'Promotions and service messages' : c.optInScope === 'Transactional' ? 'Service messages only' : '—' }}
+          </dd>
+
           <dt>Opted out</dt>
           <dd>{{ (c.optOutTimestamp | date: 'medium') || '—' }}</dd>
 

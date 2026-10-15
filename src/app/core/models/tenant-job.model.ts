@@ -46,6 +46,9 @@ export interface TenantJobTriggerResult {
   backgroundJobId: string;
 }
 
+/** Every recurring job that belongs to lead discovery — shown together on the Lead discovery history page. */
+export const LEAD_DISCOVERY_JOB_TYPES: readonly string[] = ['lead-discovery', 'lead-follow-ups'];
+
 /** Every recurring job that belongs to campaigns — shown together on the Campaigns page. */
 export const CAMPAIGN_JOB_TYPES: readonly string[] = [
   'campaign-initial-sends',

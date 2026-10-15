@@ -31,9 +31,9 @@ const profile: LeadDiscoveryProfile = {
   sourceCampaignId: null,
   sourceCampaignName: null,
   sourceCampaignStatus: null,
-  autoConsentDiscoveredCustomers: false,
   autoCampaignStartMode: 'Immediate',
   autoCampaignStartTime: null,
+  dndCheckEnabled: false,
   updatedAt: '2026-09-15T10:00:00Z',
 };
 
@@ -112,27 +112,34 @@ describe('LeadDiscoveryProfileComponent', () => {
       additionalCriteria: ['Open on weekends'],
       autoCampaignEnabled: false,
       sourceCampaignId: null,
-      autoConsentDiscoveredCustomers: false,
       autoCampaignStartMode: 'Immediate',
       autoCampaignStartTime: null,
+      dndCheckEnabled: false,
     });
     expect(notify.success).toHaveBeenCalled();
     expect(component.hasChanges).toBeFalse();
   });
 
-  it('warns when auto-consent is turned on, and sends it on save', () => {
+  it('shows the DND check switch, off unless the saved profile has it on', () => {
     create(profile);
-    expect(text()).not.toContain('Skips manual opt-in.');
+    expect(fixture.nativeElement.querySelector('mat-slide-toggle[formControlName="dndCheckEnabled"]')).not.toBeNull();
+    expect(component.form.controls.dndCheckEnabled.value).toBeFalse();
 
-    component.form.controls.autoConsentDiscoveredCustomers.setValue(true);
-    component.form.markAsDirty();
-    fixture.detectChanges();
+    create({ ...profile, dndCheckEnabled: true });
+    expect(component.form.controls.dndCheckEnabled.value).toBeTrue();
+  });
 
-    expect(text()).toContain('Skips manual opt-in.');
-
+  it('saves the DND check switch', () => {
+    create(profile);
+    component.form.controls.dndCheckEnabled.setValue(true);
     component.save();
 
-    expect(service.saveProfile).toHaveBeenCalledWith(jasmine.objectContaining({ autoConsentDiscoveredCustomers: true }));
+    expect(service.saveProfile).toHaveBeenCalledWith(jasmine.objectContaining({ dndCheckEnabled: true }));
+  });
+
+  it('has no switch to skip opt-in', () => {
+    create(profile);
+    expect(fixture.nativeElement.querySelector('mat-slide-toggle[formControlName="autoConsentDiscoveredCustomers"]')).toBeNull();
   });
 
   it('does not save without keywords and locations', () => {

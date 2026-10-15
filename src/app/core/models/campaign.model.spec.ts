@@ -3,6 +3,7 @@ import {
   CampaignStatus,
   campaignEndDate,
   canDeleteCampaign,
+  canRetireCampaign,
   canForceNextStep,
   canPauseCampaign,
   canResumeCampaign,
@@ -290,5 +291,18 @@ describe('force next step', () => {
     for (const status of [CampaignCustomerStatus.Responded, CampaignCustomerStatus.OptedOut, CampaignCustomerStatus.HandedOff, CampaignCustomerStatus.Completed, CampaignCustomerStatus.Failed]) {
       expect(isAwaitingNextStep(status)).toBeFalse();
     }
+  });
+});
+
+describe('canRetireCampaign', () => {
+  it('is true for a Draft, Stopped or Completed campaign that is not yet retired', () => {
+    expect(canRetireCampaign({ status: CampaignStatus.Draft, retiredAt: null })).toBeTrue();
+    expect(canRetireCampaign({ status: CampaignStatus.Stopped })).toBeTrue();
+    expect(canRetireCampaign({ status: CampaignStatus.Completed, retiredAt: null })).toBeTrue();
+  });
+
+  it('is false while the campaign is live, and once it is retired', () => {
+    expect(canRetireCampaign({ status: CampaignStatus.Running, retiredAt: null })).toBeFalse();
+    expect(canRetireCampaign({ status: CampaignStatus.Stopped, retiredAt: '2026-10-15T06:00:00Z' })).toBeFalse();
   });
 });

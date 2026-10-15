@@ -1,0 +1,42 @@
+<h2 mat-dialog-title>Customer journey</h2>
+
+<mat-dialog-content>
+  <p class="intro muted">
+    Everything that has happened to <strong>{{ journey?.customerName || data.displayName }}</strong> in this campaign, from the
+    first step at the top down to the latest. Consent, campaign status and messages are separate things; each step says which one moved.
+  </p>
+
+  <div class="now" *ngIf="journey">
+    <span class="muted">Opt-in now</span>
+    <span [class]="optInChip(journey.optInStatus)">{{ optInText(journey.optInStatus) }}</span>
+    <span class="muted">Campaign status</span>
+    <span class="status-chip status-chip--draft">{{ journey.campaignStatus }}</span>
+  </div>
+
+  <p *ngIf="loading" class="muted">Loading…</p>
+  <p *ngIf="failed" class="muted">The journey could not be loaded.</p>
+
+  <ol class="timeline" *ngIf="journey && journey.steps.length > 0" aria-label="Journey, from the first step at the top down to the latest">
+    <li *ngFor="let step of journey.steps">
+      <div class="step-head">
+        <strong>{{ step.title }}</strong>
+        <span class="muted">{{ step.occurredAtUtc | zonedDate: 'medium' }}</span>
+      </div>
+      <div class="chips">
+        <span class="muted dimension">{{ step.dimension }}</span>
+        <span [class]="chipClass(step)">{{ step.state }}</span>
+      </div>
+      <div class="summary">{{ step.summary }}</div>
+      <dl class="details">
+        <ng-container *ngFor="let detail of step.details">
+          <dt>{{ detail.label }}</dt>
+          <dd>{{ detail.value }}</dd>
+        </ng-container>
+      </dl>
+    </li>
+  </ol>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Close</button>
+</mat-dialog-actions>

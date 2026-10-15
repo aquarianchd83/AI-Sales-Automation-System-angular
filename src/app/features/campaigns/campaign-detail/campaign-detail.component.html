@@ -167,6 +167,7 @@
             <tr>
               <th>Customer</th>
               <th>Status</th>
+              <th>Opt-in</th>
               <th>Step</th>
               <th>Last message sent</th>
               <th>Next follow-up due</th>
@@ -184,10 +185,23 @@
                   member.status
                 }}</span>
               </td>
+              <td>
+                <span [class]="optInChip(member.optInStatus)">{{ optInText(member.optInStatus) }}</span>
+              </td>
               <td>{{ member.currentStepNumber < 0 ? 'Not sent yet' : member.currentStepNumber }}</td>
               <td>{{ (member.lastMessageSentAt | date: 'medium') || '—' }}</td>
               <td>{{ (member.nextFollowUpDueAt | date: 'medium') || '—' }}</td>
               <td class="member-actions">
+                <button
+                  mat-icon-button
+                  type="button"
+                  class="history-button"
+                  matTooltip="Consent and campaign history"
+                  aria-label="Consent and campaign history"
+                  (click)="showCustomerHistory(member)"
+                >
+                  <mat-icon>history</mat-icon>
+                </button>
                 <button
                   mat-icon-button
                   type="button"

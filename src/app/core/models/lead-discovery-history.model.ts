@@ -1,3 +1,4 @@
+import { CustomerHistoryEvent } from './customer.model';
 import { LeadDiscoveryRun } from './lead-discovery.model';
 import { PagedQuery } from './paged-result.model';
 
@@ -80,6 +81,95 @@ export interface LeadDiscoveryExecutionCustomer {
   errorDetails: string | null;
   retriedFromId: string | null;
   processedAtUtc: string | null;
+  /** The DND / outreach-eligibility check on the number: NotChecked, Pending, Pass, Fail or Error. */
+  verificationStatus: string;
+  /** The provider's code for a Fail or Error, e.g. "DND". */
+  verificationReasonCode: string | null;
+  verificationReason: string | null;
+  verifiedAtUtc: string | null;
+  /** The name on the CRM customer created for this row; null when none exists (rejected, invalid, duplicate) or it was deleted. */
+  crmCustomerName?: string | null;
+}
+
+/**
+ * The history of a row that has no customer - a number the DND check rejected, a closed or unverifiable business - built from the
+ * row itself, since no customer exists to carry history events. Same shape as a customer's own history, so one dialog shows both.
+ */
+export function rowHistoryEvents(row: LeadDiscoveryExecutionCustomer): CustomerHistoryEvent[] {
+  const base = { previousStatus: null, correlationId: null, providerReference: null, executionId: null, campaignId: null };
+  const events: CustomerHistoryEvent[] = [
+    {
+      ...base,
+      id: `${row.id}-discovered`,
+      eventType: 'Discovered',
+      // Never later than the check that followed it: the row is saved after the number is checked, but the business was found first.
+      occurredAtUtc: row.verifiedAtUtc ?? row.processedAtUtc ?? '',
+      newStatus: 'Discovered',
+      reason: null,
+    },
+  ];
+
+  if (row.verificationStatus !== 'NotChecked') {
+    const at = row.verifiedAtUtc ?? '';
+    events.push(
+      { ...base, id: `${row.id}-submitted`, eventType: 'VerificationSubmitted', occurredAtUtc: at, previousStatus: 'NotChecked', newStatus: 'Pending', reason: null },
+      {
+        ...base,
+        id: `${row.id}-verified`,
+        eventType: `Verification${row.verificationStatus === 'Pass' ? 'Passed' : row.verificationStatus === 'Fail' ? 'Failed' : 'Error'}`,
+        occurredAtUtc: at,
+        previousStatus: 'Pending',
+        newStatus: row.verificationStatus,
+        reason: row.verificationReason ?? row.verificationReasonCode,
+      }
+    );
+  }
+
+  // A row still waiting (Pending) has not ended up anywhere yet; every other row ended without a customer.
+  if (row.status !== 'Pending') {
+    events.push({
+      ...base,
+      id: `${row.id}-not-created`,
+      eventType: 'CustomerNotCreated',
+      occurredAtUtc: row.processedAtUtc ?? '',
+      newStatus: row.status,
+      reason: row.errorMessage,
+    });
+  }
+
+  return events;
+}
+
+/** What the DND column says for a verificationStatus. Fail (rejected) and Error (could not be checked) read differently on purpose. */
+export function verificationLabel(status: string): string {
+  switch (status) {
+    case 'Pass':
+      return 'Passed';
+    case 'Fail':
+      return 'Failed';
+    case 'Error':
+      return 'Check error';
+    case 'Pending':
+      return 'Pending';
+    default:
+      return '—';
+  }
+}
+
+/** Green for Pass, red for Fail, amber for Error (retryable), blue while Pending, grey when never checked. */
+export function verificationChipClass(status: string): string {
+  switch (status) {
+    case 'Pass':
+      return 'status-chip status-chip--completed';
+    case 'Fail':
+      return 'status-chip status-chip--opted-out';
+    case 'Error':
+      return 'status-chip status-chip--pending';
+    case 'Pending':
+      return 'status-chip status-chip--scheduled';
+    default:
+      return 'status-chip status-chip--inactive';
+  }
 }
 
 export interface LeadDiscoveryExecutionTemplate {

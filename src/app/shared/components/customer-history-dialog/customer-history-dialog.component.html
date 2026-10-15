@@ -1,0 +1,36 @@
+<h2 mat-dialog-title>Processing history</h2>
+
+<mat-dialog-content>
+  <p class="intro muted">
+    Everything that has happened to <strong>{{ displayName }}</strong>, oldest first. Entries are never edited or removed.
+  </p>
+
+  <p *ngIf="loading" class="muted">Loading…</p>
+  <p *ngIf="failed" class="muted">The history could not be loaded.</p>
+  <p *ngIf="!loading && !failed && events.length === 0" class="muted">
+    No history recorded yet. Customers added before history was introduced have no entries.
+  </p>
+
+  <ol class="timeline" *ngIf="events.length > 0" aria-label="History, from the first step at the top down to the latest">
+    <li *ngFor="let event of events">
+      <div class="event-head">
+        <strong>{{ label(event.eventType) }}</strong>
+        <span class="muted">{{ event.occurredAtUtc | zonedDate: 'medium' }}</span>
+      </div>
+      <div *ngIf="event.previousStatus || event.newStatus" class="muted">
+        {{ event.previousStatus || '—' }} → {{ event.newStatus || '—' }}
+      </div>
+      <div *ngIf="event.reason">{{ event.reason }}</div>
+      <div class="refs muted" *ngIf="event.executionId || event.campaignId || event.providerReference || event.correlationId">
+        <span *ngIf="event.executionId">Discovery batch {{ event.executionId }}</span>
+        <span *ngIf="event.campaignId">Campaign {{ event.campaignId }}</span>
+        <span *ngIf="event.providerReference">Provider ref {{ event.providerReference }}</span>
+        <span *ngIf="event.correlationId">Correlation {{ event.correlationId }}</span>
+      </div>
+    </li>
+  </ol>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Close</button>
+</mat-dialog-actions>

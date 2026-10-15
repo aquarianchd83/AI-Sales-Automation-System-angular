@@ -1,0 +1,24 @@
+<h2 mat-dialog-title>Retire "{{ data.campaign.name }}"?</h2>
+
+<mat-dialog-content>
+  <p class="muted">
+    The campaign, its audience and its message history are kept as a record, but it can no longer be edited, started
+    or reused. The next lead discovery run creates a new campaign instead of adding customers to this one.
+  </p>
+
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width" style="width: 100%">
+      <mat-label>Why is it being retired?</mat-label>
+      <textarea matInput rows="3" formControlName="reason" [maxlength]="maxLength"></textarea>
+      <mat-hint align="end">{{ form.controls.reason.value.length }} / {{ maxLength }}</mat-hint>
+      <mat-error *ngIf="form.controls.reason.hasError('required')">Say why — it is kept with the campaign.</mat-error>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="warn" type="button" [disabled]="saving" (click)="retire()">
+    {{ saving ? 'Retiring…' : 'Retire campaign' }}
+  </button>
+</mat-dialog-actions>

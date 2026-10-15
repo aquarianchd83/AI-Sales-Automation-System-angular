@@ -4,7 +4,10 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
 import {
+  CONSENT_SCOPES,
+  ConsentScope,
   Customer,
+  OPT_IN_PROOF_MAX_LENGTH,
   OPT_IN_SOURCE_MAX_LENGTH,
   customerDisplayName,
 } from '../../../core/models/customer.model';
@@ -16,7 +19,15 @@ export interface CustomerOptInDialogData {
 }
 
 /** Common ways consent gets captured; the field stays free-text for anything else. */
-const SUGGESTED_SOURCES = ['WebForm', 'WhatsApp', 'PaperForm', 'PhoneCall', 'InStore'];
+const SUGGESTED_SOURCES = [
+  'SmsLink',
+  'Call',
+  'MissedCall',
+  'QrCode',
+  'WebsiteForm',
+  'ExistingCustomer',
+  'CustomerMessagedFirst',
+];
 
 @Component({
   selector: 'app-customer-opt-in-dialog',
@@ -42,6 +53,8 @@ const SUGGESTED_SOURCES = ['WebForm', 'WhatsApp', 'PaperForm', 'PhoneCall', 'InS
 export class CustomerOptInDialogComponent {
   readonly suggestedSources = SUGGESTED_SOURCES;
   readonly maxSourceLength = OPT_IN_SOURCE_MAX_LENGTH;
+  readonly maxProofLength = OPT_IN_PROOF_MAX_LENGTH;
+  readonly scopes = CONSENT_SCOPES;
   readonly displayName = customerDisplayName(this.data.customer);
   /** The API rejects a future consent date, so the picker cannot offer one. */
   readonly today = new Date();
@@ -51,6 +64,8 @@ export class CustomerOptInDialogComponent {
       '',
       [Validators.required, Validators.maxLength(OPT_IN_SOURCE_MAX_LENGTH)],
     ],
+    proof: ['', [Validators.required, Validators.maxLength(OPT_IN_PROOF_MAX_LENGTH)]],
+    scope: [null as ConsentScope | null, [Validators.required]],
     capturedAt: [null as Date | null],
   });
 
@@ -75,11 +90,13 @@ export class CustomerOptInDialogComponent {
       return;
     }
 
-    const { source, capturedAt } = this.form.getRawValue();
+    const { source, capturedAt, proof, scope } = this.form.getRawValue();
     this.saving = true;
     this.customers
       .optIn(this.data.customer.id, {
         source: source.trim(),
+        proof: proof.trim(),
+        scope: scope as ConsentScope,
         // Omitted rather than sent as null when blank — the server defaults to now.
         capturedAt: capturedAt ? capturedAt.toISOString() : undefined,
       })
