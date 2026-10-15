@@ -20,6 +20,8 @@ import { Customer, OptInStatus, customerDisplayName } from '../../../core/models
 import { CustomerFormDialogComponent, CustomerFormDialogData } from '../customer-form-dialog/customer-form-dialog.component';
 import { CustomerBulkTagDialogComponent, CustomerBulkTagDialogData } from '../customer-bulk-tag-dialog/customer-bulk-tag-dialog.component';
 import { CustomerImportDialogComponent } from '../customer-import-dialog/customer-import-dialog.component';
+import { CustomerSettingsDialogComponent } from '../customer-settings-dialog/customer-settings-dialog.component';
+import { CustomerHistoryDialogComponent } from '../../../shared/components/customer-history-dialog/customer-history-dialog.component';
 import { CustomerOptInDialogComponent } from '../customer-opt-in-dialog/customer-opt-in-dialog.component';
 import { CustomerService } from '../../../core/services/customer.service';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
@@ -154,6 +156,14 @@ export class CustomerListComponent implements OnInit, OnDestroy {
 
   isOptedIn(customer: Customer): boolean {
     return customer.optInStatus === OptInStatus.OptedIn;
+  }
+
+  showHistory(customer: Customer, event: Event): void {
+    event.stopPropagation();
+    this.dialog.open(CustomerHistoryDialogComponent, {
+      data: { customerId: customer.id, displayName: customerDisplayName(customer) },
+      width: '560px',
+    });
   }
 
   optIn(customer: Customer, event: Event): void {
@@ -298,6 +308,10 @@ export class CustomerListComponent implements OnInit, OnDestroy {
           this.reload$.next();
         }
       });
+  }
+
+  openSettings(): void {
+    this.dialog.open(CustomerSettingsDialogComponent, { width: '520px' });
   }
 
   statusClass(status: string): string {

@@ -57,6 +57,35 @@ describe('CustomerService', () => {
     });
   });
 
+  it('GETs the processing history of one customer', () => {
+    let result: unknown;
+    service.getHistory('c1').subscribe((r) => (result = r));
+
+    const req = http.expectOne(`${baseUrl}/c1/history`);
+    expect(req.request.method).toBe('GET');
+    req.flush([{ id: 'e1', eventType: 'Discovered' }]);
+    expect(result).toEqual([{ id: 'e1', eventType: 'Discovered' }]);
+  });
+
+  it('reads the consent setting', () => {
+    let result: unknown;
+    service.getConsentSetting().subscribe((r) => (result = r));
+
+    const req = http.expectOne(`${baseUrl}/consent-setting`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ consentRequired: false });
+    expect(result).toEqual({ consentRequired: false });
+  });
+
+  it('PUTs the consent setting', () => {
+    service.setConsentSetting(true).subscribe();
+
+    const req = http.expectOne(`${baseUrl}/consent-setting`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ consentRequired: true });
+    req.flush({ consentRequired: true });
+  });
+
   it('sends tags as tagNames', () => {
     service.addTags('customer-1', ['vip', 'newsletter']).subscribe();
 
@@ -85,12 +114,13 @@ describe('CustomerService', () => {
     expect(result?.deletedCount).toBe(2);
   });
 
-  it('posts the consent source on opt-in', () => {
-    service.optIn('customer-1', { source: 'WebForm' }).subscribe();
+  it('posts the consent source, proof and scope on opt-in', () => {
+    const body = { source: 'WebsiteForm', proof: 'form-1042', scope: 'Marketing' as const };
+    service.optIn('customer-1', body).subscribe();
 
     const request = http.expectOne(`${baseUrl}/customer-1/opt-in`);
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ source: 'WebForm' });
+    expect(request.request.body).toEqual(body);
     request.flush({});
   });
 

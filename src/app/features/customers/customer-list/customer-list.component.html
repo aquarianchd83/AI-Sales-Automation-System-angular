@@ -3,6 +3,15 @@
     title="Customers"
     subtitle="Contact records, tags, and opt-in status. Opted-out customers are excluded from all automated messaging."
   >
+    <button
+      mat-icon-button
+      type="button"
+      matTooltip="Customer settings"
+      aria-label="Customer settings"
+      (click)="openSettings()"
+    >
+      <mat-icon>settings</mat-icon>
+    </button>
     <button mat-stroked-button type="button" (click)="importCsv()">
       <mat-icon>upload_file</mat-icon>
       Import CSV / Excel
@@ -141,6 +150,15 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef aria-label="Actions"></th>
           <td mat-cell *matCellDef="let customer" class="actions-cell">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Processing history"
+              aria-label="Processing history"
+              (click)="showHistory(customer, $event)"
+            >
+              <mat-icon>history</mat-icon>
+            </button>
             <button
               mat-icon-button
               type="button"

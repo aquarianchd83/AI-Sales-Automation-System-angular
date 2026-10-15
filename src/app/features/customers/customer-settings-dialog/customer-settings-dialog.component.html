@@ -1,0 +1,30 @@
+<h2 mat-dialog-title>Customer settings</h2>
+
+<mat-dialog-content>
+  <div class="switch-row" style="display: flex; justify-content: space-between; gap: 16px; align-items: center">
+    <div>
+      <strong>Consent required</strong>
+      <p class="muted" style="margin: 4px 0 0">
+        Is customer consent required before messaging? Applies to every customer created from now on, on any screen
+        (new customer, import, lead discovery, inbound messages). Existing customers keep their status.
+      </p>
+    </div>
+    <mat-slide-toggle
+      [(ngModel)]="consentRequired"
+      [disabled]="loading || saving"
+      aria-label="Consent required"
+    ></mat-slide-toggle>
+  </div>
+
+  <p class="muted" style="margin-top: 16px">
+    New customers start as <strong>{{ newCustomerStatus }}</strong>. Neither is consent — only a recorded opt-in lets a
+    customer be messaged.
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="loading || saving" (click)="save()">
+    {{ saving ? 'Saving…' : 'Save' }}
+  </button>
+</mat-dialog-actions>
