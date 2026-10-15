@@ -7,6 +7,9 @@ import { OnboardingService } from '../services/onboarding.service';
 
 const READS = ['GET', 'HEAD', 'OPTIONS'];
 
+/** Writes that can never complete an onboarding step: sending a campaign's next step to customers. */
+const NEVER_ONBOARDING = /\/campaigns\/[^/]+\/force-next-step(\/|\?|$)/;
+
 /**
  * Tells onboarding that something was saved, so a step completed inside the wizard's panel (a package created, a
  * WhatsApp connection verified, ...) ticks off without the tenant pressing anything. Only successful writes count,
@@ -18,7 +21,7 @@ export class OnboardingProgressInterceptor implements HttpInterceptor {
   constructor(private readonly injector: Injector) {}
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    if (READS.includes(request.method) || /\/(onboarding|auth)(\/|\?|$)/.test(request.url)) {
+    if (READS.includes(request.method) || /\/(onboarding|auth)(\/|\?|$)/.test(request.url) || NEVER_ONBOARDING.test(request.url)) {
       return next.handle(request);
     }
     return next.handle(request).pipe(

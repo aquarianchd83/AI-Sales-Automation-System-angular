@@ -30,6 +30,13 @@ describe('OnboardingProgressInterceptor', () => {
     expect(onboarding.noteChange).toHaveBeenCalledTimes(1);
   });
 
+  it('ignores sending a campaign step, which cannot complete an onboarding step', () => {
+    http.post('/api/v1/campaigns/c-1/force-next-step', {}).subscribe();
+    backend.expectOne('/api/v1/campaigns/c-1/force-next-step').flush({});
+
+    expect(onboarding.noteChange).not.toHaveBeenCalled();
+  });
+
   it('ignores reads, failures, sign-in traffic and onboarding itself', () => {
     http.get('/api/v1/packages').subscribe();
     backend.expectOne('/api/v1/packages').flush([]);
