@@ -194,6 +194,28 @@ export function customerHistoryEventLabel(eventType: string): string {
       return 'Customer discovered';
     case 'CustomerNotCreated':
       return 'Customer not created';
+    case 'SmsQueued':
+      return 'Consent SMS queued';
+    case 'SmsSubmitted':
+      return 'Consent SMS submitted';
+    case 'SmsDelivered':
+      return 'Consent SMS delivered';
+    case 'SmsFailed':
+      return 'Consent SMS failed';
+    case 'SmsSkipped':
+      return 'Consent SMS not sent';
+    case 'ConversationStarted':
+      return 'Customer started a WhatsApp conversation';
+    case 'ConsentRecorded':
+      return 'WhatsApp opt-in recorded';
+    case 'FirstMessageSent':
+      return 'First campaign message sent';
+    case 'FirstMessageFailed':
+      return 'First campaign message failed';
+    case 'WaitingForContent':
+      return 'Waiting for content';
+    case 'ContentAvailable':
+      return 'Content available';
     case 'VerificationSubmitted':
       return 'Submitted for verification';
     case 'VerificationPassed':

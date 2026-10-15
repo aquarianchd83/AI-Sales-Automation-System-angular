@@ -270,6 +270,20 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
       expect(t).toContain('Eye clinic - 2026-10-15');
     });
 
+    it('shows the consent SMS status of each customer and when they answered it', () => {
+      createWithCounts([
+        row({ id: 'r1', consentSmsStatus: 'Delivered', consentRecordedAtUtc: '2026-10-15T06:30:00Z' }),
+        row({ id: 'r2', customerId: 'c2', consentSmsStatus: 'Failed', consentSmsFailureReason: 'Number is unreachable' }),
+        row({ id: 'r3', customerId: 'c3', consentSmsStatus: 'Submitted' }),
+      ]);
+
+      const t = text();
+      expect(t).toContain('Consent SMS');
+      expect(t).toContain('Delivered');
+      expect(t).toContain('Replied');
+      expect(t).toContain('Submitted');
+    });
+
     it('filters the customers by DND check result and shows the checked-at time column', () => {
       createWithCounts(rows());
       expect(tableRows()).toBe(4);

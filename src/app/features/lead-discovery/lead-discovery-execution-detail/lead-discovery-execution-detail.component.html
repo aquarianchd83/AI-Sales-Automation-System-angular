@@ -203,6 +203,14 @@
                 <th mat-header-cell *matHeaderCellDef>Campaign</th>
                 <td mat-cell *matCellDef="let row">{{ row.campaignName || '—' }}</td>
               </ng-container>
+              <ng-container matColumnDef="consentSms">
+                <th mat-header-cell *matHeaderCellDef>Consent SMS</th>
+                <td mat-cell *matCellDef="let row" [matTooltip]="row.consentSmsFailureReason || ''">
+                  <span *ngIf="row.consentSmsStatus; else noSms" [class]="smsChip(row.consentSmsStatus)">{{ smsText(row.consentSmsStatus) }}</span>
+                  <ng-template #noSms>—</ng-template>
+                  <div class="muted" *ngIf="row.consentRecordedAtUtc">Replied {{ row.consentRecordedAtUtc | zonedDate: 'medium' }}</div>
+                </td>
+              </ng-container>
               <ng-container matColumnDef="error">
                 <th mat-header-cell *matHeaderCellDef>Note</th>
                 <td mat-cell *matCellDef="let row" [matTooltip]="row.errorDetails || ''">{{ row.errorMessage || '—' }}</td>

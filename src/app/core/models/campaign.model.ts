@@ -91,11 +91,14 @@ export enum CampaignCustomerStatus {
   HandedOff = 'HandedOff',
   Completed = 'Completed',
   Failed = 'Failed',
+  /** Consent is on record and the campaign is running, but the first message has no approved content yet. Resumes by itself. */
+  WaitingForContent = 'WaitingForContent',
 }
 
 /** Display order for the progress breakdown — active states first, terminal states after. */
 export const CAMPAIGN_CUSTOMER_STATUS_ORDER: CampaignCustomerStatus[] = [
   CampaignCustomerStatus.Pending,
+  CampaignCustomerStatus.WaitingForContent,
   CampaignCustomerStatus.AwaitingResponse,
   CampaignCustomerStatus.Responded,
   CampaignCustomerStatus.HandedOff,
@@ -114,6 +117,8 @@ export const CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS: Record<CampaignCustomerStatu
   [CampaignCustomerStatus.HandedOff]: 'Escalated to a human agent — automation for this campaign stops here. Terminal.',
   [CampaignCustomerStatus.Completed]: 'Every configured step was sent with no reply. Terminal.',
   [CampaignCustomerStatus.Failed]: 'Every send attempt for the current step exhausted its retries. Terminal.',
+  [CampaignCustomerStatus.WaitingForContent]:
+    'Consent is recorded but the first message has no approved content yet. It goes out once, as soon as the content is ready.',
 };
 
 /**
@@ -327,7 +332,11 @@ export function canForceNextStep(status: string): boolean {
 /** Who force-next-step acts on: customers not yet sent the Initial step, or awaiting a follow-up. Anyone
  * who replied, opted out, was handed off or finished has nothing left to send. */
 export function isAwaitingNextStep(customerStatus: string): boolean {
-  return customerStatus === CampaignCustomerStatus.Pending || customerStatus === CampaignCustomerStatus.AwaitingResponse;
+  return (
+    customerStatus === CampaignCustomerStatus.Pending ||
+    customerStatus === CampaignCustomerStatus.WaitingForContent ||
+    customerStatus === CampaignCustomerStatus.AwaitingResponse
+  );
 }
 
 export function canPauseCampaign(status: string): boolean {
@@ -457,6 +466,7 @@ export function campaignCustomerStatusChipClass(status: string): string {
     case CampaignCustomerStatus.Responded:
       return 'status-chip status-chip--scheduled';
     case CampaignCustomerStatus.HandedOff:
+    case CampaignCustomerStatus.WaitingForContent:
       return 'status-chip status-chip--paused';
     case CampaignCustomerStatus.Completed:
       return 'status-chip status-chip--completed';

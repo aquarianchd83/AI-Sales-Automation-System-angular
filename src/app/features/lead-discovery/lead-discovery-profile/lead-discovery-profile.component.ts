@@ -63,6 +63,8 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     independentBusiness: [false],
     // Off by default, matching the backend: nothing is checked unless the tenant turns it on.
     dndCheckEnabled: [false],
+    // Off by default, matching the backend: no SMS is sent unless the tenant turns it on.
+    consentSmsEnabled: [false],
     fields: this.fb.nonNullable.group({
       ContactPerson: [false],
       Address: [false],
@@ -428,6 +430,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       emailRequired: v.emailRequired,
       independentBusiness: v.independentBusiness,
       dndCheckEnabled: v.dndCheckEnabled,
+      consentSmsEnabled: v.consentSmsEnabled,
       minimumLeadScore: v.minimumLeadScore,
       additionalCriteria: this.lists.additionalCriteria,
       autoCampaignEnabled: v.autoCampaignEnabled,
@@ -477,6 +480,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       emailRequired: profile.emailRequired || required('Email'),
       independentBusiness: profile.independentBusiness,
       dndCheckEnabled: profile.dndCheckEnabled ?? false,
+      consentSmsEnabled: profile.consentSmsEnabled ?? false,
       fields: {
         ContactPerson: required('ContactPerson'),
         Address: required('Address'),

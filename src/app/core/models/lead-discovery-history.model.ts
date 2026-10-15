@@ -91,6 +91,11 @@ export interface LeadDiscoveryExecutionCustomer {
   crmCustomerName?: string | null;
   /** The campaign this execution generated, when this row's customer was added to it. */
   campaignName?: string | null;
+  /** The SMS inviting the customer to chat on WhatsApp: Pending, Submitted, Delivered or Failed; null when none was sent. Submitted is not delivered. */
+  consentSmsStatus?: string | null;
+  consentSmsFailureReason?: string | null;
+  /** When the customer's own WhatsApp message answered the invitation and consent was recorded; null until then. */
+  consentRecordedAtUtc?: string | null;
 }
 
 /**
@@ -140,6 +145,37 @@ export function rowHistoryEvents(row: LeadDiscoveryExecutionCustomer): CustomerH
   }
 
   return events;
+}
+
+/** What the Consent SMS column says. Submitted (accepted by the provider) and Delivered (confirmed by its receipt) are kept apart on purpose. */
+export function consentSmsLabel(status: string | null | undefined): string {
+  switch (status) {
+    case 'Pending':
+      return 'Queued';
+    case 'Submitted':
+      return 'Submitted';
+    case 'Delivered':
+      return 'Delivered';
+    case 'Failed':
+      return 'Failed';
+    default:
+      return '—';
+  }
+}
+
+export function consentSmsChipClass(status: string | null | undefined): string {
+  switch (status) {
+    case 'Delivered':
+      return 'status-chip status-chip--completed';
+    case 'Failed':
+      return 'status-chip status-chip--opted-out';
+    case 'Submitted':
+      return 'status-chip status-chip--scheduled';
+    case 'Pending':
+      return 'status-chip status-chip--pending';
+    default:
+      return 'status-chip status-chip--inactive';
+  }
 }
 
 /** The choices of the DND check filter on the Customers tab: every verification status, plus "All". */

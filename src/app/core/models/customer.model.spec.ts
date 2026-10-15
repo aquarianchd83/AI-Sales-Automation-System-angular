@@ -23,6 +23,11 @@ describe('customerHistoryEventLabel', () => {
     expect(customerHistoryEventLabel('VerificationSubmitted')).toBe('Submitted for verification');
     expect(customerHistoryEventLabel('VerificationPassed')).toBe('Verification passed');
     expect(customerHistoryEventLabel('VerificationFailed')).toBe('Verification failed');
+    expect(customerHistoryEventLabel('SmsDelivered')).toBe('Consent SMS delivered');
+    expect(customerHistoryEventLabel('ConversationStarted')).toBe('Customer started a WhatsApp conversation');
+    expect(customerHistoryEventLabel('ConsentRecorded')).toBe('WhatsApp opt-in recorded');
+    expect(customerHistoryEventLabel('WaitingForContent')).toBe('Waiting for content');
+    expect(customerHistoryEventLabel('FirstMessageSent')).toBe('First campaign message sent');
     expect(customerHistoryEventLabel('SomethingNew')).toBe('SomethingNew');
   });
 });

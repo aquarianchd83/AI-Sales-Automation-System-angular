@@ -1,4 +1,4 @@
-import { LeadDiscoveryExecutionCustomer, filterByVerification, leadDiscoveryStatusChipClass, rowHistoryEvents, verificationChipClass, verificationLabel } from './lead-discovery-history.model';
+import { LeadDiscoveryExecutionCustomer, consentSmsChipClass, consentSmsLabel, filterByVerification, leadDiscoveryStatusChipClass, rowHistoryEvents, verificationChipClass, verificationLabel } from './lead-discovery-history.model';
 
 describe('leadDiscoveryStatusChipClass', () => {
   it('greens a settled success across execution, campaign and lock vocabularies', () => {
@@ -96,5 +96,22 @@ describe('filterByVerification', () => {
     expect(filterByVerification(rows, 'Pass').map((r) => r.id)).toEqual(['a', 'd']);
     expect(filterByVerification(rows, 'Fail').map((r) => r.id)).toEqual(['b']);
     expect(filterByVerification(rows, 'Pending')).toEqual([]);
+  });
+});
+
+describe('consent SMS display', () => {
+  it('keeps submitted and delivered apart', () => {
+    expect(consentSmsLabel('Submitted')).toBe('Submitted');
+    expect(consentSmsLabel('Delivered')).toBe('Delivered');
+    expect(consentSmsLabel('Pending')).toBe('Queued');
+    expect(consentSmsLabel('Failed')).toBe('Failed');
+    expect(consentSmsLabel(null)).toBe('—');
+  });
+
+  it('colours delivered green, failed red and submitted blue', () => {
+    expect(consentSmsChipClass('Delivered')).toContain('completed');
+    expect(consentSmsChipClass('Failed')).toContain('opted-out');
+    expect(consentSmsChipClass('Submitted')).toContain('scheduled');
+    expect(consentSmsChipClass(undefined)).toContain('inactive');
   });
 });

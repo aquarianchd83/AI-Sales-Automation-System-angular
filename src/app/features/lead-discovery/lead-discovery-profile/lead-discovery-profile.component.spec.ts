@@ -34,6 +34,7 @@ const profile: LeadDiscoveryProfile = {
   autoCampaignStartMode: 'Immediate',
   autoCampaignStartTime: null,
   dndCheckEnabled: false,
+  consentSmsEnabled: false,
   updatedAt: '2026-09-15T10:00:00Z',
 };
 
@@ -115,6 +116,7 @@ describe('LeadDiscoveryProfileComponent', () => {
       autoCampaignStartMode: 'Immediate',
       autoCampaignStartTime: null,
       dndCheckEnabled: false,
+      consentSmsEnabled: false,
     });
     expect(notify.success).toHaveBeenCalled();
     expect(component.hasChanges).toBeFalse();
@@ -127,6 +129,19 @@ describe('LeadDiscoveryProfileComponent', () => {
 
     create({ ...profile, dndCheckEnabled: true });
     expect(component.form.controls.dndCheckEnabled.value).toBeTrue();
+  });
+
+  it('shows the consent SMS switch, off unless the saved profile has it on, and saves it', () => {
+    create(profile);
+    expect(fixture.nativeElement.querySelector('mat-slide-toggle[formControlName="consentSmsEnabled"]')).not.toBeNull();
+    expect(component.form.controls.consentSmsEnabled.value).toBeFalse();
+
+    component.form.controls.consentSmsEnabled.setValue(true);
+    component.save();
+    expect(service.saveProfile).toHaveBeenCalledWith(jasmine.objectContaining({ consentSmsEnabled: true }));
+
+    create({ ...profile, consentSmsEnabled: true });
+    expect(component.form.controls.consentSmsEnabled.value).toBeTrue();
   });
 
   it('saves the DND check switch', () => {

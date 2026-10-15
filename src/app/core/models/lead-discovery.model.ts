@@ -33,6 +33,8 @@ export interface LeadDiscoveryProfile {
   autoCampaignStartTime: string | null;
   /** Whether each number is checked against DND-like restrictions before a customer is created. False by default. */
   dndCheckEnabled: boolean;
+  /** Whether each customer the auto-campaign takes is sent an SMS inviting them to start a WhatsApp conversation (their consent). False by default. */
+  consentSmsEnabled: boolean;
   updatedAt: string | null;
 }
 
@@ -58,6 +60,7 @@ export interface SaveLeadDiscoveryProfileRequest {
   autoCampaignStartMode: string;
   autoCampaignStartTime: string | null;
   dndCheckEnabled: boolean;
+  consentSmsEnabled: boolean;
 }
 
 /** Body of POST /lead-discovery/keyword-suggestions. `existing` are never suggested again. */

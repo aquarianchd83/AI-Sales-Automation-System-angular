@@ -9,6 +9,8 @@ import {
   LeadDiscoveryExecutionCustomer,
   LeadDiscoveryExecutionDetail,
   VERIFICATION_FILTERS,
+  consentSmsChipClass,
+  consentSmsLabel,
   filterByVerification,
   leadDiscoveryStatusChipClass,
   rowHistoryEvents,
@@ -30,12 +32,14 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
   readonly chipClass = leadDiscoveryStatusChipClass;
   readonly formatCharge = formatCharge;
   readonly verificationFilters = VERIFICATION_FILTERS;
+  readonly smsChip = consentSmsChipClass;
+  readonly smsText = consentSmsLabel;
   /** The DND check filter on the Customers tab; 'All' shows every row. */
   verificationFilter = 'All';
   readonly verificationChip = verificationChipClass;
   readonly verificationText = verificationLabel;
 
-  readonly customerColumns = ['customerName', 'crmCustomerName', 'phone', 'status', 'dnd', 'verifiedAt', 'reason', 'campaign', 'error', 'history'];
+  readonly customerColumns = ['customerName', 'crmCustomerName', 'phone', 'status', 'dnd', 'verifiedAt', 'reason', 'campaign', 'consentSms', 'error', 'history'];
   readonly templateColumns = ['sequence', 'templateName', 'delay', 'status'];
   readonly lockColumns = ['transitionAtUtc', 'from', 'to', 'reason'];
 

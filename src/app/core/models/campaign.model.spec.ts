@@ -16,6 +16,9 @@ import {
   parseStepTypeName,
   toScheduledStartAtRequest,
   toTimeInputValue,
+  CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS,
+  CAMPAIGN_CUSTOMER_STATUS_ORDER,
+  campaignCustomerStatusChipClass,
 } from './campaign.model';
 
 /**
@@ -288,6 +291,7 @@ describe('force next step', () => {
   it('acts only on customers who are Pending or awaiting a follow-up', () => {
     expect(isAwaitingNextStep(CampaignCustomerStatus.Pending)).toBeTrue();
     expect(isAwaitingNextStep(CampaignCustomerStatus.AwaitingResponse)).toBeTrue();
+    expect(isAwaitingNextStep(CampaignCustomerStatus.WaitingForContent)).toBeTrue();
     for (const status of [CampaignCustomerStatus.Responded, CampaignCustomerStatus.OptedOut, CampaignCustomerStatus.HandedOff, CampaignCustomerStatus.Completed, CampaignCustomerStatus.Failed]) {
       expect(isAwaitingNextStep(status)).toBeFalse();
     }
@@ -304,5 +308,17 @@ describe('canRetireCampaign', () => {
   it('is false while the campaign is live, and once it is retired', () => {
     expect(canRetireCampaign({ status: CampaignStatus.Running, retiredAt: null })).toBeFalse();
     expect(canRetireCampaign({ status: CampaignStatus.Stopped, retiredAt: '2026-10-15T06:00:00Z' })).toBeFalse();
+  });
+});
+
+describe('WaitingForContent', () => {
+  it('is a listed status with a description and its own chip, so the audience legend and counts include it', () => {
+    expect(CAMPAIGN_CUSTOMER_STATUS_ORDER).toContain(CampaignCustomerStatus.WaitingForContent);
+    expect(CAMPAIGN_CUSTOMER_STATUS_DESCRIPTIONS[CampaignCustomerStatus.WaitingForContent]).toContain('first message');
+    expect(campaignCustomerStatusChipClass(CampaignCustomerStatus.WaitingForContent)).toContain('paused');
+  });
+
+  it('is not a final state: nothing ends there', () => {
+    expect(isAwaitingNextStep(CampaignCustomerStatus.WaitingForContent)).toBeTrue();
   });
 });
