@@ -2,10 +2,12 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { CampaignAudienceDialogComponent } from './campaign-audience-dialog/campaign-audience-dialog.component';
+import { CampaignCustomerJourneyDialogComponent } from './campaign-customer-journey-dialog/campaign-customer-journey-dialog.component';
 import { CampaignDetailComponent } from './campaign-detail/campaign-detail.component';
 import { CampaignFormDialogComponent } from './campaign-form-dialog/campaign-form-dialog.component';
 import { CampaignListComponent } from './campaign-list/campaign-list.component';
 import { CampaignMessageHistoryListComponent } from './campaign-message-history-list/campaign-message-history-list.component';
+import { CampaignRetireDialogComponent } from './campaign-retire-dialog/campaign-retire-dialog.component';
 import { CampaignStepDeliveryComponent } from './campaign-step-delivery/campaign-step-delivery.component';
 import { CampaignStepDialogComponent } from './campaign-step-dialog/campaign-step-dialog.component';
 import { SharedModule } from '../../shared/shared.module';
@@ -20,7 +22,9 @@ const routes: Routes = [
   declarations: [
     CampaignListComponent,
     CampaignDetailComponent,
+    CampaignCustomerJourneyDialogComponent,
     CampaignFormDialogComponent,
+    CampaignRetireDialogComponent,
     CampaignStepDialogComponent,
     CampaignAudienceDialogComponent,
     CampaignMessageHistoryListComponent,

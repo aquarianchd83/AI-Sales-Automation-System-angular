@@ -23,11 +23,12 @@ import {
   Campaign,
   campaignEndDate,
   campaignStatusChipClass,
-  canDeleteCampaign,
+  canRetireCampaign,
 } from '../../../core/models/campaign.model';
 import { CampaignFormDialogComponent, CampaignFormDialogData } from '../campaign-form-dialog/campaign-form-dialog.component';
+import { TenantJobsDialogComponent, TenantJobsDialogData } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
+import { CampaignRetireDialogComponent } from '../campaign-retire-dialog/campaign-retire-dialog.component';
 import { CampaignService } from '../../../core/services/campaign.service';
-import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -51,7 +52,7 @@ export class CampaignListComponent implements OnInit, OnDestroy {
   ];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusClass = campaignStatusChipClass;
-  readonly canDelete = canDeleteCampaign;
+  readonly canRetire = canRetireCampaign;
   readonly endDate = campaignEndDate;
   readonly statusLegend = CAMPAIGN_STATUS_ORDER;
   readonly campaignJobTypes = CAMPAIGN_JOB_TYPES;
@@ -123,6 +124,16 @@ export class CampaignListComponent implements OnInit, OnDestroy {
     this.reload$.next();
   }
 
+  /** The campaign jobs live in a dialog, opened from the Jobs button, instead of taking up the top of the page. */
+  openJobs(): void {
+    const data: TenantJobsDialogData = {
+      title: 'Campaign jobs',
+      description: 'The scheduled jobs that send, follow up, retry and close your campaigns.',
+      jobTypes: CAMPAIGN_JOB_TYPES,
+    };
+    this.dialog.open(TenantJobsDialogComponent, { ...TenantJobsDialogComponent.config, data });
+  }
+
   create(): void {
     this.openForm({ mode: 'create' });
   }
@@ -136,26 +147,16 @@ export class CampaignListComponent implements OnInit, OnDestroy {
     void this.router.navigate([campaign.id, 'history'], { relativeTo: this.route });
   }
 
-  delete(campaign: Campaign, event: Event): void {
+  /** Retiring replaces deleting in the grid: the campaign stays as a record, with the reason, listed last. */
+  retire(campaign: Campaign, event: Event): void {
     event.stopPropagation();
-    const data: ConfirmDialogData = {
-      title: `Delete "${campaign.name}"?`,
-      message:
-        'This cannot be undone. Only Draft and Stopped campaigns can be deleted — deleting a Stopped campaign also permanently deletes its message history.',
-      confirmLabel: 'Delete',
-      destructive: true,
-    };
     this.dialog
-      .open(ConfirmDialogComponent, { data, width: '440px' })
+      .open(CampaignRetireDialogComponent, { data: { campaign }, width: '480px', disableClose: true })
       .afterClosed()
-      .subscribe((confirmed) => {
-        if (!confirmed) {
-          return;
-        }
-        this.campaigns.delete(campaign.id).subscribe(() => {
-          this.notify.success('Campaign deleted.');
+      .subscribe((retired) => {
+        if (retired) {
           this.reload$.next();
-        });
+        }
       });
   }
 

@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import {
   Campaign,
   CampaignAudienceMember,
+  CampaignCustomerJourney,
   CampaignHistoryFilter,
   CampaignMessageHistoryEntry,
   CampaignProgress,
@@ -50,6 +51,16 @@ export class CampaignService {
   /** Allowed only while the campaign is Draft. */
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /** One attached customer's journey through this campaign: consent, campaign status and every message, first step first. */
+  getCustomerJourney(campaignId: string, customerId: string): Observable<CampaignCustomerJourney> {
+    return this.http.get<CampaignCustomerJourney>(`${this.baseUrl}/${campaignId}/audience/${customerId}/journey`);
+  }
+
+  /** Draft, Stopped or Completed only. Keeps the campaign as a record; the reason is required. */
+  retire(id: string, reason: string): Observable<Campaign> {
+    return this.http.post<Campaign>(`${this.baseUrl}/${id}/retire`, { reason });
   }
 
   /**

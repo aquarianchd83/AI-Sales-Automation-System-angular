@@ -17,6 +17,16 @@ describe('CampaignService', () => {
 
   afterEach(() => http.verify());
 
+  it('GETs one audience customer\'s journey through the campaign', () => {
+    let result: unknown;
+    service.getCustomerJourney('k1', 'c1').subscribe((r) => (result = r));
+
+    const req = http.expectOne(`${baseUrl}/k1/audience/c1/journey`);
+    expect(req.request.method).toBe('GET');
+    req.flush({ customerId: 'c1', steps: [] });
+    expect(result).toEqual({ customerId: 'c1', steps: [] });
+  });
+
   it('upserts a step at its StepType position', () => {
     const request = {
       stepType: 'FollowUp1',
