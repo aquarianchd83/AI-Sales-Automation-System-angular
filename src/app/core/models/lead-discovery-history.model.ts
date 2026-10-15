@@ -140,6 +140,24 @@ export function rowHistoryEvents(row: LeadDiscoveryExecutionCustomer): CustomerH
   return events;
 }
 
+/** The choices of the DND check filter on the Customers tab: every verification status, plus "All". */
+export const VERIFICATION_FILTERS = [
+  { value: 'All', label: 'All' },
+  { value: 'Pass', label: 'Passed' },
+  { value: 'Fail', label: 'Failed' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Error', label: 'Check error' },
+  { value: 'NotChecked', label: 'Not checked' },
+] as const;
+
+/** The rows whose verification status is `filter` ('All' keeps every row). */
+export function filterByVerification(
+  rows: LeadDiscoveryExecutionCustomer[],
+  filter: string
+): LeadDiscoveryExecutionCustomer[] {
+  return filter === 'All' ? rows : rows.filter((r) => r.verificationStatus === filter);
+}
+
 /** What the DND column says for a verificationStatus. Fail (rejected) and Error (could not be checked) read differently on purpose. */
 export function verificationLabel(status: string): string {
   switch (status) {
@@ -198,6 +216,17 @@ export interface LeadDiscoveryLockTransition {
  * execution's AI research used and cost — null when it did no research: a retry, a skipped or blocked
  * run, a run stopped before its first round, or one recorded before runs were linked to executions.
  * currencyCode/currencySymbol are the tenant's currency, for research.estimatedCostLocal. */
+/** LeadDiscoveryVerificationCountsDto - how the execution's numbers came out of the DND check. Pending and Error are still to be
+ * checked (a retry asks again); failed numbers never became customers; notChecked rows were never submitted (invalid, duplicate, or
+ * the check was off). The five add up to the rows the execution recorded. */
+export interface LeadDiscoveryVerificationCounts {
+  passed: number;
+  failed: number;
+  pending: number;
+  error: number;
+  notChecked: number;
+}
+
 export interface LeadDiscoveryExecutionDetail {
   execution: LeadDiscoveryExecutionSummary;
   lockKey: string;
@@ -214,6 +243,7 @@ export interface LeadDiscoveryExecutionDetail {
   research: LeadDiscoveryRun | null;
   currencyCode: string;
   currencySymbol: string;
+  verificationCounts: LeadDiscoveryVerificationCounts;
 }
 
 /** LeadDiscoveryRetryQueuedDto — a manual retry was queued; it runs as a new execution. */

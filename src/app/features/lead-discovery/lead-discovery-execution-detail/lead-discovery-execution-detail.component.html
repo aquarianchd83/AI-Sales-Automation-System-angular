@@ -83,6 +83,25 @@
       </mat-card>
     </div>
 
+    <div class="stat-grid dnd-stats" *ngIf="dndChecked(d)" aria-label="DND check results">
+      <mat-card class="stat">
+        <span class="stat-value">{{ d.verificationCounts.passed }}</span>
+        <span class="stat-label">DND passed</span>
+      </mat-card>
+      <mat-card class="stat">
+        <span class="stat-value" [class.warn-text]="d.verificationCounts.failed">{{ d.verificationCounts.failed }}</span>
+        <span class="stat-label">DND failed (no customer)</span>
+      </mat-card>
+      <mat-card class="stat">
+        <span class="stat-value">{{ d.verificationCounts.pending }}</span>
+        <span class="stat-label">Check pending</span>
+      </mat-card>
+      <mat-card class="stat">
+        <span class="stat-value" [class.warn-text]="d.verificationCounts.error">{{ d.verificationCounts.error }}</span>
+        <span class="stat-label">Check error (retry)</span>
+      </mat-card>
+    </div>
+
     <div class="detail-grid">
       <mat-card class="detail-card">
         <h2>Auto-Campaign</h2>
@@ -137,8 +156,17 @@
     <mat-card class="table-card">
       <mat-tab-group>
         <mat-tab label="Customers ({{ d.customers.length }})">
+          <div class="customer-filter" *ngIf="dndChecked(d)">
+            <mat-form-field subscriptSizing="dynamic" appearance="outline">
+              <mat-label>DND check</mat-label>
+              <mat-select [(value)]="verificationFilter" aria-label="Filter by DND check result">
+                <mat-option *ngFor="let f of verificationFilters" [value]="f.value">{{ f.label }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <span class="muted">{{ shown(d).length }} of {{ d.customers.length }}</span>
+          </div>
           <div class="table-scroll">
-            <table mat-table [dataSource]="d.customers">
+            <table mat-table [dataSource]="shown(d)">
               <ng-container matColumnDef="customerName">
                 <th mat-header-cell *matHeaderCellDef>Business</th>
                 <td mat-cell *matCellDef="let row">{{ row.customerName }}</td>
@@ -162,6 +190,10 @@
                   <ng-template #notChecked>—</ng-template>
                   <span *ngIf="row.verificationReasonCode" class="muted"> {{ row.verificationReasonCode }}</span>
                 </td>
+              </ng-container>
+              <ng-container matColumnDef="verifiedAt">
+                <th mat-header-cell *matHeaderCellDef>Checked at</th>
+                <td mat-cell *matCellDef="let row">{{ (row.verifiedAtUtc | zonedDate: 'medium') || '—' }}</td>
               </ng-container>
               <ng-container matColumnDef="error">
                 <th mat-header-cell *matHeaderCellDef>Note</th>

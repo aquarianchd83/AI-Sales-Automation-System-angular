@@ -1,4 +1,4 @@
-import { LeadDiscoveryExecutionCustomer, leadDiscoveryStatusChipClass, rowHistoryEvents, verificationChipClass, verificationLabel } from './lead-discovery-history.model';
+import { LeadDiscoveryExecutionCustomer, filterByVerification, leadDiscoveryStatusChipClass, rowHistoryEvents, verificationChipClass, verificationLabel } from './lead-discovery-history.model';
 
 describe('leadDiscoveryStatusChipClass', () => {
   it('greens a settled success across execution, campaign and lock vocabularies', () => {
@@ -80,5 +80,21 @@ describe('rowHistoryEvents', () => {
 
     expect(events.map((e) => e.eventType)).toEqual(['Discovered', 'CustomerNotCreated']);
     expect(events[1].reason).toBe('Invalid: closed business');
+  });
+});
+
+describe('filterByVerification', () => {
+  const row = (id: string, verificationStatus: string): LeadDiscoveryExecutionCustomer =>
+    ({ id, verificationStatus } as LeadDiscoveryExecutionCustomer);
+  const rows = [row('a', 'Pass'), row('b', 'Fail'), row('c', 'Error'), row('d', 'Pass')];
+
+  it('keeps every row for All', () => {
+    expect(filterByVerification(rows, 'All').length).toBe(4);
+  });
+
+  it('keeps only rows with the chosen status', () => {
+    expect(filterByVerification(rows, 'Pass').map((r) => r.id)).toEqual(['a', 'd']);
+    expect(filterByVerification(rows, 'Fail').map((r) => r.id)).toEqual(['b']);
+    expect(filterByVerification(rows, 'Pending')).toEqual([]);
   });
 });

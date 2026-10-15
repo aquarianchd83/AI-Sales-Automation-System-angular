@@ -8,6 +8,8 @@ import { formatCharge } from '../../../core/models/billing.model';
 import {
   LeadDiscoveryExecutionCustomer,
   LeadDiscoveryExecutionDetail,
+  VERIFICATION_FILTERS,
+  filterByVerification,
   leadDiscoveryStatusChipClass,
   rowHistoryEvents,
   verificationChipClass,
@@ -27,10 +29,13 @@ import { CustomerHistoryDialogComponent } from '../../../shared/components/custo
 export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy {
   readonly chipClass = leadDiscoveryStatusChipClass;
   readonly formatCharge = formatCharge;
+  readonly verificationFilters = VERIFICATION_FILTERS;
+  /** The DND check filter on the Customers tab; 'All' shows every row. */
+  verificationFilter = 'All';
   readonly verificationChip = verificationChipClass;
   readonly verificationText = verificationLabel;
 
-  readonly customerColumns = ['customerName', 'crmCustomerName', 'phone', 'status', 'dnd', 'error', 'history'];
+  readonly customerColumns = ['customerName', 'crmCustomerName', 'phone', 'status', 'dnd', 'verifiedAt', 'error', 'history'];
   readonly templateColumns = ['sequence', 'templateName', 'delay', 'status'];
   readonly lockColumns = ['transitionAtUtc', 'from', 'to', 'reason'];
 
@@ -49,6 +54,17 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
     private readonly notify: NotificationService,
     private readonly dialog: MatDialog
   ) {}
+
+  /** True when the DND check ran for any number in this execution - the counts and the filter are only worth showing then. */
+  dndChecked(d: LeadDiscoveryExecutionDetail): boolean {
+    const c = d.verificationCounts;
+    return !!c && c.passed + c.failed + c.pending + c.error > 0;
+  }
+
+  /** The Customers tab rows after the DND check filter. */
+  shown(d: LeadDiscoveryExecutionDetail): LeadDiscoveryExecutionCustomer[] {
+    return filterByVerification(d.customers, this.verificationFilter);
+  }
 
   /** The history of one row: the customer's own, or - for a business that never became a customer (rejected by the DND check,
    * closed, no usable number) - what this execution recorded about it. */
