@@ -35,7 +35,7 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
   readonly verificationChip = verificationChipClass;
   readonly verificationText = verificationLabel;
 
-  readonly customerColumns = ['customerName', 'crmCustomerName', 'phone', 'status', 'dnd', 'verifiedAt', 'error', 'history'];
+  readonly customerColumns = ['customerName', 'crmCustomerName', 'phone', 'status', 'dnd', 'verifiedAt', 'reason', 'campaign', 'error', 'history'];
   readonly templateColumns = ['sequence', 'templateName', 'delay', 'status'];
   readonly lockColumns = ['transitionAtUtc', 'from', 'to', 'reason'];
 

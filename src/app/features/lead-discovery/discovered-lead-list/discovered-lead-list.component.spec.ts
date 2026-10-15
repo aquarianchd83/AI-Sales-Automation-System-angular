@@ -72,7 +72,7 @@ describe('DiscoveredLeadListComponent', () => {
   it('lists discovered leads with contact and score', () => {
     create([lead]);
 
-    expect(service.getLeads).toHaveBeenCalledWith({ page: 1, pageSize: 25 }, null);
+    expect(service.getLeads).toHaveBeenCalledWith({ page: 1, pageSize: 25 }, null, null);
     expect(text()).toContain('Clear Sight Eye Clinic');
     expect(text()).toContain('Chandigarh, Punjab');
     expect(text()).toContain('+91 172 400 1234');
@@ -86,7 +86,7 @@ describe('DiscoveredLeadListComponent', () => {
     component.minScoreControl.setValue(80);
     tick();
 
-    expect(service.getLeads).toHaveBeenCalledWith({ page: 1, pageSize: 25 }, 80);
+    expect(service.getLeads).toHaveBeenCalledWith({ page: 1, pageSize: 25 }, 80, null);
   }));
 
   it('opens the detail dialog for a row', () => {
@@ -104,5 +104,56 @@ describe('DiscoveredLeadListComponent', () => {
     expect(text()).toContain('No leads discovered yet.');
     expect(text()).not.toContain('Back');
     expect(text()).not.toContain('Set up your discovery profile');
+  });
+
+  describe('discovery results', () => {
+    const rejected: DiscoveredLead = {
+      ...lead,
+      id: 'l2',
+      businessName: 'Closed Door Clinic',
+      customerId: null,
+      executionId: 'abcdef12-0000-0000-0000-000000000000',
+      verificationStatus: 'Fail',
+      verificationReasonCode: 'DND',
+      verificationReason: 'Number is on the DND register',
+      verifiedAtUtc: '2026-09-15T02:11:00Z',
+      campaignName: null,
+    };
+    const passed: DiscoveredLead = {
+      ...lead,
+      executionId: 'abcdef12-0000-0000-0000-000000000000',
+      verificationStatus: 'Pass',
+      campaignName: 'Eye clinic - 2026-09-15',
+    };
+
+    it('shows the DND result and reason, the batch and the campaign, and keeps the rejected lead listed', () => {
+      create([passed, rejected]);
+
+      const t = text();
+      expect(t).toContain('Passed');
+      expect(t).toContain('Failed');
+      expect(t).toContain('Number is on the DND register');
+      expect(t).toContain('Eye clinic - 2026-09-15');
+      expect(t).toContain('Closed Door Clinic');
+      expect(t).toContain('abcdef12');   // the batch reference
+    });
+
+    it('asks for one DND result when the filter is chosen, and none for All', fakeAsync(() => {
+      create([passed]);
+
+      component.verificationControl.setValue('Fail');
+      tick();
+      expect(service.getLeads).toHaveBeenCalledWith({ page: 1, pageSize: 25 }, null, 'Fail');
+
+      component.verificationControl.setValue('All');
+      tick();
+      expect(service.getLeads).toHaveBeenCalledWith({ page: 1, pageSize: 25 }, null, null);
+    }));
+
+    it('counts the DND filter as an active filter', () => {
+      create([passed]);
+      component.verificationControl.setValue('Pending');
+      expect(component.isFiltered).toBeTrue();
+    });
   });
 });

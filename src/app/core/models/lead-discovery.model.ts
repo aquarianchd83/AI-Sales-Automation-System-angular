@@ -128,6 +128,15 @@ export interface DiscoveredLead {
   /** The CRM customer created for this business, or null when it had no usable phone number. */
   customerId: string | null;
   discoveredAt: string;
+  /** The Lead Discovery History execution (batch) that found this business. */
+  executionId?: string | null;
+  /** The DND check on its number: NotChecked, Pending, Pass, Fail or Error. Fail = rejected, no customer was created; Error = could not be checked. */
+  verificationStatus?: string;
+  verificationReasonCode?: string | null;
+  verificationReason?: string | null;
+  verifiedAtUtc?: string | null;
+  /** The campaign its customer was most recently added to, if any. */
+  campaignName?: string | null;
 }
 
 /** LeadDiscoveryRunDto — what one run cost and produced. estimatedCostLocal is estimatedCostUsd in the

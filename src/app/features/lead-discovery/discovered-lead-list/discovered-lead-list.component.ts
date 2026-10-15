@@ -5,6 +5,7 @@ import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, merge, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
+import { VERIFICATION_FILTERS, verificationChipClass, verificationLabel } from '../../../core/models/lead-discovery-history.model';
 import { DiscoveredLead, MIN_SCORE_FILTERS, leadScoreChipClass } from '../../../core/models/lead-discovery.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { TENANT_ADMIN_ROLES } from '../../../core/models/user.model';
@@ -21,14 +22,19 @@ import { DiscoveredLeadDetailDialogComponent } from '../discovered-lead-detail-d
 export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['business', 'location', 'contact', 'score', 'discoveredAt'];
+  readonly displayedColumns = ['business', 'location', 'contact', 'dnd', 'batch', 'campaign', 'score', 'discoveredAt'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly minScoreOptions = MIN_SCORE_FILTERS;
   readonly scoreClass = leadScoreChipClass;
+  readonly verificationFilters = VERIFICATION_FILTERS;
+  readonly verificationChip = verificationChipClass;
+  readonly verificationText = verificationLabel;
   readonly adminRoles = TENANT_ADMIN_ROLES;
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
   readonly minScoreControl = new FormControl<number | null>(null);
+  /** The DND check filter; 'All' shows every lead. */
+  readonly verificationControl = new FormControl<string>('All', { nonNullable: true });
 
   page: PagedResult<DiscoveredLead> = emptyPage<DiscoveredLead>();
   loading = true;
@@ -43,7 +49,7 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
   ) {}
 
   get isFiltered(): boolean {
-    return !!this.query.search || this.minScoreControl.value != null;
+    return !!this.query.search || this.minScoreControl.value != null || this.verificationControl.value !== 'All';
   }
 
   ngOnInit(): void {
@@ -53,8 +59,9 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
       map((search) => ({ search: search.trim() || undefined }))
     );
     const minScore$ = this.minScoreControl.valueChanges.pipe(map(() => ({})));
+    const verification$ = this.verificationControl.valueChanges.pipe(map(() => ({})));
 
-    merge(search$, minScore$)
+    merge(search$, minScore$, verification$)
       .pipe(takeUntil(this.destroy$))
       .subscribe((change) => {
         this.query = { ...this.query, ...change, page: 1 };
@@ -67,7 +74,9 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
         startWith(undefined),
         switchMap(() => {
           this.loading = true;
-          return this.leadDiscovery.getLeads(this.query, this.minScoreControl.value).pipe(
+          return this.leadDiscovery
+            .getLeads(this.query, this.minScoreControl.value, this.verificationControl.value === 'All' ? null : this.verificationControl.value)
+            .pipe(
             catchError(() => of(emptyPage<DiscoveredLead>(this.query.pageSize))),
             finalize(() => (this.loading = false))
           );
@@ -90,6 +99,7 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
   clearFilters(): void {
     this.searchControl.setValue('');
     this.minScoreControl.setValue(null);
+    this.verificationControl.setValue('All');
   }
 
   location(lead: DiscoveredLead): string {

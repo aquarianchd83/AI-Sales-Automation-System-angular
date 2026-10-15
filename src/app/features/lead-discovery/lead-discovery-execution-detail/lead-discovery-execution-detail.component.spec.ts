@@ -256,6 +256,20 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
       expect((fixture.nativeElement as HTMLElement).querySelector('.customer-filter')).toBeNull();
     });
 
+    it('shows why a number was rejected or could not be checked, and the campaign of the rows that joined one', () => {
+      createWithCounts([
+        row({ id: 'r1', verificationStatus: 'Pass', campaignName: 'Eye clinic - 2026-10-15' }),
+        row({ id: 'r2', customerId: null, status: 'Skipped', verificationStatus: 'Fail', verificationReason: 'On the DND register' }),
+        row({ id: 'r3', customerId: null, status: 'Pending', verificationStatus: 'Error', verificationReasonCode: 'PROVIDER_ERROR' }),
+      ]);
+
+      const t = text();
+      expect(t).toContain('Rejection / failure reason');
+      expect(t).toContain('On the DND register');
+      expect(t).toContain('PROVIDER_ERROR');
+      expect(t).toContain('Eye clinic - 2026-10-15');
+    });
+
     it('filters the customers by DND check result and shows the checked-at time column', () => {
       createWithCounts(rows());
       expect(tableRows()).toBe(4);

@@ -89,6 +89,8 @@ export interface LeadDiscoveryExecutionCustomer {
   verifiedAtUtc: string | null;
   /** The name on the CRM customer created for this row; null when none exists (rejected, invalid, duplicate) or it was deleted. */
   crmCustomerName?: string | null;
+  /** The campaign this execution generated, when this row's customer was added to it. */
+  campaignName?: string | null;
 }
 
 /**
