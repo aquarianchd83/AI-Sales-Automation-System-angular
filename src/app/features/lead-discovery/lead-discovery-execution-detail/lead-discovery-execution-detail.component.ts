@@ -1,12 +1,21 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { finalize, map, takeUntil } from 'rxjs/operators';
 
 import { formatCharge } from '../../../core/models/billing.model';
-import { LeadDiscoveryExecutionDetail, leadDiscoveryStatusChipClass } from '../../../core/models/lead-discovery-history.model';
+import {
+  LeadDiscoveryExecutionCustomer,
+  LeadDiscoveryExecutionDetail,
+  leadDiscoveryStatusChipClass,
+  rowHistoryEvents,
+  verificationChipClass,
+  verificationLabel,
+} from '../../../core/models/lead-discovery-history.model';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { CustomerHistoryDialogComponent } from '../../../shared/components/customer-history-dialog/customer-history-dialog.component';
 
 /** One lead discovery execution in full: customer outcome counts, per-customer results, template
  * associations and lock transitions, plus a retry action when the execution allows it. Admin only. */
@@ -18,8 +27,10 @@ import { NotificationService } from '../../../core/services/notification.service
 export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy {
   readonly chipClass = leadDiscoveryStatusChipClass;
   readonly formatCharge = formatCharge;
+  readonly verificationChip = verificationChipClass;
+  readonly verificationText = verificationLabel;
 
-  readonly customerColumns = ['customerName', 'phone', 'status', 'error'];
+  readonly customerColumns = ['customerName', 'crmCustomerName', 'phone', 'status', 'dnd', 'error', 'history'];
   readonly templateColumns = ['sequence', 'templateName', 'delay', 'status'];
   readonly lockColumns = ['transitionAtUtc', 'from', 'to', 'reason'];
 
@@ -35,8 +46,17 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly leadDiscovery: LeadDiscoveryService,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly dialog: MatDialog
   ) {}
+
+  /** The history of one row: the customer's own, or - for a business that never became a customer (rejected by the DND check,
+   * closed, no usable number) - what this execution recorded about it. */
+  showCustomerHistory(row: LeadDiscoveryExecutionCustomer): void {
+    const displayName = row.crmCustomerName || row.customerName;
+    const data = row.customerId ? { customerId: row.customerId, displayName } : { displayName, events: rowHistoryEvents(row) };
+    this.dialog.open(CustomerHistoryDialogComponent, { data, width: '560px' });
+  }
 
   ngOnInit(): void {
     this.route.paramMap

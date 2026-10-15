@@ -11,6 +11,8 @@ import { ModuleFlowsDialogComponent } from './components/module-flows/module-flo
 import { HasRoleDirective } from './directives/has-role.directive';
 import { MaterialModule } from './material.module';
 import { ZonedDatePipe } from './pipes/zoned-date.pipe';
+import { CustomerHistoryDialogComponent } from './components/customer-history-dialog/customer-history-dialog.component';
+import { TenantJobsDialogComponent } from './components/tenant-jobs-dialog/tenant-jobs-dialog.component';
 import { TenantJobListComponent } from './components/tenant-job-list/tenant-job-list.component';
 import { TenantJobScheduleDialogComponent } from './components/tenant-job-schedule-dialog/tenant-job-schedule-dialog.component';
 import { MetaConnectCardComponent } from './components/meta-connect-card/meta-connect-card.component';
@@ -26,6 +28,8 @@ const DECLARATIONS = [
   ModuleFlowsDialogComponent,
   ZonedDatePipe,
   TenantJobListComponent,
+  TenantJobsDialogComponent,
+  CustomerHistoryDialogComponent,
   TenantJobScheduleDialogComponent,
   WhatsAppConnectionFormComponent,
   MetaConnectCardComponent,

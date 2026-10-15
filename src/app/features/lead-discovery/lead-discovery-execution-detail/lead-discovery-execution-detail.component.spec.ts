@@ -2,12 +2,18 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
-import { LeadDiscoveryExecutionDetail, LeadDiscoveryExecutionSummary } from '../../../core/models/lead-discovery-history.model';
+import {
+  LeadDiscoveryExecutionCustomer,
+  LeadDiscoveryExecutionDetail,
+  LeadDiscoveryExecutionSummary,
+} from '../../../core/models/lead-discovery-history.model';
 import { LeadDiscoveryRun } from '../../../core/models/lead-discovery.model';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { CustomerHistoryDialogComponent } from '../../../shared/components/customer-history-dialog/customer-history-dialog.component';
 import { SharedModule } from '../../../shared/shared.module';
 import { LeadDiscoveryExecutionDetailComponent } from './lead-discovery-execution-detail.component';
 
@@ -111,6 +117,7 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
   let fixture: ComponentFixture<LeadDiscoveryExecutionDetailComponent>;
   let service: jasmine.SpyObj<LeadDiscoveryService>;
   let notify: jasmine.SpyObj<NotificationService>;
+  let dialog: jasmine.SpyObj<MatDialog>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
 
@@ -122,6 +129,7 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj('LeadDiscoveryService', ['getExecution', 'retryExecution']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
+    dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
     TestBed.configureTestingModule({
       declarations: [LeadDiscoveryExecutionDetailComponent],
@@ -129,6 +137,7 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
       providers: [
         { provide: LeadDiscoveryService, useValue: service },
         { provide: NotificationService, useValue: notify },
+        { provide: MatDialog, useValue: dialog },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: 'e1' })) } },
       ],
     });
@@ -193,5 +202,60 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
     expect(service.retryExecution).toHaveBeenCalledWith('e1');
     expect(notify.success).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith(['..'], jasmine.anything());
+  });
+
+  describe('customer history icon', () => {
+    const row = (over: Partial<LeadDiscoveryExecutionCustomer>): LeadDiscoveryExecutionCustomer => ({
+      id: 'r1',
+      customerId: 'c1',
+      discoveredLeadId: 'l1',
+      customerName: 'Eye clinic 1',
+      phone: '+919800000001',
+      status: 'Created',
+      isInvalid: false,
+      errorMessage: null,
+      errorDetails: null,
+      retriedFromId: null,
+      processedAtUtc: null,
+      verificationStatus: 'Pass',
+      verificationReasonCode: null,
+      verificationReason: null,
+      verifiedAtUtc: null,
+      crmCustomerName: 'Sim Owner 1',
+      ...over,
+    });
+
+    function createWith(customers: LeadDiscoveryExecutionCustomer[]): void {
+      service.getExecution.and.returnValue(of({ ...detail(), customers }));
+      create();
+    }
+
+    it('is shown on a row with a customer, and opens the history of that customer', () => {
+      createWith([row({})]);
+
+      const buttons = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.history-button');
+      expect(buttons.length).toBe(1);
+      buttons[0].click();
+
+      expect(dialog.open).toHaveBeenCalledWith(
+        CustomerHistoryDialogComponent,
+        jasmine.objectContaining({ data: { customerId: 'c1', displayName: 'Sim Owner 1' } })
+      );
+    });
+
+    it('is shown on a row with no customer too, and opens the record of what happened to that business', () => {
+      createWith([
+        row({ id: 'r2', customerId: null, crmCustomerName: null, status: 'Skipped', verificationStatus: 'Fail', verificationReasonCode: 'DND', errorMessage: 'Rejected by the DND check' }),
+      ]);
+
+      const buttons = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.history-button');
+      expect(buttons.length).toBe(1);
+      buttons[0].click();
+
+      const config = dialog.open.calls.mostRecent().args[1] as { data: { customerId?: string; displayName: string; events: { eventType: string }[] } };
+      expect(config.data.customerId).toBeUndefined();
+      expect(config.data.displayName).toBe('Eye clinic 1');
+      expect(config.data.events.map((e) => e.eventType)).toContain('VerificationFailed');
+    });
   });
 });

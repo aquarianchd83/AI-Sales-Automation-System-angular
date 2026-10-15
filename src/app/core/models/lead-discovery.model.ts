@@ -4,9 +4,8 @@
  * leads per run; null when no plan applies. sourceCampaignName/sourceCampaignStatus are the selected
  * auto-campaign source's current name/status, resolved server-side — both null when sourceCampaignId is
  * unset or no longer resolves to an existing campaign (the cue to show a "campaign no longer exists"
- * warning instead of a blank picker). autoConsentDiscoveredCustomers is off by default — when on, a
- * customer this job creates is written OptedIn instead of PendingOptIn, with no consent evidence beyond
- * having been found on the web; see the warning shown next to its toggle before turning it on.
+ * warning instead of a blank picker). A customer this job creates is always PendingOptIn — there is no
+ * switch to skip that.
  * autoCampaignStartMode is "Immediate" (default — the generated campaign starts as soon as it is
  * created) or "NextDayWithTime" (starts the day after the processing date, at
  * autoCampaignStartTime — "HH:mm:ss", the tenant's own local time, required only in that mode). The
@@ -30,9 +29,10 @@ export interface LeadDiscoveryProfile {
   sourceCampaignId: string | null;
   sourceCampaignName: string | null;
   sourceCampaignStatus: string | null;
-  autoConsentDiscoveredCustomers: boolean;
   autoCampaignStartMode: string;
   autoCampaignStartTime: string | null;
+  /** Whether each number is checked against DND-like restrictions before a customer is created. False by default. */
+  dndCheckEnabled: boolean;
   updatedAt: string | null;
 }
 
@@ -55,9 +55,9 @@ export interface SaveLeadDiscoveryProfileRequest {
   additionalCriteria: string[];
   autoCampaignEnabled: boolean;
   sourceCampaignId: string | null;
-  autoConsentDiscoveredCustomers: boolean;
   autoCampaignStartMode: string;
   autoCampaignStartTime: string | null;
+  dndCheckEnabled: boolean;
 }
 
 /** Body of POST /lead-discovery/keyword-suggestions. `existing` are never suggested again. */

@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, of, timer } from 'rxjs';
@@ -18,6 +19,8 @@ import { BillingService } from '../../../core/services/billing.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantJobService } from '../../../core/services/tenant-job.service';
+import { LEAD_DISCOVERY_JOB_TYPES } from '../../../core/models/tenant-job.model';
+import { TenantJobsDialogComponent, TenantJobsDialogData } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
 
 /** TenantJobCatalog.LeadDiscovery on the backend — the job key POST /jobs/{jobType}/trigger takes. */
 const LEAD_DISCOVERY_JOB_TYPE = 'lead-discovery';
@@ -69,7 +72,8 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
     private readonly billing: BillingService,
     private readonly notify: NotificationService,
     private readonly router: Router,
-    private readonly route: ActivatedRoute
+    private readonly route: ActivatedRoute,
+    private readonly dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -127,6 +131,16 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
 
   /** Queues today's lead-discovery run immediately, without waiting for its cron schedule. Refused
    * (409) when the job is disabled or a run for this tenant is already in flight. */
+  /** The lead discovery jobs open in a dialog, the same way the Campaigns page shows its own. */
+  openJobs(): void {
+    const data: TenantJobsDialogData = {
+      title: 'Lead discovery jobs',
+      description: 'The scheduled jobs that discover new leads and follow them up.',
+      jobTypes: LEAD_DISCOVERY_JOB_TYPES,
+    };
+    this.dialog.open(TenantJobsDialogComponent, { ...TenantJobsDialogComponent.config, data });
+  }
+
   runNow(): void {
     if (this.runningNow) {
       return;

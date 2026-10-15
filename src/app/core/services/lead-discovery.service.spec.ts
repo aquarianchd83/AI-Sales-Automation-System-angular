@@ -38,9 +38,9 @@ describe('LeadDiscoveryService', () => {
       additionalCriteria: [],
       autoCampaignEnabled: false,
       sourceCampaignId: null,
-      autoConsentDiscoveredCustomers: false,
       autoCampaignStartMode: 'Immediate',
       autoCampaignStartTime: null,
+      dndCheckEnabled: false,
     };
     service.saveProfile(request).subscribe();
 

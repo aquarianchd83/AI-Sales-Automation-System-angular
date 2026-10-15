@@ -1,0 +1,10 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+
+<mat-dialog-content class="jobs-content">
+  <p class="muted jobs-intro">{{ data.description }}</p>
+  <app-tenant-job-list [embedded]="true" [jobTypes]="data.jobTypes"></app-tenant-job-list>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Close</button>
+</mat-dialog-actions>

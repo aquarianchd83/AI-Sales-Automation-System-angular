@@ -1,0 +1,55 @@
+.intro {
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+
+/* Read top to bottom: the first step is at the top and time runs down the line, so a down arrow ends it. */
+.timeline {
+  position: relative;
+  list-style: none;
+  margin: 4px 0 12px;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--mat-sys-outline-variant, #ccc);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: -7px;
+    bottom: -9px;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 9px solid var(--mat-sys-outline-variant, #ccc);
+  }
+
+  li {
+    position: relative;
+    padding: 0 0 16px 12px;
+    font-size: 13px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -22px;
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--mat-sys-primary, #1976d2);
+    }
+  }
+}
+
+.event-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 2px;
+  font-size: 11px;
+  word-break: break-all;
+}

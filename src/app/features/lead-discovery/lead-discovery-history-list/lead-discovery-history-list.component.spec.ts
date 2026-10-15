@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, tick } from
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
 import { QuotaBalance, QuotaType } from '../../../core/models/billing.model';
@@ -10,6 +11,7 @@ import { BillingService } from '../../../core/services/billing.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantJobService } from '../../../core/services/tenant-job.service';
+import { TenantJobsDialogComponent } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
 import { SharedModule } from '../../../shared/shared.module';
 import { LeadDiscoveryHistoryListComponent } from './lead-discovery-history-list.component';
 
@@ -68,6 +70,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   let notify: jasmine.SpyObj<NotificationService>;
   let tenantJobs: jasmine.SpyObj<TenantJobService>;
   let billing: jasmine.SpyObj<BillingService>;
+  let dialog: jasmine.SpyObj<MatDialog>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
 
@@ -84,6 +87,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger']);
     billing = jasmine.createSpyObj('BillingService', ['getQuota']);
     billing.getQuota.and.returnValue(of([]));
+    dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
     TestBed.configureTestingModule({
       declarations: [LeadDiscoveryHistoryListComponent],
@@ -93,6 +97,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
         { provide: NotificationService, useValue: notify },
         { provide: TenantJobService, useValue: tenantJobs },
         { provide: BillingService, useValue: billing },
+        { provide: MatDialog, useValue: dialog },
       ],
     });
   });
@@ -280,4 +285,17 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     tick(30000);
     expect(service.getHistory.calls.count()).toBe(callsBeforeRun);
   }));
+
+  it('opens the lead discovery jobs in a dialog from the Jobs button', () => {
+    create([]);
+
+    (fixture.nativeElement.querySelector('.jobs-button') as HTMLButtonElement).click();
+
+    expect(dialog.open).toHaveBeenCalledWith(
+      TenantJobsDialogComponent,
+      jasmine.objectContaining({
+        data: jasmine.objectContaining({ title: 'Lead discovery jobs', jobTypes: ['lead-discovery', 'lead-follow-ups'] }),
+      })
+    );
+  });
 });

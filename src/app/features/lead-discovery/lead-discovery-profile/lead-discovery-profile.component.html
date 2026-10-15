@@ -254,6 +254,13 @@
             </div>
             <mat-slide-toggle formControlName="independentBusiness" aria-label="Independent businesses only"></mat-slide-toggle>
           </div>
+          <div class="switch-row">
+            <div>
+              <strong>Check DND restrictions</strong>
+              <span>Each number is checked before a customer is created. Numbers that fail are not added as customers or to the campaign; their result stays visible in Lead Discovery History. Off: every qualified lead becomes a customer.</span>
+            </div>
+            <mat-slide-toggle formControlName="dndCheckEnabled" aria-label="Check DND restrictions"></mat-slide-toggle>
+          </div>
         </div>
 
         <div class="list-head list-gap">
@@ -415,35 +422,6 @@
             <mat-icon>error_outline</mat-icon>Pick a time for the next-day start.
           </p>
         </ng-container>
-      </mat-card>
-
-      <!-- Consent -->
-      <mat-card class="section consent-card">
-        <div class="section-head">
-          <span class="section-icon tone-amber"><mat-icon>gavel</mat-icon></span>
-          <div>
-            <h2>Consent</h2>
-            <p>Whether a customer this job creates needs manual opt-in before it can be messaged.</p>
-          </div>
-        </div>
-
-        <div class="switch-list">
-          <div class="switch-row">
-            <div>
-              <strong>Auto-consent discovered customers</strong>
-              <span>Off by default. Skips manual opt-in for every customer this job creates.</span>
-            </div>
-            <mat-slide-toggle formControlName="autoConsentDiscoveredCustomers" aria-label="Auto-consent discovered customers"></mat-slide-toggle>
-          </div>
-        </div>
-
-        <p class="field-message field-message--warn" *ngIf="form.controls.autoConsentDiscoveredCustomers.value" role="alert">
-          <mat-icon>warning_amber</mat-icon>
-          Skips manual opt-in. Customers this job creates are marked OptedIn immediately, with no
-          confirmation from the business itself. Only enable this if you already have a lawful basis to
-          message these numbers without their direct consent — this can risk your WhatsApp number and
-          carries legal exposure in some jurisdictions.
-        </p>
       </mat-card>
 
       <!-- Volume -->

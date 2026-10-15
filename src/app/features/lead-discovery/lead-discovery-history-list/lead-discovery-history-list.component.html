@@ -8,6 +8,16 @@
       {{ quotaLabel }} lead candidates left
       <a routerLink="/billing/wallet" class="quota-chip-topup" (click)="$event.stopPropagation()">Top up</a>
     </span>
+    <button
+      mat-stroked-button
+      type="button"
+      class="jobs-button"
+      matTooltip="The scheduled jobs behind lead discovery"
+      (click)="openJobs()"
+    >
+      <mat-icon>schedule</mat-icon>
+      Jobs
+    </button>
     <button mat-button type="button" [disabled]="runningNow" (click)="runNow()">
       <mat-icon>play_arrow</mat-icon>
       {{ runningNow ? 'Queuing…' : 'Run now' }}
