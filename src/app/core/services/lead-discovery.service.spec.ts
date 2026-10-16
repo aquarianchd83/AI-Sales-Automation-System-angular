@@ -41,6 +41,7 @@ describe('LeadDiscoveryService', () => {
       autoCampaignStartMode: 'Immediate',
       autoCampaignStartTime: null,
       dndCheckEnabled: false,
+      consentSmsEnabled: false,
     };
     service.saveProfile(request).subscribe();
 
@@ -59,6 +60,18 @@ describe('LeadDiscoveryService', () => {
     expect(req.request.params.get('Search')).toBe('clinic');
     expect(req.request.params.get('minScore')).toBe('70');
     req.flush({ items: [], totalCount: 0, page: 2, pageSize: 25, totalPages: 0 });
+  });
+
+  it('sends the DND check filter as verificationStatus, and omits it when none is chosen', () => {
+    service.getLeads({ page: 1 }, null, 'Fail').subscribe();
+    const withFilter = http.expectOne((r) => r.url === `${baseUrl}/leads`);
+    expect(withFilter.request.params.get('verificationStatus')).toBe('Fail');
+    withFilter.flush({ items: [], totalCount: 0, page: 1, pageSize: 25, totalPages: 0 });
+
+    service.getLeads({ page: 1 }, null, null).subscribe();
+    const without = http.expectOne((r) => r.url === `${baseUrl}/leads`);
+    expect(without.request.params.has('verificationStatus')).toBeFalse();
+    without.flush({ items: [], totalCount: 0, page: 1, pageSize: 25, totalPages: 0 });
   });
 
   it('omits minScore when no filter is chosen', () => {

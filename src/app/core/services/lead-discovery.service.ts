@@ -46,11 +46,16 @@ export class LeadDiscoveryService {
   }
 
   /** Newest first. Search matches business name, type or city; minScore keeps leads scoring at least
-   * that much. */
-  getLeads(query: PagedQuery, minScore?: number | null): Observable<PagedResult<DiscoveredLead>> {
+   * that much; verificationStatus keeps leads whose number has that DND check result. */
+  getLeads(
+    query: PagedQuery,
+    minScore?: number | null,
+    verificationStatus?: string | null
+  ): Observable<PagedResult<DiscoveredLead>> {
     const params = {
       ...toPagedParams(query),
       ...(minScore != null ? { minScore: String(minScore) } : {}),
+      ...(verificationStatus ? { verificationStatus } : {}),
     };
     return this.http.get<PagedResult<DiscoveredLead>>(`${this.baseUrl}/leads`, { params });
   }

@@ -33,6 +33,8 @@ export interface LeadDiscoveryProfile {
   autoCampaignStartTime: string | null;
   /** Whether each number is checked against DND-like restrictions before a customer is created. False by default. */
   dndCheckEnabled: boolean;
+  /** Whether each customer the auto-campaign takes is sent an SMS inviting them to start a WhatsApp conversation (their consent). False by default. */
+  consentSmsEnabled: boolean;
   updatedAt: string | null;
 }
 
@@ -58,6 +60,7 @@ export interface SaveLeadDiscoveryProfileRequest {
   autoCampaignStartMode: string;
   autoCampaignStartTime: string | null;
   dndCheckEnabled: boolean;
+  consentSmsEnabled: boolean;
 }
 
 /** Body of POST /lead-discovery/keyword-suggestions. `existing` are never suggested again. */
@@ -128,6 +131,15 @@ export interface DiscoveredLead {
   /** The CRM customer created for this business, or null when it had no usable phone number. */
   customerId: string | null;
   discoveredAt: string;
+  /** The Lead Discovery History execution (batch) that found this business. */
+  executionId?: string | null;
+  /** The DND check on its number: NotChecked, Pending, Pass, Fail or Error. Fail = rejected, no customer was created; Error = could not be checked. */
+  verificationStatus?: string;
+  verificationReasonCode?: string | null;
+  verificationReason?: string | null;
+  verifiedAtUtc?: string | null;
+  /** The campaign its customer was most recently added to, if any. */
+  campaignName?: string | null;
 }
 
 /** LeadDiscoveryRunDto — what one run cost and produced. estimatedCostLocal is estimatedCostUsd in the

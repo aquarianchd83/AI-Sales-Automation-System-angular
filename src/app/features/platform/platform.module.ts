@@ -6,6 +6,7 @@ import { PlatformAnnouncementFormDialogComponent } from './platform-announcement
 import { PlatformAnnouncementListComponent } from './platform-announcement-list/platform-announcement-list.component';
 import { PlatformAwsSettingsComponent } from './platform-aws-settings/platform-aws-settings.component';
 import { PlatformDeliverySettingsComponent } from './platform-delivery-settings/platform-delivery-settings.component';
+import { PlatformIntegrationSettingsComponent } from './platform-integration-settings/platform-integration-settings.component';
 import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-log.component';
 import { PlatformBillingComponent } from './platform-billing/platform-billing.component';
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
@@ -65,6 +66,7 @@ const routes: Routes = [
       { path: 'jobs', component: PlatformJobsComponent },
       { path: 'aws-settings', component: PlatformAwsSettingsComponent },
       { path: 'delivery-settings', component: PlatformDeliverySettingsComponent },
+      { path: 'integration-settings', component: PlatformIntegrationSettingsComponent },
       // The platform's own WhatsApp: the number, a template per notice, and the images they show.
       { path: 'whatsapp-settings', component: PlatformWhatsAppSettingsComponent },
       { path: 'notice-templates', component: PlatformMessageTemplatesComponent },
@@ -106,6 +108,7 @@ const routes: Routes = [
     PlatformJobScheduleDialogComponent,
     PlatformAwsSettingsComponent,
     PlatformDeliverySettingsComponent,
+    PlatformIntegrationSettingsComponent,
     PlatformWhatsAppSettingsComponent,
     PlatformMessageTemplatesComponent,
     PlatformTemplateEditDialogComponent,

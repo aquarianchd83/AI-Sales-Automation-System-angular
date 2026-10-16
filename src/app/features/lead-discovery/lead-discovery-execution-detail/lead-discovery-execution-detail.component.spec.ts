@@ -256,6 +256,65 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
       expect((fixture.nativeElement as HTMLElement).querySelector('.customer-filter')).toBeNull();
     });
 
+    it('does not repeat the rejection reason or the campaign as columns of their own', () => {
+      createWithCounts([
+        row({ id: 'r1', verificationStatus: 'Pass', campaignName: 'Eye clinic - 2026-10-15' }),
+        row({ id: 'r2', customerId: null, status: 'Skipped', verificationStatus: 'Fail', verificationReason: 'On the DND register', errorMessage: 'Rejected by the DND check - no customer created.' }),
+      ]);
+
+      const headers = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('th')).map((h) => h.textContent?.trim());
+      expect(headers).not.toContain('Rejection / failure reason');
+      expect(headers).not.toContain('Campaign');
+      expect(text()).toContain('Rejected by the DND check');   // the rejection is still on the row, in the Note column
+    });
+
+    it('says in words why a row got no consent SMS, with a cross, and links the Off case to the discovery profile', () => {
+      createWithCounts([
+        row({ id: 'r1', consentSmsNote: 'Not sent: the consent SMS was Off', consentSmsNeedsSetting: true }),
+        row({ id: 'r2', customerId: null, status: 'Skipped', verificationStatus: 'NotChecked', consentSmsNote: 'Not sent: Not applicable' }),
+        row({ id: 'r3', customerId: null, status: 'Skipped', verificationStatus: 'Fail', consentSmsNote: 'Not sent: the number failed the DND check, so no customer was created to invite.' }),
+        row({ id: 'r4', customerId: null, status: 'Skipped', verificationStatus: 'NotChecked' }),
+      ]);
+
+      const cells = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('td.mat-column-consentSms'));
+      expect(cells.length).toBe(4);
+      const textOf = (i: number) => cells[i].textContent?.replace(/\s+/g, ' ').trim() ?? '';
+
+      expect(textOf(0)).toContain('Not sent: the consent SMS was Off');
+      expect(textOf(1)).toContain('Not sent: Not applicable');
+      expect(textOf(2)).toContain('failed the DND check');
+      expect(textOf(3)).toContain('Not sent');   // an older execution with no note still says so
+      cells.forEach((cell, i) => {
+        expect(cell.querySelector('mat-icon.sms-icon--not-sent')?.textContent?.trim()).withContext('row ' + i).toBe('close');
+        expect(cell.querySelector('mat-icon.sms-icon--sent')).withContext('row ' + i).toBeNull();
+      });
+
+      // Only the Off case links to the setting.
+      const links = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('a.sms-link');
+      expect(links.length).toBe(1);
+      expect(links[0].getAttribute('href')).toBe('/lead-discovery/profile');
+      expect(cells[0].contains(links[0])).toBeTrue();
+    });
+
+    it('shows a tick for an SMS that was sent, a cross for one that failed, and when the customer answered', () => {
+      createWithCounts([
+        row({ id: 'r1', consentSmsStatus: 'Delivered', consentRecordedAtUtc: '2026-10-15T06:30:00Z' }),
+        row({ id: 'r2', customerId: 'c2', consentSmsStatus: 'Submitted' }),
+        row({ id: 'r3', customerId: 'c3', consentSmsStatus: 'Failed', consentSmsFailureReason: 'Number is unreachable' }),
+      ]);
+
+      const cells = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('td.mat-column-consentSms'));
+      expect(cells.length).toBe(3);
+      expect(cells[0].querySelector('mat-icon.sms-icon--sent')?.textContent?.trim()).toBe('check');
+      expect(cells[0].textContent).toContain('Delivered');
+      expect(cells[0].textContent).toContain('Replied');
+      expect(cells[1].querySelector('mat-icon.sms-icon--sent')?.textContent?.trim()).toBe('check');
+      expect(cells[1].textContent).toContain('Submitted');
+      expect(cells[2].querySelector('mat-icon.sms-icon--not-sent')?.textContent?.trim()).toBe('close');
+      expect(cells[2].querySelector('mat-icon.sms-icon--sent')).toBeNull();
+      expect(cells[2].textContent).toContain('Failed');
+    });
+
     it('filters the customers by DND check result and shows the checked-at time column', () => {
       createWithCounts(rows());
       expect(tableRows()).toBe(4);

@@ -195,6 +195,28 @@
                 <th mat-header-cell *matHeaderCellDef>Checked at</th>
                 <td mat-cell *matCellDef="let row">{{ (row.verifiedAtUtc | zonedDate: 'medium') || '—' }}</td>
               </ng-container>
+              <ng-container matColumnDef="consentSms">
+                <th mat-header-cell *matHeaderCellDef>Consent SMS</th>
+                <td mat-cell *matCellDef="let row" [matTooltip]="row.consentSmsFailureReason || ''">
+                  <ng-container *ngIf="row.consentSmsStatus; else smsNotSent">
+                    <span class="sms-line">
+                      <mat-icon *ngIf="smsSent(row.consentSmsStatus)" class="sms-icon sms-icon--sent" aria-label="Sent">check</mat-icon>
+                      <mat-icon *ngIf="row.consentSmsStatus === 'Failed'" class="sms-icon sms-icon--not-sent" aria-label="Not sent">close</mat-icon>
+                      <span [class]="smsChip(row.consentSmsStatus)">{{ smsText(row.consentSmsStatus) }}</span>
+                    </span>
+                    <div class="muted" *ngIf="row.consentRecordedAtUtc">Replied {{ row.consentRecordedAtUtc | zonedDate: 'medium' }}</div>
+                  </ng-container>
+                  <ng-template #smsNotSent>
+                    <span class="sms-line sms-note">
+                      <mat-icon class="sms-icon sms-icon--not-sent" aria-label="Not sent">close</mat-icon>
+                      <span>
+                        {{ row.consentSmsNote || 'Not sent' }}
+                        <a *ngIf="row.consentSmsNeedsSetting" class="sms-link" routerLink="/lead-discovery/profile" matTooltip="Open the discovery profile to turn the consent SMS on">Discovery profile</a>
+                      </span>
+                    </span>
+                  </ng-template>
+                </td>
+              </ng-container>
               <ng-container matColumnDef="error">
                 <th mat-header-cell *matHeaderCellDef>Note</th>
                 <td mat-cell *matCellDef="let row" [matTooltip]="row.errorDetails || ''">{{ row.errorMessage || '—' }}</td>

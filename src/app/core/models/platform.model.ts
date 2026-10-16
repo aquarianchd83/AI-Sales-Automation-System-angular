@@ -995,3 +995,46 @@ export interface DeliveryTestResult {
   success: boolean;
   message: string;
 }
+
+/** How one outside service on the Integrations page is handled: by the built-in simulator or by a third-party API. */
+export type IntegrationMode = 'Simulator' | 'Api';
+
+/** The API key never comes back: only whether one is stored, plus its last four characters. */
+export interface IntegrationChannel {
+  mode: IntegrationMode;
+  apiUrl: string;
+  apiKeyHeader: string;
+  senderId: string;
+  timeoutSeconds: number;
+  hasApiKey: boolean;
+  apiKeyHint: string | null;
+  /** The third-party API is selected and has an address and a key, so real calls go out. */
+  isLive: boolean;
+}
+
+/** GET /platform/integration-settings. */
+export interface PlatformIntegrationSettings {
+  consentSms: IntegrationChannel;
+  dndCheck: IntegrationChannel;
+}
+
+/** One channel in the PUT / test body. `apiKey`: null keeps the stored one, '' clears it, text replaces it. */
+export interface IntegrationChannelRequest {
+  mode: IntegrationMode;
+  apiUrl: string;
+  apiKey: string | null;
+  apiKeyHeader: string;
+  senderId: string;
+  timeoutSeconds: number;
+}
+
+export interface UpdatePlatformIntegrationSettingsRequest {
+  consentSms: IntegrationChannelRequest;
+  dndCheck: IntegrationChannelRequest;
+}
+
+/** POST test-consent-sms / test-dnd-check: the channel's settings (saved or not) and the number to try. */
+export interface SendIntegrationTestRequest {
+  settings: IntegrationChannelRequest;
+  to: string;
+}

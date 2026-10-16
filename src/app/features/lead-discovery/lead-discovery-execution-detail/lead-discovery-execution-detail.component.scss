@@ -141,3 +141,35 @@ table {
   gap: 12px;
   padding: 12px 16px 0;
 }
+
+.sms-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sms-note {
+  align-items: flex-start;
+  min-width: 200px;
+  font-size: 12px;
+}
+
+.sms-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.sms-icon--sent {
+  color: #2e7d32;
+}
+
+.sms-icon--not-sent {
+  color: #c62828;
+}
+
+.sms-link {
+  margin-left: 4px;
+  white-space: nowrap;
+}

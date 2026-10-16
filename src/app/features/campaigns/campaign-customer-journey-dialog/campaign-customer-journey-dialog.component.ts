@@ -27,6 +27,8 @@ export function journeyStateChipClass(step: Pick<CampaignJourneyStep, 'state'>):
     case 'AwaitingResponse':
     case 'Sent':
     case 'Queued':
+    case 'Submitted':
+    case 'ConversationStarted':
     case 'Responded':
     case 'HandedOff':
       return 'status-chip status-chip--running';
