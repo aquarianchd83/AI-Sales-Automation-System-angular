@@ -13,8 +13,8 @@
         it to a third-party API.
       </span>
       <span class="spacer"></span>
-      <button mat-button type="button" [disabled]="saving || form.pristine" (click)="load()">Discard changes</button>
-      <button mat-flat-button color="primary" type="submit" [disabled]="saving || form.pristine">
+      <button mat-button type="button" [disabled]="saving || !dirty" (click)="load()">Discard changes</button>
+      <button mat-flat-button color="primary" type="submit" [disabled]="saving || !dirty">
         {{ saving ? 'Saving…' : 'Save integration settings' }}
       </button>
     </div>
@@ -95,5 +95,138 @@
         </ng-container>
       </ng-container>
     </mat-card>
+
+    <div [formGroup]="aiForm">
+      <p class="muted">
+        AI provider availability depends on the selected feature. Only providers implemented and supported for that feature are available for
+        configuration.
+      </p>
+
+      <mat-card class="delivery-card" formGroupName="conversation">
+        <h2>AI conversation</h2>
+        <p class="muted">The AI that answers customers in WhatsApp conversations, and the one that reads the knowledge base so it can answer from it.</p>
+
+        <h3 class="sub-title">Replies</h3>
+        <mat-radio-group class="mode-group" formControlName="mode" aria-label="AI conversation handling">
+          <mat-radio-button value="Simulator">Simulator</mat-radio-button>
+          <mat-radio-button value="Api">Third-party tool</mat-radio-button>
+        </mat-radio-group>
+        <div class="mode-note muted" *ngIf="!isConversationThirdParty()">
+          <mat-icon>science</mat-icon>
+          <span>The simulator answers on its own and nothing leaves the platform. Replies are simple keyword matches, good for trying things out.</span>
+        </div>
+        <ng-container *ngIf="isConversationThirdParty()">
+          <mat-radio-group class="mode-group" formControlName="provider" aria-label="AI conversation tool">
+            <mat-radio-button *ngFor="let tool of conversationTools" [value]="tool.value">{{ tool.label }}</mat-radio-button>
+          </mat-radio-group>
+          <div class="mode-note muted" [class.mode-note--warn]="!conversationHasKey()">
+            <mat-icon>{{ conversationHasKey() ? 'key' : 'warning' }}</mat-icon>
+            <span>
+              {{ conversationHasKey() ? 'Uses the ' : 'No ' }}{{ aiToolLabel(aiForm.controls.conversation.controls.provider.value) }}
+              {{ conversationHasKey() ? 'key saved under' : 'key is saved yet. Add it under' }}
+              <a routerLink="/settings/ai-providers" target="_blank" rel="noopener">Configuration &gt; AI Providers</a>{{ conversationHasKey() ? '.' : ' first.' }}
+            </span>
+          </div>
+          <div class="test-row">
+            <button mat-stroked-button type="button" [disabled]="aiTesting.conversation || saving" (click)="testAi('conversation')">
+              <mat-icon>{{ aiTesting.conversation ? 'hourglass_empty' : 'bolt' }}</mat-icon>
+              {{ aiTesting.conversation ? 'Working…' : 'Test ' + aiToolLabel(aiForm.controls.conversation.controls.provider.value) }}
+            </button>
+          </div>
+          <p class="muted">Asks the tool one short question with the saved key, without saving this choice.</p>
+          <ng-container *ngIf="aiResults.conversation as result">
+            <div class="test-result" [class.test-result--fail]="!result.success" role="status" aria-live="polite">
+              <mat-icon>{{ result.success ? 'check_circle' : 'error' }}</mat-icon>
+              <div><strong>{{ result.message }}</strong></div>
+            </div>
+          </ng-container>
+        </ng-container>
+
+        <h3 class="sub-title">Knowledge base reading (embeddings)</h3>
+        <mat-radio-group class="mode-group" formControlName="embeddingMode" aria-label="Embeddings handling">
+          <mat-radio-button value="Simulator">Simulator</mat-radio-button>
+          <mat-radio-button value="Api">Third-party tool</mat-radio-button>
+        </mat-radio-group>
+        <div class="mode-note muted" *ngIf="!isEmbeddingThirdParty()">
+          <mat-icon>science</mat-icon>
+          <span>The simulator turns text into numbers on its own and nothing leaves the platform.</span>
+        </div>
+        <ng-container *ngIf="isEmbeddingThirdParty()">
+          <mat-radio-group class="mode-group" formControlName="embeddingProvider" aria-label="Embeddings tool">
+            <mat-radio-button *ngFor="let tool of embeddingTools" [value]="tool.value">{{ tool.label }}</mat-radio-button>
+          </mat-radio-group>
+          <div class="mode-note muted" [class.mode-note--warn]="!conversationHasKey(true)">
+            <mat-icon>{{ conversationHasKey(true) ? 'key' : 'warning' }}</mat-icon>
+            <span>
+              {{ conversationHasKey(true) ? 'Uses the ' : 'No ' }}{{ aiToolLabel(aiForm.controls.conversation.controls.embeddingProvider.value) }}
+              {{ conversationHasKey(true) ? 'key saved under' : 'key is saved yet. Add it under' }}
+              <a routerLink="/settings/ai-providers" target="_blank" rel="noopener">Configuration &gt; AI Providers</a>{{ conversationHasKey(true) ? '.' : ' first.' }}
+              Claude is not offered because it has no embeddings.
+            </span>
+          </div>
+        </ng-container>
+      </mat-card>
+
+      <mat-card class="delivery-card" *ngFor="let feature of aiFeatures" [formGroupName]="feature.key">
+        <h2>{{ feature.title }}</h2>
+        <p class="muted">{{ feature.description }}</p>
+
+        <mat-radio-group class="mode-group" formControlName="mode" [attr.aria-label]="feature.title + ' handling'">
+          <mat-radio-button value="Simulator">Simulator</mat-radio-button>
+          <mat-radio-button value="Api" [disabled]="noToolYet(feature.key)">Third-party tool</mat-radio-button>
+        </mat-radio-group>
+
+        <div class="mode-note muted" *ngIf="!isAiThirdParty(feature.key) || noToolYet(feature.key)">
+          <mat-icon>science</mat-icon>
+          <span>The simulator answers on its own and nothing leaves the platform. {{ feature.simulatorNote }}</span>
+        </div>
+        <div class="mode-note muted" *ngIf="noToolYet(feature.key)">
+          <mat-icon>info</mat-icon>
+          <span>Not connected yet: this feature does not use a third-party tool today, so only the simulator is available.</span>
+        </div>
+        <div class="mode-note mode-note--warn" *ngIf="savedToolUnsupported(feature.key)">
+          <mat-icon>warning</mat-icon>
+          <span>
+            The tool saved earlier ({{ aiToolLabel(currentAi?.[feature.key]?.provider ?? 'OpenAI') }}) is not available for this feature. It is not used and
+            the simulator answers instead. The saved value is kept until you choose a supported option.
+          </span>
+        </div>
+
+        <ng-container *ngIf="isAiThirdParty(feature.key) && !noToolYet(feature.key)">
+          <mat-radio-group class="mode-group" formControlName="provider" [attr.aria-label]="feature.title + ' tool'">
+            <mat-radio-button *ngFor="let tool of toolsFor(feature.key)" [value]="tool.value">{{ tool.label }}</mat-radio-button>
+          </mat-radio-group>
+
+          <div class="mode-note muted" [class.mode-note--warn]="!aiHasKey(feature.key)">
+            <mat-icon>{{ aiHasKey(feature.key) ? 'key' : 'warning' }}</mat-icon>
+            <span *ngIf="aiHasKey(feature.key); else noKey">
+              Uses the {{ aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }} key saved under
+              <a routerLink="/settings/ai-providers" target="_blank" rel="noopener">Configuration &gt; AI Providers</a>.
+            </span>
+            <ng-template #noKey>
+              <span>
+                No {{ aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }} key is saved yet. Add it under
+                <a routerLink="/settings/ai-providers" target="_blank" rel="noopener">Configuration &gt; AI Providers</a> first.
+              </span>
+            </ng-template>
+          </div>
+
+          <div class="test-row">
+            <button mat-stroked-button type="button" [disabled]="aiTesting[feature.key] || saving" (click)="testAi(feature.key)">
+              <mat-icon>{{ aiTesting[feature.key] ? 'hourglass_empty' : 'bolt' }}</mat-icon>
+              {{ aiTesting[feature.key] ? 'Working…' : 'Test ' + aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }}
+            </button>
+          </div>
+          <p class="muted">Asks the tool one short question with the saved key, without saving this choice.</p>
+
+          <ng-container *ngIf="aiResults[feature.key] as result">
+            <div class="test-result" [class.test-result--fail]="!result.success" role="status" aria-live="polite">
+              <mat-icon>{{ result.success ? 'check_circle' : 'error' }}</mat-icon>
+              <div><strong>{{ result.message }}</strong></div>
+            </div>
+          </ng-container>
+        </ng-container>
+      </mat-card>
+    </div>
   </form>
 </div>

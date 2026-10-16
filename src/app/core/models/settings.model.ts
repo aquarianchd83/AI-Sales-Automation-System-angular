@@ -51,5 +51,5 @@ export interface AiProviderCheck {
  * whatever is left: everything not listed here. */
 export const CATEGORIES_WITH_OWN_SCREEN = [
   'AiProviders', 'MetaAds', 'Campaigns', 'Media', 'Messaging', 'Ai',
-  'MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'WhatsApp', 'ContentStudio',
+  'MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'WhatsApp', 'ContentStudio', 'Integrations',
 ];
