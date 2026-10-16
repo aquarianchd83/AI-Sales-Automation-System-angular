@@ -96,6 +96,10 @@ export interface LeadDiscoveryExecutionCustomer {
   consentSmsFailureReason?: string | null;
   /** When the customer's own WhatsApp message answered the invitation and consent was recorded; null until then. */
   consentRecordedAtUtc?: string | null;
+  /** Why no SMS went to this row, in words ("Not sent: ..."), so the Consent SMS column is never a bare dash. Null when an SMS was sent. */
+  consentSmsNote?: string | null;
+  /** True when no SMS went because the consent SMS switch in the discovery profile is Off - the screen links to where it is turned on. */
+  consentSmsNeedsSetting?: boolean;
 }
 
 /**
@@ -134,6 +138,7 @@ export function rowHistoryEvents(row: LeadDiscoveryExecutionCustomer): CustomerH
 
   // A row still waiting (Pending) has not ended up anywhere yet; every other row ended without a customer.
   if (row.status !== 'Pending') {
+    // The consent SMS logic never runs for a business with no customer, so the history has no step for it.
     events.push({
       ...base,
       id: `${row.id}-not-created`,
@@ -145,6 +150,11 @@ export function rowHistoryEvents(row: LeadDiscoveryExecutionCustomer): CustomerH
   }
 
   return events;
+}
+
+/** Whether the SMS has gone out: the provider accepted it (Submitted) or confirmed it reached the phone (Delivered). Queued has not gone yet; Failed did not. */
+export function consentSmsWasSent(status: string | null | undefined): boolean {
+  return status === 'Submitted' || status === 'Delivered';
 }
 
 /** What the Consent SMS column says. Submitted (accepted by the provider) and Delivered (confirmed by its receipt) are kept apart on purpose. */

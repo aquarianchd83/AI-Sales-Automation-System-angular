@@ -187,7 +187,8 @@ export interface CustomerHistoryEvent {
   providerReference: string | null;
 }
 
-/** Readable name for a CustomerHistoryEvent.eventType; an event kind this build does not know is shown as sent. */
+/** Readable name for a CustomerHistoryEvent.eventType. An event kind this build has no name for is still shown, split into words
+ * ("SomethingNew" reads "Something New"), so a new kind of event appears on the history without a code change here. */
 export function customerHistoryEventLabel(eventType: string): string {
   switch (eventType) {
     case 'Discovered':
@@ -227,7 +228,7 @@ export function customerHistoryEventLabel(eventType: string): string {
     case 'VerificationPending':
       return 'Verification pending';
     default:
-      return eventType;
+      return eventType.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
   }
 }
 

@@ -1,4 +1,4 @@
-import { LeadDiscoveryExecutionCustomer, consentSmsChipClass, consentSmsLabel, filterByVerification, leadDiscoveryStatusChipClass, rowHistoryEvents, verificationChipClass, verificationLabel } from './lead-discovery-history.model';
+import { LeadDiscoveryExecutionCustomer, consentSmsChipClass, consentSmsLabel, consentSmsWasSent, filterByVerification, leadDiscoveryStatusChipClass, rowHistoryEvents, verificationChipClass, verificationLabel } from './lead-discovery-history.model';
 
 describe('leadDiscoveryStatusChipClass', () => {
   it('greens a settled success across execution, campaign and lock vocabularies', () => {
@@ -113,5 +113,38 @@ describe('consent SMS display', () => {
     expect(consentSmsChipClass('Failed')).toContain('opted-out');
     expect(consentSmsChipClass('Submitted')).toContain('scheduled');
     expect(consentSmsChipClass(undefined)).toContain('inactive');
+  });
+});
+
+describe('rowHistoryEvents and the consent SMS', () => {
+  const row = (over: Partial<LeadDiscoveryExecutionCustomer>): LeadDiscoveryExecutionCustomer =>
+    ({
+      id: 'r1', customerId: null, discoveredLeadId: null, customerName: 'Eye clinic 3', phone: '+919800000003', status: 'Skipped',
+      isInvalid: true, errorMessage: 'Rejected by the DND check - no customer created.', errorDetails: null, retriedFromId: null,
+      processedAtUtc: '2026-10-15T06:00:01Z', verificationStatus: 'Fail', verificationReasonCode: 'DND', verificationReason: 'On the DND list',
+      verifiedAtUtc: '2026-10-15T06:00:00Z', ...over,
+    } as LeadDiscoveryExecutionCustomer);
+
+  it('has no consent SMS step for a number that failed the DND check - that logic never runs for it', () => {
+    const types = rowHistoryEvents(row({})).map((e) => e.eventType);
+
+    expect(types).toEqual(['Discovered', 'VerificationSubmitted', 'VerificationFailed', 'CustomerNotCreated']);
+    expect(types).not.toContain('SmsSkipped');
+  });
+
+  it('has none for an invalid business either', () => {
+    const types = rowHistoryEvents(row({ verificationStatus: 'NotChecked', errorMessage: 'Invalid: closed business' })).map((e) => e.eventType);
+
+    expect(types).not.toContain('SmsSkipped');
+  });
+});
+
+describe('consentSmsWasSent', () => {
+  it('counts an SMS as sent once the provider accepted it, and not while queued or failed', () => {
+    expect(consentSmsWasSent('Submitted')).toBeTrue();
+    expect(consentSmsWasSent('Delivered')).toBeTrue();
+    expect(consentSmsWasSent('Pending')).toBeFalse();
+    expect(consentSmsWasSent('Failed')).toBeFalse();
+    expect(consentSmsWasSent(null)).toBeFalse();
   });
 });

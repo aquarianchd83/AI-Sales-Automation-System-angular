@@ -28,6 +28,7 @@ describe('customerHistoryEventLabel', () => {
     expect(customerHistoryEventLabel('ConsentRecorded')).toBe('WhatsApp opt-in recorded');
     expect(customerHistoryEventLabel('WaitingForContent')).toBe('Waiting for content');
     expect(customerHistoryEventLabel('FirstMessageSent')).toBe('First campaign message sent');
-    expect(customerHistoryEventLabel('SomethingNew')).toBe('SomethingNew');
+    expect(customerHistoryEventLabel('SomethingNew')).toBe('Something New');   // unknown kinds are split into words, not shown raw
+    expect(customerHistoryEventLabel('Odd')).toBe('Odd');
   });
 });

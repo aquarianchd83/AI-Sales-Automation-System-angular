@@ -371,13 +371,6 @@
             </div>
             <mat-slide-toggle formControlName="autoCampaignEnabled" aria-label="Auto campaign enabled"></mat-slide-toggle>
           </div>
-          <div class="switch-row">
-            <div>
-              <strong>Send WhatsApp consent SMS</strong>
-              <span>Texts each customer the campaign takes: "Hi, [your business] here. Chat with us on WhatsApp: [your WhatsApp link]". Their consent is recorded only when they message you first on WhatsApp; the SMS or a click alone is not consent. Needs your WhatsApp number to be set up. Off: no SMS is sent.</span>
-            </div>
-            <mat-slide-toggle formControlName="consentSmsEnabled" aria-label="Send WhatsApp consent SMS"></mat-slide-toggle>
-          </div>
         </div>
 
         <ng-container *ngIf="form.controls.autoCampaignEnabled.value">
@@ -429,6 +422,27 @@
             <mat-icon>error_outline</mat-icon>Pick a time for the next-day start.
           </p>
         </ng-container>
+      </mat-card>
+
+      <!-- Consent SMS -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-teal"><mat-icon>sms</mat-icon></span>
+          <div>
+            <h2>Consent SMS</h2>
+            <p>Invite discovered customers to start a WhatsApp conversation with you.</p>
+          </div>
+        </div>
+
+        <div class="switch-list">
+          <div class="switch-row">
+            <div>
+              <strong>Send WhatsApp consent SMS</strong>
+              <span>Texts each customer the campaign takes: "Hi, [your business] here. Chat with us on WhatsApp: [your WhatsApp link]". Their consent is recorded only when they message you first on WhatsApp; the SMS or a click alone is not consent. Needs your WhatsApp number to be set up. Off: no SMS is sent.</span>
+            </div>
+            <mat-slide-toggle formControlName="consentSmsEnabled" aria-label="Send WhatsApp consent SMS"></mat-slide-toggle>
+          </div>
+        </div>
       </mat-card>
 
       <!-- Volume -->
