@@ -31,7 +31,7 @@ describe('SettingsListComponent', () => {
     expect(panelsFor({})).toEqual(['AiProviders', 'Campaigns', 'Retention']);
   });
 
-  it('renders one card per provider on the AI Providers screen', () => {
+  it('renders one card per provider on the AI Providers screen, with no General card', () => {
     const item = (key: string) => ({ key, value: 'v', isSecret: false, isList: false, description: null });
     TestBed.configureTestingModule({
       declarations: [SettingsListComponent],
@@ -51,8 +51,8 @@ describe('SettingsListComponent', () => {
     fixture.detectChanges();
 
     const root = fixture.nativeElement as HTMLElement;
-    expect(Array.from(root.querySelectorAll('.group-title')).map((e) => e.textContent?.trim())).toEqual(['General', 'OpenAI', 'Google']);
-    expect(root.querySelectorAll('input').length).toBe(3);
+    expect(Array.from(root.querySelectorAll('.group-title')).map((e) => e.textContent?.trim())).toEqual(['OpenAI', 'Google']);
+    expect(root.querySelectorAll('input').length).toBe(2);
   });
 
   it('offers a dropdown for a setting with fixed choices and a text box for one without', () => {

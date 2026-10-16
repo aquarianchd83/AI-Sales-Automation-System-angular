@@ -1033,6 +1033,69 @@ export interface UpdatePlatformIntegrationSettingsRequest {
   dndCheck: IntegrationChannelRequest;
 }
 
+/** The third-party tool an AI feature can run on: OpenAI is ChatGPT, Anthropic is Claude, Google is Gemini. */
+export type AiToolProvider = 'OpenAI' | 'Anthropic' | 'Google';
+
+/** One AI feature on the Integrations page: the simulator, or a third-party tool using the key saved under Configuration > AI Providers. */
+export interface AiFeatureChannel {
+  mode: IntegrationMode;
+  provider: AiToolProvider;
+  /** A key is saved for `provider`, so it can be switched to. */
+  providerHasKey: boolean;
+  isLive: boolean;
+  /** The tools this feature can really run on - the only ones to offer. Empty: the feature uses no third-party tool yet. */
+  supportedProviders: AiToolProvider[];
+  /** False when the saved tool is one the feature cannot run on: it is kept as saved but not used. */
+  savedProviderSupported: boolean;
+}
+
+/** What answers customers in WhatsApp conversations, and what embeds the knowledge base text it searches. Embeddings: ChatGPT or Gemini only. */
+export interface AiConversationChannel {
+  mode: IntegrationMode;
+  provider: AiToolProvider;
+  providerHasKey: boolean;
+  embeddingMode: IntegrationMode;
+  embeddingProvider: AiToolProvider;
+  embeddingProviderHasKey: boolean;
+  isLive: boolean;
+  supportedProviders: AiToolProvider[];
+  supportedEmbeddingProviders: AiToolProvider[];
+}
+
+/** GET /platform/integration-settings/ai-features. */
+export interface PlatformAiFeatureSettings {
+  discoveryLead: AiFeatureChannel;
+  knowledgeBase: AiFeatureChannel;
+  contentGeneration: AiFeatureChannel;
+  videoRenders: AiFeatureChannel;
+  conversation: AiConversationChannel;
+}
+
+export interface AiFeatureChannelRequest {
+  mode: IntegrationMode;
+  provider: AiToolProvider;
+}
+
+export interface AiConversationRequest {
+  mode: IntegrationMode;
+  provider: AiToolProvider;
+  embeddingMode: IntegrationMode;
+  embeddingProvider: AiToolProvider;
+}
+
+export interface UpdatePlatformAiFeatureSettingsRequest {
+  discoveryLead: AiFeatureChannelRequest;
+  knowledgeBase: AiFeatureChannelRequest;
+  contentGeneration: AiFeatureChannelRequest;
+  videoRenders: AiFeatureChannelRequest;
+  conversation: AiConversationRequest;
+}
+
+/** POST ai-features/{feature}/test: the choice on screen, saved or not. */
+export interface TestAiFeatureRequest {
+  settings: AiFeatureChannelRequest;
+}
+
 /** POST test-consent-sms / test-dnd-check: the channel's settings (saved or not) and the number to try. */
 export interface SendIntegrationTestRequest {
   settings: IntegrationChannelRequest;

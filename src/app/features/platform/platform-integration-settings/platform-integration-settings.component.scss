@@ -149,3 +149,13 @@
     flex: none;
   }
 }
+
+.sub-title {
+  margin: 16px 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mode-note--warn {
+  color: var(--mat-sys-error, #b3261e);
+}

@@ -30,6 +30,9 @@ const HIDDEN_CATEGORIES = ['MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhats
 /** Panel headings for a category's own keys on the grouped screens. */
 const CATEGORY_LABELS: Record<string, string> = { AiProviders: 'General', MetaAds: 'Meta Ads', Ai: 'AI', ContentStudio: 'Content Studio' };
 
+/** Categories whose own (two-part) keys are not shown on the grouped screen - only their sub-group panels are. */
+const NO_OWN_PANEL = ['AiProviders'];
+
 /** List-value items are edited as comma-separated text and split/joined at the edges. */
 const LIST_SEPARATOR = ',';
 
@@ -85,6 +88,10 @@ export class SettingsListComponent implements OnInit {
     const groups = new Map<string, SettingItem[]>();
     for (const item of category.items) {
       const parts = item.key.split(':');
+      // The shared AI Providers settings (which provider chats, which embeds) have no panel here: only each provider's connection does.
+      if (parts.length <= 2 && NO_OWN_PANEL.includes(category.category)) {
+        continue;
+      }
       const name = parts.length > 2 ? parts[1] : own;
       groups.set(name, [...(groups.get(name) ?? []), item]);
     }
