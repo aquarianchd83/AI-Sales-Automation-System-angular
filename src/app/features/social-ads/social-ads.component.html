@@ -84,15 +84,15 @@
       <dl class="facts">
         <div>
           <dt>Last updated</dt>
-          <dd>{{ s.lastSyncedAt ? (s.lastSyncedAt | date: 'medium') : 'Not yet' }}</dd>
+          <dd>{{ s.lastSyncedAt ? (s.lastSyncedAt | zonedDate: 'medium') : 'Not yet' }}</dd>
         </div>
         <div>
           <dt>Connected on</dt>
-          <dd>{{ s.connectedAt | date: 'mediumDate' }}</dd>
+          <dd>{{ s.connectedAt | zonedDate: 'mediumDate' }}</dd>
         </div>
         <div *ngIf="s.tokenExpiresAt">
           <dt>Login renews automatically before</dt>
-          <dd>{{ s.tokenExpiresAt | date: 'mediumDate' }}</dd>
+          <dd>{{ s.tokenExpiresAt | zonedDate: 'mediumDate' }}</dd>
         </div>
       </dl>
       <p class="problem" *ngIf="s.lastSyncError"><mat-icon>warning</mat-icon> {{ s.lastSyncError }}</p>

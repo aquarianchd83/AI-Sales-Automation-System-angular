@@ -84,7 +84,7 @@
           </dd>
 
           <dt>Opted in</dt>
-          <dd>{{ (c.optInTimestamp | date: 'medium') || '—' }}</dd>
+          <dd>{{ (c.optInTimestamp | zonedDate: 'medium') || '—' }}</dd>
 
           <dt>Consent source</dt>
           <dd>{{ c.optInSource || '—' }}</dd>
@@ -98,7 +98,7 @@
           </dd>
 
           <dt>Opted out</dt>
-          <dd>{{ (c.optOutTimestamp | date: 'medium') || '—' }}</dd>
+          <dd>{{ (c.optOutTimestamp | zonedDate: 'medium') || '—' }}</dd>
 
           <dt>Detected by</dt>
           <dd>
@@ -135,7 +135,7 @@
         <h2>Record</h2>
         <dl>
           <dt>Created</dt>
-          <dd>{{ c.createdAt | date: 'medium' }}</dd>
+          <dd>{{ c.createdAt | zonedDate: 'medium' }}</dd>
 
           <dt>ID</dt>
           <dd class="mono">{{ c.id }}</dd>

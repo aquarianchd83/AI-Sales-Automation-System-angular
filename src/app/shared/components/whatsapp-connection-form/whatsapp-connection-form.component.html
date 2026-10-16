@@ -6,7 +6,7 @@
         <strong>Connected and verified</strong>
         <span>
           {{ config?.verifiedDisplayPhoneNumber || config?.phoneNumberId }}<ng-container *ngIf="config?.verifiedName"> · {{ config?.verifiedName }}</ng-container>
-          · checked {{ config?.verifiedAtUtc | date: 'medium' }}
+          · checked {{ config?.verifiedAtUtc | zonedDate: 'medium' }}
         </span>
       </div>
     </ng-container>

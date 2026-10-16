@@ -1,3 +1,5 @@
+import { parseUtc } from '../utils/utc-date';
+
 /** Conversation.Mode. Human skips the AI entirely and notifies the assigned agent. AI replies on its
  * own and escalates when it should not. Hybrid answers plain questions itself, but where AI mode would
  * escalate — and while a handoff is open — it writes a draft reply for the agent instead of sending it
@@ -133,6 +135,6 @@ export function canSendFreeText(lastInboundMessageAt: string | null, windowHours
   if (!lastInboundMessageAt) {
     return false;
   }
-  const elapsedHours = (now.getTime() - new Date(lastInboundMessageAt).getTime()) / (1000 * 60 * 60);
+  const elapsedHours = (now.getTime() - parseUtc(lastInboundMessageAt).getTime()) / (1000 * 60 * 60);
   return elapsedHours <= windowHours;
 }

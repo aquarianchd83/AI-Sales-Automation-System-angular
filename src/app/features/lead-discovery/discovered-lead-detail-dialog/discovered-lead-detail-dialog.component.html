@@ -4,7 +4,7 @@
 </h2>
 
 <mat-dialog-content>
-  <p class="muted subtitle">{{ lead.businessType }} · discovered {{ lead.discoveredAt | date: 'medium' }}</p>
+  <p class="muted subtitle">{{ lead.businessType }} · discovered {{ lead.discoveredAt | zonedDate: 'medium' }}</p>
 
   <dl class="details">
     <dt>Contact person</dt>

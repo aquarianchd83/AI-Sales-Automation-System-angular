@@ -1,5 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
+import { parseUtc } from '../../core/utils/utc-date';
 import { UserPreferencesService } from '../../core/services/user-preferences.service';
 
 /** The formats this app actually uses, mapped to Intl options. Kept to a small set on purpose — a free-form
@@ -9,12 +10,21 @@ const FORMATS: Record<string, Intl.DateTimeFormatOptions> = {
   medium: { dateStyle: 'medium', timeStyle: 'medium' },
   mediumDate: { dateStyle: 'medium' },
   time: { timeStyle: 'medium' },
+  full: { dateStyle: 'full', timeStyle: 'long' },
+  fullDate: { dateStyle: 'full' },
+  'dd MMM yyyy': { day: '2-digit', month: 'short', year: 'numeric' },
+  'dd MMM yyyy, HH:mm': { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false },
+  'd MMM, HH:mm:ss': { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false },
+  'HH:mm:ss': { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false },
   // The two Angular patterns this app already used, keyed by their exact pattern string so a template can
   // switch from `date` to `zonedDate` without changing its argument — and so neither silently degrades to
   // the default. The log viewer's milliseconds matter; the jobs screen's next-run reads as a weekday.
   'HH:mm:ss.SSS': { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3, hour12: false },
   'EEE, MMM d': { weekday: 'short', month: 'short', day: 'numeric' },
 };
+
+/** Patterns that were written day-first ("19 Oct 2026"), kept so whatever locale the browser has. */
+const DAY_FIRST = new Set(['dd MMM yyyy', 'dd MMM yyyy, HH:mm', 'd MMM, HH:mm:ss']);
 
 /**
  * Renders a UTC timestamp in the signed-in user's chosen timezone (UserPreferencesService), falling back to
@@ -42,7 +52,7 @@ export class ZonedDatePipe implements PipeTransform {
       return '';
     }
 
-    const date = value instanceof Date ? value : new Date(value);
+    const date = value instanceof Date ? value : parseUtc(value);
     if (Number.isNaN(date.getTime())) {
       return '';
     }
@@ -51,7 +61,7 @@ export class ZonedDatePipe implements PipeTransform {
     const timeZone = timezoneOverride || this.preferences.timezone;
 
     try {
-      return new Intl.DateTimeFormat(undefined, timeZone ? { ...options, timeZone } : options).format(date);
+      return new Intl.DateTimeFormat(DAY_FIRST.has(format) ? 'en-GB' : undefined, timeZone ? { ...options, timeZone } : options).format(date);
     } catch {
       // An id this browser's ICU data doesn't know — show the browser's own zone rather than nothing.
       return new Intl.DateTimeFormat(undefined, options).format(date);

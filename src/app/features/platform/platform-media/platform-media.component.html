@@ -56,7 +56,7 @@
         </div>
         <div class="media-info">
           <div class="media-name" [matTooltip]="asset.fileName">{{ asset.fileName }}</div>
-          <div class="muted media-meta">{{ formatSize(asset.sizeBytes) }} · {{ asset.createdAt | date: 'mediumDate' }}</div>
+          <div class="muted media-meta">{{ formatSize(asset.sizeBytes) }} · {{ asset.createdAt | zonedDate: 'mediumDate' }}</div>
           <div class="media-flag" *ngIf="!usableAsHeader(asset)">Not usable in a template</div>
         </div>
         <div class="media-actions">

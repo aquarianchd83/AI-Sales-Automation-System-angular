@@ -63,7 +63,7 @@
         <ng-container matColumnDef="lastLoginAt">
           <th mat-header-cell *matHeaderCellDef>Last sign-in</th>
           <td mat-cell *matCellDef="let user">
-            {{ (user.lastLoginAt | date: 'medium') || 'Never' }}
+            {{ (user.lastLoginAt | zonedDate: 'medium') || 'Never' }}
           </td>
         </ng-container>
 

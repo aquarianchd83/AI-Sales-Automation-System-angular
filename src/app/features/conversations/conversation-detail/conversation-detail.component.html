@@ -70,7 +70,7 @@
             <div class="msg-meta muted" *ngIf="m.templateName">Template: {{ m.templateName }}</div>
             <div class="msg-text">{{ m.text || '—' }}</div>
             <div class="msg-footer muted">
-              {{ (m.sentAt || m.createdAt) | date: 'short' }}
+              {{ (m.sentAt || m.createdAt) | zonedDate: 'short' }}
               <span *ngIf="m.direction === MessageDirection.Outbound"> · {{ m.status }}</span>
             </div>
           </div>
