@@ -349,7 +349,7 @@
           <mat-slide-toggle formControlName="isEnabled" aria-label="Lead discovery on"></mat-slide-toggle>
         </div>
         <p class="summary">{{ summary }}</p>
-        <p class="muted meta" *ngIf="saved.updatedAt">Last saved {{ saved.updatedAt | date: 'medium' }}</p>
+        <p class="muted meta" *ngIf="saved.updatedAt">Last saved {{ saved.updatedAt | zonedDate: 'medium' }}</p>
         <p class="muted meta" *ngIf="!saved.updatedAt">Not saved yet.</p>
       </mat-card>
 

@@ -70,7 +70,7 @@
     <dt>Size</dt>
     <dd>{{ size }} ({{ asset.sizeBytes | number }} bytes)</dd>
     <dt>Uploaded</dt>
-    <dd>{{ asset.createdAt | date: 'medium' }}</dd>
+    <dd>{{ asset.createdAt | zonedDate: 'medium' }}</dd>
     <dt>ID</dt>
     <dd class="mono">{{ asset.id }}</dd>
   </dl>

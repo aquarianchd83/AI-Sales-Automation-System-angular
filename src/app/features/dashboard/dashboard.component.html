@@ -269,7 +269,7 @@
           <div class="account-value">{{ account.subscription?.planName || 'Free trial' }}</div>
           <div class="account-sub muted" *ngIf="account.subscription as sub">
             {{ sub.status }}
-            <ng-container *ngIf="sub.currentPeriodEndUtc"> · renews {{ sub.currentPeriodEndUtc | date: 'mediumDate' }}</ng-container>
+            <ng-container *ngIf="sub.currentPeriodEndUtc"> · renews {{ sub.currentPeriodEndUtc | zonedDate: 'mediumDate' }}</ng-container>
           </div>
         </div>
 

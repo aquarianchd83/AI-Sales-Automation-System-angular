@@ -127,7 +127,7 @@
         </div>
 
         <p class="muted hint">
-          Estimated in {{ c.currencyCode }} from list prices since {{ c.periodStartUtc | date: 'mediumDate' }} — close, but
+          Estimated in {{ c.currencyCode }} from list prices since {{ c.periodStartUtc | zonedDate: 'mediumDate' }} — close, but
           your provider invoices are the authority. Your plan fee is billed separately.
         </p>
       </ng-container>

@@ -1,3 +1,4 @@
+import { parseUtc } from '../utils/utc-date';
 import { PagedQuery } from './paged-result.model';
 
 /** AuditLogEntryDto (verified against /swagger/v1/swagger.json). Written by the data layer in the
@@ -94,7 +95,7 @@ export function describeAuditEntry(entry: Pick<AuditLogEntry, 'entityName' | 'ac
     const roles = change('Roles');
 
     if (lock && lock.to) {
-      parts.push(`Locked out until ${new Date(String(lock.to)).toLocaleString()}`);
+      parts.push(`Locked out until ${parseUtc(String(lock.to)).toLocaleString()}`);
     } else if (lock) {
       parts.push('Lockout lifted');
     }

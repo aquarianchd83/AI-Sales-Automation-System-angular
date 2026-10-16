@@ -321,7 +321,7 @@
           <dt *ngIf="whatsAppConfig?.isConnected">Verified</dt>
           <dd *ngIf="whatsAppConfig?.isConnected">
             <ng-container *ngIf="whatsAppConfig?.verifiedAtUtc; else notVerified">
-              {{ whatsAppConfig?.verifiedDisplayPhoneNumber || 'Yes' }} · {{ whatsAppConfig?.verifiedAtUtc | date: 'medium' }}
+              {{ whatsAppConfig?.verifiedDisplayPhoneNumber || 'Yes' }} · {{ whatsAppConfig?.verifiedAtUtc | zonedDate: 'medium' }}
             </ng-container>
             <ng-template #notVerified>{{ whatsAppConfig?.verificationError ? 'Failed: ' + whatsAppConfig?.verificationError : 'Not yet' }}</ng-template>
           </dd>

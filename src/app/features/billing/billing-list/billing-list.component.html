@@ -19,11 +19,11 @@
           </mat-chip-listbox>
           <span class="muted period" *ngIf="subscription.currentPeriodStartUtc || subscription.currentPeriodEndUtc">
             <ng-container *ngIf="subscription.currentPeriodStartUtc">
-              Started {{ subscription.currentPeriodStartUtc | date: 'mediumDate' }}
+              Started {{ subscription.currentPeriodStartUtc | zonedDate: 'mediumDate' }}
             </ng-container>
             <ng-container *ngIf="subscription.currentPeriodStartUtc && subscription.currentPeriodEndUtc"> · </ng-container>
             <ng-container *ngIf="subscription.currentPeriodEndUtc">
-              Renews {{ subscription.currentPeriodEndUtc | date: 'mediumDate' }}
+              Renews {{ subscription.currentPeriodEndUtc | zonedDate: 'mediumDate' }}
             </ng-container>
           </span>
         </div>
@@ -95,7 +95,7 @@
     <ng-container *ngIf="!loadingPayments">
       <div class="payment-list" *ngIf="paymentHistory.length">
         <div class="payment-row" *ngFor="let payment of paymentHistory">
-          <span class="muted payment-date">{{ payment.paidAtUtc | date: 'mediumDate' }}</span>
+          <span class="muted payment-date">{{ payment.paidAtUtc | zonedDate: 'mediumDate' }}</span>
           <span class="payment-name">{{ payment.planName }}</span>
           <span class="payment-amount" [class.refund]="payment.kind === 'Refund'">{{ formatPayment(payment) }}<small class="muted payment-tax" *ngIf="paymentTax(payment) as tax"> {{ tax }}</small></span>
           <span class="payment-action">
@@ -114,7 +114,7 @@
         <div class="refund-main">
           <span>{{ request.paymentDescription }}</span>
           <span class="muted refund-meta">
-            Asked {{ request.createdAt | date: 'mediumDate' }} · up to {{ request.currencySymbol }}{{ request.eligibleLocalAmount | number: '1.2-2' }}
+            Asked {{ request.createdAt | zonedDate: 'mediumDate' }} · up to {{ request.currencySymbol }}{{ request.eligibleLocalAmount | number: '1.2-2' }}
           </span>
           <span class="muted refund-meta" *ngIf="request.reviewNote">Note: {{ request.reviewNote }}</span>
         </div>

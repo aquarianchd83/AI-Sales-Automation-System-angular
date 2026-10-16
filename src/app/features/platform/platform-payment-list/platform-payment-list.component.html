@@ -33,9 +33,9 @@
         <ng-container matColumnDef="paidAt">
           <th mat-header-cell *matHeaderCellDef>Date</th>
           <td mat-cell *matCellDef="let row">
-            <ng-container *ngIf="isPaid(row); else due">{{ row.paidAtUtc | date: 'dd MMM yyyy, HH:mm' }}</ng-container>
+            <ng-container *ngIf="isPaid(row); else due">{{ row.paidAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}</ng-container>
             <ng-template #due>
-              <span *ngIf="row.dueAtUtc; else noDate">Due {{ row.dueAtUtc | date: 'dd MMM yyyy' }}</span>
+              <span *ngIf="row.dueAtUtc; else noDate">Due {{ row.dueAtUtc | zonedDate: 'dd MMM yyyy' }}</span>
               <ng-template #noDate><span class="muted">-</span></ng-template>
             </ng-template>
           </td>

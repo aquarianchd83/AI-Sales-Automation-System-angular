@@ -153,7 +153,7 @@
           </thead>
           <tbody>
             <tr *ngFor="let o of orders; trackBy: trackById">
-              <td>{{ o.createdAt | date: 'd MMM, HH:mm:ss' }}</td>
+              <td>{{ o.createdAt | zonedDate: 'd MMM, HH:mm:ss' }}</td>
               <td><code>{{ o.orderId }}</code><div class="muted small">{{ o.mode }} · {{ o.description }}</div></td>
               <td>
                 {{ format(o.amountMinor, o.currency) }}
@@ -168,7 +168,7 @@
                 <mat-icon *ngIf="o.signatureVerifiedAtUtc" class="ok" matTooltip="Signature checked on the server">verified</mat-icon>
                 <span class="muted" *ngIf="!o.signatureVerifiedAtUtc">-</span>
               </td>
-              <td>{{ o.lastWebhookEvent || '-' }}<div class="muted small" *ngIf="o.lastWebhookAtUtc">{{ o.lastWebhookAtUtc | date: 'HH:mm:ss' }}</div></td>
+              <td>{{ o.lastWebhookEvent || '-' }}<div class="muted small" *ngIf="o.lastWebhookAtUtc">{{ o.lastWebhookAtUtc | zonedDate: 'HH:mm:ss' }}</div></td>
               <td>
                 <button mat-stroked-button type="button" *ngIf="canRefund(o)" (click)="startRefund(o)">Refund</button>
               </td>
@@ -199,7 +199,7 @@
           <thead><tr><th>Received</th><th>Event</th><th>Order</th><th>Payment</th><th>Result</th></tr></thead>
           <tbody>
             <tr *ngFor="let e of events; trackBy: trackById">
-              <td>{{ e.receivedAt | date: 'd MMM, HH:mm:ss' }}</td>
+              <td>{{ e.receivedAt | zonedDate: 'd MMM, HH:mm:ss' }}</td>
               <td><code>{{ e.event }}</code></td>
               <td><code *ngIf="e.orderId">{{ e.orderId }}</code></td>
               <td><code *ngIf="e.paymentId">{{ e.paymentId }}</code></td>

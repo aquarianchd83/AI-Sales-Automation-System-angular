@@ -1,3 +1,5 @@
+import { parseUtc } from '../utils/utc-date';
+
 /** LeadFollowUp.Status. Scheduled is the only state the sender looks at; the rest is history. */
 export enum LeadFollowUpStatus {
   Scheduled = 'Scheduled',
@@ -96,7 +98,7 @@ export function followUpWaitLabel(followUp: Pick<LeadFollowUp, 'intervalMonths'>
 
 /** Past its due date and still waiting - the sender holds it for daytime hours, a quiet period or quota. */
 export function isFollowUpOverdue(followUp: Pick<LeadFollowUp, 'status' | 'dueAt'>, now = new Date()): boolean {
-  return followUp.status === LeadFollowUpStatus.Scheduled && new Date(followUp.dueAt).getTime() <= now.getTime();
+  return followUp.status === LeadFollowUpStatus.Scheduled && parseUtc(followUp.dueAt).getTime() <= now.getTime();
 }
 
 /** A Scheduled or Failed follow-up can still be sent or cancelled by a person. */

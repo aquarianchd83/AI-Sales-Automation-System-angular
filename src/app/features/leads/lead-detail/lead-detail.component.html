@@ -89,7 +89,7 @@
         </div>
 
         <div *ngFor="let a of activities" class="timeline-row">
-          <div class="timeline-actor muted">{{ activityActor(a) }} · {{ a.createdAt | date: 'medium' }}</div>
+          <div class="timeline-actor muted">{{ activityActor(a) }} · {{ a.createdAt | zonedDate: 'medium' }}</div>
           <div class="timeline-body">
             <ng-container [ngSwitch]="a.activityType">
               <span *ngSwitchCase="'Note'">{{ a.note }}</span>

@@ -1,3 +1,5 @@
+import { parseUtc } from '../utils/utc-date';
+
 /** Campaign.Status. */
 export enum CampaignStatus {
   Draft = 'Draft',
@@ -372,7 +374,7 @@ export function campaignEndDate(campaign: {
 }): CampaignEndDate | null {
   // A Completed campaign closes itself and records when in StoppedAt, same as a manual Stop.
   if ((campaign.status === CampaignStatus.Stopped || campaign.status === CampaignStatus.Completed) && campaign.stoppedAt) {
-    return { date: new Date(campaign.stoppedAt), isEstimate: false };
+    return { date: parseUtc(campaign.stoppedAt), isEstimate: false };
   }
 
   const startAt = campaign.startedAt ?? campaign.scheduledStartAt;
@@ -387,7 +389,8 @@ export function campaignEndDate(campaign: {
 
   const totalDelayDays = activeSteps.reduce((sum, s) => sum + s.delayDaysAfterPrevious, 0);
 
-  const date = new Date(startAt);
+  // startedAt is a UTC instant; scheduledStartAt is the tenant's own wall-clock time and is read as written.
+  const date = campaign.startedAt ? parseUtc(campaign.startedAt) : new Date(startAt);
   date.setDate(date.getDate() + totalDelayDays);
   return { date, isEstimate: true };
 }

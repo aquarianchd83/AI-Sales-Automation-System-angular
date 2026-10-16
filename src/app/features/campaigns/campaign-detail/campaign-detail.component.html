@@ -90,21 +90,21 @@
         <dd>{{ (c.scheduledStartAt | date: 'full') || 'Not scheduled — starts immediately' }}</dd>
 
         <dt>Started</dt>
-        <dd>{{ (c.startedAt | date: 'full') || '—' }}</dd>
+        <dd>{{ (c.startedAt | zonedDate: 'full') || '—' }}</dd>
 
         <dt>{{ c.status === 'Completed' ? 'Completed' : 'Stopped' }}</dt>
-        <dd>{{ (c.stoppedAt | date: 'full') || '—' }}</dd>
+        <dd>{{ (c.stoppedAt | zonedDate: 'full') || '—' }}</dd>
 
         <dt>{{ endDate?.isEstimate === false ? 'Ended' : 'Expected end' }}</dt>
         <dd>
           <ng-container *ngIf="endDate as e; else noEndDate">
-            {{ e.date | date: 'full' }}<span *ngIf="e.isEstimate" class="muted"> (start + step delays)</span>
+            {{ e.date | zonedDate: 'full' }}<span *ngIf="e.isEstimate" class="muted"> (start + step delays)</span>
           </ng-container>
           <ng-template #noEndDate>—</ng-template>
         </dd>
 
         <dt>Created</dt>
-        <dd>{{ c.createdAt | date: 'full' }}</dd>
+        <dd>{{ c.createdAt | zonedDate: 'full' }}</dd>
       </dl>
     </mat-card>
 
@@ -189,8 +189,8 @@
                 <span [class]="optInChip(member.optInStatus)">{{ optInText(member.optInStatus) }}</span>
               </td>
               <td>{{ member.currentStepNumber < 0 ? 'Not sent yet' : member.currentStepNumber }}</td>
-              <td>{{ (member.lastMessageSentAt | date: 'medium') || '—' }}</td>
-              <td>{{ (member.nextFollowUpDueAt | date: 'medium') || '—' }}</td>
+              <td>{{ (member.lastMessageSentAt | zonedDate: 'medium') || '—' }}</td>
+              <td>{{ (member.nextFollowUpDueAt | zonedDate: 'medium') || '—' }}</td>
               <td class="member-actions">
                 <button
                   mat-icon-button

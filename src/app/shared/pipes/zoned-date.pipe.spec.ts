@@ -25,6 +25,11 @@ describe('ZonedDatePipe', () => {
     expect(newYork).toContain('Jan 1');
   });
 
+  it('reads a timestamp the API sent without a Z as UTC, not as browser-local time', () => {
+    // 05:19:40 UTC is 10:49:40 in Kolkata.
+    expect(pipeFor('Asia/Kolkata').transform('2026-10-16T05:19:40', 'HH:mm:ss')).toBe('10:49:40');
+  });
+
   it('keeps milliseconds for the log viewer format', () => {
     expect(pipeFor('UTC').transform('2026-01-01T20:30:05.123Z', 'HH:mm:ss.SSS')).toContain('20:30:05.123');
   });
