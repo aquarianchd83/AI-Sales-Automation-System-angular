@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { SettingItem } from '../../../core/models/settings.model';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
@@ -55,7 +56,7 @@ describe('SettingsListComponent', () => {
     expect(root.querySelectorAll('input').length).toBe(2);
   });
 
-  it('offers a dropdown for a setting with fixed choices and a text box for one without', () => {
+  it('offers a toggle for an On/Off setting, a dropdown for other fixed choices and a text box for one without', () => {
     TestBed.configureTestingModule({
       declarations: [SettingsListComponent],
       imports: [SharedModule, NoopAnimationsModule],
@@ -84,10 +85,27 @@ describe('SettingsListComponent', () => {
     fixture.detectChanges();
 
     const root = fixture.nativeElement as HTMLElement;
-    expect(root.querySelectorAll('mat-select').length).toBe(2);
-    expect(root.querySelectorAll('input').length).toBe(1);
+    expect(root.querySelectorAll('mat-slide-toggle').length).toBe(1);
+    expect(root.querySelectorAll('mat-select').length).toBe(1);
+    expect(root.querySelectorAll('input[type="text"]').length).toBe(1);
     expect(fixture.componentInstance.panels[0].form.get('ContentStudio:Enabled')?.value).toBe('false');
+
+    // Flipping the toggle stores the text "true" and lets the panel be saved.
+    const component = fixture.componentInstance;
+    const item = component.panels[0].category.items.find((i) => i.key === 'ContentStudio:Enabled')!;
+    expect(component.isOn(item)).toBeFalse();
+    component.setSwitch(item, true);
+    expect(component.panels[0].form.get('ContentStudio:Enabled')?.value).toBe('true');
+    expect(component.panels[0].form.pristine).toBeFalse();
     expect(fixture.componentInstance.panels[0].form.get('ContentStudio:StorageMode')?.value).toBe('PublicBucket');
+  });
+
+  it('treats a true/false setting as an On/Off switch and anything else as a choice', () => {
+    const component = SettingsListComponent.prototype;
+
+    expect(component.isSwitch({ options: ['true', 'false'] } as SettingItem)).toBeTrue();
+    expect(component.isSwitch({ options: ['PublicBucket', 'Private'] } as SettingItem)).toBeFalse();
+    expect(component.isSwitch({ options: null } as SettingItem)).toBeFalse();
   });
 
   it('shows only the AI providers on its own screen', () => {
