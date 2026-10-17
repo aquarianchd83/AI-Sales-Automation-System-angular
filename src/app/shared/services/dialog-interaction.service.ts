@@ -33,6 +33,10 @@ export class DialogInteractionService {
     pane.classList.add('interactive-dialog-pane');
     pane.style.position = 'relative';
 
+    // Every dialog covers 80% of the screen. Per-dialog widths set at open() are overridden here.
+    pane.style.width = '80vw';
+    pane.style.height = '80vh';
+
     let tx = 0;
     let ty = 0;
     const apply = () => (pane.style.transform = `translate(${tx}px, ${ty}px)`);

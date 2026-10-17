@@ -70,6 +70,8 @@ const aiStored = (over: Partial<PlatformAiFeatureSettings> = {}): PlatformAiFeat
   knowledgeBase: aiChannel(),
   contentGeneration: aiChannel(),
   videoRenders: aiChannel(),
+  businessKeywords: aiChannel({ mode: 'Api', provider: 'Anthropic', supportedProviders: ['Anthropic', 'OpenAI', 'Google'] }),
+  discoveryKeywords: aiChannel({ mode: 'Api', provider: 'Anthropic', supportedProviders: ['Anthropic', 'OpenAI', 'Google'] }),
   ...over,
 });
 
@@ -320,6 +322,48 @@ describe('PlatformIntegrationSettingsComponent', () => {
 
       component.aiForm.controls.discoveryLead.controls.mode.setValue('Simulator');
       expect(component.aiResults.discoveryLead).toBeNull();
+    });
+
+    it('has a Discovery lead - AI suggest panel, separate from the discovery agent, offering all three tools', () => {
+      const { component } = create(stored());
+
+      expect(component.aiFeatures.find((f) => f.key === 'discoveryKeywords')?.title).toBe('Discovery lead - AI suggest');
+      expect(component.toolsFor('discoveryKeywords').map((t) => t.label)).toEqual(['ChatGPT', 'Claude', 'Gemini']);
+      expect(component.toolsFor('discoveryLead').map((t) => t.label)).toEqual(['Claude']);
+
+      component.aiForm.controls.discoveryKeywords.controls.mode.setValue('Simulator');
+      component.aiForm.markAsDirty();
+      component.save();
+      expect(service.saveAiFeatures.calls.mostRecent().args[0].discoveryKeywords.mode).toBe('Simulator');
+    });
+
+    it('says so when the saved tool is switched off under AI Providers, and keeps the choice', () => {
+      const { component } = create(stored(), aiStored({ discoveryKeywords: aiChannel({
+        mode: 'Api', provider: 'OpenAI', providerHasKey: false, providerEnabled: false, supportedProviders: ['Anthropic', 'OpenAI', 'Google'],
+      }) }));
+
+      expect(component.aiToolOff('discoveryKeywords')).toBeTrue();
+      expect(component.aiForm.controls.discoveryKeywords.controls.mode.value).toBe('Api');
+      expect(component.aiForm.controls.discoveryKeywords.controls.provider.value).toBe('OpenAI');
+
+      component.aiForm.controls.discoveryKeywords.controls.provider.setValue('Anthropic');
+      expect(component.aiToolOff('discoveryKeywords')).toBeFalse();
+    });
+
+    it('has a Profile Information - Keyword AI Suggest panel offering all three tools, saved and tested like the others', () => {
+      const { component } = create(stored());
+
+      expect(component.aiFeatures.find((f) => f.key === 'businessKeywords')?.title).toBe('Profile Information - Keyword AI Suggest');
+      expect(component.toolsFor('businessKeywords').map((t) => t.label)).toEqual(['ChatGPT', 'Claude', 'Gemini']);
+
+      component.aiForm.controls.businessKeywords.controls.provider.setValue('Google');
+      component.aiForm.markAsDirty();
+
+      component.testAi('businessKeywords');
+      expect(service.testAiFeature).toHaveBeenCalledWith('BusinessKeywords', { settings: { mode: 'Api', provider: 'Google' } });
+
+      component.save();
+      expect(service.saveAiFeatures.calls.mostRecent().args[0].businessKeywords).toEqual({ mode: 'Api', provider: 'Google' });
     });
   });
 });

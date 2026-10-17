@@ -1047,6 +1047,8 @@ export interface AiFeatureChannel {
   supportedProviders: AiToolProvider[];
   /** False when the saved tool is one the feature cannot run on: it is kept as saved but not used. */
   savedProviderSupported: boolean;
+  /** False when the tool is switched Off under Configuration > AI Providers: kept as saved, not used, the simulator answers. Absent means on. */
+  providerEnabled?: boolean;
 }
 
 /** What answers customers in WhatsApp conversations, and what embeds the knowledge base text it searches. Embeddings: ChatGPT or Gemini only. */
@@ -1068,6 +1070,8 @@ export interface PlatformAiFeatureSettings {
   knowledgeBase: AiFeatureChannel;
   contentGeneration: AiFeatureChannel;
   videoRenders: AiFeatureChannel;
+  businessKeywords: AiFeatureChannel;
+  discoveryKeywords: AiFeatureChannel;
   conversation: AiConversationChannel;
 }
 
@@ -1088,6 +1092,8 @@ export interface UpdatePlatformAiFeatureSettingsRequest {
   knowledgeBase: AiFeatureChannelRequest;
   contentGeneration: AiFeatureChannelRequest;
   videoRenders: AiFeatureChannelRequest;
+  businessKeywords: AiFeatureChannelRequest;
+  discoveryKeywords: AiFeatureChannelRequest;
   conversation: AiConversationRequest;
 }
 

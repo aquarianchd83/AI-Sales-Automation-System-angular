@@ -18,8 +18,8 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PlatformIntegrationSettingsService } from '../../../core/services/platform-integration-settings.service';
 
 export type IntegrationChannelKey = 'consentSms' | 'dndCheck';
-/** The four feature panels; the conversation panel has its own shape (a chat tool and an embedding tool). */
-export type AiFeatureKey = 'discoveryLead' | 'knowledgeBase' | 'contentGeneration' | 'videoRenders';
+/** The feature panels; the conversation panel has its own shape (a chat tool and an embedding tool). */
+export type AiFeatureKey = 'discoveryLead' | 'knowledgeBase' | 'contentGeneration' | 'videoRenders' | 'businessKeywords' | 'discoveryKeywords';
 
 /**
  * The Platform Admin Console's Integrations page: for each outside service - the WhatsApp consent SMS and the DND check - whether it is
@@ -58,8 +58,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       key: 'discoveryLead',
       apiName: 'DiscoveryLead',
       title: 'Discovery lead',
-      description: 'Suggests the search words used to find new customers on the lead discovery profile.',
-      simulatorNote: 'The built-in common terms for the business type are suggested instead.',
+      description: 'The discovery agent that runs the searches and finds new customers. Only Claude can do this.',
+      simulatorNote: 'Sample businesses are produced instead of searching the web.',
     },
     {
       key: 'knowledgeBase',
@@ -82,6 +82,20 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       description: 'Plans and renders the marketing videos for the AI Content Studio.',
       simulatorNote: 'A sample video is produced and no render is billed.',
     },
+    {
+      key: 'discoveryKeywords',
+      apiName: 'DiscoveryKeywords',
+      title: 'Discovery lead - AI suggest',
+      description: 'The AI suggest button on the lead discovery profile (Who to find): suggests the search words used to find new customers.',
+      simulatorNote: 'The built-in common terms for the target business type are suggested instead.',
+    },
+    {
+      key: 'businessKeywords',
+      apiName: 'BusinessKeywords',
+      title: 'Profile Information - Keyword AI Suggest',
+      description: 'The AI suggest button on the Profile Information screen (and onboarding): suggests the products, services and topics a business deals in.',
+      simulatorNote: 'The built-in common terms for the industry the tenant chose are suggested instead.',
+    },
   ];
 
   /** The tools on offer, by the name people know them under. */
@@ -102,6 +116,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     knowledgeBase: this.aiGroup(),
     contentGeneration: this.aiGroup(),
     videoRenders: this.aiGroup(),
+    businessKeywords: this.aiGroup(),
+    discoveryKeywords: this.aiGroup(),
   });
 
   readonly form = this.fb.group({
@@ -117,8 +133,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
 
   current: PlatformIntegrationSettings | null = null;
   currentAi: PlatformAiFeatureSettings | null = null;
-  aiTesting: Record<AiFeatureKey | 'conversation', boolean> = { conversation: false, discoveryLead: false, knowledgeBase: false, contentGeneration: false, videoRenders: false };
-  aiResults: Record<AiFeatureKey | 'conversation', DeliveryTestResult | null> = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null };
+  aiTesting: Record<AiFeatureKey | 'conversation', boolean> = { conversation: false, discoveryLead: false, knowledgeBase: false, contentGeneration: false, videoRenders: false, businessKeywords: false, discoveryKeywords: false };
+  aiResults: Record<AiFeatureKey | 'conversation', DeliveryTestResult | null> = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null, businessKeywords: null, discoveryKeywords: null };
   loading = true;
   loadFailed = false;
   saving = false;
@@ -136,7 +152,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     this.load();
     this.form.valueChanges.subscribe(() => (this.results = { consentSms: null, dndCheck: null }));
     this.aiForm.valueChanges.subscribe(
-      () => (this.aiResults = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null })
+      () => (this.aiResults = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null, businessKeywords: null, discoveryKeywords: null })
     );
 
     // Switching a feature to a third-party tool picks one it supports, so a leftover tool it cannot run on is never submitted.
@@ -207,6 +223,13 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     const savedProvider = embedding ? saved?.embeddingProvider : saved?.provider;
     const savedKey = embedding ? saved?.embeddingProviderHasKey : saved?.providerHasKey;
     return !saved || savedProvider !== provider || !!savedKey;
+  }
+
+  /** The tool picked on a panel is switched Off under AI Providers: its choice is kept, but the simulator answers. */
+  aiToolOff(key: AiFeatureKey): boolean {
+    const provider = this.aiForm.controls[key].controls.provider.value;
+    const saved: AiFeatureChannel | undefined = this.currentAi?.[key];
+    return !!saved && saved.provider === provider && saved.providerEnabled === false;
   }
 
   /** Whether a key is saved for the tool picked on a panel. */
@@ -348,6 +371,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       knowledgeBase: this.aiChannelRequest('knowledgeBase'),
       contentGeneration: this.aiChannelRequest('contentGeneration'),
       videoRenders: this.aiChannelRequest('videoRenders'),
+      businessKeywords: this.aiChannelRequest('businessKeywords'),
+      discoveryKeywords: this.aiChannelRequest('discoveryKeywords'),
     };
   }
 
@@ -365,6 +390,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       knowledgeBase: values(settings.knowledgeBase),
       contentGeneration: values(settings.contentGeneration),
       videoRenders: values(settings.videoRenders),
+      businessKeywords: values(settings.businessKeywords),
+      discoveryKeywords: values(settings.discoveryKeywords),
     });
   }
 

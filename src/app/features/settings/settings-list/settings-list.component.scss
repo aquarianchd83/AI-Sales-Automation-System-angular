@@ -89,6 +89,12 @@
   min-width: 260px;
 }
 
+.setting-switch {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+}
+
 .category-actions {
   display: flex;
   justify-content: flex-end;

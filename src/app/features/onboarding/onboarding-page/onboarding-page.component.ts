@@ -3,7 +3,7 @@ import { CanDeactivateFn, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { finalize, takeUntil } from 'rxjs/operators';
 
-import { OnboardingStatus, OnboardingStep, currentStep } from '../../../core/models/onboarding.model';
+import { OnboardingStatus, OnboardingStep, SKIPPABLE_STEP_KEYS, currentStep } from '../../../core/models/onboarding.model';
 import { TENANT_ADMIN_ROLES } from '../../../core/models/user.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -117,8 +117,29 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
         return 'Done';
       case 'Current':
         return 'To do';
+      case 'Skipped':
+        return 'On hold';
       default:
         return 'Waiting';
+    }
+  }
+
+  /** TEMPORARY (see SKIPPABLE_STEP_KEYS): the step on screen can be put on hold. */
+  get canSkip(): boolean {
+    return !!this.selected && this.selected.state === 'Current' && SKIPPABLE_STEP_KEYS.includes(this.selected.key);
+  }
+
+  /** TEMPORARY: puts the step on hold and moves on to the next one. */
+  skip(): void {
+    const step = this.selected;
+    if (!step || !this.canSkip) {
+      return;
+    }
+    this.onboarding.skipStep(step.key);
+    this.notify.info(`${step.title} is on hold. You can come back to it from the list.`);
+    const next = this.current;
+    if (next) {
+      this.select(next);
     }
   }
 
@@ -152,6 +173,8 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
         return 'check_circle';
       case 'Current':
         return 'pending';
+      case 'Skipped':
+        return 'pause_circle';
       default:
         return 'radio_button_unchecked';
     }
