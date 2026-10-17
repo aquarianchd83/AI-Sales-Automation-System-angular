@@ -1,7 +1,15 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 
-import { AnswerMap, AnswerValue, QuestionDef, QuestionField, QuestionnaireDefinition } from '../../../core/models/content-studio.model';
-import { isAnswered, visibleKeys } from '../../../core/utils/questionnaire-engine';
+import {
+  AnswerMap,
+  AnswerValue,
+  QuestionDef,
+  QuestionField,
+  QuestionnaireDefinition,
+  SPECIAL_LABELS,
+  SpecialKind,
+} from '../../../core/models/content-studio.model';
+import { isAnswered, isSpecial, special, specialKind, visibleKeys } from '../../../core/utils/questionnaire-engine';
 
 /**
  * Renders a questionnaire definition as a form: one control per question type, conditional questions appearing and disappearing as
@@ -21,10 +29,17 @@ export class QuestionnaireFormComponent implements OnChanges {
   /** Messages by question key (and "question.field" for a structured field), shown beneath the question. */
   @Input() errors: Record<string, string> = {};
   @Input() readonly = false;
+  /** When set, only the asked questions with these keys are shown - one small step of the wizard. Numbering still counts every asked question. */
+  @Input() stepKeys: string[] | null = null;
 
   @Output() answersChange = new EventEmitter<AnswerMap>();
 
+  /** The questions shown now. */
   visible: QuestionDef[] = [];
+  /** Every question that is asked, in order - what the numbers count. */
+  private asked: QuestionDef[] = [];
+
+  readonly specials: SpecialKind[] = ['unknown', 'need_help', 'not_applicable'];
 
   ngOnChanges(): void {
     this.refreshVisible();
@@ -36,7 +51,7 @@ export class QuestionnaireFormComponent implements OnChanges {
 
   /** 1-based position among the questions that are asked, so numbering never jumps over a hidden one. */
   numberOf(question: QuestionDef): number {
-    return this.visible.indexOf(question) + 1;
+    return this.asked.indexOf(question) + 1;
   }
 
   text(question: QuestionDef): string {
@@ -116,6 +131,32 @@ export class QuestionnaireFormComponent implements OnChanges {
     this.commitField(question, field, value);
   }
 
+  /** Whether the tenant answered this one with "I don't know" / "I need help" / "Not applicable" instead of an answer. */
+  isSkipped(question: QuestionDef): boolean {
+    return isSpecial(this.answers[question.key]);
+  }
+
+  skipLabel(question: QuestionDef): string {
+    return SPECIAL_LABELS[specialKind(this.answers[question.key]) as SpecialKind] ?? '';
+  }
+
+  skipLabelOf(kind: SpecialKind): string {
+    return SPECIAL_LABELS[kind];
+  }
+
+  /** The skip options are offered unless the question insists on a real answer. */
+  canSkip(question: QuestionDef): boolean {
+    return !question.requireKnown && !this.readonly;
+  }
+
+  setSpecial(question: QuestionDef, kind: SpecialKind): void {
+    this.commit(question.key, special(kind));
+  }
+
+  answerInstead(question: QuestionDef): void {
+    this.commit(question.key, undefined);
+  }
+
   errorFor(key: string): string | null {
     return this.errors[key] ?? null;
   }
@@ -149,10 +190,12 @@ export class QuestionnaireFormComponent implements OnChanges {
 
   private refreshVisible(): void {
     if (!this.definition) {
+      this.asked = [];
       this.visible = [];
       return;
     }
     const keys = visibleKeys(this.definition, this.answers);
-    this.visible = this.definition.questions.filter((q) => keys.has(q.key));
+    this.asked = this.definition.questions.filter((q) => keys.has(q.key));
+    this.visible = this.stepKeys ? this.asked.filter((q) => this.stepKeys!.includes(q.key)) : this.asked;
   }
 }

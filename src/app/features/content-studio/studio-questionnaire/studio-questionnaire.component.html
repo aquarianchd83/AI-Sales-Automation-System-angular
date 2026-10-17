@@ -3,6 +3,10 @@
     title="Business questionnaire"
     subtitle="Tell the studio about your business. What you say here becomes facts you check once, and the studio only ever says what you've verified."
   >
+    <a mat-stroked-button routerLink="/content-studio/readiness">
+      <mat-icon>speed</mat-icon>
+      What the studio knows
+    </a>
     <a mat-stroked-button routerLink="/content-studio/facts">
       <mat-icon>fact_check</mat-icon>
       Business facts
@@ -38,7 +42,7 @@
       <button mat-flat-button color="primary" type="button" [disabled]="restarting" (click)="restart()">Update my answers</button>
     </div>
 
-    <mat-card class="section-card">
+    <mat-card class="section-card wizard">
       <div class="head">
         <div>
           <h3>{{ state?.templateTitle }}</h3>
@@ -56,21 +60,95 @@
         </button>
       </div>
 
+      <!-- Where they are: one chip per group of questions. Any can be opened, so an answer can always be corrected. -->
+      <nav class="steps" *ngIf="editable && steps.length > 1" aria-label="Questionnaire steps">
+        <button
+          type="button"
+          class="step"
+          *ngFor="let step of steps; let i = index"
+          [class.step--current]="i === stepIndex"
+          [class.step--done]="stepDone(i) && stepHasRequired(i)"
+          [attr.aria-current]="i === stepIndex ? 'step' : null"
+          (click)="go(i)"
+        >
+          <mat-icon class="step-icon" *ngIf="stepDone(i) && stepHasRequired(i); else stepNumber">check_circle</mat-icon>
+          <ng-template #stepNumber><span class="step-number">{{ i + 1 }}</span></ng-template>
+          <span class="step-label">{{ step[0].group || step[0].prompt }}</span>
+        </button>
+      </nav>
+
+      <h4 class="step-title" *ngIf="editable && steps.length > 1">{{ stepTitle }}<span class="muted"> · step {{ stepIndex + 1 }} of {{ steps.length }}</span></h4>
+
       <app-questionnaire-form
         [definition]="state?.definition ?? null"
         [answers]="answers"
         [errors]="errors"
         [readonly]="!editable"
+        [stepKeys]="currentStepKeys"
         (answersChange)="onAnswers($event)"
       ></app-questionnaire-form>
 
+      <!-- The mandatory questions still open, each a click away. -->
+      <div class="missing" *ngIf="editable && (isLastStep || showMissing) && missing.length" role="status" data-testid="missing">
+        <strong>{{ missing.length }} mandatory question{{ missing.length === 1 ? '' : 's' }} still to answer</strong>
+        <ul>
+          <li *ngFor="let m of missing">
+            <button mat-button type="button" class="link" (click)="goTo(m.step, m.question.key)">{{ m.question.prompt }}</button>
+          </li>
+        </ul>
+        <span class="muted">Not sure about one? Choose "I don't know" and carry on - you can come back to it.</span>
+      </div>
+
+      <div class="skipped-note muted" *ngIf="editable && skippedCount">
+        You've marked {{ skippedCount }} question{{ skippedCount === 1 ? '' : 's' }} as unknown. The studio will ask about {{ skippedCount === 1 ? 'it' : 'them' }} later, when it matters.
+      </div>
+
       <div class="actions" *ngIf="editable">
-        <span class="muted" *ngIf="dirty">You have unsaved changes.</span>
-        <button mat-stroked-button type="button" [disabled]="saving || !dirty" (click)="save()">{{ saving ? 'Saving…' : 'Save progress' }}</button>
-        <button mat-flat-button color="primary" type="button" [disabled]="completing || saving" (click)="complete()">
+        <span class="save-status muted" [ngSwitch]="saveStatus" aria-live="polite" data-testid="save-status">
+          <ng-container *ngSwitchCase="'pending'">Saving in a moment…</ng-container>
+          <ng-container *ngSwitchCase="'saving'">Saving…</ng-container>
+          <ng-container *ngSwitchCase="'saved'">All changes saved<ng-container *ngIf="savedAt"> at {{ savedAt | date: 'shortTime' }}</ng-container></ng-container>
+          <span class="save-error" *ngSwitchCase="'error'">Couldn't save. Your answers are still here - we'll try again.</span>
+        </span>
+
+        <span class="spacer"></span>
+        <button mat-stroked-button type="button" *ngIf="!isFirstStep" (click)="back()">Back</button>
+        <button mat-stroked-button type="button" [disabled]="saving || !dirty" (click)="save()">{{ saving ? 'Saving…' : 'Save now' }}</button>
+        <button mat-flat-button color="primary" type="button" *ngIf="!isLastStep" (click)="next()">Next</button>
+        <button mat-flat-button color="primary" type="button" *ngIf="isLastStep" [disabled]="completing || saving" (click)="complete()">
           {{ completing ? 'Completing…' : 'Complete questionnaire' }}
         </button>
       </div>
+    </mat-card>
+
+    <!-- Who changed what, and when. Opens in place. -->
+    <mat-card class="section-card history" *ngIf="state?.responseId">
+      <button type="button" class="history-toggle" (click)="toggleHistory()" [attr.aria-expanded]="historyOpen">
+        <mat-icon>{{ historyOpen ? 'expand_less' : 'history' }}</mat-icon>
+        <strong>Answer history</strong>
+        <span class="muted">Who changed which answer, and when</span>
+      </button>
+
+      <ng-container *ngIf="historyOpen">
+        <mat-progress-bar mode="indeterminate" *ngIf="historyLoading"></mat-progress-bar>
+        <p class="muted" *ngIf="!historyLoading && !history.length">Nothing has been changed yet.</p>
+        <ul class="history-list" *ngIf="history.length">
+          <li *ngFor="let h of history" [attr.data-kind]="h.kind">
+            <div class="history-what">
+              <strong>{{ promptOf(h.questionKey) }}</strong>
+              <span>
+                <ng-container [ngSwitch]="h.kind">
+                  <ng-container *ngSwitchCase="'Set'">answered "{{ describe(h.questionKey, h.new) }}"</ng-container>
+                  <ng-container *ngSwitchCase="'Changed'">changed from "{{ describe(h.questionKey, h.previous) }}" to "{{ describe(h.questionKey, h.new) }}"</ng-container>
+                  <ng-container *ngSwitchCase="'Cleared'">cleared (was "{{ describe(h.questionKey, h.previous) }}")</ng-container>
+                  <ng-container *ngSwitchDefault>removed because an earlier answer changed (was "{{ describe(h.questionKey, h.previous) }}")</ng-container>
+                </ng-container>
+              </span>
+            </div>
+            <span class="muted history-who">{{ h.changedByName || 'The system' }} · {{ h.changedAtUtc | zonedDate: 'medium' }}</span>
+          </li>
+        </ul>
+      </ng-container>
     </mat-card>
   </ng-container>
 </div>

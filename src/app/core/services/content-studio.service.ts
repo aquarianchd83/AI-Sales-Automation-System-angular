@@ -4,9 +4,15 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  AnswerGapBody,
+  AnswerRevision,
   BusinessFact,
+  BusinessFactRevision,
   BusinessFactQuery,
   BusinessFactSummary,
+  ClaimCheckResult,
+  KnowledgeReadiness,
+  SaveBusinessFactBody,
   QuestionnaireCompletion,
   QuestionnaireState,
   StudioActivity,
@@ -94,6 +100,9 @@ export class ContentStudioService {
     if (query.category) {
       params = params.set('Category', query.category);
     }
+    if (query.classification != null) {
+      params = params.set('Classification', String(query.classification));
+    }
     return this.http.get<PagedResult<BusinessFact>>(`${this.baseUrl}/facts`, { params });
   }
 
@@ -101,20 +110,64 @@ export class ContentStudioService {
     return this.http.get<BusinessFactSummary>(`${this.baseUrl}/facts/summary`);
   }
 
-  createFact(fact: { category: string; statement: string }): Observable<BusinessFact> {
+  createFact(fact: SaveBusinessFactBody): Observable<BusinessFact> {
     return this.http.post<BusinessFact>(`${this.baseUrl}/facts`, fact);
   }
 
-  updateFact(id: string, fact: { category: string; statement: string }): Observable<BusinessFact> {
+  updateFact(id: string, fact: SaveBusinessFactBody): Observable<BusinessFact> {
     return this.http.put<BusinessFact>(`${this.baseUrl}/facts/${id}`, fact);
   }
 
   /** Admin only: confirms the fact is true. */
-  verifyFact(id: string): Observable<BusinessFact> {
-    return this.http.post<BusinessFact>(`${this.baseUrl}/facts/${id}/verify`, {});
+  verifyFact(id: string, reconfirm = false): Observable<BusinessFact> {
+    return this.http.post<BusinessFact>(`${this.baseUrl}/facts/${id}/verify`, {}, { params: reconfirm ? new HttpParams().set('reconfirm', 'true') : undefined });
   }
 
   retireFact(id: string): Observable<BusinessFact> {
     return this.http.post<BusinessFact>(`${this.baseUrl}/facts/${id}/retire`, {});
+  }
+
+  /** The newest changes to the answers - who changed what and when - optionally for one question. */
+  getAnswerHistory(questionKey?: string | null, take = 50): Observable<AnswerRevision[]> {
+    let params = new HttpParams().set('take', String(take));
+    if (questionKey) {
+      params = params.set('questionKey', questionKey);
+    }
+    return this.http.get<AnswerRevision[]>(`${this.baseUrl}/questionnaire/history`, { params });
+  }
+
+  /** Adds how the tenant knows a fact is true and/or an end date, without changing what it states. */
+  updateFactDetails(id: string, details: { evidence: string | null; expiresAtUtc: string | null }): Observable<BusinessFact> {
+    return this.http.put<BusinessFact>(`${this.baseUrl}/facts/${id}/details`, details);
+  }
+
+  getFactHistory(id: string): Observable<BusinessFactRevision[]> {
+    return this.http.get<BusinessFactRevision[]>(`${this.baseUrl}/facts/${id}/history`);
+  }
+
+  // ----- knowledge readiness and the missing-information workflow ------------------------------------------------------------------
+
+  getReadiness(): Observable<KnowledgeReadiness> {
+    return this.http.get<KnowledgeReadiness>(`${this.baseUrl}/knowledge/readiness`);
+  }
+
+  answerGap(key: string, body: AnswerGapBody): Observable<KnowledgeReadiness> {
+    return this.http.post<KnowledgeReadiness>(`${this.baseUrl}/knowledge/gaps/${encodeURIComponent(key)}/answer`, body);
+  }
+
+  skipGap(key: string): Observable<KnowledgeReadiness> {
+    return this.http.post<KnowledgeReadiness>(`${this.baseUrl}/knowledge/gaps/${encodeURIComponent(key)}/skip`, {});
+  }
+
+  deferGap(key: string, until: string | null): Observable<KnowledgeReadiness> {
+    return this.http.post<KnowledgeReadiness>(`${this.baseUrl}/knowledge/gaps/${encodeURIComponent(key)}/defer`, { until });
+  }
+
+  reopenGap(key: string): Observable<KnowledgeReadiness> {
+    return this.http.post<KnowledgeReadiness>(`${this.baseUrl}/knowledge/gaps/${encodeURIComponent(key)}/reopen`, {});
+  }
+
+  checkClaims(claims: string[]): Observable<ClaimCheckResult> {
+    return this.http.post<ClaimCheckResult>(`${this.baseUrl}/knowledge/claims/check`, { claims });
   }
 }

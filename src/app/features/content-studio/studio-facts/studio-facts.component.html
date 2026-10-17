@@ -3,6 +3,10 @@
     title="Business facts"
     subtitle="Everything you say is true about your business. The studio only uses facts that have been verified."
   >
+    <a mat-stroked-button routerLink="/content-studio/readiness">
+      <mat-icon>speed</mat-icon>
+      What the studio knows
+    </a>
     <a mat-stroked-button routerLink="/content-studio/questionnaire">
       <mat-icon>quiz</mat-icon>
       Questionnaire
@@ -22,6 +26,9 @@
     </button>
     <button type="button" class="chip" [class.chip--on]="statusFilter === statusEnum.Retired" (click)="setStatus(statusEnum.Retired)">
       <strong>{{ summary.retired }}</strong> retired
+    </button>
+    <button type="button" class="chip chip--out-of-date" [class.chip--on]="classificationFilter === classEnum.Expired" (click)="setOutOfDate()">
+      Out of date
     </button>
   </div>
 
@@ -63,7 +70,7 @@
 
           <ng-container matColumnDef="status">
             <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let row"><span [class]="statusClass(row.status)">{{ statusLabel(row.status) }}</span></td>
+            <td mat-cell *matCellDef="let row"><span [class]="chipClass(row)">{{ chipLabel(row) }}</span></td>
           </ng-container>
 
           <ng-container matColumnDef="actions">
@@ -73,11 +80,11 @@
                 mat-stroked-button
                 type="button"
                 class="verify-button"
-                *ngIf="canVerify && row.status === statusEnum.Draft"
+                *ngIf="canVerify && needsConfirming(row)"
                 [disabled]="acting"
                 (click)="verify(row, $event)"
               >
-                Verify
+                {{ row.status === statusEnum.Verified ? 'Confirm again' : 'Verify' }}
               </button>
             </td>
           </ng-container>
@@ -119,7 +126,9 @@
       </div>
 
       <ng-container *ngIf="panel === 'view' && selected as fact">
-        <span [class]="statusClass(fact.status)">{{ statusLabel(fact.status) }}</span>
+        <span [class]="chipClass(fact)" data-testid="chip">{{ chipLabel(fact) }}</span>
+        <p class="muted hint" data-testid="classification-hint">{{ classHints[fact.classification] }}</p>
+        <p class="muted hint" data-testid="source">{{ sourceText(fact) }}</p>
         <p class="muted hint" *ngIf="fromQuestionnaire">
           This fact comes from your questionnaire. To change it, <a routerLink="/content-studio/questionnaire">update your answer</a>.
         </p>
@@ -140,12 +149,40 @@
         <mat-hint align="end" *ngIf="editable">{{ statement.value.length }} / {{ maxStatement }}</mat-hint>
       </mat-form-field>
 
+      <ng-container *ngIf="editable">
+        <mat-form-field subscriptSizing="dynamic" class="full">
+          <mat-label>What it is about (optional)</mat-label>
+          <input matInput [formControl]="subject" [attr.maxlength]="maxSubject" autocomplete="off" placeholder="e.g. Cataract surgery" />
+        </mat-form-field>
+
+        <mat-form-field subscriptSizing="dynamic" class="full">
+          <mat-label>When or where it holds (optional)</mat-label>
+          <input matInput [formControl]="context" [attr.maxlength]="maxContext" autocomplete="off" placeholder="e.g. At the Pune clinic" />
+        </mat-form-field>
+      </ng-container>
+
       <p class="muted hint" *ngIf="panel === 'view' && editable && selected?.status === statusEnum.Verified">
         Changing the wording of a verified fact means it has to be verified again.
       </p>
 
+      <ng-container *ngIf="detailsEditable">
+        <mat-form-field subscriptSizing="dynamic" class="full">
+          <mat-label>How do you know this is true? (proof)</mat-label>
+          <textarea matInput rows="2" [formControl]="evidence" [attr.maxlength]="maxEvidence" placeholder="e.g. Signed outcome report on file"></textarea>
+        </mat-form-field>
+
+        <mat-form-field subscriptSizing="dynamic" class="full">
+          <mat-label>True until (optional)</mat-label>
+          <input matInput type="date" [formControl]="validUntil" />
+          <mat-hint>After this day the fact stops being used until it is confirmed again.</mat-hint>
+        </mat-form-field>
+        <p class="muted hint" *ngIf="panel === 'view' && selected?.reviewEveryDays">
+          This kind of fact is re-checked every {{ selected?.reviewEveryDays }} days after it is confirmed.
+        </p>
+      </ng-container>
+
       <div class="detail-actions">
-        <button mat-flat-button color="primary" type="button" *ngIf="editable" [disabled]="!dirty || saving" (click)="save()">
+        <button mat-flat-button color="primary" type="button" *ngIf="detailsEditable" [disabled]="!dirty || saving" (click)="save()">
           {{ saving ? 'Saving…' : panel === 'new' ? 'Add fact' : 'Save' }}
         </button>
 
@@ -154,18 +191,34 @@
             mat-stroked-button
             color="primary"
             type="button"
-            *ngIf="canVerify && fact.status === statusEnum.Draft"
+            *ngIf="canVerify && needsConfirming(fact)"
             [disabled]="acting || dirty"
             (click)="verify(fact)"
           >
             <mat-icon>verified</mat-icon>
-            Verify
+            {{ fact.status === statusEnum.Verified ? 'Confirm again' : 'Verify' }}
           </button>
           <button mat-button type="button" *ngIf="fact.status !== statusEnum.Retired" [disabled]="acting" (click)="retire(fact)">Retire</button>
         </ng-container>
       </div>
 
-      <p class="muted hint" *ngIf="panel === 'view' && !canVerify && selected?.status === statusEnum.Draft">Only an admin can verify a fact.</p>
+      <p class="muted hint" *ngIf="panel === 'view' && !canVerify && selected && needsConfirming(selected)">Only an admin can verify a fact.</p>
+
+      <section class="history" *ngIf="panel === 'view'" data-testid="fact-history">
+        <h4>History</h4>
+        <mat-progress-bar mode="indeterminate" *ngIf="historyLoading"></mat-progress-bar>
+        <ul *ngIf="history.length">
+          <li *ngFor="let h of history">
+            <div>
+              <strong>{{ changeLabels[h.kind] }}</strong>
+              <span class="muted"> · {{ h.changedByName || 'The system' }} · {{ h.changedAtUtc | zonedDate: 'medium' }}</span>
+            </div>
+            <div class="history-note muted" *ngIf="h.note">{{ h.note }}</div>
+            <div class="history-statement">{{ h.statement }}</div>
+          </li>
+        </ul>
+        <p class="muted" *ngIf="!historyLoading && !history.length">No history yet.</p>
+      </section>
     </mat-card>
   </div>
 </div>

@@ -126,6 +126,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Business Questionnaire', icon: 'quiz', route: '/content-studio/questionnaire', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
         { label: 'Business Facts', icon: 'fact_check', route: '/content-studio/facts', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
+        { label: 'What the Studio Knows', icon: 'speed', route: '/content-studio/readiness', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
         {
           label: 'Charges & Activity',
           icon: 'receipt_long',

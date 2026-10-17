@@ -78,3 +78,47 @@
   padding: 24px;
   text-align: center;
 }
+
+.example {
+  margin-top: 2px;
+  font-size: 12px;
+  font-style: italic;
+
+  span {
+    font-style: normal;
+    font-weight: 500;
+  }
+}
+
+.skipped {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 14px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.skip-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.link {
+  min-width: 0;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 28px;
+}
