@@ -38,6 +38,12 @@
           <span class="muted" *ngIf="embedded">
             Choose a plan below, or carry on with your free trial and choose later - press Next either way.
           </span>
+          <div class="trial-features" *ngIf="trialAllowance.length">
+            <span class="muted">Included in your free trial</span>
+            <ul class="plan-features">
+              <li *ngFor="let a of trialAllowance">{{ formatUnits(a.units) }} {{ quotaLabels[a.quotaType] | lowercase }}</li>
+            </ul>
+          </div>
         </div>
       </div>
     </ng-template>

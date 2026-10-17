@@ -119,7 +119,7 @@ describe('OnboardingPageComponent', () => {
 
   async function create(initial: OnboardingStatus | null, roles = ['Admin']): Promise<void> {
     status$ = new BehaviorSubject<OnboardingStatus | null>(initial);
-    onboarding = jasmine.createSpyObj<OnboardingService>('OnboardingService', ['refresh'], { status$: status$.asObservable() });
+    onboarding = jasmine.createSpyObj<OnboardingService>('OnboardingService', ['refresh', 'skipStep'], { status$: status$.asObservable() });
     onboarding.refresh.and.returnValue(of(initial));
     notify = jasmine.createSpyObj<NotificationService>('NotificationService', ['success', 'info', 'error']);
     const auth = { hasAnyRole: (wanted: string[]) => wanted.some((r) => roles.includes(r)) };
@@ -205,7 +205,7 @@ describe('OnboardingPageComponent', () => {
   });
 
   it('lays the panel out as title, then the screen, then Previous and Next', async () => {
-    await create(status(4));
+    await create(status(3)); // a step that cannot be skipped, so only Previous and Next show
 
     const panel = el().querySelector('.panel')!;
     const order = ['.panel-head', '.panel-body', '.panel-nav'].map((sel) => Array.from(panel.children).indexOf(panel.querySelector(sel)!));
@@ -213,6 +213,16 @@ describe('OnboardingPageComponent', () => {
     expect(order.every((i) => i >= 0)).toBeTrue();
     const labels = Array.from(panel.querySelectorAll('.panel-nav button')).map((b) => b.textContent!.replace(/arrow_(back|forward)/g, '').trim());
     expect(labels).toEqual(['Previous', 'Next']);
+  });
+
+  // TEMPORARY with the Skip button: remove once the Meta connection works.
+  it('offers Skip for now on WhatsApp and asks the service to put it on hold', async () => {
+    await create(status(4));
+    const skip = Array.from(el().querySelectorAll<HTMLButtonElement>('.panel-nav button')).find((b) => b.textContent!.includes('Skip for now'))!;
+
+    skip.click();
+
+    expect(onboarding.skipStep).toHaveBeenCalledWith('whatsapp');
   });
 
   it('goes back and forward between open steps, and holds Next while the step on screen is still to do', async () => {

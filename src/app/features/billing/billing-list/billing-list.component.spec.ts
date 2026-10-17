@@ -37,6 +37,7 @@ describe('BillingListComponent refunds', () => {
           },
         ]),
       getSubscription: () => of(null),
+      getQuota: () => of([]),
       getPaymentHistory: () => of([payment('pay-1', 'CreditPack', 1660), payment('pay-2', 'CreditPack', 1660), payment('ref-1', 'Refund', -1162)]),
       getCapabilities: () => of({ refundRequestsEnabled: refundsEnabled }),
       getRefundRequests: () =>

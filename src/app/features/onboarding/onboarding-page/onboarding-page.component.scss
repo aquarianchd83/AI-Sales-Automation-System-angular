@@ -132,6 +132,20 @@ $radius: 14px;
     }
   }
 
+  // TEMPORARY: put on hold with "Skip for now"; open, so it can be picked up again.
+  &--skipped {
+    cursor: pointer;
+
+    .step-icon,
+    .step-state {
+      color: #5f6b7a;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+  }
+
   // Not done, and waiting behind the one above: disabled, not locked.
   &--pending {
     cursor: not-allowed;
@@ -299,6 +313,11 @@ $radius: 14px;
   &--current {
     background: rgba(255, 152, 0, 0.16);
     color: #bf5b00;
+  }
+
+  &--skipped {
+    background: rgba(95, 107, 122, 0.14);
+    color: #4a5563;
   }
 
   &--pending {

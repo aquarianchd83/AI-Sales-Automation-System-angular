@@ -3,7 +3,14 @@
  * to do next. Pending: not done either, and waiting behind Current. Completed and Current steps are open; Pending
  * ones are disabled until the one before them is done.
  */
-export type OnboardingStepState = 'Completed' | 'Current' | 'Pending';
+export type OnboardingStepState = 'Completed' | 'Current' | 'Pending' | 'Skipped';
+
+/**
+ * TEMPORARY: steps that can be put on hold with a "Skip for now" button, because the Meta redirect_url problem blocks
+ * WhatsApp connection. A skipped step counts as out of the way (the next steps open, setup can finish) but is not
+ * Completed. Once the Meta connection works, empty this list and delete the Skip button, `skipStep` and `applySkips`.
+ */
+export const SKIPPABLE_STEP_KEYS: readonly string[] = ['whatsapp'];
 
 /** OnboardingStepDto - one of the nine steps, in order. `route` is the tenant's real screen for the step. */
 export interface OnboardingStep {

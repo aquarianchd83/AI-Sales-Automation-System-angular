@@ -110,6 +110,10 @@
           Previous
         </button>
         <span class="nav-hint muted" *ngIf="nextHint && !canGoNext">{{ nextHint }}</span>
+        <button mat-stroked-button type="button" class="skip" *ngIf="canSkip" (click)="skip()">
+          Skip for now
+          <mat-icon iconPositionEnd>skip_next</mat-icon>
+        </button>
         <button mat-flat-button color="primary" type="button" (click)="next()" [disabled]="!canGoNext">
           Next
           <mat-icon iconPositionEnd>arrow_forward</mat-icon>
