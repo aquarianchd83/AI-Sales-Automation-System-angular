@@ -4,7 +4,7 @@ import { BehaviorSubject, EMPTY, Observable, Subject, of } from 'rxjs';
 import { catchError, debounceTime, map, switchMap, tap } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
-import { OnboardingStatus } from '../models/onboarding.model';
+import { OnboardingStatus, SKIPPABLE_STEP_KEYS } from '../models/onboarding.model';
 import { AuthService } from './auth.service';
 
 /**
@@ -27,6 +27,9 @@ export class OnboardingService {
   readonly status$ = this.statusSubject.asObservable();
 
   private readonly changes = new Subject<void>();
+
+  /** TEMPORARY (see SKIPPABLE_STEP_KEYS): the status as the server sent it, before skipped steps are applied. */
+  private rawStatus: OnboardingStatus | null = null;
 
   constructor(private readonly http: HttpClient, private readonly auth: AuthService) {
     // A burst of saves (a form and its follow-up calls) is one re-read, not several.
@@ -52,9 +55,70 @@ export class OnboardingService {
       map((response) => (response.status === 204 ? null : response.body)),
       tap((status) => {
         this.cachedFor = userId;
-        this.statusSubject.next(status);
+        this.rawStatus = status;
+        this.statusSubject.next(this.applySkips(status));
       })
     );
+  }
+
+  /** TEMPORARY: puts a skippable step on hold so the steps after it open. Remembered in this browser only. */
+  skipStep(key: string): void {
+    if (!SKIPPABLE_STEP_KEYS.includes(key)) {
+      return;
+    }
+    const skipped = this.readSkipped();
+    if (!skipped.includes(key)) {
+      this.writeSkipped([...skipped, key]);
+    }
+    this.statusSubject.next(this.applySkips(this.rawStatus));
+  }
+
+  private get skipStorageKey(): string {
+    return `onboarding-skipped:${this.auth.currentUser?.id ?? ''}`;
+  }
+
+  private readSkipped(): string[] {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(this.skipStorageKey) ?? '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeSkipped(keys: string[]): void {
+    try {
+      localStorage.setItem(this.skipStorageKey, JSON.stringify(keys));
+    } catch {
+      /* storage unavailable: the skip lasts until the status is next read */
+    }
+  }
+
+  /** TEMPORARY: a skipped step that is still not done is marked Skipped, and the first remaining step becomes Current. */
+  private applySkips(status: OnboardingStatus | null): OnboardingStatus | null {
+    const skipped = this.readSkipped().filter((k) => SKIPPABLE_STEP_KEYS.includes(k));
+    if (!status || status.isCompleted || !skipped.length) {
+      return status;
+    }
+    let currentTaken = false;
+    const steps = status.steps.map((step) => {
+      if (step.state === 'Completed') {
+        return step;
+      }
+      if (skipped.includes(step.key)) {
+        return { ...step, state: 'Skipped' as const };
+      }
+      const state = currentTaken ? ('Pending' as const) : ('Current' as const);
+      currentTaken = true;
+      return { ...step, state };
+    });
+    const current = steps.find((s) => s.state === 'Current') ?? null;
+    return {
+      ...status,
+      steps,
+      currentStepKey: current?.key ?? null,
+      isCompleted: !current,
+    };
   }
 
   /** The cached status when onboarding is completed for this user (kept fresh by noteChange); otherwise a fresh read. */

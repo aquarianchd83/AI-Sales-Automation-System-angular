@@ -6,10 +6,18 @@
         <strong>{{ q.prompt }}</strong>
         <span class="required" *ngIf="q.required" aria-label="required">*</span>
         <div class="help muted" *ngIf="q.helpText">{{ q.helpText }}</div>
+        <div class="example muted" *ngIf="q.example"><span>For example:</span> {{ q.example }}</div>
       </div>
     </div>
 
-    <div class="answer" [ngSwitch]="q.type">
+    <div class="skipped" *ngIf="isSkipped(q)" data-testid="skipped">
+      <mat-icon>{{ skipLabel(q) === 'Not applicable' ? 'block' : 'help_outline' }}</mat-icon>
+      <span>{{ skipLabel(q) }}</span>
+      <span class="muted" *ngIf="skipLabel(q) !== 'Not applicable'">- that's fine, we'll ask again later.</span>
+      <button mat-button type="button" class="link" *ngIf="!readonly" (click)="answerInstead(q)">Answer it instead</button>
+    </div>
+
+    <div class="answer" [ngSwitch]="q.type" *ngIf="!isSkipped(q)">
       <mat-form-field *ngSwitchCase="'ShortText'" subscriptSizing="dynamic" class="full">
         <mat-label>Your answer</mat-label>
         <input matInput [disabled]="readonly" [value]="text(q)" [attr.maxlength]="q.maxLength || 200" autocomplete="off" (input)="setText(q, $any($event.target).value)" />
@@ -64,6 +72,11 @@
           <div class="error" *ngIf="errorFor(q.key + '.' + f.key) as fieldError">{{ fieldError }}</div>
         </div>
       </div>
+    </div>
+
+    <div class="skip-options" *ngIf="canSkip(q) && !isSkipped(q)">
+      <span class="muted">Not sure?</span>
+      <button mat-button type="button" class="link" *ngFor="let kind of specials" [attr.data-skip]="kind" (click)="setSpecial(q, kind)">{{ skipLabelOf(kind) }}</button>
     </div>
 
     <div class="error" role="alert" *ngIf="errorFor(q.key) as message">{{ message }}</div>

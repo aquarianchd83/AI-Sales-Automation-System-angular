@@ -3,7 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
-import { QuotaType } from '../../../core/models/billing.model';
+import { QuotaGrantOrigin, QuotaType } from '../../../core/models/billing.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import { SharedModule } from '../../../shared/shared.module';
@@ -16,7 +16,7 @@ describe('BillingListComponent inside onboarding', () => {
 
   function render(embedded: boolean): HTMLElement {
     billing = jasmine.createSpyObj<BillingService>('BillingService', [
-      'getPlans', 'getSubscription', 'getPaymentHistory', 'getCapabilities', 'getRefundRequests',
+      'getPlans', 'getSubscription', 'getPaymentHistory', 'getCapabilities', 'getRefundRequests', 'getQuota',
     ]);
     billing.getPlans.and.returnValue(of([
       {
@@ -27,6 +27,10 @@ describe('BillingListComponent inside onboarding', () => {
       },
     ]));
     billing.getSubscription.and.returnValue(of(null));
+    billing.getQuota.and.returnValue(of([
+      { quotaType: QuotaType.WhatsAppMessages, balance: 50, capacity: 50, grants: [{ id: 'g', origin: QuotaGrantOrigin.Trial, unitsGranted: 50, unitsRemaining: 50, expiresAtUtc: '' }] },
+      { quotaType: QuotaType.AiConversations, balance: 0, capacity: 0, grants: [] },
+    ]));
     billing.getPaymentHistory.and.returnValue(of([]));
     billing.getCapabilities.and.returnValue(of({ refundRequestsEnabled: true }));
     billing.getRefundRequests.and.returnValue(of([
@@ -65,6 +69,14 @@ describe('BillingListComponent inside onboarding', () => {
 
   it('tells a tenant on its free trial it can carry on without choosing a plan', () => {
     expect(render(true).querySelector('.subscription-card')!.textContent).toContain('carry on with your free trial');
+  });
+
+  it('lists what the free trial includes, leaving out anything it grants none of', () => {
+    const text = render(true).querySelector('.subscription-card')!.textContent!;
+
+    expect(text).toContain('Included in your free trial');
+    expect(text).toContain('50 whatsapp messages');
+    expect(text).not.toContain('ai conversations');
   });
 
   it('keeps the usual wording on the full Billing page', () => {

@@ -67,6 +67,18 @@
           </span>
         </div>
   
+        <div class="setting-input setting-switch" *ngIf="isSwitch(item); else field">
+          <mat-slide-toggle
+            color="primary"
+            [checked]="isOn(item)"
+            (change)="setSwitch(item, $event.checked)"
+            [attr.aria-label]="item.key"
+          >
+            {{ isOn(item) ? 'On' : 'Off' }}
+          </mat-slide-toggle>
+        </div>
+
+        <ng-template #field>
         <mat-form-field class="setting-input" subscriptSizing="dynamic">
           <mat-label>{{ item.isList ? 'Comma-separated values' : 'Value' }}</mat-label>
           <mat-select *ngIf="item.options?.length; else textValue" [formControlName]="item.key" [attr.aria-label]="item.key">
@@ -85,6 +97,7 @@
             />
           </ng-template>
         </mat-form-field>
+        </ng-template>
       </div>
     </ng-template>
 

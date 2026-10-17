@@ -1,0 +1,179 @@
+<div class="page">
+  <app-page-header
+    title="What the studio knows"
+    subtitle="How ready your business knowledge is for each kind of content, and the few questions that would improve it."
+  >
+    <a mat-stroked-button routerLink="/content-studio/questionnaire">
+      <mat-icon>quiz</mat-icon>
+      Questionnaire
+    </a>
+    <a mat-stroked-button routerLink="/content-studio/facts">
+      <mat-icon>fact_check</mat-icon>
+      Business facts
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <ng-container *ngIf="readiness as r">
+    <div class="overview" data-testid="overview">
+      <div class="overall">
+        <span class="overall-score">{{ r.overallScore }}</span>
+        <span class="muted">overall readiness</span>
+      </div>
+      <p class="muted overview-text">
+        Readiness is not how many questions you answered. It counts what the studio is allowed to say: facts an Admin has verified, with proof where a
+        claim needs it, and still up to date. <strong>{{ r.facts.verified }}</strong> verified,
+        <strong>{{ r.facts.needsChecking }}</strong> waiting to be checked<ng-container *ngIf="r.facts.expired">, <strong>{{ r.facts.expired }}</strong> out of date</ng-container>.
+      </p>
+    </div>
+
+    <!-- One card per kind of content, each able to explain itself. -->
+    <section class="types" aria-label="Readiness by kind of content">
+      <mat-card class="section-card type" *ngFor="let t of r.contentTypes" [attr.data-type]="t.key">
+        <div class="type-head">
+          <div class="type-title">
+            <h3>{{ t.label }}</h3>
+            <span class="muted" *ngIf="t.description">{{ t.description }}</span>
+          </div>
+          <span [class]="statusClass(t)">{{ statusLabels[t.status] }}</span>
+        </div>
+
+        <div class="meter" role="img" [attr.aria-label]="t.label + ' readiness ' + t.score + ' out of 100'">
+          <div class="meter-fill" [style.width.%]="t.score" [class.meter-fill--ready]="t.status === 'Ready'"></div>
+          <div class="meter-threshold" [style.left.%]="threshold(t)" [attr.title]="'Needs ' + t.minScore + ' and every critical item verified'"></div>
+        </div>
+        <div class="meter-labels"><strong>{{ t.score }}</strong><span class="muted"> / 100 · needs {{ t.minScore }}</span></div>
+
+        <p class="type-summary">{{ t.summary }}</p>
+
+        <button mat-button type="button" class="why" (click)="toggle(t.key)" [attr.aria-expanded]="expanded.has(t.key)">
+          <mat-icon>{{ expanded.has(t.key) ? 'expand_less' : 'expand_more' }}</mat-icon>
+          Why this score?
+        </button>
+
+        <table class="reqs" *ngIf="expanded.has(t.key)">
+          <tbody>
+            <tr *ngFor="let line of t.requirements" [attr.data-req]="line.key">
+              <td class="req-main">
+                <strong>{{ line.label }}</strong>
+                <span class="critical" *ngIf="line.critical" title="This must be verified for the content to be ready">must have</span>
+                <div class="muted req-explain">{{ line.explanation }}</div>
+              </td>
+              <td class="req-state"><span [class]="stateClass(line.state)">{{ requirementLabels[line.state] }}</span></td>
+              <td class="req-points num">{{ line.points }} / {{ line.weight }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </mat-card>
+    </section>
+
+    <!-- The follow-up questions. -->
+    <h2 class="section-title">Questions that would help <span class="muted" *ngIf="openGaps.length">· {{ openGaps.length }}</span></h2>
+
+    <mat-card class="section-card empty-card" *ngIf="!openGaps.length">
+      <mat-icon class="empty-icon">task_alt</mat-icon>
+      <p>Nothing more to ask right now.</p>
+    </mat-card>
+
+    <mat-card class="section-card gap" *ngFor="let g of openGaps" [attr.data-gap]="g.key">
+      <div class="gap-head">
+        <strong>{{ g.label }}</strong>
+        <span class="badge badge--reason">{{ reasonLabels[g.reason] }}</span>
+      </div>
+      <p class="gap-question">{{ g.question }}</p>
+      <p class="muted gap-why"><mat-icon>info</mat-icon> {{ g.why }}</p>
+      <p class="muted gap-for">Needed for: {{ g.neededFor.join(', ') }}</p>
+
+      <!-- Facts that only need an Admin's confirmation: no typing needed. -->
+      <div class="gap-actions" *ngIf="answering !== g.key">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          class="verify-gap"
+          *ngIf="canVerify && g.factsToConfirm.length"
+          [disabled]="busy"
+          (click)="verify(g)"
+        >
+          <mat-icon>verified</mat-icon>
+          {{ g.reason === 'Expired' || g.reason === 'Outdated' ? 'Confirm again' : 'Verify ' + g.factsToConfirm.length + (g.factsToConfirm.length === 1 ? ' fact' : ' facts') }}
+        </button>
+        <span class="muted" *ngIf="!canVerify && g.factsToConfirm.length">An Admin needs to confirm what you've told us.</span>
+
+        <button mat-stroked-button type="button" class="answer-gap" *ngIf="g.reason !== 'Expired' && g.reason !== 'Outdated'" (click)="startAnswer(g)">
+          {{ proofOnly(g) ? 'Add proof' : g.factsToConfirm.length ? 'Add more' : 'Answer' }}
+        </button>
+        <button mat-button type="button" class="skip-gap" *ngIf="g.skippable" [disabled]="busy" (click)="skip(g)">We don't need this</button>
+        <button mat-button type="button" class="later-gap" [disabled]="busy" (click)="later(g)">Ask me later</button>
+      </div>
+
+      <div class="answer-form" *ngIf="answering === g.key">
+        <mat-form-field subscriptSizing="dynamic" class="full" *ngIf="!proofOnly(g)">
+          <mat-label>Your answer</mat-label>
+          <textarea matInput rows="3" [formControl]="answer" [attr.maxlength]="maxAnswer" [placeholder]="g.example ? 'e.g. ' + g.example : ''"></textarea>
+        </mat-form-field>
+
+        <mat-form-field subscriptSizing="dynamic" class="full" *ngIf="g.requiresEvidence">
+          <mat-label>How can you prove it?</mat-label>
+          <textarea matInput rows="2" [formControl]="evidence" [attr.maxlength]="maxEvidence" placeholder="e.g. Signed form on file"></textarea>
+          <mat-hint>Required for this kind of claim.</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field subscriptSizing="dynamic" class="full" *ngIf="!proofOnly(g)">
+          <mat-label>When or where is it true? (optional)</mat-label>
+          <input matInput [formControl]="context" [attr.maxlength]="maxContext" autocomplete="off" />
+        </mat-form-field>
+
+        <div class="gap-actions">
+          <button mat-flat-button color="primary" type="button" class="save-answer" [disabled]="!canSubmit(g) || busy" (click)="submit(g)">{{ busy ? 'Saving…' : 'Save' }}</button>
+          <button mat-button type="button" (click)="cancelAnswer()">Cancel</button>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Gaps put off until later. -->
+    <ng-container *ngIf="deferredGaps.length">
+      <button mat-button type="button" class="deferred-toggle" (click)="showDeferred = !showDeferred">
+        <mat-icon>{{ showDeferred ? 'expand_less' : 'schedule' }}</mat-icon>
+        {{ deferredGaps.length }} put off for later
+      </button>
+      <ul class="deferred" *ngIf="showDeferred">
+        <li *ngFor="let g of deferredGaps">
+          <span><strong>{{ g.label }}</strong> <span class="muted">· back on {{ g.deferredUntilUtc | zonedDate: 'mediumDate' }}</span></span>
+          <button mat-button type="button" [disabled]="busy" (click)="reopen(g)">Ask again now</button>
+        </li>
+      </ul>
+    </ng-container>
+
+    <!-- Any sentence, checked against what is verified. -->
+    <mat-card class="section-card claims">
+      <button type="button" class="claims-toggle" (click)="claimsOpen = !claimsOpen" [attr.aria-expanded]="claimsOpen">
+        <mat-icon>{{ claimsOpen ? 'expand_less' : 'rule' }}</mat-icon>
+        <strong>Check a claim</strong>
+        <span class="muted">See whether the verified facts back up what you want to say</span>
+      </button>
+
+      <ng-container *ngIf="claimsOpen">
+        <mat-form-field subscriptSizing="dynamic" class="full">
+          <mat-label>One sentence per line</mat-label>
+          <textarea matInput rows="3" [formControl]="claims" placeholder="We perform cataract surgery.&#10;98% of patients see better."></textarea>
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="button" class="check-claims" [disabled]="!claimLines.length || checking" (click)="checkClaims()">
+          {{ checking ? 'Checking…' : 'Check' }}
+        </button>
+
+        <ul class="claim-results" *ngIf="claimResult as c">
+          <li *ngFor="let item of c.claims" [attr.data-verdict]="item.verdict">
+            <div>
+              <span [class]="verdictClass(item.verdict)">{{ verdictLabels[item.verdict] }}</span>
+              <span class="badge badge--risky" *ngIf="item.isRisky">sounds like a result or guarantee</span>
+            </div>
+            <div class="claim-text">{{ item.claim }}</div>
+            <div class="muted">{{ item.reason }}</div>
+          </li>
+        </ul>
+      </ng-container>
+    </mat-card>
+  </ng-container>
+</div>

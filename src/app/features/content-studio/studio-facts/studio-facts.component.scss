@@ -161,3 +161,52 @@
   font-size: 40px;
   opacity: 0.5;
 }
+
+.status {
+  &--expired {
+    background: #fff4e5;
+    color: #8a4b00;
+  }
+
+  &--claim {
+    background: #fde7e9;
+    color: #8c1d18;
+  }
+}
+
+.chip--out-of-date.chip--on {
+  border-color: #8a4b00;
+}
+
+.history {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+
+  h4 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    padding: 8px 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 12px;
+  }
+}
+
+.history-note {
+  margin-top: 2px;
+}
+
+.history-statement {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}

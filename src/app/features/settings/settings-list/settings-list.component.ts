@@ -74,6 +74,32 @@ export class SettingsListComponent implements OnInit {
     this.exclude = data['exclude'] ?? [];
   }
 
+  /** A setting whose only choices are true and false is an On/Off switch: shown as a toggle, stored as the text true/false. */
+  isSwitch(item: SettingItem): boolean {
+    return item.options?.length === 2 && item.options.includes('true') && item.options.includes('false');
+  }
+
+  /** The form control behind a setting, found by its key across the panels on screen. */
+  private controlFor(key: string): FormControl<string> | null {
+    for (const panel of this.panels) {
+      const control = panel.form.get(key) as FormControl<string> | null;
+      if (control) {
+        return control;
+      }
+    }
+    return null;
+  }
+
+  isOn(item: SettingItem): boolean {
+    return this.controlFor(item.key)?.value === 'true';
+  }
+
+  setSwitch(item: SettingItem, on: boolean): void {
+    const control = this.controlFor(item.key);
+    control?.setValue(on ? 'true' : 'false');
+    control?.markAsDirty();
+  }
+
   ngOnInit(): void {
     this.load();
   }

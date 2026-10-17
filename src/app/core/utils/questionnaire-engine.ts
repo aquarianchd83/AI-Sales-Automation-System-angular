@@ -5,6 +5,8 @@ import {
   QuestionDef,
   QuestionnaireDefinition,
   QuestionnaireIssue,
+  SPECIAL_PROPERTY,
+  SpecialKind,
 } from '../models/content-studio.model';
 
 /**
@@ -15,6 +17,109 @@ import {
 
 export const DEFAULT_SHORT_TEXT_LENGTH = 200;
 export const DEFAULT_LONG_TEXT_LENGTH = 4000;
+
+export const SECRET_MESSAGE = "This looks like a password, access key or card number. Please don't put secrets here - leave them out.";
+
+const SPECIAL_KINDS: SpecialKind[] = ['unknown', 'need_help', 'not_applicable'];
+
+const SECRET_PATTERNS: RegExp[] = [
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+  /\bsk-[A-Za-z0-9_-]{20,}/,
+  /\bAKIA[0-9A-Z]{16}\b/,
+  /\bAIza[0-9A-Za-z_-]{30,}/,
+  /\bgh[pousr]_[A-Za-z0-9]{30,}/,
+  /\bxox[baprs]-[A-Za-z0-9-]{10,}/,
+  /\bEAA[A-Za-z0-9]{40,}/,
+  /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/,
+  /\b(password|passwd|pwd|passcode|secret|api[ _-]?key|access[ _-]?token|auth[ _-]?token|client[ _-]?secret)\b\s*(is|:|=)\s*\S{4,}/i,
+];
+
+function passesLuhn(digits: string): boolean {
+  let sum = 0;
+  let alternate = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let n = digits.charCodeAt(i) - 48;
+    if (alternate) {
+      n *= 2;
+      if (n > 9) {
+        n -= 9;
+      }
+    }
+    sum += n;
+    alternate = !alternate;
+  }
+  return sum % 10 === 0;
+}
+
+/**
+ * Whether free text looks like it contains a credential: a private key, a well-known key or token shape, "password: ...", or a card
+ * number (13-19 digits that pass the Luhn check, so phone numbers and PIN codes are left alone). The same test as the API's, which
+ * refuses such an answer on save - this only lets the screen say so before the tenant presses Save.
+ */
+export function looksLikeSecret(text: string): boolean {
+  if (!text || !text.trim()) {
+    return false;
+  }
+  if (SECRET_PATTERNS.some((p) => p.test(text))) {
+    return true;
+  }
+  const candidates = text.match(/(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g) ?? [];
+  return candidates.some((c) => {
+    const digits = c.replace(/\D/g, '');
+    return digits.length >= 13 && digits.length <= 19 && passesLuhn(digits);
+  });
+}
+
+/** Whether the answer is "I don't know" / "I need help" / "Not applicable" rather than an answer to the question itself. */
+export function isSpecial(value: unknown): boolean {
+  return specialKind(value) !== null;
+}
+
+export function specialKind(value: unknown): string | null {
+  if (value && typeof value === 'object' && !Array.isArray(value) && SPECIAL_PROPERTY in (value as Record<string, unknown>)) {
+    const kind = (value as Record<string, unknown>)[SPECIAL_PROPERTY];
+    return typeof kind === 'string' ? kind : '';
+  }
+  return null;
+}
+
+export function special(kind: SpecialKind): AnswerValue {
+  return { [SPECIAL_PROPERTY]: kind } as unknown as AnswerValue;
+}
+
+function specialProblem(question: QuestionDef, value: unknown): string | null {
+  const kind = specialKind(value);
+  const keys = Object.keys(value as Record<string, unknown>);
+  if (keys.length !== 1 || kind === null || !SPECIAL_KINDS.includes(kind as SpecialKind)) {
+    return 'That is not a valid way to skip a question.';
+  }
+  return question.requireKnown ? 'This one needs a real answer - "I don\'t know" is not accepted here.' : null;
+}
+
+/** The steps of the wizard: the asked questions grouped by their group in order of first appearance; an ungrouped question is a step of its own. */
+export function steps(definition: QuestionnaireDefinition, visible: ReadonlySet<string>): QuestionDef[][] {
+  const result: QuestionDef[][] = [];
+  const byGroup = new Map<string, QuestionDef[]>();
+
+  for (const question of definition.questions.filter((q) => visible.has(q.key))) {
+    const group = question.group?.trim();
+    if (!group) {
+      result.push([question]);
+      continue;
+    }
+
+    const key = group.toLowerCase();
+    let step = byGroup.get(key);
+    if (!step) {
+      step = [];
+      byGroup.set(key, step);
+      result.push(step);
+    }
+    step.push(question);
+  }
+
+  return result;
+}
 
 export function isAnswered(value: unknown): boolean {
   if (value === null || value === undefined) {
@@ -119,7 +224,8 @@ export function visibleKeys(definition: QuestionnaireDefinition, answers: Answer
     }
     visible.add(question.key);
     const answer = answers[question.key];
-    if (isAnswered(answer)) {
+    // "I don't know" is an answer for progress but says nothing a later question can depend on.
+    if (isAnswered(answer) && !isSpecial(answer)) {
       effective[question.key] = answer;
     }
   }
@@ -147,7 +253,10 @@ function valueProblem(question: QuestionDef, value: AnswerValue): string | null 
         return 'Answer with text.';
       }
       const max = question.maxLength ?? (question.type === 'ShortText' ? DEFAULT_SHORT_TEXT_LENGTH : DEFAULT_LONG_TEXT_LENGTH);
-      return value.length > max ? `Keep this to ${max} characters or fewer.` : null;
+      if (value.length > max) {
+        return `Keep this to ${max} characters or fewer.`;
+      }
+      return looksLikeSecret(value) ? SECRET_MESSAGE : null;
     }
     case 'Number': {
       const n = asNumber(value);
@@ -172,6 +281,20 @@ function valueProblem(question: QuestionDef, value: AnswerValue): string | null 
       return Array.isArray(value) && value.every((v) => (question.options ?? []).some((o) => o.value.toLowerCase() === String(v).toLowerCase()))
         ? null
         : 'Choose only from the listed options.';
+    case 'Structured': {
+      if (typeof value !== 'object' || Array.isArray(value)) {
+        return 'Answer with the listed fields.';
+      }
+      for (const [fieldKey, fieldValue] of Object.entries(value as Record<string, unknown>)) {
+        if (typeof fieldValue === 'string' && looksLikeSecret(fieldValue)) {
+          return SECRET_MESSAGE;
+        }
+        if (typeof fieldValue === 'string' && fieldValue.length > DEFAULT_SHORT_TEXT_LENGTH && (question.fields ?? []).some((f) => f.key === fieldKey)) {
+          return `Keep this to ${DEFAULT_SHORT_TEXT_LENGTH} characters or fewer.`;
+        }
+      }
+      return null;
+    }
     default:
       return null;
   }
@@ -194,12 +317,13 @@ export function validateForComplete(definition: QuestionnaireDefinition, answers
       continue;
     }
 
-    const problem = valueProblem(question, answer);
+    // A tenant who said they don't know has answered; the studio treats it as a gap to follow up, not a reason to hold them here.
+    const problem = isSpecial(answer) ? specialProblem(question, answer) : valueProblem(question, answer);
     if (problem) {
       issues.push({ key: question.key, message: problem });
     }
 
-    if (question.type === 'Structured') {
+    if (question.type === 'Structured' && !isSpecial(answer)) {
       const object = answer as Record<string, unknown>;
       for (const field of (question.fields ?? []).filter((f) => f.required)) {
         if (!isAnswered(object[field.key])) {

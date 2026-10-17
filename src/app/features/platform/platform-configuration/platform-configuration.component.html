@@ -228,31 +228,6 @@
       </div>
     </mat-expansion-panel>
 
-    <!-- Trial quota -->
-    <mat-expansion-panel class="config-panel" formGroupName="trial" *ngIf="show('trial')" [expanded]="open['trial']" (opened)="open['trial'] = true" (closed)="open['trial'] = false">
-      <mat-expansion-panel-header>
-        <mat-panel-title>Trial quota<mat-icon class="panel-warn" *ngIf="sectionInvalid('trial')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
-        <mat-panel-description>Free allowance for a trial</mat-panel-description>
-      </mat-expansion-panel-header>
-
-      
-      <p class="muted">The free allowance a trial tenant gets, since it has no plan and so no included quota.</p>
-      <div class="field-grid">
-        <mat-form-field subscriptSizing="dynamic">
-          <mat-label>WhatsApp messages</mat-label>
-          <input matInput type="number" min="0" formControlName="whatsAppMessages" />
-        </mat-form-field>
-        <mat-form-field subscriptSizing="dynamic">
-          <mat-label>AI conversations</mat-label>
-          <input matInput type="number" min="0" formControlName="aiConversations" />
-        </mat-form-field>
-        <mat-form-field subscriptSizing="dynamic">
-          <mat-label>Lead candidates</mat-label>
-          <input matInput type="number" min="0" formControlName="leadCandidates" />
-        </mat-form-field>
-      </div>
-    </mat-expansion-panel>
-
     <!-- Charges -->
     <h2 class="group-title" *ngIf="show('ai')">Charges</h2>
     <p class="muted group-note" *ngIf="show('ai')">

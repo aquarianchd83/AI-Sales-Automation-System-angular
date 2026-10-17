@@ -1,0 +1,27 @@
+<h2 mat-dialog-title>Free trial allowance</h2>
+
+<mat-dialog-content>
+  <p class="muted">What a trial tenant gets free, since a trial has no plan and so no included quota.</p>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>WhatsApp messages</mat-label>
+      <input matInput type="number" min="0" formControlName="whatsAppMessages" />
+      <mat-error>Enter 0 or more.</mat-error>
+    </mat-form-field>
+    <mat-form-field class="full-width">
+      <mat-label>AI conversations</mat-label>
+      <input matInput type="number" min="0" formControlName="aiConversations" />
+      <mat-error>Enter 0 or more.</mat-error>
+    </mat-form-field>
+    <mat-form-field class="full-width">
+      <mat-label>Lead discovery candidates</mat-label>
+      <input matInput type="number" min="0" formControlName="leadCandidates" />
+      <mat-error>Enter 0 or more.</mat-error>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close [disabled]="saving">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">Save</button>
+</mat-dialog-actions>

@@ -197,7 +197,16 @@
             <mat-radio-button *ngFor="let tool of toolsFor(feature.key)" [value]="tool.value">{{ tool.label }}</mat-radio-button>
           </mat-radio-group>
 
-          <div class="mode-note muted" [class.mode-note--warn]="!aiHasKey(feature.key)">
+          <div class="mode-note mode-note--warn" *ngIf="aiToolOff(feature.key)">
+            <mat-icon>power_settings_new</mat-icon>
+            <span>
+              {{ aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }} is turned off, so the simulator answers for now. Your choice is kept
+              and applies again when you switch it on under
+              <a routerLink="/settings/ai-providers" target="_blank" rel="noopener">Configuration &gt; AI Providers</a>.
+            </span>
+          </div>
+
+          <div class="mode-note muted" *ngIf="!aiToolOff(feature.key)" [class.mode-note--warn]="!aiHasKey(feature.key)">
             <mat-icon>{{ aiHasKey(feature.key) ? 'key' : 'warning' }}</mat-icon>
             <span *ngIf="aiHasKey(feature.key); else noKey">
               Uses the {{ aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }} key saved under
