@@ -60,4 +60,6 @@ export interface CompleteMetaSignupRequest {
   clientEvent: 'FINISH' | 'CANCEL' | 'ERROR' | null;
   clientStep: string | null;
   clientErrorMessage: string | null;
+  /** The page that opened the popup. Meta ties the code to it, so the API retries a refused code with it and logs it - nothing is sent there. */
+  pageUrl?: string | null;
 }

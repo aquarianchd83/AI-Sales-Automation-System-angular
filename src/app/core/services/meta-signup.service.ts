@@ -21,6 +21,16 @@ declare global {
 
 /** How long to wait, after the login callback, for Meta's separate "which account and number" message. */
 const SESSION_INFO_WAIT_MS = 2000;
+/** How long the sign-up popup may stay open without reporting anything before the page stops waiting. */
+const SIGNUP_TIMEOUT_MS = 120_000;
+
+/** Meta's sign-up popup never reported back - typically because the Meta app is not approved to onboard customers yet. */
+export class MetaSignupTimeoutError extends Error {
+  constructor() {
+    super('Meta did not finish the sign-up.');
+    this.name = 'MetaSignupTimeoutError';
+  }
+}
 
 /**
  * "Connect with Meta": WhatsApp Embedded Signup. The browser only runs Meta's own popup - the tenant signs in to Meta there, and
@@ -60,7 +70,7 @@ export class MetaSignupService {
   launch(config: MetaSignupClientConfig): Promise<CompleteMetaSignupRequest> {
     return this.loadSdk(config).then(
       (fb) =>
-        new Promise<CompleteMetaSignupRequest>((resolve) => {
+        new Promise<CompleteMetaSignupRequest>((resolve, reject) => {
           const result: CompleteMetaSignupRequest = {
             code: null,
             wabaId: null,
@@ -68,6 +78,7 @@ export class MetaSignupService {
             clientEvent: null,
             clientStep: null,
             clientErrorMessage: null,
+            pageUrl: this.document.location?.href ?? null,
           };
           let loginDone = false;
           let finished = false;
@@ -82,21 +93,38 @@ export class MetaSignupService {
             if (timer) {
               clearTimeout(timer);
             }
+            clearTimeout(hardTimer);
             if (!result.code && !result.clientEvent) {
               result.clientEvent = 'CANCEL'; // the popup closed without granting anything
             }
             this.zone.run(() => resolve(result));
           };
 
+          const startedAt = Date.now();
+          const seconds = () => Math.round((Date.now() - startedAt) / 100) / 10;
+
           const onMessage = (event: MessageEvent) => {
-            if (!/^https:\/\/([a-z0-9-]+\.)?facebook\.com$/.test(event.origin)) {
-              return; // only Meta's own pages
-            }
             let data: { type?: string; event?: string; data?: Record<string, unknown> } | null = null;
             try {
               data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
             } catch {
-              return;
+              data = null;
+            }
+            // Trace of every message another window sends while the popup is open, for diagnosing a sign-up that does not finish:
+            // where it came from, its type and event name, and the NAMES of the fields it carries - never their values (no ids, codes
+            // or tokens). Messages from this page itself (the dev server's own) are left out.
+            if (event.origin !== window.location.origin) {
+              console.info('[meta-signup] message', {
+                afterSeconds: seconds(),
+                origin: event.origin,
+                fromMeta: /^https:\/\/([a-z0-9-]+\.)?facebook\.com$/.test(event.origin),
+                type: data && typeof data === 'object' ? data.type ?? null : typeof event.data,
+                event: data && typeof data === 'object' ? data.event ?? null : null,
+                fields: data?.data && typeof data.data === 'object' ? Object.keys(data.data) : [],
+              });
+            }
+            if (!/^https:\/\/([a-z0-9-]+\.)?facebook\.com$/.test(event.origin)) {
+              return; // only Meta's own pages
             }
             if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') {
               return;
@@ -120,10 +148,33 @@ export class MetaSignupService {
           };
           window.addEventListener('message', onMessage);
 
+          // Meta can leave the popup on a screen that never reports back (for example "can't onboard customers right now" when the app
+          // is not yet approved for Embedded Signup): no code, no finish message, no close. Stop waiting rather than hang the page.
+          const hardTimer = setTimeout(() => {
+            if (finished) {
+              return;
+            }
+            finished = true;
+            window.removeEventListener('message', onMessage);
+            if (timer) {
+              clearTimeout(timer);
+            }
+            console.warn('[meta-signup] gave up waiting for Meta', { afterSeconds: seconds(), loginDone });
+            this.zone.run(() => reject(new MetaSignupTimeoutError()));
+          }, SIGNUP_TIMEOUT_MS);
+
           fb.login(
             (response) => {
               loginDone = true;
               result.code = response.authResponse?.code ?? null;
+              console.info('[meta-signup] FB.login callback', {
+                afterSeconds: seconds(),
+                status: (response as { status?: string }).status ?? null,
+                hasAuthResponse: !!response.authResponse,
+                hasCode: !!result.code,
+                authResponseFields: response.authResponse ? Object.keys(response.authResponse) : [],
+                finishMessageSeenAlready: !!result.clientEvent,
+              });
               // The "which number" message normally arrives around the same time; give it a moment, then go on regardless -
               // the API finds the account and number itself when they are missing.
               if (result.clientEvent || !result.code) {
@@ -136,7 +187,9 @@ export class MetaSignupService {
               config_id: config.configurationId,
               response_type: 'code',
               override_default_response_type: true,
-              extras: { setup: {}, featureType: '', sessionInfoVersion: '3' },
+              // Exactly what Meta generates for an Embedded Signup v4 configuration (App Dashboard > Facebook Login for Business >
+              // Configurations > the code sample); the older { setup, featureType, sessionInfoVersion } form is for earlier versions.
+              extras: { version: 'v4' },
             }
           );
         })
