@@ -9,6 +9,8 @@ import {
   Payment,
   Plan,
   QUOTA_TYPE_LABELS,
+  QuotaGrantOrigin,
+  QuotaType,
   REFUND_STATUS_LABELS,
   RefundRequest,
   RefundStatus,
@@ -39,6 +41,8 @@ export class BillingListComponent implements OnInit {
 
   plans: Plan[] = [];
   subscription: Subscription | null = null;
+  /** The free trial's included units per quota type; empty until loaded, or when the trial grants nothing. */
+  trialAllowance: { quotaType: QuotaType; units: number }[] = [];
   paymentHistory: Payment[] = [];
 
   /** Whether the platform operator has switched refund requests on for this tenant - no button without it. */
@@ -64,6 +68,7 @@ export class BillingListComponent implements OnInit {
   ngOnInit(): void {
     this.loadPlans();
     this.loadSubscription();
+    this.loadTrialAllowance();
     this.loadPaymentHistory();
     this.billing.getCapabilities().subscribe({
       next: (capabilities) => {
@@ -204,6 +209,22 @@ export class BillingListComponent implements OnInit {
         this.loadingPlans = false;
       },
       error: () => (this.loadingPlans = false),
+    });
+  }
+
+  /** What the free trial includes, taken from the tenant's own trial grants (the platform's Trial quota, as it was
+   * when this tenant signed up) - so the tenant sees exactly what they were given, not today's setting. */
+  private loadTrialAllowance(): void {
+    this.billing.getQuota().subscribe({
+      next: (balances) => {
+        this.trialAllowance = balances
+          .map((b) => ({
+            quotaType: b.quotaType,
+            units: b.grants.filter((g) => g.origin === QuotaGrantOrigin.Trial).reduce((sum, g) => sum + g.unitsGranted, 0),
+          }))
+          .filter((a) => a.units > 0);
+      },
+      error: () => (this.trialAllowance = []),
     });
   }
 

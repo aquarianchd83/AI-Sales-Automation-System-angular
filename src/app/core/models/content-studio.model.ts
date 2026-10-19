@@ -141,7 +141,13 @@ export interface QuestionDef {
   type: QuestionType;
   prompt: string;
   helpText?: string | null;
+  /** A short sample answer shown beside the question. */
+  example?: string | null;
+  /** Questions with the same group are shown together as one small step. */
+  group?: string | null;
   required?: boolean;
+  /** When true the question needs a real answer: "I don't know" is not offered. */
+  requireKnown?: boolean;
   maxLength?: number | null;
   min?: number | null;
   max?: number | null;
@@ -149,8 +155,19 @@ export interface QuestionDef {
   fields?: QuestionField[];
   showWhen?: QuestionCondition | null;
   prefillFrom?: string | null;
-  fact?: { category: string; template: string } | null;
+  fact?: { category: string; template: string; subject?: string | null; context?: string | null; validDays?: number | null } | null;
 }
+
+/** The three ways to answer without giving an answer, stored as <c>{ "$special": kind }</c>. */
+export type SpecialKind = 'unknown' | 'need_help' | 'not_applicable';
+
+export const SPECIAL_PROPERTY = '$special';
+
+export const SPECIAL_LABELS: Record<SpecialKind, string> = {
+  unknown: "I don't know",
+  need_help: 'I need help with this',
+  not_applicable: 'Not applicable',
+};
 
 export interface QuestionnaireDefinition {
   questions: QuestionDef[];
@@ -212,7 +229,42 @@ export const BUSINESS_FACT_STATUS_LABELS: Record<BusinessFactStatus, string> = {
 export enum BusinessFactSource {
   Questionnaire = 0,
   Manual = 1,
+  FollowUp = 2,
 }
+
+export enum BusinessFactOrigin {
+  TenantProvided = 0,
+  SystemDerived = 1,
+  AiInferred = 2,
+}
+
+/** What a fact is worth right now. Only TenantApproved may be said in content. */
+export enum KnowledgeClassification {
+  TenantProvided = 0,
+  TenantApproved = 1,
+  SystemDerived = 2,
+  UnverifiedClaim = 3,
+  Expired = 4,
+  Retired = 5,
+}
+
+export const KNOWLEDGE_CLASSIFICATION_LABELS: Record<KnowledgeClassification, string> = {
+  [KnowledgeClassification.TenantProvided]: 'You told us',
+  [KnowledgeClassification.TenantApproved]: 'Verified',
+  [KnowledgeClassification.SystemDerived]: 'Worked out by the system',
+  [KnowledgeClassification.UnverifiedClaim]: 'Unverified claim',
+  [KnowledgeClassification.Expired]: 'Out of date',
+  [KnowledgeClassification.Retired]: 'Retired',
+};
+
+export const KNOWLEDGE_CLASSIFICATION_HINTS: Record<KnowledgeClassification, string> = {
+  [KnowledgeClassification.TenantProvided]: 'You said this is true, but nobody has confirmed it yet. The studio will not say it.',
+  [KnowledgeClassification.TenantApproved]: 'An Admin confirmed this is true. The studio may say it.',
+  [KnowledgeClassification.SystemDerived]: 'The system worked this out. It is not used until an Admin confirms it.',
+  [KnowledgeClassification.UnverifiedClaim]: 'Suggested by an AI model or another source. It is never used until an Admin confirms it.',
+  [KnowledgeClassification.Expired]: 'This was true once, but its date has passed. Check it is still true and confirm it again.',
+  [KnowledgeClassification.Retired]: 'No longer used.',
+};
 
 export interface BusinessFact {
   id: string;
@@ -226,6 +278,13 @@ export interface BusinessFact {
   verifiedAtUtc: string | null;
   createdAt: string;
   updatedAt: string | null;
+  subject: string | null;
+  context: string | null;
+  evidence: string | null;
+  origin: BusinessFactOrigin;
+  classification: KnowledgeClassification;
+  expiresAtUtc: string | null;
+  reviewEveryDays: number | null;
 }
 
 export interface BusinessFactQuery {
@@ -235,6 +294,140 @@ export interface BusinessFactQuery {
   status?: BusinessFactStatus | null;
   category?: string | null;
   sourceType?: BusinessFactSource | null;
+  classification?: KnowledgeClassification | null;
+}
+
+export interface SaveBusinessFactBody {
+  category: string;
+  statement: string;
+  subject?: string | null;
+  context?: string | null;
+  evidence?: string | null;
+  expiresAtUtc?: string | null;
+}
+
+export enum BusinessFactChangeKind {
+  Created = 0,
+  Edited = 1,
+  Verified = 2,
+  Invalidated = 3,
+  Retired = 4,
+  DetailsChanged = 5,
+}
+
+export const BUSINESS_FACT_CHANGE_LABELS: Record<BusinessFactChangeKind, string> = {
+  [BusinessFactChangeKind.Created]: 'Added',
+  [BusinessFactChangeKind.Edited]: 'Edited',
+  [BusinessFactChangeKind.Verified]: 'Verified',
+  [BusinessFactChangeKind.Invalidated]: 'Needs checking again',
+  [BusinessFactChangeKind.Retired]: 'Retired',
+  [BusinessFactChangeKind.DetailsChanged]: 'Details updated',
+};
+
+export interface BusinessFactRevision {
+  number: number;
+  kind: BusinessFactChangeKind;
+  category: string;
+  subject: string | null;
+  statement: string;
+  context: string | null;
+  status: BusinessFactStatus;
+  note: string | null;
+  changedBy: string | null;
+  changedByName: string | null;
+  changedAtUtc: string;
+}
+
+export interface AnswerRevision {
+  id: string;
+  questionKey: string;
+  /** Set, Changed, Cleared or Hidden. */
+  kind: string;
+  previous: unknown;
+  new: unknown;
+  changedBy: string | null;
+  changedByName: string | null;
+  changedAtUtc: string;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// Knowledge readiness: how ready the facts are for each kind of content, and the follow-up questions that would improve it.
+// ---------------------------------------------------------------------------------------------------------------------------------------
+
+export type RequirementState = 'Met' | 'NeedsConfirmation' | 'NeedsEvidence' | 'Outdated' | 'Expired' | 'Missing' | 'Skipped';
+
+export type KnowledgeGapReason = 'Missing' | 'Unknown' | 'NeedsHelp' | 'NeedsConfirmation' | 'NeedsEvidence' | 'Outdated' | 'Expired';
+
+export type ContentReadinessStatus = 'Ready' | 'NeedsConfirmation' | 'NotReady';
+
+export interface RequirementResult {
+  key: string;
+  label: string;
+  weight: number;
+  critical: boolean;
+  fulfilment: number;
+  points: number;
+  state: RequirementState;
+  explanation: string;
+  factIds: string[];
+}
+
+export interface ContentTypeReadiness {
+  key: string;
+  label: string;
+  description: string | null;
+  score: number;
+  minScore: number;
+  status: ContentReadinessStatus;
+  summary: string;
+  requirements: RequirementResult[];
+}
+
+export interface KnowledgeGap {
+  key: string;
+  label: string;
+  reason: KnowledgeGapReason;
+  state: 'Open' | 'Deferred';
+  deferredUntilUtc: string | null;
+  question: string;
+  why: string;
+  example: string | null;
+  requiresEvidence: boolean;
+  skippable: boolean;
+  neededFor: string[];
+  factsToConfirm: string[];
+  factsInvolved: string[];
+}
+
+export interface KnowledgeReadiness {
+  overallScore: number;
+  contentTypes: ContentTypeReadiness[];
+  gaps: KnowledgeGap[];
+  facts: { verified: number; needsChecking: number; expired: number; retired: number };
+  rulesWarning: string | null;
+  evaluatedAtUtc: string;
+}
+
+export interface AnswerGapBody {
+  answer: string;
+  evidence?: string | null;
+  context?: string | null;
+}
+
+export type ClaimVerdict = 'Supported' | 'Unverified' | 'Unsupported';
+
+export interface ClaimCheck {
+  claim: string;
+  verdict: ClaimVerdict;
+  reason: string;
+  supportingFactIds: string[];
+  isRisky: boolean;
+}
+
+export interface ClaimCheckResult {
+  claims: ClaimCheck[];
+  supported: number;
+  flagged: number;
 }
 
 export interface BusinessFactSummary {

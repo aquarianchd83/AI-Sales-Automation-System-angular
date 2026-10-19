@@ -34,6 +34,7 @@ describe('BillingListComponent tax', () => {
     const billing = {
       getPlans: () => of(plans),
       getSubscription: () => of(null),
+      getQuota: () => of([]),
       getPaymentHistory: () => of(payments),
       getCapabilities: () => of({ refundRequestsEnabled: false }),
       getRefundRequests: () => of([]),

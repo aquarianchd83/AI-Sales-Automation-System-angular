@@ -15,6 +15,24 @@
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
     <div class="plan-grid" *ngIf="!loadingPlans">
+      <mat-card class="plan-tile" *ngIf="trial">
+        <div class="plan-tile-header">
+          <h3>Free trial</h3>
+        </div>
+        <div class="plan-price">Free</div>
+        <ul>
+          <li>14 days, no plan or card needed</li>
+        </ul>
+        <div class="plan-quotas">
+          <div class="muted plan-quotas-title">Included during the trial</div>
+          <div>{{ formatUnits(trial.whatsAppMessages) }} WhatsApp messages</div>
+          <div>{{ formatUnits(trial.aiConversations) }} AI conversations</div>
+          <div>{{ formatUnits(trial.leadCandidates) }} Lead candidates</div>
+        </div>
+        <div class="plan-tile-actions">
+          <button mat-stroked-button type="button" (click)="editTrial()">Edit allowance</button>
+        </div>
+      </mat-card>
       <mat-card class="plan-tile" *ngFor="let plan of plans" [class.plan-tile--inactive]="!plan.isActive">
         <div class="plan-tile-header">
           <h3>{{ plan.name }}</h3>

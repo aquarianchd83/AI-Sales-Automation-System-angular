@@ -100,7 +100,6 @@ describe('PlatformConfigurationComponent', () => {
       'Typical usage (for costing plans)',
       'Refund policy',
       'Billing alerts',
-      'Trial quota',
     ]);
     expect(root.querySelectorAll('mat-expansion-panel.mat-expanded').length).toBe(0);
     expect(text(root)).not.toContain('Charges');
@@ -118,7 +117,7 @@ describe('PlatformConfigurationComponent', () => {
 
     component.setAll(true);
     fixture.detectChanges();
-    expect(root.querySelectorAll('mat-expansion-panel.mat-expanded').length).toBe(7);
+    expect(root.querySelectorAll('mat-expansion-panel.mat-expanded').length).toBe(6);
 
     component.setAll(false);
     fixture.detectChanges();

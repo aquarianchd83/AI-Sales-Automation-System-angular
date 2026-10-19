@@ -165,7 +165,7 @@ describe('ShellComponent sidenav', () => {
       'ads_clickMeta Ads',
       'receipt_longLogs',
       'historyAudit Log',
-      'account_circleMy Profile',
+      'lock_resetChange Password',
     ]);
   });
 
