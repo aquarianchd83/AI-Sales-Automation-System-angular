@@ -18,8 +18,8 @@ import { SharedModule } from '../../../shared/shared.module';
 import { PlatformIntegrationSettingsComponent } from './platform-integration-settings.component';
 
 /** The AI providers section has its own spec; here it only needs to exist. */
-@Component({ selector: 'app-platform-ai-providers', template: '' })
-class AiProvidersStubComponent {}
+@Component({ selector: 'app-platform-ai-policy', template: '' })
+class AiPolicyStubComponent {}
 
 const channel = (over: Partial<IntegrationChannel> = {}): IntegrationChannel => ({
   mode: 'Simulator',
@@ -99,7 +99,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
 
     TestBed.configureTestingModule({
-      declarations: [PlatformIntegrationSettingsComponent, AiProvidersStubComponent],
+      declarations: [PlatformIntegrationSettingsComponent, AiPolicyStubComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: PlatformIntegrationSettingsService, useValue: service },

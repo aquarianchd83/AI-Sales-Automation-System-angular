@@ -4,9 +4,43 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 
+import { AiProviderInsight, AiProvidersOverview } from '../../../core/models/platform.model';
+import { PlatformAiProvidersService } from '../../../core/services/platform-ai-providers.service';
 import { SettingsService } from '../../../core/services/settings.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { SettingsListComponent } from './settings-list.component';
+
+const insight = (provider: 'OpenAI' | 'Anthropic' | 'Google', extra: Partial<AiProviderInsight> = {}): AiProviderInsight => ({
+  provider,
+  displayName: provider === 'OpenAI' ? 'ChatGPT' : provider === 'Anthropic' ? 'Claude' : 'Gemini',
+  enabled: true,
+  hasKey: true,
+  model: 'm',
+  status: 'NotVerified',
+  lastCheckedAtUtc: null,
+  lastCheckMessage: null,
+  capabilities: [{ task: 'DocumentAnalysis', declared: true, verified: false, verifiedAtUtc: null }],
+  inputPer1MUsd: 0,
+  outputPer1MUsd: 0,
+  priceSet: false,
+  benchmark: null,
+  chosenForProductKnowledge: false,
+  ...extra,
+});
+
+const overview = (providers: AiProviderInsight[]): AiProvidersOverview => ({
+  providers,
+  policy: { fallbackEnabled: false, fallbackOrder: [], simulatorScenario: 'Success', scannedDocumentsViaAi: false, maxCostPerCallUsd: 0.5, timeoutSeconds: 60, maxRetriesPerProvider: 1, scenarios: ['Success'] },
+  chosenMode: 'Simulator',
+  chosenProvider: 'Simulator',
+});
+
+/** The insights service: returns no providers unless a test says otherwise. */
+const insightsStub = (providers: AiProviderInsight[] = []) => {
+  const spy = jasmine.createSpyObj<PlatformAiProvidersService>('PlatformAiProvidersService', ['get', 'benchmark']);
+  spy.get.and.returnValue(of(overview(providers)));
+  return spy;
+};
 
 const category = (name: string) => ({ category: name, items: [{ key: `${name}:Key`, value: 'v', isSecret: false, isList: false, description: null }] });
 
@@ -19,6 +53,7 @@ describe('SettingsListComponent', () => {
       providers: [
         { provide: SettingsService, useValue: { getAll: () => of(names.map(category)) } },
         { provide: ActivatedRoute, useValue: { snapshot: { data: routeData } } },
+        { provide: PlatformAiProvidersService, useValue: insightsStub() },
       ],
     });
 
@@ -45,6 +80,7 @@ describe('SettingsListComponent', () => {
           },
         },
         { provide: ActivatedRoute, useValue: { snapshot: { data: { categories: ['AiProviders'] } } } },
+        { provide: PlatformAiProvidersService, useValue: insightsStub() },
       ],
     });
 
@@ -78,6 +114,7 @@ describe('SettingsListComponent', () => {
           },
         },
         { provide: ActivatedRoute, useValue: { snapshot: { data: { categories: ['ContentStudio'] } } } },
+        { provide: PlatformAiProvidersService, useValue: insightsStub() },
       ],
     });
 
@@ -114,5 +151,65 @@ describe('SettingsListComponent', () => {
 
   it('shows everything but the AI providers on the System screen', () => {
     expect(panelsFor({ exclude: ['AiProviders'] })).toEqual(['Campaigns', 'Retention']);
+  });
+
+  it('shows the last recorded Verify, the accuracy test and a comparison beside the provider settings', () => {
+    const item = (key: string) => ({ key, value: 'v', isSecret: false, isList: false, description: null });
+    const openAi = insight('OpenAI', {
+      status: 'Verified',
+      lastCheckedAtUtc: '2026-10-19T09:00:00Z',
+      lastCheckMessage: 'ChatGPT accepted the API key.',
+      priceSet: true,
+      inputPer1MUsd: 1,
+      outputPer1MUsd: 2,
+      benchmark: {
+        passed: 5, total: 6, accuracyPercent: 83, averageLatencyMs: 900, totalCostUsd: 0.0021, inputTokens: 1800, outputTokens: 240,
+        ranAtUtc: '2026-10-19T09:05:00Z', model: 'gpt-served', cases: [{ name: 'Consultation fee', passed: true, note: null }],
+      },
+    });
+    const insights = insightsStub([openAi, insight('Google', { hasKey: false, status: 'NotConfigured' })]);
+    insights.benchmark.and.returnValue(of(openAi));
+    TestBed.configureTestingModule({
+      declarations: [SettingsListComponent],
+      imports: [SharedModule, NoopAnimationsModule],
+      providers: [
+        { provide: SettingsService, useValue: { getAll: () => of([{ category: 'AiProviders', items: ['AiProviders:OpenAI:ApiKey', 'AiProviders:Google:ApiKey'].map(item) }]) } },
+        { provide: ActivatedRoute, useValue: { snapshot: { data: { categories: ['AiProviders'] } } } },
+        { provide: PlatformAiProvidersService, useValue: insights },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(SettingsListComponent);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelector('[data-testid="last-check"]')?.textContent).toContain('ChatGPT accepted the API key.');
+    expect(Array.from(root.querySelectorAll('[data-testid="status"]')).map((e) => e.textContent?.trim())).toEqual(['Verified', 'No key saved']);
+    expect(root.querySelector('[data-testid="benchmark-result"]')?.textContent).toContain('Accuracy 83%');
+    expect(root.querySelector('[data-compare="OpenAI"]')?.textContent).toContain('$ 1 / $ 2');
+    expect(root.querySelector('[data-compare="Google"]')?.textContent).toContain('Not tested');
+
+    // A provider with no key cannot be tested; one with a key runs the test with the saved settings.
+    const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-testid="benchmark"]'));
+    expect(buttons.map((b) => b.disabled)).toEqual([false, true]);
+    buttons[0].click();
+    expect(insights.benchmark).toHaveBeenCalledWith('OpenAI');
+  });
+
+  it('asks the insights service nothing on a screen without AI providers', () => {
+    const insights = insightsStub();
+    TestBed.configureTestingModule({
+      declarations: [SettingsListComponent],
+      imports: [SharedModule, NoopAnimationsModule],
+      providers: [
+        { provide: SettingsService, useValue: { getAll: () => of([category('Campaigns')]) } },
+        { provide: ActivatedRoute, useValue: { snapshot: { data: { exclude: ['AiProviders'] } } } },
+        { provide: PlatformAiProvidersService, useValue: insights },
+      ],
+    });
+
+    TestBed.createComponent(SettingsListComponent).detectChanges();
+
+    expect(insights.get).not.toHaveBeenCalled();
   });
 });

@@ -32,6 +32,19 @@
               <mat-icon>{{ verifying === group.name ? 'hourglass_empty' : 'verified' }}</mat-icon>
               {{ verifying === group.name ? 'Verifying…' : 'Verify' }}
             </button>
+            <ng-container *ngIf="insightOf(group) as insight">
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="!!benchmarking || !!verifying || !insight.enabled || !insight.hasKey"
+                (click)="runBenchmark(group.name)"
+                data-testid="benchmark"
+              >
+                <mat-icon>{{ benchmarking === group.name ? 'hourglass_empty' : 'speed' }}</mat-icon>
+                {{ benchmarking === group.name ? 'Testing…' : 'Run accuracy test' }}
+              </button>
+              <span [class]="statusClass(insight.status)" data-testid="status">{{ statusText[insight.status] }}</span>
+            </ng-container>
             <span class="spacer"></span>
             <button
               mat-flat-button
@@ -49,6 +62,49 @@
             <mat-icon>{{ check.success ? 'check_circle' : check.configured ? 'error' : 'info' }}</mat-icon>
             <span>{{ check.message }}<ng-container *ngIf="check.isActive"> (in use)</ng-container></span>
           </div>
+          <ng-container *ngIf="insightOf(group) as insight">
+            <p class="muted ai-last-check" *ngIf="insight.lastCheckedAtUtc" data-testid="last-check">
+              Last verified {{ insight.lastCheckedAtUtc | zonedDate: 'medium' }}<ng-container *ngIf="insight.lastCheckMessage"> - {{ insight.lastCheckMessage }}</ng-container>
+            </p>
+            <p class="muted ai-last-check" *ngIf="!insight.lastCheckedAtUtc && insight.lastCheckMessage">{{ insight.lastCheckMessage }}</p>
+            <p class="muted ai-chosen" *ngIf="insight.chosenForProductKnowledge">Used for product knowledge (chosen on the Integrations page).</p>
+
+            <!-- The measured accuracy test. -->
+            <div class="ai-benchmark" *ngIf="insight.benchmark as b" data-testid="benchmark-result">
+              <div class="ai-benchmark-summary">
+                <strong>Accuracy {{ b.accuracyPercent }}%</strong>
+                <span class="muted">
+                  {{ b.passed }} of {{ b.total }} passed · {{ b.averageLatencyMs | number }} ms a question
+                  <ng-container *ngIf="b.totalCostUsd !== null"> · $ {{ b.totalCostUsd | number: '1.4-6' }} for the run</ng-container>
+                  <ng-container *ngIf="b.inputTokens !== null"> · {{ b.inputTokens | number }} in / {{ b.outputTokens | number }} out tokens</ng-container>
+                  · {{ b.model }} · {{ b.ranAtUtc | zonedDate: 'medium' }}
+                </span>
+                <button mat-button type="button" (click)="toggle(expandedCases, group.name)">{{ expandedCases.has(group.name) ? 'Hide details' : 'Show details' }}</button>
+              </div>
+              <ul class="ai-cases" *ngIf="expandedCases.has(group.name)">
+                <li *ngFor="let c of b.cases" [class.ai-case--fail]="!c.passed">
+                  <mat-icon>{{ c.passed ? 'check' : 'close' }}</mat-icon>
+                  <span>{{ c.name }}</span>
+                  <span class="muted" *ngIf="c.note">- {{ c.note }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Declared versus verified capabilities. -->
+            <div class="ai-capabilities">
+              <button mat-button type="button" (click)="toggle(expandedCapabilities, group.name)">
+                <mat-icon>{{ expandedCapabilities.has(group.name) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                What it can do · {{ verifiedCount(insight) }} of {{ insight.capabilities.length }} verified by a real call
+              </button>
+              <ul *ngIf="expandedCapabilities.has(group.name)" data-testid="capabilities">
+                <li *ngFor="let c of insight.capabilities">
+                  <mat-icon [class.ok]="c.verified">{{ c.verified ? 'verified' : 'radio_button_unchecked' }}</mat-icon>
+                  <span>{{ taskName(c.task) }}</span>
+                  <span class="muted">{{ c.verified ? 'verified ' + (c.verifiedAtUtc | zonedDate: 'mediumDate') : c.declared ? 'supported, not verified yet' : 'not supported' }}</span>
+                </li>
+              </ul>
+            </div>
+          </ng-container>
           <ng-container *ngTemplateOutlet="rows; context: { $implicit: group.items }"></ng-container>
         </mat-card>
         <ng-template #plainGroup>
@@ -113,6 +169,45 @@
       </div>
     </form>
   </ng-template>
+
+  <!-- AI Providers only: the three providers side by side, from the accuracy test run with the saved key and model. -->
+  <mat-card class="settings-card ai-compare" *ngIf="!loading && canVerify && compared.length" data-testid="compare">
+    <h3 class="group-title">Compare providers</h3>
+    <p class="muted group-hint">
+      Accuracy and cost come from each card's "Run accuracy test", run with your own key and model. Prices are the ones saved on each card.
+    </p>
+    <div class="table-scroll">
+      <table class="ai-compare-table">
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Status</th>
+            <th>Model</th>
+            <th class="num">Accuracy</th>
+            <th class="num">Avg. reply time</th>
+            <th class="num">Cost of one test run</th>
+            <th class="num">Price (in / out per 1M tokens)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of compared" [attr.data-compare]="p.provider">
+            <td><strong>{{ p.displayName }}</strong></td>
+            <td><span [class]="statusClass(p.status)">{{ statusText[p.status] }}</span></td>
+            <td>{{ p.model || '-' }}</td>
+            <td class="num">{{ p.benchmark ? p.benchmark.accuracyPercent + '% (' + p.benchmark.passed + '/' + p.benchmark.total + ')' : 'Not tested' }}</td>
+            <td class="num">{{ p.benchmark ? (p.benchmark.averageLatencyMs | number) + ' ms' : '-' }}</td>
+            <td class="num">
+              <ng-container *ngIf="p.benchmark?.totalCostUsd !== null && p.benchmark?.totalCostUsd !== undefined; else noCost">
+                $ {{ p.benchmark!.totalCostUsd | number: '1.4-6' }}
+              </ng-container>
+              <ng-template #noCost>{{ p.benchmark ? (p.priceSet ? 'No token counts' : 'Set a price') : '-' }}</ng-template>
+            </td>
+            <td class="num">{{ p.priceSet ? '$ ' + p.inputPer1MUsd + ' / $ ' + p.outputPer1MUsd : 'Not set' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </mat-card>
 
   <ng-container *ngIf="!loading && grouped">
     <ng-container *ngFor="let panel of panels">

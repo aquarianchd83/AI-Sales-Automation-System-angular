@@ -1112,13 +1112,14 @@ export interface SendIntegrationTestRequest {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
-// AI providers (Integrations page): Simulator, ChatGPT, Claude, Gemini - on/off, key, model, verify, capabilities, price, measured accuracy.
+// AI providers: what Configuration > AI Providers shows beside each provider's own settings (last Verify, capabilities, measured accuracy),
+// and the product-knowledge AI policy and call log on the Integrations page. On/Off, key, model and prices stay ordinary settings.
 // ---------------------------------------------------------------------------------------------------------------------------------------
 
-export type AiProviderId = 'Simulator' | 'OpenAI' | 'Anthropic' | 'Google';
+export type AiProviderId = 'OpenAI' | 'Anthropic' | 'Google';
 
-/** Ready (simulator), Off, NotConfigured (no key), NotVerified, Verified, Failed. Verified only for the key and model actually checked. */
-export type AiProviderStatus = 'Ready' | 'Off' | 'NotConfigured' | 'NotVerified' | 'Verified' | 'Failed';
+/** Off, NotConfigured (no key), NotVerified, Verified, Failed. Verified only for the key and model actually checked. */
+export type AiProviderStatus = 'Off' | 'NotConfigured' | 'NotVerified' | 'Verified' | 'Failed';
 
 export interface AiCapability {
   task: string;
@@ -1148,14 +1149,11 @@ export interface AiBenchmarkSummary {
   cases: AiBenchmarkCase[];
 }
 
-export interface AiProviderPanel {
+export interface AiProviderInsight {
   provider: AiProviderId;
   displayName: string;
-  isSimulator: boolean;
   enabled: boolean;
   hasKey: boolean;
-  /** A masked hint such as "••••1234". The key itself is never sent back. */
-  keyHint: string | null;
   model: string | null;
   status: AiProviderStatus;
   lastCheckedAtUtc: string | null;
@@ -1180,20 +1178,11 @@ export interface AiPolicy {
 }
 
 export interface AiProvidersOverview {
-  providers: AiProviderPanel[];
+  providers: AiProviderInsight[];
   policy: AiPolicy;
   /** What product-knowledge tasks run on right now. */
   chosenMode: IntegrationMode;
   chosenProvider: string;
-}
-
-/** Only what is given changes; an empty apiKey keeps the saved key. */
-export interface UpdateAiProviderRequest {
-  enabled?: boolean | null;
-  model?: string | null;
-  apiKey?: string | null;
-  inputPer1MUsd?: number | null;
-  outputPer1MUsd?: number | null;
 }
 
 export interface UpdateAiPolicyRequest {
@@ -1202,12 +1191,6 @@ export interface UpdateAiPolicyRequest {
   simulatorScenario: string;
   scannedDocumentsViaAi: boolean;
   maxCostPerCallUsd: number;
-}
-
-export interface AiProviderCheckResult {
-  success: boolean;
-  message: string;
-  provider: AiProviderPanel;
 }
 
 export interface AiExecution {
