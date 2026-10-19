@@ -241,7 +241,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       // only profile screen a PlatformSuperAdmin has — they belong to no tenant, so the tenant-scoped
       // Users screens can neither see nor edit them.
       label: 'Account',
-      items: [{ label: 'My Profile', icon: 'account_circle', route: '/account/profile', roles: [] }],
+      items: [{ label: 'Change Password', icon: 'lock_reset', route: '/account/change-password', roles: [] }],
     },
   ];
 
@@ -249,6 +249,9 @@ export class ShellComponent implements OnInit, OnDestroy {
    * isImpersonating below (the role on a signed-in session never changes mid-session). Drives which
    * of the two nav lists the template renders. */
   readonly isPlatformSuperAdmin = this.auth.hasAnyRole(PLATFORM_ADMIN_ROLES);
+
+  /** Account-menu entry for the tenant's Business Profile; tenant admins only, matching the route's role gate. */
+  readonly canSeeBusinessProfile = !this.isPlatformSuperAdmin && this.auth.hasAnyRole(TENANT_ADMIN_ONLY);
 
   /** What the sidenav renders — both roles share the same grouped markup and styling. */
   readonly navSections: NavSection[] = this.isPlatformSuperAdmin
