@@ -79,6 +79,10 @@
             {{ publishing ? 'Publishing…' : 'Publish version' }}
           </button>
         </form>
+        <div class="file-row">
+          <button mat-stroked-button type="button" (click)="downloadDraft()" data-testid="draft-file"><mat-icon>description</mat-icon> Download draft file</button>
+          <span class="muted small">A plain-text working copy of every question and answer, marked as not approved. Customers never see it.</span>
+        </div>
         <p class="muted small" *ngIf="cannotPublishBecause as why" data-testid="cannot">{{ why }}</p>
       </mat-card>
 
@@ -96,9 +100,12 @@
               </p>
               <p class="note-text" *ngIf="d.version.note" data-testid="version-note">{{ d.version.note }}</p>
             </div>
-            <button mat-stroked-button type="button" *ngIf="d.version.status !== 'Current'" [disabled]="restoring" (click)="restore(d.version)" data-testid="restore">
-              <mat-icon>restore</mat-icon> Restore this version
-            </button>
+            <div class="head-actions">
+              <button mat-stroked-button type="button" (click)="downloadFinal(d.version)" data-testid="final-file"><mat-icon>download</mat-icon> Download file</button>
+              <button mat-stroked-button type="button" *ngIf="d.version.status !== 'Current'" [disabled]="restoring" (click)="restore(d.version)" data-testid="restore">
+                <mat-icon>restore</mat-icon> Restore this version
+              </button>
+            </div>
           </header>
 
           <article class="entry" *ngFor="let i of d.items" [attr.data-item]="i.id">

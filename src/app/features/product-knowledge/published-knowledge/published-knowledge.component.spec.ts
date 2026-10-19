@@ -62,7 +62,7 @@ describe('PublishedKnowledgeComponent', () => {
   }
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('PublishedKnowledgeService', ['get', 'getVersion', 'publish', 'restore']);
+    service = jasmine.createSpyObj('PublishedKnowledgeService', ['get', 'getVersion', 'publish', 'restore', 'draftFile', 'finalFile']);
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
     service.getVersion.and.returnValue(of(detail()));
@@ -169,6 +169,22 @@ describe('PublishedKnowledgeComponent', () => {
     expect(service.restore).toHaveBeenCalledWith('v1', null);
     expect(notify.success).toHaveBeenCalledWith('Version 3 published from version 1.');
     expect(c.selectedId).toBe('v3');
+  });
+
+  it('saves the Draft file and the Final file of a version through the API', () => {
+    const c = create();
+    const saved: string[] = [];
+    spyOn(c as never, 'save' as never).and.callFake(((_: Blob, name: string) => saved.push(name)) as never);
+    service.draftFile.and.returnValue(of(new Blob(['draft'])));
+    service.finalFile.and.returnValue(of(new Blob(['final'])));
+
+    el('draft-file')!.click();
+    c.select('v2');
+    fixture.detectChanges();
+    el('final-file')!.click();
+
+    expect(saved).toEqual(['product-knowledge-draft.txt', 'product-knowledge-v2.txt']);
+    expect(service.finalFile).toHaveBeenCalledWith('v2');
   });
 
   it('says nothing has been published yet before the first version', () => {

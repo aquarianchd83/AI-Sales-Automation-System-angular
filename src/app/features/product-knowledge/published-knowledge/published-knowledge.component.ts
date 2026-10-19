@@ -116,6 +116,23 @@ export class PublishedKnowledgeComponent implements OnInit {
       });
   }
 
+  /** Saves the Draft file through the API without leaving the page. */
+  downloadDraft(): void {
+    this.service.draftFile().subscribe({ next: (blob) => this.save(blob, 'product-knowledge-draft.txt'), error: () => undefined });
+  }
+
+  downloadFinal(version: KnowledgeVersion): void {
+    this.service.finalFile(version.id).subscribe({ next: (blob) => this.save(blob, `product-knowledge-v${version.number}.txt`), error: () => undefined });
+  }
+
+  private save(blob: Blob, fileName: string): void {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = fileName;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
   restore(version: KnowledgeVersion): void {
     const data: ConfirmDialogData = {
       title: `Restore version ${version.number}?`,
