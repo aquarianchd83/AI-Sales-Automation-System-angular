@@ -140,7 +140,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
     expect(nav).toEqual([
       'conversation', 'consentSms', 'dndCheck', 'discoveryLead', 'discoveryKeywords', 'businessKeywords', 'knowledgeBase', 'contentGeneration',
       'videoRenders', 'productDocumentReading', 'productScannedReading', 'productSuggestedAnswers', 'productQuestionnaire', 'productGapCheck',
-      'productKnowledgeDraft', 'policy', 'calls',
+      'productKnowledgeDraft', 'sources', 'policy', 'calls',
     ]);
     expect(root.querySelector('[data-nav="discoveryLead"] .pill')?.textContent?.trim()).toBe('Claude');
     expect(root.querySelector('[data-nav="productScannedReading"] .pill')?.textContent?.trim()).toBe('Off');

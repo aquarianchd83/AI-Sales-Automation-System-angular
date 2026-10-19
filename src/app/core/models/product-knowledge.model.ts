@@ -66,4 +66,8 @@ export interface KnowledgeSourcesOverview {
   scannedReading: 'Off' | 'Simulator' | 'Api';
   /** False until the platform's AWS Settings are filled in: uploads cannot be stored. */
   storageReady: boolean;
+  /** The platform's "Document upload" switch. Off: no new uploads or re-reads; what was read stays. */
+  documentUploadEnabled: boolean;
+  /** The platform's "Website scanning" switch. */
+  websiteScanningEnabled: boolean;
 }

@@ -17,18 +17,27 @@
       <span>Uploads are not possible yet: the platform's file storage is not set up. Your platform administrator needs to fill in the AWS Settings.</span>
     </div>
 
+    <div class="note note--warn" *ngIf="!overview.documentUploadEnabled" data-testid="documents-off">
+      <mat-icon>block</mat-icon>
+      <span>Uploading documents is switched off on this platform for now. Documents already read stay available.</span>
+    </div>
+    <div class="note note--warn" *ngIf="!overview.websiteScanningEnabled" data-testid="websites-off">
+      <mat-icon>block</mat-icon>
+      <span>Reading websites is switched off on this platform for now. Pages already read stay available.</span>
+    </div>
+
     <!-- Add: documents and the website. -->
     <div class="add">
       <label
         class="drop"
         [class.drop--over]="dragOver"
-        [class.drop--disabled]="!canAdd"
+        [class.drop--disabled]="!canUpload"
         (dragover)="onDragOver($event)"
         (dragleave)="dragOver = false"
         (drop)="onDrop($event)"
         data-testid="drop"
       >
-        <input type="file" multiple [accept]="accept" [disabled]="!canAdd" (change)="onFiles($any($event.target).files); $any($event.target).value = ''" />
+        <input type="file" multiple [accept]="accept" [disabled]="!canUpload" (change)="onFiles($any($event.target).files); $any($event.target).value = ''" />
         <mat-icon>upload_file</mat-icon>
         <span class="drop-title">Upload documents</span>
         <span class="muted small">Drop files here or click to choose · {{ formats }} · up to {{ overview.maxFileMb }} MB each</span>
@@ -42,7 +51,7 @@
             <mat-label>Website address</mat-label>
             <input matInput [formControl]="website" placeholder="www.yourbusiness.com" autocomplete="off" data-testid="website" />
           </mat-form-field>
-          <button mat-flat-button color="primary" type="submit" [disabled]="addingWebsite || !canAdd || !website.value.trim()" data-testid="add-website">
+          <button mat-flat-button color="primary" type="submit" [disabled]="addingWebsite || !canAddWebsite || !website.value.trim()" data-testid="add-website">
             {{ addingWebsite ? 'Adding…' : 'Add' }}
           </button>
         </div>
@@ -103,7 +112,7 @@
           </header>
 
           <div class="actions">
-            <button mat-stroked-button type="button" *ngIf="source.canRetry || source.canRescan" [disabled]="busy[source.id]" (click)="retry(source)" data-testid="retry">
+            <button mat-stroked-button type="button" *ngIf="(source.canRetry || source.canRescan) && canRead(source)" [disabled]="busy[source.id]" (click)="retry(source)" data-testid="retry">
               <mat-icon>refresh</mat-icon>
               {{ source.canRescan ? 'Scan again' : 'Try again' }}
             </button>

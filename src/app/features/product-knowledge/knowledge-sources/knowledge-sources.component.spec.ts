@@ -43,6 +43,8 @@ const overview = (sources: KnowledgeSource[], over: Partial<KnowledgeSourcesOver
   supportedExtensions: ['.pdf', '.docx', '.txt', '.png'],
   scannedReading: 'Off',
   storageReady: true,
+  documentUploadEnabled: true,
+  websiteScanningEnabled: true,
   ...over,
 });
 
@@ -205,6 +207,32 @@ describe('KnowledgeSourcesComponent', () => {
     expect(api.remove).toHaveBeenCalledWith('s1');
     expect(component.list.map((s) => s.id)).toEqual(['s2']);
     expect(component.selectedId).toBe('s2');
+  });
+
+  it('with document upload switched off, uploads are blocked and a source cannot be read again, while websites still work', () => {
+    const failed = source({ status: 'Failed', canRetry: true, error: 'x' });
+    const component = render(overview([failed], { documentUploadEnabled: false }));
+
+    expect(root().querySelector('[data-testid="documents-off"]')).not.toBeNull();
+    expect(root().querySelector('[data-testid="websites-off"]')).toBeNull();
+    expect((root().querySelector('[data-testid="drop"] input') as HTMLInputElement).disabled).toBeTrue();
+    component.onFiles([new File(['x'], 'a.pdf')]);
+    expect(api.upload).not.toHaveBeenCalled();
+    expect(root().querySelector('[data-testid="retry"]')).toBeNull();
+    expect(component.canAddWebsite).toBeTrue();
+  });
+
+  it('with website scanning switched off, no website can be added or scanned again, while documents still work', () => {
+    const site = source({ id: 'w', kind: 'Website', name: 'clinic.example', canRescan: true });
+    const component = render(overview([site], { websiteScanningEnabled: false }));
+
+    expect(root().querySelector('[data-testid="websites-off"]')).not.toBeNull();
+    expect((root().querySelector('[data-testid="add-website"]') as HTMLButtonElement).disabled).toBeTrue();
+    expect(root().querySelector('[data-testid="retry"]')).toBeNull();
+    component.website.setValue('other.example');
+    component.addWebsite();
+    expect(api.addWebsite).not.toHaveBeenCalled();
+    expect(component.canUpload).toBeTrue();
   });
 
   it('says when scanned documents cannot be read on this platform', () => {

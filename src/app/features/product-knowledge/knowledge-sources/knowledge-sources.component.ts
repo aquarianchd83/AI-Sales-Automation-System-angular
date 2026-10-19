@@ -86,8 +86,18 @@ export class KnowledgeSourcesComponent implements OnInit, OnDestroy {
     return !!this.overview && this.list.length >= this.overview.maxSources;
   }
 
-  get canAdd(): boolean {
-    return !!this.overview && this.overview.storageReady && !this.atLimit;
+  /** Documents can be uploaded: storage is ready, there is room, and the platform has the switch on. */
+  get canUpload(): boolean {
+    return !!this.overview && this.overview.storageReady && !this.atLimit && this.overview.documentUploadEnabled;
+  }
+
+  get canAddWebsite(): boolean {
+    return !!this.overview && this.overview.storageReady && !this.atLimit && this.overview.websiteScanningEnabled;
+  }
+
+  /** A source can be read again only while the switch for its kind is on. */
+  canRead(source: KnowledgeSource): boolean {
+    return !!this.overview && (source.kind === 'Website' ? this.overview.websiteScanningEnabled : this.overview.documentUploadEnabled);
   }
 
   /** "PDF, DOCX, TXT…" for the upload hint. */
@@ -204,7 +214,7 @@ export class KnowledgeSourcesComponent implements OnInit, OnDestroy {
 
   onFiles(files: FileList | File[] | null): void {
     const list = Array.from(files ?? []);
-    if (!list.length || !this.canAdd) {
+    if (!list.length || !this.canUpload) {
       return;
     }
     const maxBytes = (this.overview?.maxFileMb ?? 0) * 1024 * 1024;
@@ -241,7 +251,7 @@ export class KnowledgeSourcesComponent implements OnInit, OnDestroy {
 
   addWebsite(): void {
     const url = this.website.value.trim();
-    if (!url || this.addingWebsite || !this.canAdd) {
+    if (!url || this.addingWebsite || !this.canAddWebsite) {
       this.website.markAsTouched();
       return;
     }

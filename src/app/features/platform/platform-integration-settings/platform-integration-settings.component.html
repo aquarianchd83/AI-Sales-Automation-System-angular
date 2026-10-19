@@ -291,6 +291,7 @@
       </div>
 
       <!-- Product-knowledge policy and the AI call log: saved on their own. -->
+      <app-platform-product-sources *ngIf="selected === 'sources'"></app-platform-product-sources>
       <app-platform-ai-policy *ngIf="selected === 'policy'" show="policy"></app-platform-ai-policy>
       <app-platform-ai-policy *ngIf="selected === 'calls'" show="calls"></app-platform-ai-policy>
     </section>

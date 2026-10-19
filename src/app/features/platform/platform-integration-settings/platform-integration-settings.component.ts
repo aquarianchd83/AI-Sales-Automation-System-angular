@@ -259,6 +259,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
         { id: 'productQuestionnaire', label: 'Questionnaire', icon: 'quiz' },
         { id: 'productGapCheck', label: 'Gaps and conflicts', icon: 'rule' },
         { id: 'productKnowledgeDraft', label: 'Knowledge draft', icon: 'article' },
+        { id: 'sources', label: 'Source reading', icon: 'cloud_download' },
         { id: 'policy', label: 'AI policy', icon: 'policy' },
         { id: 'calls', label: 'AI call log', icon: 'receipt_long' },
       ],
