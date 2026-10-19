@@ -223,6 +223,16 @@
   }
 }
 
+.ai-area {
+  margin: 10px 0 2px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ai-unsupported {
+  opacity: 0.6;
+}
+
 .ai-case--fail mat-icon {
   color: #c62828;
 }

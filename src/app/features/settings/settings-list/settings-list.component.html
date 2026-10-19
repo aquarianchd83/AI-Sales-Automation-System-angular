@@ -67,7 +67,7 @@
               Last verified {{ insight.lastCheckedAtUtc | zonedDate: 'medium' }}<ng-container *ngIf="insight.lastCheckMessage"> - {{ insight.lastCheckMessage }}</ng-container>
             </p>
             <p class="muted ai-last-check" *ngIf="!insight.lastCheckedAtUtc && insight.lastCheckMessage">{{ insight.lastCheckMessage }}</p>
-            <p class="muted ai-chosen" *ngIf="insight.chosenForProductKnowledge">Used for product knowledge (chosen on the Integrations page).</p>
+            <p class="muted ai-chosen" *ngIf="insight.usedFor.length" data-testid="used-for">Used for: {{ insight.usedFor.join(', ') }}.</p>
 
             <!-- The measured accuracy test. -->
             <div class="ai-benchmark" *ngIf="insight.benchmark as b" data-testid="benchmark-result">
@@ -94,15 +94,20 @@
             <div class="ai-capabilities">
               <button mat-button type="button" (click)="toggle(expandedCapabilities, group.name)">
                 <mat-icon>{{ expandedCapabilities.has(group.name) ? 'expand_less' : 'expand_more' }}</mat-icon>
-                What it can do · {{ verifiedCount(insight) }} of {{ insight.capabilities.length }} verified by a real call
+                What it can do · {{ verifiedCount(insight) }} of {{ supportedCount(insight) }} verified by a real call
               </button>
-              <ul *ngIf="expandedCapabilities.has(group.name)" data-testid="capabilities">
-                <li *ngFor="let c of insight.capabilities">
-                  <mat-icon [class.ok]="c.verified">{{ c.verified ? 'verified' : 'radio_button_unchecked' }}</mat-icon>
-                  <span>{{ taskName(c.task) }}</span>
-                  <span class="muted">{{ c.verified ? 'verified ' + (c.verifiedAtUtc | zonedDate: 'mediumDate') : c.declared ? 'supported, not verified yet' : 'not supported' }}</span>
-                </li>
-              </ul>
+              <div *ngIf="expandedCapabilities.has(group.name)" data-testid="capabilities">
+                <ng-container *ngFor="let area of areasOf(insight)">
+                  <h4 class="ai-area">{{ area.name }}</h4>
+                  <ul>
+                    <li *ngFor="let c of area.items" [class.ai-unsupported]="!c.declared">
+                      <mat-icon [class.ok]="c.verified">{{ c.verified ? 'verified' : c.declared ? 'radio_button_unchecked' : 'block' }}</mat-icon>
+                      <span>{{ c.title }}</span>
+                      <span class="muted">{{ c.verified ? 'verified ' + (c.verifiedAtUtc | zonedDate: 'mediumDate') : c.declared ? 'supported, not verified yet' : 'not supported by this provider' }}</span>
+                    </li>
+                  </ul>
+                </ng-container>
+              </div>
             </div>
           </ng-container>
           <ng-container *ngTemplateOutlet="rows; context: { $implicit: group.items }"></ng-container>

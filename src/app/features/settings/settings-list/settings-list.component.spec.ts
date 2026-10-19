@@ -19,20 +19,22 @@ const insight = (provider: 'OpenAI' | 'Anthropic' | 'Google', extra: Partial<AiP
   status: 'NotVerified',
   lastCheckedAtUtc: null,
   lastCheckMessage: null,
-  capabilities: [{ task: 'DocumentAnalysis', declared: true, verified: false, verifiedAtUtc: null }],
+  capabilities: [
+    { task: 'ConversationReply', area: 'Customer chat', title: 'Replying to customers in WhatsApp', declared: true, verified: true, verifiedAtUtc: '2026-10-19T09:00:00Z' },
+    { task: 'KnowledgeEmbedding', area: 'Customer chat', title: 'Knowledge base search (embeddings)', declared: false, verified: false, verifiedAtUtc: null },
+    { task: 'DocumentAnalysis', area: 'Product knowledge', title: 'Document and PDF analysis', declared: true, verified: false, verifiedAtUtc: null },
+  ],
   inputPer1MUsd: 0,
   outputPer1MUsd: 0,
   priceSet: false,
   benchmark: null,
-  chosenForProductKnowledge: false,
+  usedFor: [],
   ...extra,
 });
 
 const overview = (providers: AiProviderInsight[]): AiProvidersOverview => ({
   providers,
-  policy: { fallbackEnabled: false, fallbackOrder: [], simulatorScenario: 'Success', scannedDocumentsViaAi: false, maxCostPerCallUsd: 0.5, timeoutSeconds: 60, maxRetriesPerProvider: 1, scenarios: ['Success'] },
-  chosenMode: 'Simulator',
-  chosenProvider: 'Simulator',
+  policy: { fallbackEnabled: false, fallbackOrder: [], simulatorScenario: 'Success', maxCostPerCallUsd: 0.5, timeoutSeconds: 60, maxRetriesPerProvider: 1, scenarios: ['Success'] },
 });
 
 /** The insights service: returns no providers unless a test says otherwise. */
@@ -194,6 +196,34 @@ describe('SettingsListComponent', () => {
     expect(buttons.map((b) => b.disabled)).toEqual([false, true]);
     buttons[0].click();
     expect(insights.benchmark).toHaveBeenCalledWith('OpenAI');
+  });
+
+  it('lists every AI use of the application by area, says which a provider cannot run, and what runs on it now', () => {
+    const item = (key: string) => ({ key, value: 'v', isSecret: false, isList: false, description: null });
+    const claude = insight('Anthropic', { usedFor: ['Customer chat replies', 'Suggested answers'] });
+    TestBed.configureTestingModule({
+      declarations: [SettingsListComponent],
+      imports: [SharedModule, NoopAnimationsModule],
+      providers: [
+        { provide: SettingsService, useValue: { getAll: () => of([{ category: 'AiProviders', items: ['AiProviders:Anthropic:ApiKey'].map(item) }]) } },
+        { provide: ActivatedRoute, useValue: { snapshot: { data: { categories: ['AiProviders'] } } } },
+        { provide: PlatformAiProvidersService, useValue: insightsStub([claude]) },
+      ],
+    });
+    const fixture = TestBed.createComponent(SettingsListComponent);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelector('[data-testid="used-for"]')?.textContent).toContain('Customer chat replies, Suggested answers');
+    const toggle = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.includes('What it can do'))!;
+    expect(toggle.textContent).toContain('1 of 2 verified'); // embeddings are not counted: Claude cannot run them
+    toggle.click();
+    fixture.detectChanges();
+
+    const list = root.querySelector('[data-testid="capabilities"]')!;
+    expect(Array.from(list.querySelectorAll('h4')).map((h) => h.textContent?.trim())).toEqual(['Customer chat', 'Product knowledge']);
+    expect(list.textContent).toContain('Replying to customers in WhatsApp');
+    expect(list.textContent).toContain('not supported by this provider');
   });
 
   it('asks the insights service nothing on a screen without AI providers', () => {

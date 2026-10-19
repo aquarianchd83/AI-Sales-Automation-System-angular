@@ -30,13 +30,6 @@
     <button mat-button type="button" *ngFor="let p of fallbackCandidates" (click)="addToOrder(p)">+ {{ nameOf(p) }}</button>
   </div>
 
-  <mat-slide-toggle [checked]="policyScanned" (change)="policyScanned = $event.checked" data-testid="scanned">
-    Read scanned documents and images with AI
-  </mat-slide-toggle>
-  <p class="muted small" [class.warn]="policyScanned">
-    When on, scanned pages a tenant uploads are sent to the chosen AI provider to be read. When off, a scanned document is refused with a
-    clear message.
-  </p>
 
   <mat-form-field subscriptSizing="dynamic" class="field">
     <mat-label>Most one AI call may cost, US $</mat-label>

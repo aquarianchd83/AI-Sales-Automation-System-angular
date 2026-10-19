@@ -167,16 +167,23 @@
         </ng-container>
       </mat-card>
 
-      <mat-card class="delivery-card" *ngFor="let feature of aiFeatures" [formGroupName]="feature.key">
+      <!-- One AI feature's card. Used for the features below and for each product-knowledge task group. -->
+      <ng-template #featurePanel let-feature>
+      <mat-card class="delivery-card" [formGroupName]="feature.key" [attr.data-feature]="feature.apiName">
         <h2>{{ feature.title }}</h2>
         <p class="muted">{{ feature.description }}</p>
 
         <mat-radio-group class="mode-group" formControlName="mode" [attr.aria-label]="feature.title + ' handling'">
+          <mat-radio-button value="Off" *ngIf="feature.allowOff">Off</mat-radio-button>
           <mat-radio-button value="Simulator">Simulator</mat-radio-button>
           <mat-radio-button value="Api" [disabled]="noToolYet(feature.key)">Third-party tool</mat-radio-button>
         </mat-radio-group>
 
-        <div class="mode-note muted" *ngIf="!isAiThirdParty(feature.key) || noToolYet(feature.key)">
+        <div class="mode-note muted" *ngIf="isAiOff(feature.key)" data-testid="off-note">
+          <mat-icon>block</mat-icon>
+          <span>Switched off: this AI step is skipped. Nothing is read or drafted by AI and nothing is sent anywhere.</span>
+        </div>
+        <div class="mode-note muted" *ngIf="!isAiOff(feature.key) && (!isAiThirdParty(feature.key) || noToolYet(feature.key))">
           <mat-icon>science</mat-icon>
           <span>The simulator answers on its own and nothing leaves the platform. {{ feature.simulatorNote }}</span>
         </div>
@@ -187,7 +194,7 @@
         <div class="mode-note mode-note--warn" *ngIf="savedToolUnsupported(feature.key)">
           <mat-icon>warning</mat-icon>
           <span>
-            The tool saved earlier ({{ aiToolLabel(currentAi?.[feature.key]?.provider ?? 'OpenAI') }}) is not available for this feature. It is not used and
+            The tool saved earlier ({{ aiToolLabel(channel(feature.key)?.provider ?? 'OpenAI') }}) is not available for this feature. It is not used and
             the simulator answers instead. The saved value is kept until you choose a supported option.
           </span>
         </div>
@@ -200,7 +207,7 @@
           <div class="mode-note mode-note--warn" *ngIf="aiToolOff(feature.key)">
             <mat-icon>power_settings_new</mat-icon>
             <span>
-              {{ aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }} is turned off, so the simulator answers for now. Your choice is kept
+              {{ pickedToolLabel(feature.key) }} is turned off, so the simulator answers for now. Your choice is kept
               and applies again when you switch it on under
               <a routerLink="/settings/ai-providers" target="_blank" rel="noopener">Configuration &gt; AI Providers</a>.
             </span>
@@ -209,26 +216,26 @@
           <div class="mode-note muted" *ngIf="!aiToolOff(feature.key)" [class.mode-note--warn]="!aiHasKey(feature.key)">
             <mat-icon>{{ aiHasKey(feature.key) ? 'key' : 'warning' }}</mat-icon>
             <span *ngIf="aiHasKey(feature.key); else noKey">
-              Uses the {{ aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }} key saved under
+              Uses the {{ pickedToolLabel(feature.key) }} key saved under
               <a routerLink="/settings/ai-providers" target="_blank" rel="noopener">Configuration &gt; AI Providers</a>.
             </span>
             <ng-template #noKey>
               <span>
-                No {{ aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }} key is saved yet. Add it under
+                No {{ pickedToolLabel(feature.key) }} key is saved yet. Add it under
                 <a routerLink="/settings/ai-providers" target="_blank" rel="noopener">Configuration &gt; AI Providers</a> first.
               </span>
             </ng-template>
           </div>
 
           <div class="test-row">
-            <button mat-stroked-button type="button" [disabled]="aiTesting[feature.key] || saving" (click)="testAi(feature.key)">
-              <mat-icon>{{ aiTesting[feature.key] ? 'hourglass_empty' : 'bolt' }}</mat-icon>
-              {{ aiTesting[feature.key] ? 'Working…' : 'Test ' + aiToolLabel(aiForm.controls[feature.key].controls.provider.value) }}
+            <button mat-stroked-button type="button" [disabled]="isTesting(feature.key) || saving" (click)="testAi(feature.key)">
+              <mat-icon>{{ isTesting(feature.key) ? 'hourglass_empty' : 'bolt' }}</mat-icon>
+              {{ isTesting(feature.key) ? 'Working…' : 'Test ' + pickedToolLabel(feature.key) }}
             </button>
           </div>
           <p class="muted">Asks the tool one short question with the saved key, without saving this choice.</p>
 
-          <ng-container *ngIf="aiResults[feature.key] as result">
+          <ng-container *ngIf="resultOf(feature.key) as result">
             <div class="test-result" [class.test-result--fail]="!result.success" role="status" aria-live="polite">
               <mat-icon>{{ result.success ? 'check_circle' : 'error' }}</mat-icon>
               <div><strong>{{ result.message }}</strong></div>
@@ -236,6 +243,21 @@
           </ng-container>
         </ng-container>
       </mat-card>
+      </ng-template>
+
+      <ng-container *ngFor="let feature of aiFeatures">
+        <ng-container *ngTemplateOutlet="featurePanel; context: { $implicit: feature }"></ng-container>
+      </ng-container>
+
+      <!-- Product knowledge: one switch per group of tasks. -->
+      <h2 class="section-title" id="product-knowledge-title">Product knowledge</h2>
+      <p class="muted">
+        The AI steps that build a tenant's product knowledge, which onboarding and the AI chat answer from. Each step can be switched off, run on the
+        simulator, or run on ChatGPT, Claude or Gemini on its own.
+      </p>
+      <ng-container *ngFor="let feature of productTaskFeatures">
+        <ng-container *ngTemplateOutlet="featurePanel; context: { $implicit: feature }"></ng-container>
+      </ng-container>
     </div>
   </form>
 

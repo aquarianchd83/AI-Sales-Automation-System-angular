@@ -8,8 +8,8 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/compo
 import { NotificationService } from '../../../core/services/notification.service';
 import { AiProviderCheck, SettingCategory, SettingItem } from '../../../core/models/settings.model';
 import { SettingsService } from '../../../core/services/settings.service';
-import { AI_STATUS_TEXT, AI_TASK_TEXT } from '../../../core/models/ai-provider-text';
-import { AiProviderId, AiProviderInsight, AiProviderStatus } from '../../../core/models/platform.model';
+import { AI_STATUS_TEXT } from '../../../core/models/ai-provider-text';
+import { AiCapability, AiProviderId, AiProviderInsight, AiProviderStatus } from '../../../core/models/platform.model';
 import { PlatformAiProvidersService } from '../../../core/services/platform-ai-providers.service';
 
 interface SettingGroup {
@@ -198,13 +198,36 @@ export class SettingsListComponent implements OnInit {
     return `ai-status ai-status--${status.toLowerCase()}`;
   }
 
-  taskName(task: string): string {
-    return AI_TASK_TEXT[task] ?? task;
-  }
-
   verifiedCount(insight: AiProviderInsight): number {
     return insight.capabilities.filter((c) => c.verified).length;
   }
+
+  /** The uses this provider's code can run (Claude has no embeddings, the lead discovery agent is Claude's only). */
+  supportedCount(insight: AiProviderInsight): number {
+    return insight.capabilities.filter((c) => c.declared).length;
+  }
+
+  /** Every AI use of the application for one provider, grouped by where it is used (Customer chat, Onboarding and profile, ...). */
+  areasOf(insight: AiProviderInsight): { name: string; items: AiCapability[] }[] {
+    const cached = this.areaCache.get(insight);
+    if (cached) {
+      return cached;
+    }
+    const areas: { name: string; items: AiCapability[] }[] = [];
+    for (const c of insight.capabilities) {
+      let area = areas.find((a) => a.name === c.area);
+      if (!area) {
+        area = { name: c.area, items: [] };
+        areas.push(area);
+      }
+      area.items.push(c);
+    }
+    // Built once per insight object - never a fresh array on every change-detection pass.
+    this.areaCache.set(insight, areas);
+    return areas;
+  }
+
+  private readonly areaCache = new WeakMap<AiProviderInsight, { name: string; items: AiCapability[] }[]>();
 
   toggle(set: Set<string>, provider: string): void {
     if (!set.delete(provider)) {

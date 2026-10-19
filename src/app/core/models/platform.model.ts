@@ -1036,9 +1036,12 @@ export interface UpdatePlatformIntegrationSettingsRequest {
 /** The third-party tool an AI feature can run on: OpenAI is ChatGPT, Anthropic is Claude, Google is Gemini. */
 export type AiToolProvider = 'OpenAI' | 'Anthropic' | 'Google';
 
+/** How an AI feature runs: the simulator, a third-party tool, or - for a product-knowledge task group only - Off (the AI step is skipped). */
+export type AiFeatureMode = IntegrationMode | 'Off';
+
 /** One AI feature on the Integrations page: the simulator, or a third-party tool using the key saved under Configuration > AI Providers. */
 export interface AiFeatureChannel {
-  mode: IntegrationMode;
+  mode: AiFeatureMode;
   provider: AiToolProvider;
   /** A key is saved for `provider`, so it can be switched to. */
   providerHasKey: boolean;
@@ -1070,16 +1073,29 @@ export interface PlatformAiFeatureSettings {
   knowledgeBase: AiFeatureChannel;
   contentGeneration: AiFeatureChannel;
   videoRenders: AiFeatureChannel;
-  /** Reading tenants' documents and websites and drafting the product knowledge the chat answers from. */
-  productKnowledge: AiFeatureChannel;
   businessKeywords: AiFeatureChannel;
   discoveryKeywords: AiFeatureChannel;
   conversation: AiConversationChannel;
+  /** Product knowledge, one switch per group of tasks (reading documents, scanned pages, suggested answers, ...). */
+  productKnowledgeTasks: AiTaskGroup[];
+}
+
+/** A product-knowledge task group and its switch. `feature` is the API name, e.g. "ProductSuggestedAnswers". */
+export interface AiTaskGroup {
+  feature: string;
+  title: string;
+  description: string;
+  tasks: string[];
+  channel: AiFeatureChannel;
 }
 
 export interface AiFeatureChannelRequest {
-  mode: IntegrationMode;
+  mode: AiFeatureMode;
   provider: AiToolProvider;
+}
+
+export interface AiTaskGroupRequest extends AiFeatureChannelRequest {
+  feature: string;
 }
 
 export interface AiConversationRequest {
@@ -1094,10 +1110,10 @@ export interface UpdatePlatformAiFeatureSettingsRequest {
   knowledgeBase: AiFeatureChannelRequest;
   contentGeneration: AiFeatureChannelRequest;
   videoRenders: AiFeatureChannelRequest;
-  productKnowledge: AiFeatureChannelRequest;
   businessKeywords: AiFeatureChannelRequest;
   discoveryKeywords: AiFeatureChannelRequest;
   conversation: AiConversationRequest;
+  productKnowledgeTasks: AiTaskGroupRequest[];
 }
 
 /** POST ai-features/{feature}/test: the choice on screen, saved or not. */
@@ -1123,6 +1139,9 @@ export type AiProviderStatus = 'Off' | 'NotConfigured' | 'NotVerified' | 'Verifi
 
 export interface AiCapability {
   task: string;
+  /** Customer chat, Onboarding and profile, Lead discovery or Product knowledge. */
+  area: string;
+  title: string;
   /** The code can send this kind of request to the provider. */
   declared: boolean;
   /** A real call for this task has succeeded. */
@@ -1163,14 +1182,14 @@ export interface AiProviderInsight {
   outputPer1MUsd: number;
   priceSet: boolean;
   benchmark: AiBenchmarkSummary | null;
-  chosenForProductKnowledge: boolean;
+  /** What the application runs on this provider right now, by the names the Integrations page uses. */
+  usedFor: string[];
 }
 
 export interface AiPolicy {
   fallbackEnabled: boolean;
   fallbackOrder: AiProviderId[];
   simulatorScenario: string;
-  scannedDocumentsViaAi: boolean;
   maxCostPerCallUsd: number;
   timeoutSeconds: number;
   maxRetriesPerProvider: number;
@@ -1180,16 +1199,12 @@ export interface AiPolicy {
 export interface AiProvidersOverview {
   providers: AiProviderInsight[];
   policy: AiPolicy;
-  /** What product-knowledge tasks run on right now. */
-  chosenMode: IntegrationMode;
-  chosenProvider: string;
 }
 
 export interface UpdateAiPolicyRequest {
   fallbackEnabled: boolean;
   fallbackOrder: AiProviderId[];
   simulatorScenario: string;
-  scannedDocumentsViaAi: boolean;
   maxCostPerCallUsd: number;
 }
 

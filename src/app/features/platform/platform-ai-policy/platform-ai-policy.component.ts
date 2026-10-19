@@ -10,8 +10,8 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PlatformAiProvidersService } from '../../../core/services/platform-ai-providers.service';
 
 /**
- * The feature-level AI settings on the Integrations page, below the engine choices: the product-knowledge AI policy (fallback, reading scanned
- * documents with AI, the cost limit per call, what the simulator returns) and the log of every AI call. The providers themselves - On/Off,
+ * The feature-level AI settings on the Integrations page, below the engine choices: the product-knowledge AI policy (fallback, the cost limit per
+ * call, what the simulator returns) and the log of every AI call. Whether scanned pages are read with AI is that task group's own Off switch above. The providers themselves - On/Off,
  * key, model, prices, Verify and the accuracy test - are on Configuration > AI Providers, the one place they are kept.
  */
 @Component({
@@ -31,7 +31,6 @@ export class PlatformAiPolicyComponent implements OnInit {
   policyFallback = false;
   policyOrder: AiProviderId[] = [];
   policyScenario = 'Success';
-  policyScanned = false;
   readonly policyMaxCost = new FormControl<number | null>(0.5);
   savingPolicy = false;
 
@@ -106,7 +105,6 @@ export class PlatformAiPolicyComponent implements OnInit {
         fallbackEnabled: this.policyFallback,
         fallbackOrder: this.policyOrder,
         simulatorScenario: this.policyScenario,
-        scannedDocumentsViaAi: this.policyScanned,
         maxCostPerCallUsd: maxCost,
       })
       .pipe(finalize(() => (this.savingPolicy = false)))
@@ -135,7 +133,6 @@ export class PlatformAiPolicyComponent implements OnInit {
     this.policyFallback = policy.fallbackEnabled;
     this.policyOrder = [...policy.fallbackOrder];
     this.policyScenario = policy.simulatorScenario;
-    this.policyScanned = policy.scannedDocumentsViaAi;
     this.policyMaxCost.setValue(policy.maxCostPerCallUsd);
   }
 }

@@ -23,6 +23,12 @@ export const AI_TASK_TEXT: Record<string, string> = {
   SuggestedAnswerGeneration: 'Suggested answers',
   KnowledgeDraft: 'Draft knowledge file',
   ScannedDocumentReading: 'Reading scanned pages (needs an image-capable model)',
+  ConversationReply: 'Replying to customers in WhatsApp',
+  KnowledgeEmbedding: 'Knowledge base search (embeddings)',
+  BusinessKeywordSuggestion: 'Domain keyword suggestions',
+  DescriptionRefinement: 'Business description rewrite',
+  DiscoveryKeywordSuggestion: 'Search keyword suggestions',
+  LeadDiscovery: 'Finding new businesses (web search agent)',
   ConnectionCheck: 'Connection check',
   Benchmark: 'Accuracy test',
 };

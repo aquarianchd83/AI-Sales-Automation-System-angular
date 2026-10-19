@@ -6,6 +6,7 @@ import { finalize } from 'rxjs/operators';
 import {
   AiConversationChannel,
   AiFeatureChannel,
+  AiFeatureMode,
   AiToolProvider,
   DeliveryTestResult,
   IntegrationChannel,
@@ -19,7 +20,63 @@ import { PlatformIntegrationSettingsService } from '../../../core/services/platf
 
 export type IntegrationChannelKey = 'consentSms' | 'dndCheck';
 /** The feature panels; the conversation panel has its own shape (a chat tool and an embedding tool). */
-export type AiFeatureKey = 'discoveryLead' | 'knowledgeBase' | 'contentGeneration' | 'videoRenders' | 'productKnowledge' | 'businessKeywords' | 'discoveryKeywords';
+export type AiFeatureKey =
+  | 'discoveryLead'
+  | 'knowledgeBase'
+  | 'contentGeneration'
+  | 'videoRenders'
+  | 'businessKeywords'
+  | 'discoveryKeywords'
+  | ProductTaskKey;
+
+/** The product-knowledge task groups: each is Off, the simulator, or ChatGPT, Claude or Gemini on its own. */
+export type ProductTaskKey =
+  | 'productDocumentReading'
+  | 'productScannedReading'
+  | 'productSuggestedAnswers'
+  | 'productQuestionnaire'
+  | 'productGapCheck'
+  | 'productKnowledgeDraft';
+
+interface AiFeaturePanel {
+  key: AiFeatureKey;
+  apiName: string;
+  title: string;
+  description: string;
+  simulatorNote: string;
+  /** Product-knowledge task groups can be switched Off. */
+  allowOff?: boolean;
+}
+
+const PRODUCT_SIMULATOR_NOTE = 'Fixed, labelled test data is returned. No document is read, no provider is contacted, and nothing it returns can be published as verified.';
+
+const product = (key: ProductTaskKey, apiName: string, title: string, description: string): AiFeaturePanel => ({
+  key,
+  apiName,
+  title,
+  description,
+  simulatorNote: PRODUCT_SIMULATOR_NOTE,
+  allowOff: true,
+});
+
+const ALL_AI_KEYS: AiFeatureKey[] = [
+  'discoveryLead',
+  'knowledgeBase',
+  'contentGeneration',
+  'videoRenders',
+  'businessKeywords',
+  'discoveryKeywords',
+  'productDocumentReading',
+  'productScannedReading',
+  'productSuggestedAnswers',
+  'productQuestionnaire',
+  'productGapCheck',
+  'productKnowledgeDraft',
+];
+
+function flags<T>(value: T): Record<AiFeatureKey | 'conversation', T> {
+  return Object.fromEntries([...ALL_AI_KEYS, 'conversation'].map((k) => [k, value])) as Record<AiFeatureKey | 'conversation', T>;
+}
 
 /**
  * The Platform Admin Console's Integrations page: for each outside service - the WhatsApp consent SMS and the DND check - whether it is
@@ -53,7 +110,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     },
   ];
 
-  readonly aiFeatures: { key: AiFeatureKey; apiName: string; title: string; description: string; simulatorNote: string }[] = [
+  readonly aiFeatures: AiFeaturePanel[] = [
     {
       key: 'discoveryLead',
       apiName: 'DiscoveryLead',
@@ -83,14 +140,6 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       simulatorNote: 'A sample video is produced and no render is billed.',
     },
     {
-      key: 'productKnowledge',
-      apiName: 'ProductKnowledge',
-      title: 'Product knowledge',
-      description:
-        "Reads a tenant's brochures, PDFs and website, drafts answers from them with the source quoted, and checks for conflicts - the knowledge the AI chat answers customers from.",
-      simulatorNote: 'Fixed, labelled test data is returned. No document is read, no provider is contacted, and nothing it returns can be published as verified.',
-    },
-    {
       key: 'discoveryKeywords',
       apiName: 'DiscoveryKeywords',
       title: 'Discovery lead - AI suggest',
@@ -104,6 +153,25 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       description: 'The AI suggest button on the Profile Information screen (and onboarding): suggests the products, services and topics a business deals in.',
       simulatorNote: 'The built-in common terms for the industry the tenant chose are suggested instead.',
     },
+  ];
+
+  /**
+   * Product knowledge, one panel per group of tasks, so each can be switched Off or moved to another tool on its own. The titles match the
+   * server's (AiFeatures.ProductTaskGroups), which also names them on the AI Providers screen.
+   */
+  readonly productTaskFeatures: AiFeaturePanel[] = [
+    product('productDocumentReading', 'ProductDocumentReading', 'Reading documents and PDFs',
+      'Reads the text of uploaded documents and PDFs and pulls out product facts: names, prices, features, terms.'),
+    product('productScannedReading', 'ProductScannedReading', 'Reading scanned pages and images',
+      'Reads scanned PDFs and photos of documents. The page images are sent to the chosen tool, so this starts Off. Needs a model that accepts images.'),
+    product('productSuggestedAnswers', 'ProductSuggestedAnswers', 'Suggested answers',
+      "Drafts answers to the onboarding questions and to the tenant's own questions, from the tenant's sources only."),
+    product('productQuestionnaire', 'ProductQuestionnaire', 'Questionnaire and benefits',
+      'Builds the questions to ask for an industry and writes the benefits and customer value of a product.'),
+    product('productGapCheck', 'ProductGapCheck', 'Gaps and conflicts check',
+      'Finds missing information, sources that disagree, and merges repeated facts into one.'),
+    product('productKnowledgeDraft', 'ProductKnowledgeDraft', 'Draft knowledge file',
+      'Writes the draft knowledge file the AI chat answers from, for the tenant to review before it is used.'),
   ];
 
   /** The tools on offer, by the name people know them under. */
@@ -124,9 +192,14 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     knowledgeBase: this.aiGroup(),
     contentGeneration: this.aiGroup(),
     videoRenders: this.aiGroup(),
-    productKnowledge: this.aiGroup(),
     businessKeywords: this.aiGroup(),
     discoveryKeywords: this.aiGroup(),
+    productDocumentReading: this.aiGroup(),
+    productScannedReading: this.aiGroup(),
+    productSuggestedAnswers: this.aiGroup(),
+    productQuestionnaire: this.aiGroup(),
+    productGapCheck: this.aiGroup(),
+    productKnowledgeDraft: this.aiGroup(),
   });
 
   readonly form = this.fb.group({
@@ -142,8 +215,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
 
   current: PlatformIntegrationSettings | null = null;
   currentAi: PlatformAiFeatureSettings | null = null;
-  aiTesting: Record<AiFeatureKey | 'conversation', boolean> = { conversation: false, discoveryLead: false, knowledgeBase: false, contentGeneration: false, videoRenders: false, productKnowledge: false, businessKeywords: false, discoveryKeywords: false };
-  aiResults: Record<AiFeatureKey | 'conversation', DeliveryTestResult | null> = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null, productKnowledge: null, businessKeywords: null, discoveryKeywords: null };
+  aiTesting = flags<boolean>(false);
+  aiResults = flags<DeliveryTestResult | null>(null);
   loading = true;
   loadFailed = false;
   saving = false;
@@ -160,15 +233,13 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
   ngOnInit(): void {
     this.load();
     this.form.valueChanges.subscribe(() => (this.results = { consentSms: null, dndCheck: null }));
-    this.aiForm.valueChanges.subscribe(
-      () => (this.aiResults = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null, productKnowledge: null, businessKeywords: null, discoveryKeywords: null })
-    );
+    this.aiForm.valueChanges.subscribe(() => (this.aiResults = flags<DeliveryTestResult | null>(null)));
 
     // Switching a feature to a third-party tool picks one it supports, so a leftover tool it cannot run on is never submitted.
-    for (const feature of this.aiFeatures) {
+    for (const feature of [...this.aiFeatures, ...this.productTaskFeatures]) {
       const group = this.aiForm.controls[feature.key].controls;
       group.mode.valueChanges.subscribe((mode) => {
-        const supported = this.currentAi?.[feature.key].supportedProviders ?? [];
+        const supported = this.channel(feature.key)?.supportedProviders ?? [];
         if (mode === 'Api' && supported.length > 0 && !supported.includes(group.provider.value)) {
           group.provider.setValue(supported[0]);
         }
@@ -185,6 +256,32 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     return this.aiForm.controls[key].controls.mode.value === 'Api';
   }
 
+  /** The name of the tool picked on a panel. Typed helpers for the shared panel template, whose context is untyped. */
+  pickedToolLabel(key: AiFeatureKey): string {
+    return this.aiToolLabel(this.aiForm.controls[key].controls.provider.value);
+  }
+
+  isTesting(key: AiFeatureKey): boolean {
+    return this.aiTesting[key];
+  }
+
+  resultOf(key: AiFeatureKey): DeliveryTestResult | null {
+    return this.aiResults[key];
+  }
+
+  isAiOff(key: AiFeatureKey): boolean {
+    return this.aiForm.controls[key].controls.mode.value === 'Off';
+  }
+
+  /** What the server says about a feature's saved choice. Product-knowledge task groups arrive as a list, the rest by name. */
+  channel(key: AiFeatureKey): AiFeatureChannel | undefined {
+    const panel = this.productTaskFeatures.find((f) => f.key === key);
+    if (panel) {
+      return this.currentAi?.productKnowledgeTasks?.find((g) => g.feature === panel.apiName)?.channel;
+    }
+    return this.currentAi?.[key as Exclude<AiFeatureKey, ProductTaskKey>];
+  }
+
   aiToolLabel(provider: AiToolProvider): string {
     return this.aiTools.find((t) => t.value === provider)?.label ?? provider;
   }
@@ -199,18 +296,20 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
 
   /** The tools a feature really supports, as the server says - the page never offers more than that. */
   toolsFor(key: AiFeatureKey): { value: AiToolProvider; label: string }[] {
-    const supported = this.currentAi?.[key].supportedProviders ?? [];
+    const supported = this.channel(key)?.supportedProviders ?? [];
     return this.aiTools.filter((t) => supported.includes(t.value));
   }
 
   /** True when the feature uses no third-party tool yet, so only the simulator can be chosen. */
   noToolYet(key: AiFeatureKey): boolean {
-    return !!this.currentAi && this.currentAi[key].supportedProviders.length === 0;
+    const channel = this.channel(key);
+    return !!channel && channel.supportedProviders.length === 0;
   }
 
   /** A tool saved earlier that the feature cannot run on: kept as saved, not used. */
   savedToolUnsupported(key: AiFeatureKey): boolean {
-    return !!this.currentAi && !this.currentAi[key].savedProviderSupported;
+    const channel = this.channel(key);
+    return !!channel && !channel.savedProviderSupported;
   }
 
   get conversationTools(): { value: AiToolProvider; label: string }[] {
@@ -237,14 +336,14 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
   /** The tool picked on a panel is switched Off under AI Providers: its choice is kept, but the simulator answers. */
   aiToolOff(key: AiFeatureKey): boolean {
     const provider = this.aiForm.controls[key].controls.provider.value;
-    const saved: AiFeatureChannel | undefined = this.currentAi?.[key];
+    const saved: AiFeatureChannel | undefined = this.channel(key);
     return !!saved && saved.provider === provider && saved.providerEnabled === false;
   }
 
   /** Whether a key is saved for the tool picked on a panel. */
   aiHasKey(key: AiFeatureKey): boolean {
     const provider = this.aiForm.controls[key].controls.provider.value;
-    const saved: AiFeatureChannel | undefined = this.currentAi?.[key];
+    const saved: AiFeatureChannel | undefined = this.channel(key);
     // The server reports the key of the saved choice; for another pick it is only known on save, so assume yes until it says otherwise.
     return !saved || saved.provider !== provider || saved.providerHasKey;
   }
@@ -322,7 +421,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     if (this.aiTesting[key]) {
       return;
     }
-    const apiName = key === 'conversation' ? 'Conversation' : this.aiFeatures.find((f) => f.key === key)!.apiName;
+    const apiName = key === 'conversation' ? 'Conversation' : [...this.aiFeatures, ...this.productTaskFeatures].find((f) => f.key === key)!.apiName;
     const settings =
       key === 'conversation'
         ? { mode: this.aiForm.controls.conversation.controls.mode.value, provider: this.aiForm.controls.conversation.controls.provider.value }
@@ -363,7 +462,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
 
   private aiGroup() {
     return this.fb.group({
-      mode: this.fb.control<IntegrationMode>('Simulator'),
+      mode: this.fb.control<AiFeatureMode>('Simulator'),
       provider: this.fb.control<AiToolProvider>('OpenAI'),
     });
   }
@@ -380,15 +479,16 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       knowledgeBase: this.aiChannelRequest('knowledgeBase'),
       contentGeneration: this.aiChannelRequest('contentGeneration'),
       videoRenders: this.aiChannelRequest('videoRenders'),
-      productKnowledge: this.aiChannelRequest('productKnowledge'),
       businessKeywords: this.aiChannelRequest('businessKeywords'),
       discoveryKeywords: this.aiChannelRequest('discoveryKeywords'),
+      productKnowledgeTasks: this.productTaskFeatures.map((f) => ({ feature: f.apiName, ...this.aiChannelRequest(f.key) })),
     };
   }
 
   private applyAi(settings: PlatformAiFeatureSettings): void {
     this.currentAi = settings;
-    const values = (c: AiFeatureChannel) => ({ mode: c.mode, provider: c.provider });
+    const values = (c: AiFeatureChannel | undefined) => ({ mode: c?.mode ?? 'Simulator', provider: c?.provider ?? 'OpenAI' });
+    const task = (key: ProductTaskKey) => values(this.channel(key));
     this.aiForm.reset({
       conversation: {
         mode: settings.conversation.mode,
@@ -400,9 +500,14 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       knowledgeBase: values(settings.knowledgeBase),
       contentGeneration: values(settings.contentGeneration),
       videoRenders: values(settings.videoRenders),
-      productKnowledge: values(settings.productKnowledge),
       businessKeywords: values(settings.businessKeywords),
       discoveryKeywords: values(settings.discoveryKeywords),
+      productDocumentReading: task('productDocumentReading'),
+      productScannedReading: task('productScannedReading'),
+      productSuggestedAnswers: task('productSuggestedAnswers'),
+      productQuestionnaire: task('productQuestionnaire'),
+      productGapCheck: task('productGapCheck'),
+      productKnowledgeDraft: task('productKnowledgeDraft'),
     });
   }
 

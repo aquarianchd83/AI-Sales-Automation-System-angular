@@ -77,7 +77,20 @@ const aiStored = (over: Partial<PlatformAiFeatureSettings> = {}): PlatformAiFeat
   videoRenders: aiChannel(),
   businessKeywords: aiChannel({ mode: 'Api', provider: 'Anthropic', supportedProviders: ['Anthropic', 'OpenAI', 'Google'] }),
   discoveryKeywords: aiChannel({ mode: 'Api', provider: 'Anthropic', supportedProviders: ['Anthropic', 'OpenAI', 'Google'] }),
-  productKnowledge: aiChannel({ mode: 'Simulator', provider: 'OpenAI', supportedProviders: ['OpenAI', 'Anthropic', 'Google'] }),
+  productKnowledgeTasks: [
+    ['ProductDocumentReading', 'Reading documents and PDFs', 'Simulator'],
+    ['ProductScannedReading', 'Reading scanned pages and images', 'Off'],
+    ['ProductSuggestedAnswers', 'Suggested answers', 'Simulator'],
+    ['ProductQuestionnaire', 'Questionnaire and benefits', 'Simulator'],
+    ['ProductGapCheck', 'Gaps and conflicts check', 'Simulator'],
+    ['ProductKnowledgeDraft', 'Draft knowledge file', 'Simulator'],
+  ].map(([feature, title, mode]) => ({
+    feature,
+    title,
+    description: '',
+    tasks: [],
+    channel: aiChannel({ mode: mode as AiFeatureChannel['mode'], provider: 'OpenAI', supportedProviders: ['OpenAI', 'Anthropic', 'Google'] }),
+  })),
   ...over,
 });
 
@@ -343,21 +356,52 @@ describe('PlatformIntegrationSettingsComponent', () => {
       expect(service.saveAiFeatures.calls.mostRecent().args[0].discoveryKeywords.mode).toBe('Simulator');
     });
 
-    it('offers product knowledge as an engine choice with all three tools, starting on the simulator, and saves it', () => {
+    it('shows one panel per product-knowledge task group, each with Off, the simulator and all three tools', () => {
+      const { fixture, component } = create(stored());
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(component.productTaskFeatures.map((f) => f.title)).toEqual([
+        'Reading documents and PDFs', 'Reading scanned pages and images', 'Suggested answers', 'Questionnaire and benefits',
+        'Gaps and conflicts check', 'Draft knowledge file',
+      ]);
+      const answers = root.querySelector('[data-feature="ProductSuggestedAnswers"]')!;
+      expect(Array.from(answers.querySelectorAll('mat-radio-button')).slice(0, 3).map((b) => b.textContent?.trim())).toEqual(['Off', 'Simulator', 'Third-party tool']);
+      expect(component.toolsFor('productSuggestedAnswers').map((t) => t.label)).toEqual(['ChatGPT', 'Claude', 'Gemini']);
+
+      // The saved state arrives as a list and lands on each panel: scanned pages start Off.
+      expect(component.aiForm.controls.productScannedReading.controls.mode.value).toBe('Off');
+      expect(root.querySelector('[data-feature="ProductScannedReading"] [data-testid="off-note"]')?.textContent).toContain('nothing is sent anywhere');
+      expect(component.aiForm.controls.productSuggestedAnswers.controls.mode.value).toBe('Simulator');
+
+      // Off is only offered for product knowledge.
+      const keywords = root.querySelector('[data-feature="BusinessKeywords"]')!;
+      expect(Array.from(keywords.querySelectorAll('mat-radio-button')).map((b) => b.textContent?.trim())).not.toContain('Off');
+    });
+
+    it('saves each task group on its own switch', () => {
       const { component } = create(stored());
-      const feature = component.aiFeatures.find((f) => f.key === 'productKnowledge');
 
-      expect(feature?.title).toBe('Product knowledge');
-      expect(feature?.simulatorNote).toContain('can be published as verified');
-      expect(component.toolsFor('productKnowledge').map((t) => t.label)).toEqual(['ChatGPT', 'Claude', 'Gemini']);
-      expect(component.aiForm.controls.productKnowledge.controls.mode.value).toBe('Simulator');
-
-      component.aiForm.controls.productKnowledge.controls.mode.setValue('Api');
-      component.aiForm.controls.productKnowledge.controls.provider.setValue('Anthropic');
+      component.aiForm.controls.productSuggestedAnswers.controls.mode.setValue('Api');
+      component.aiForm.controls.productSuggestedAnswers.controls.provider.setValue('Anthropic');
+      component.aiForm.controls.productDocumentReading.controls.mode.setValue('Off');
       component.aiForm.markAsDirty();
       component.save();
 
-      expect(service.saveAiFeatures.calls.mostRecent().args[0].productKnowledge).toEqual({ mode: 'Api', provider: 'Anthropic' });
+      const sent = service.saveAiFeatures.calls.mostRecent().args[0].productKnowledgeTasks;
+      expect(sent.length).toBe(6);
+      expect(sent.find((g) => g.feature === 'ProductSuggestedAnswers')).toEqual({ feature: 'ProductSuggestedAnswers', mode: 'Api', provider: 'Anthropic' });
+      expect(sent.find((g) => g.feature === 'ProductDocumentReading')?.mode).toBe('Off');
+      expect(sent.find((g) => g.feature === 'ProductScannedReading')?.mode).toBe('Off');
+      expect(sent.find((g) => g.feature === 'ProductKnowledgeDraft')?.mode).toBe('Simulator');
+    });
+
+    it('tests a task group with its own feature name', () => {
+      const { component } = create(stored());
+      component.aiForm.controls.productGapCheck.controls.mode.setValue('Api');
+
+      component.testAi('productGapCheck');
+
+      expect(service.testAiFeature).toHaveBeenCalledWith('ProductGapCheck', { settings: { mode: 'Api', provider: 'OpenAI' } });
     });
 
     it('says so when the saved tool is switched off under AI Providers, and keeps the choice', () => {

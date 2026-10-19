@@ -14,7 +14,6 @@ const policy = (over: Partial<AiPolicy> = {}): AiPolicy => ({
   fallbackEnabled: false,
   fallbackOrder: ['OpenAI', 'Google', 'Anthropic'],
   simulatorScenario: 'Success',
-  scannedDocumentsViaAi: false,
   maxCostPerCallUsd: 0.5,
   timeoutSeconds: 60,
   maxRetriesPerProvider: 1,
@@ -22,7 +21,7 @@ const policy = (over: Partial<AiPolicy> = {}): AiPolicy => ({
   ...over,
 });
 
-const overview = (): AiProvidersOverview => ({ providers: [], policy: policy(), chosenMode: 'Simulator', chosenProvider: 'Simulator' });
+const overview = (): AiProvidersOverview => ({ providers: [], policy: policy() });
 
 const execution = (over: Partial<AiExecution> = {}): AiExecution => ({
   id: 'e1',
@@ -85,15 +84,14 @@ describe('PlatformAiPolicyComponent', () => {
     expect(el.querySelector('a[href="/settings/ai-providers"]')).not.toBeNull();
   });
 
-  it('saves the policy: fallback order, scanned documents, cost limit and the simulator scenario', () => {
+  it('saves the policy: fallback order, cost limit and the simulator scenario', () => {
     render();
-    api.updatePolicy.and.returnValue(of(policy({ fallbackEnabled: true, fallbackOrder: ['Google', 'OpenAI'], scannedDocumentsViaAi: true, simulatorScenario: 'Conflict', maxCostPerCallUsd: 1 })));
+    api.updatePolicy.and.returnValue(of(policy({ fallbackEnabled: true, fallbackOrder: ['Google', 'OpenAI'], simulatorScenario: 'Conflict', maxCostPerCallUsd: 1 })));
     const component = fixture.componentInstance;
 
     component.policyFallback = true;
     component.removeFromOrder(2); // drop Claude
     component.moveUp(1); // Gemini before ChatGPT
-    component.policyScanned = true;
     component.policyScenario = 'Conflict';
     component.policyMaxCost.setValue(1);
     component.savePolicy();
@@ -102,7 +100,6 @@ describe('PlatformAiPolicyComponent', () => {
       fallbackEnabled: true,
       fallbackOrder: ['Google', 'OpenAI'],
       simulatorScenario: 'Conflict',
-      scannedDocumentsViaAi: true,
       maxCostPerCallUsd: 1,
     });
     expect(notify.success).toHaveBeenCalledWith('AI policy saved.');
@@ -119,13 +116,10 @@ describe('PlatformAiPolicyComponent', () => {
     expect(notify.error).toHaveBeenCalled();
   });
 
-  it('warns that scanned pages leave the platform when that switch is on', () => {
+  it('has no scanned-documents switch of its own: that is the scanned-pages task group above', () => {
     render();
-    fixture.componentInstance.policyScanned = true;
-    fixture.detectChanges();
 
-    const note = root().querySelector('[data-testid="policy"] .warn');
-    expect(text(note)).toContain('sent to the chosen AI provider');
+    expect(root().querySelector('[data-testid="scanned"]')).toBeNull();
   });
 
   it('lists AI calls with mode, fallback, tokens and cost', () => {
