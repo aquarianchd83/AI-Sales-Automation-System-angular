@@ -1,0 +1,191 @@
+<div class="page">
+  <app-page-header
+    title="Product sources"
+    subtitle="Give the AI what it should learn your products from: brochures, PDFs, manuals, price lists and your website. Each one is read page by page."
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="panel" *ngIf="loadFailed">
+    <p>Your sources could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <ng-container *ngIf="overview && !loadFailed">
+    <div class="note note--warn" *ngIf="!overview.storageReady" data-testid="storage-off">
+      <mat-icon>cloud_off</mat-icon>
+      <span>Uploads are not possible yet: the platform's file storage is not set up. Your platform administrator needs to fill in the AWS Settings.</span>
+    </div>
+
+    <!-- Add: documents and the website. -->
+    <div class="add">
+      <label
+        class="drop"
+        [class.drop--over]="dragOver"
+        [class.drop--disabled]="!canAdd"
+        (dragover)="onDragOver($event)"
+        (dragleave)="dragOver = false"
+        (drop)="onDrop($event)"
+        data-testid="drop"
+      >
+        <input type="file" multiple [accept]="accept" [disabled]="!canAdd" (change)="onFiles($any($event.target).files); $any($event.target).value = ''" />
+        <mat-icon>upload_file</mat-icon>
+        <span class="drop-title">Upload documents</span>
+        <span class="muted small">Drop files here or click to choose · {{ formats }} · up to {{ overview.maxFileMb }} MB each</span>
+        <span class="muted small" *ngIf="uploading.length" data-testid="uploading">Uploading {{ uploading.join(', ') }}…</span>
+      </label>
+
+      <form class="site" (ngSubmit)="addWebsite()">
+        <div class="site-title"><mat-icon>language</mat-icon> Add your website</div>
+        <div class="site-row">
+          <mat-form-field subscriptSizing="dynamic" class="site-field">
+            <mat-label>Website address</mat-label>
+            <input matInput [formControl]="website" placeholder="www.yourbusiness.com" autocomplete="off" data-testid="website" />
+          </mat-form-field>
+          <button mat-flat-button color="primary" type="submit" [disabled]="addingWebsite || !canAdd || !website.value.trim()" data-testid="add-website">
+            {{ addingWebsite ? 'Adding…' : 'Add' }}
+          </button>
+        </div>
+        <span class="muted small">Its public pages are read, following links on the same site. Pages the site asks robots not to read are skipped.</span>
+      </form>
+    </div>
+
+    <p class="muted small limits">
+      {{ list.length }} of {{ overview.maxSources }} sources used.
+      <ng-container *ngIf="atLimit"> Remove one to add another.</ng-container>
+      <ng-container *ngIf="overview.scannedReading === 'Off'"> Scanned PDFs and photos of documents cannot be read on this platform yet - upload versions with real text.</ng-container>
+    </p>
+
+    <div class="empty" *ngIf="!list.length">
+      <mat-icon>auto_stories</mat-icon>
+      <p>No sources yet. Upload a brochure or add your website - the AI reads them and uses them to answer questions about your products.</p>
+    </div>
+
+    <!-- The sources on the left, the chosen one on the right. -->
+    <div class="console" *ngIf="list.length">
+      <nav class="list" aria-label="Sources">
+        <button
+          type="button"
+          class="item"
+          *ngFor="let source of list"
+          [class.item--active]="source.id === selectedId"
+          [attr.data-source]="source.id"
+          (click)="select(source)"
+        >
+          <mat-icon class="item-icon">{{ icon(source) }}</mat-icon>
+          <span class="item-main">
+            <span class="item-name">{{ source.name }}</span>
+            <span class="muted small" *ngIf="source.status === 'Ready'">{{ source.passageCount }} passages · {{ source.pageCount }} {{ source.kind === 'Website' ? 'pages read' : 'pages' }}</span>
+            <span class="muted small" *ngIf="source.status !== 'Ready'">{{ statusText[source.status] }}</span>
+          </span>
+          <mat-spinner diameter="16" *ngIf="isWorking(source)"></mat-spinner>
+          <mat-icon class="item-flag fail" *ngIf="source.status === 'Failed'">error</mat-icon>
+        </button>
+      </nav>
+
+      <section class="detail" *ngIf="selected as source" aria-live="polite">
+        <mat-card class="panel" [attr.data-detail]="source.id">
+          <header class="panel-head">
+            <div class="panel-title">
+              <mat-icon>{{ icon(source) }}</mat-icon>
+              <div>
+                <h2>{{ source.name }}</h2>
+                <p class="muted small">
+                  <ng-container *ngIf="source.kind === 'Website'"><a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ source.url }}</a> · </ng-container>
+                  <ng-container *ngIf="source.sizeBytes !== null">{{ size(source.sizeBytes) }} · </ng-container>
+                  Added {{ source.createdAt | zonedDate: 'medium' }}
+                  <ng-container *ngIf="source.processedAt"> · read {{ source.processedAt | zonedDate: 'medium' }}</ng-container>
+                  <ng-container *ngIf="source.version > 1"> · version {{ source.version }}</ng-container>
+                </p>
+              </div>
+            </div>
+            <span [class]="statusClass(source.status)" data-testid="status">{{ statusText[source.status] }}</span>
+          </header>
+
+          <div class="actions">
+            <button mat-stroked-button type="button" *ngIf="source.canRetry || source.canRescan" [disabled]="busy[source.id]" (click)="retry(source)" data-testid="retry">
+              <mat-icon>refresh</mat-icon>
+              {{ source.canRescan ? 'Scan again' : 'Try again' }}
+            </button>
+            <button mat-stroked-button type="button" *ngIf="source.hasText" (click)="download(source, 'text')" data-testid="download-text">
+              <mat-icon>article</mat-icon> Text that was read
+            </button>
+            <button mat-stroked-button type="button" *ngIf="source.hasOriginal" (click)="download(source, 'original')">
+              <mat-icon>download</mat-icon> Original file
+            </button>
+            <span class="spacer"></span>
+            <button mat-button color="warn" type="button" (click)="remove(source)" data-testid="remove"><mat-icon>delete</mat-icon> Remove</button>
+          </div>
+
+          <div class="note" *ngIf="isWorking(source)">
+            <mat-spinner diameter="18"></mat-spinner>
+            <span>{{ source.status === 'Queued' ? 'Waiting its turn to be read.' : 'Reading now - this page updates on its own.' }}</span>
+          </div>
+
+          <div class="note note--fail" *ngIf="source.status === 'Failed'" data-testid="error">
+            <mat-icon>error</mat-icon>
+            <span>{{ source.error }}</span>
+          </div>
+
+          <div class="note note--warn" *ngFor="let warning of source.warnings">
+            <mat-icon>info</mat-icon>
+            <span>{{ warning }}</span>
+          </div>
+
+          <div class="note" *ngIf="source.usedAiReading">
+            <mat-icon>auto_awesome</mat-icon>
+            <span>Some pages were scanned pictures and were read with AI. Check their text below - a reading can contain mistakes.</span>
+          </div>
+
+          <div class="note note--warn" *ngIf="source.qualityScore !== null && source.qualityScore < 0.7">
+            <mat-icon>view_column</mat-icon>
+            <span>The layout of this document made it hard to read in order. Check that the passages below make sense.</span>
+          </div>
+
+          <mat-progress-bar mode="indeterminate" *ngIf="detailLoading"></mat-progress-bar>
+
+          <ng-container *ngIf="detail && detail.source.id === source.id">
+            <!-- Website pages: read, duplicate, blocked, failed. -->
+            <ng-container *ngIf="detail.pages.length">
+              <h3 class="sub-title">
+                Pages
+                <span class="muted small">
+                  {{ pageCount('Read') }} read
+                  <ng-container *ngIf="pageCount('Duplicate')"> · {{ pageCount('Duplicate') }} duplicate</ng-container>
+                  <ng-container *ngIf="pageCount('Blocked')"> · {{ pageCount('Blocked') }} blocked</ng-container>
+                  <ng-container *ngIf="pageCount('Failed')"> · {{ pageCount('Failed') }} failed</ng-container>
+                  <ng-container *ngIf="pageCount('Skipped')"> · {{ pageCount('Skipped') }} skipped</ng-container>
+                </span>
+              </h3>
+              <ul class="pages" data-testid="pages">
+                <li *ngFor="let page of detail.pages" [attr.data-page-status]="page.status">
+                  <span [class]="statusClass(page.status)">{{ page.status }}</span>
+                  <a [href]="page.url" target="_blank" rel="noopener noreferrer" class="page-url">{{ page.title || page.url }}</a>
+                  <span class="muted small" *ngIf="page.error">{{ page.error }}</span>
+                </li>
+              </ul>
+            </ng-container>
+
+            <!-- The passages: what later answers will quote. -->
+            <ng-container *ngIf="detail.passages.length">
+              <h3 class="sub-title">
+                What was read
+                <span class="muted small">{{ detail.passageTotal }} passages<ng-container *ngIf="detail.passageTotal > detail.passages.length">, first {{ detail.passages.length }} shown - download the text for all</ng-container></span>
+              </h3>
+              <ol class="passages" data-testid="passages">
+                <li *ngFor="let passage of detail.passages">
+                  <div class="passage-meta">
+                    <span class="place">{{ placeOf(passage) }}</span>
+                    <span class="muted small" *ngIf="passage.heading">{{ passage.heading }}</span>
+                    <span class="ai" *ngIf="passage.fromAiReading">read by AI</span>
+                  </div>
+                  <p class="passage-text">{{ passage.text }}</p>
+                </li>
+              </ol>
+            </ng-container>
+          </ng-container>
+        </mat-card>
+      </section>
+    </div>
+  </ng-container>
+</div>

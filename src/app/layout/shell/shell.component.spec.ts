@@ -77,6 +77,7 @@ describe('ShellComponent sidenav', () => {
       'text_snippetMessage Templates',
       'perm_mediaMedia Library',
       'menu_bookKnowledge Base',
+      'auto_storiesProduct Sources',
       'bar_chartReports',
       'monitoringAgent Performance',
       'storefrontBusiness Profile',
