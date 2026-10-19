@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
@@ -20,6 +20,9 @@ import { PlatformAiProvidersService } from '../../../core/services/platform-ai-p
   styleUrls: ['./platform-ai-policy.component.scss'],
 })
 export class PlatformAiPolicyComponent implements OnInit {
+  /** Which part to show: the policy card, the call log, or both. */
+  @Input() show: 'all' | 'policy' | 'calls' = 'all';
+
   readonly executionColumns = ['when', 'task', 'provider', 'mode', 'status', 'duration', 'tokens', 'cost', 'error'];
   readonly nameOf = aiProviderName;
 

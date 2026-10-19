@@ -125,16 +125,72 @@ describe('PlatformIntegrationSettingsComponent', () => {
     return { fixture, component: fixture.componentInstance };
   };
 
+  /** Opens one item of the console on the right, as clicking it in the list does. */
+  const open = (fixture: { componentInstance: PlatformIntegrationSettingsComponent; detectChanges(): void; nativeElement: HTMLElement }, id: string) => {
+    (fixture.nativeElement.querySelector(`[data-nav="${id}"]`) as HTMLButtonElement).click();
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  };
+
+  it('lists every service and AI feature on the left with what it runs on, and opens one at a time on the right', () => {
+    const { fixture, component } = create(stored());
+    const root = fixture.nativeElement as HTMLElement;
+
+    const nav = Array.from(root.querySelectorAll('[data-nav]')).map((e) => e.getAttribute('data-nav'));
+    expect(nav).toEqual([
+      'conversation', 'consentSms', 'dndCheck', 'discoveryLead', 'discoveryKeywords', 'businessKeywords', 'knowledgeBase', 'contentGeneration',
+      'videoRenders', 'productDocumentReading', 'productScannedReading', 'productSuggestedAnswers', 'productQuestionnaire', 'productGapCheck',
+      'productKnowledgeDraft', 'policy', 'calls',
+    ]);
+    expect(root.querySelector('[data-nav="discoveryLead"] .pill')?.textContent?.trim()).toBe('Claude');
+    expect(root.querySelector('[data-nav="productScannedReading"] .pill')?.textContent?.trim()).toBe('Off');
+    expect(root.querySelector('[data-nav="consentSms"] .pill')?.textContent?.trim()).toBe('Simulator');
+
+    // Conversations open first; one panel at a time.
+    expect(root.querySelectorAll('mat-card.panel').length).toBe(1);
+    expect(root.querySelector('[data-panel="conversation"]')).not.toBeNull();
+    open(fixture, 'knowledgeBase');
+    expect(root.querySelectorAll('mat-card.panel').length).toBe(1);
+    expect(root.querySelector('[data-feature="KnowledgeBase"]')).not.toBeNull();
+    expect(component.selected).toBe('knowledgeBase');
+  });
+
+  it('marks an item with an unsaved change and offers one Save for everything', () => {
+    const { fixture, component } = create(stored());
+    const root = open(fixture, 'productSuggestedAnswers');
+
+    expect(root.querySelector('[data-testid="unsaved"]')).toBeNull();
+    component.setEngine('productSuggestedAnswers', 'Anthropic');
+    fixture.detectChanges();
+
+    expect(root.querySelector('[data-nav="productSuggestedAnswers"] .nav-dirty')).not.toBeNull();
+    expect(root.querySelector('[data-nav="productSuggestedAnswers"] .pill')?.textContent?.trim()).toBe('Claude');
+    expect(root.querySelector('[data-testid="unsaved"]')).not.toBeNull();
+    (root.querySelector('[data-testid="save"]') as HTMLButtonElement).click();
+    expect(service.saveAiFeatures.calls.mostRecent().args[0].productKnowledgeTasks.find((g) => g.feature === 'ProductSuggestedAnswers'))
+      .toEqual({ feature: 'ProductSuggestedAnswers', mode: 'Api', provider: 'Anthropic' });
+  });
+
+  it('shows a tool that cannot run (switched off under AI Providers) in amber, not as live', () => {
+    const { fixture } = create(stored(), aiStored({ discoveryKeywords: aiChannel({
+      mode: 'Api', provider: 'OpenAI', providerHasKey: false, providerEnabled: false, supportedProviders: ['Anthropic', 'OpenAI', 'Google'],
+    }) }));
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-nav="discoveryKeywords"] .pill--warn')).not.toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-nav="discoveryLead"] .pill--live')).not.toBeNull();
+  });
+
   it('starts on the simulator for both services and shows no API fields', () => {
     const { fixture, component } = create(stored());
 
     expect(component.isApi('consentSms')).toBeFalse();
     expect(component.isApi('dndCheck')).toBeFalse();
-    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-    expect(text).toContain('Consent SMS');
-    expect(text).toContain('DND check');
-    expect(text).toContain('nothing leaves the platform');
-    expect((fixture.nativeElement as HTMLElement).querySelector('input[formcontrolname="apiUrl"]')).toBeNull();
+    const root = open(fixture, 'consentSms');
+    expect(root.querySelector('[data-panel="consentSms"] h2')?.textContent).toContain('Consent SMS');
+    expect(root.querySelector('[data-panel="consentSms"]')?.textContent).toContain('nothing leaves the platform');
+    expect(root.querySelector('input[formcontrolname="apiUrl"]')).toBeNull();
+    open(fixture, 'dndCheck');
+    expect(root.querySelector('[data-panel="dndCheck"] h2')?.textContent).toContain('DND check');
   });
 
   it('shows the API fields for a service switched to the third-party API, and the key only as a hint', () => {
@@ -146,7 +202,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
     expect(component.isApi('dndCheck')).toBeFalse();
     expect(component.form.controls.consentSms.controls.apiKey.value).toBe('');
     expect(component.storedHint('consentSms')).toBe('••••1234');
-    expect((fixture.nativeElement as HTMLElement).querySelectorAll('input[formcontrolname="apiUrl"]').length).toBe(1);
+    expect(open(fixture, 'consentSms').querySelectorAll('input[formcontrolname="apiUrl"]').length).toBe(1);
   });
 
   it('saves a blank key as null (keep) and a removed key as an empty string (clear)', () => {
@@ -202,24 +258,26 @@ describe('PlatformIntegrationSettingsComponent', () => {
   });
 
   describe('AI feature panels', () => {
+    /** The choices a segmented control offers that can be picked (disabled ones are not offered). */
     const labels = (root: HTMLElement, group: string) =>
-      Array.from(root.querySelectorAll(`mat-radio-group[aria-label="${group}"] mat-radio-button`)).map((e) => e.textContent?.trim());
+      Array.from(root.querySelectorAll(`mat-button-toggle-group[aria-label="${group}"] mat-button-toggle`))
+        .filter((e) => !e.classList.contains('mat-button-toggle-disabled'))
+        .map((e) => e.textContent?.replace(/science|block/g, '').trim());
 
-    it('shows a panel for each AI feature and says availability depends on the feature', () => {
+    it('has a panel for each AI feature', () => {
       const { fixture } = create(stored());
 
-      const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
-      for (const title of ['AI conversation', 'Discovery lead', 'Knowledge base', 'Content generation', 'Video renders']) {
-        expect(text).toContain(title);
+      for (const [id, title] of [['conversation', 'Customer conversations'], ['discoveryLead', 'Discovery lead'], ['knowledgeBase', 'Knowledge base'],
+        ['contentGeneration', 'Content generation'], ['videoRenders', 'Video renders']]) {
+        expect(open(fixture, id).querySelector('mat-card.panel h2')?.textContent).toContain(title);
       }
-      expect(text).toContain('AI provider availability depends on the selected feature');
     });
 
     it('offers Claude only for discovery lead, whatever other keys exist', () => {
       const { fixture, component } = create(stored());
 
       expect(component.toolsFor('discoveryLead').map((t) => t.label)).toEqual(['Claude']);
-      expect(labels(fixture.nativeElement, 'Discovery lead tool')).toEqual(['Claude']);
+      expect(labels(open(fixture, 'discoveryLead'), 'Discovery lead runs on')).toEqual(['Simulator', 'Claude']);
     });
 
     it('offers ChatGPT, Claude and Gemini for the conversation and ChatGPT and Gemini for embeddings', () => {
@@ -227,8 +285,9 @@ describe('PlatformIntegrationSettingsComponent', () => {
 
       expect(component.conversationTools.map((t) => t.label)).toEqual(['ChatGPT', 'Claude', 'Gemini']);
       expect(component.embeddingTools.map((t) => t.label)).toEqual(['ChatGPT', 'Gemini']);
-      expect(labels(fixture.nativeElement, 'AI conversation tool')).toEqual(['ChatGPT', 'Claude', 'Gemini']);
-      expect(labels(fixture.nativeElement, 'Embeddings tool')).toEqual(['ChatGPT', 'Gemini']);
+      const root = open(fixture, 'conversation');
+      expect(labels(root, 'Customer replies run on')).toEqual(['Simulator', 'ChatGPT', 'Claude', 'Gemini']);
+      expect(labels(root, 'Embeddings run on')).toEqual(['Simulator', 'ChatGPT', 'Gemini']);
     });
 
     it('lets a provider be added to one feature without showing it on another', () => {
@@ -247,12 +306,9 @@ describe('PlatformIntegrationSettingsComponent', () => {
 
       expect(component.noToolYet('knowledgeBase')).toBeTrue();
       expect(component.noToolYet('discoveryLead')).toBeFalse();
-      const root = fixture.nativeElement as HTMLElement;
-      expect(root.textContent).toContain('does not use a third-party tool today');
-      fixture.detectChanges();
-      const radios = Array.from(root.querySelectorAll('mat-radio-group[aria-label="Knowledge base handling"] input[type="radio"]')) as HTMLInputElement[];
-      expect(radios[1].disabled).toBeTrue();
-      expect(radios[0].disabled).toBeFalse();
+      const root = open(fixture, 'knowledgeBase');
+      expect(root.textContent).toContain('not connected to a third-party tool yet');
+      expect(labels(root, 'Knowledge base runs on')).toEqual(['Simulator']);
     });
 
     it('switching to a third-party tool picks one the feature supports', () => {
@@ -270,7 +326,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
       );
 
       expect(component.savedToolUnsupported('discoveryLead')).toBeTrue();
-      expect((fixture.nativeElement as HTMLElement).textContent).toContain('The tool saved earlier (ChatGPT) is not available for this feature');
+      expect(open(fixture, 'discoveryLead').textContent).toContain('The tool saved earlier (ChatGPT) is not available for this feature');
       expect(component.aiForm.controls.discoveryLead.controls.provider.value).toBe('OpenAI');
       expect(component.dirty).toBeFalse();
     });
@@ -293,8 +349,9 @@ describe('PlatformIntegrationSettingsComponent', () => {
     it('shows what the AI conversation runs on and saves a changed choice with the embeddings tool', () => {
       const { fixture, component } = create(stored(), aiStored({ conversation: conversation({ provider: 'Anthropic', embeddingProvider: 'Google' }) }));
 
-      expect((fixture.nativeElement as HTMLElement).textContent).toContain('AI conversation');
+      expect(open(fixture, 'conversation').querySelector('[data-panel="conversation"] h2')?.textContent).toContain('Customer conversations');
       expect(component.isConversationThirdParty()).toBeTrue();
+      expect(component.chatEngine()).toBe('Anthropic');
       expect(component.aiForm.controls.conversation.controls.provider.value).toBe('Anthropic');
 
       component.aiForm.controls.conversation.controls.embeddingProvider.setValue('OpenAI');
@@ -317,10 +374,10 @@ describe('PlatformIntegrationSettingsComponent', () => {
       const { fixture, component } = create(stored(), aiStored({ discoveryLead: discovery({ providerHasKey: false }) }));
 
       expect(component.aiHasKey('discoveryLead')).toBeFalse();
-      expect((fixture.nativeElement as HTMLElement).textContent).toContain('No Claude key is saved yet');
-      const link = (fixture.nativeElement as HTMLElement).querySelector('a[href="/settings/ai-providers"]');
+      const root = open(fixture, 'discoveryLead');
+      expect(root.textContent).toContain('No Claude key is saved yet');
+      const link = root.querySelector('a[href="/settings/ai-providers"]');
       expect(link?.textContent).toContain('Configuration > AI Providers');
-      expect(link?.getAttribute('target')).toBe('_blank');
     });
 
     it('tests the conversation tool under the Conversation feature name', () => {
@@ -358,24 +415,22 @@ describe('PlatformIntegrationSettingsComponent', () => {
 
     it('shows one panel per product-knowledge task group, each with Off, the simulator and all three tools', () => {
       const { fixture, component } = create(stored());
-      const root = fixture.nativeElement as HTMLElement;
+      const root = open(fixture, 'productSuggestedAnswers');
 
       expect(component.productTaskFeatures.map((f) => f.title)).toEqual([
         'Reading documents and PDFs', 'Reading scanned pages and images', 'Suggested answers', 'Questionnaire and benefits',
         'Gaps and conflicts check', 'Draft knowledge file',
       ]);
-      const answers = root.querySelector('[data-feature="ProductSuggestedAnswers"]')!;
-      expect(Array.from(answers.querySelectorAll('mat-radio-button')).slice(0, 3).map((b) => b.textContent?.trim())).toEqual(['Off', 'Simulator', 'Third-party tool']);
+      expect(labels(root, 'Suggested answers runs on')).toEqual(['Off', 'Simulator', 'ChatGPT', 'Claude', 'Gemini']);
       expect(component.toolsFor('productSuggestedAnswers').map((t) => t.label)).toEqual(['ChatGPT', 'Claude', 'Gemini']);
 
       // The saved state arrives as a list and lands on each panel: scanned pages start Off.
       expect(component.aiForm.controls.productScannedReading.controls.mode.value).toBe('Off');
-      expect(root.querySelector('[data-feature="ProductScannedReading"] [data-testid="off-note"]')?.textContent).toContain('nothing is sent anywhere');
+      expect(open(fixture, 'productScannedReading').querySelector('[data-testid="off-note"]')?.textContent).toContain('nothing is sent anywhere');
       expect(component.aiForm.controls.productSuggestedAnswers.controls.mode.value).toBe('Simulator');
 
       // Off is only offered for product knowledge.
-      const keywords = root.querySelector('[data-feature="BusinessKeywords"]')!;
-      expect(Array.from(keywords.querySelectorAll('mat-radio-button')).map((b) => b.textContent?.trim())).not.toContain('Off');
+      expect(labels(open(fixture, 'businessKeywords'), 'Profile Information - Keyword AI Suggest runs on')).not.toContain('Off');
     });
 
     it('saves each task group on its own switch', () => {

@@ -74,6 +74,16 @@ const ALL_AI_KEYS: AiFeatureKey[] = [
   'productKnowledgeDraft',
 ];
 
+/** One entry of the list on the left: a service, an AI feature, a task group, the policy or the call log. */
+interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+/** What a feature runs on, as one value: Off, the simulator, or a tool. */
+export type AiEngine = 'Off' | 'Simulator' | AiToolProvider;
+
 function flags<T>(value: T): Record<AiFeatureKey | 'conversation', T> {
   return Object.fromEntries([...ALL_AI_KEYS, 'conversation'].map((k) => [k, value])) as Record<AiFeatureKey | 'conversation', T>;
 }
@@ -86,6 +96,9 @@ function flags<T>(value: T): Record<AiFeatureKey | 'conversation', T> {
  *
  * Below those, one panel per AI feature (discovery leads, knowledge base, content generation, video renders): the simulator, or a
  * third-party tool - ChatGPT, Claude or Gemini - using the key saved under Configuration > AI Providers, so no key is typed here.
+ *
+ * Laid out as a console: the list on the left shows every item and what it runs on now; the item chosen opens on the right, so the admin
+ * never scrolls through every panel to change one. One Save button saves every change made, in any item.
  */
 @Component({
   selector: 'app-platform-integration-settings',
@@ -213,6 +226,45 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     dndCheck: this.fb.control('', [Validators.pattern(/^\+[0-9 ()-]{8,20}$/)]),
   };
 
+  /** The item open on the right. */
+  selected = 'conversation';
+
+  /** The list on the left, in the order an admin thinks of it. */
+  readonly navGroups: { title: string; items: NavItem[] }[] = [
+    {
+      title: 'Customer messaging',
+      items: [
+        { id: 'conversation', label: 'Conversations', icon: 'forum' },
+        { id: 'consentSms', label: 'Consent SMS', icon: 'sms' },
+        { id: 'dndCheck', label: 'DND check', icon: 'verified_user' },
+      ],
+    },
+    {
+      title: 'AI features',
+      items: [
+        { id: 'discoveryLead', label: 'Lead discovery', icon: 'travel_explore' },
+        { id: 'discoveryKeywords', label: 'Discovery keywords', icon: 'manage_search' },
+        { id: 'businessKeywords', label: 'Profile keywords', icon: 'sell' },
+        { id: 'knowledgeBase', label: 'Knowledge base', icon: 'menu_book' },
+        { id: 'contentGeneration', label: 'Content generation', icon: 'edit_note' },
+        { id: 'videoRenders', label: 'Video renders', icon: 'movie' },
+      ],
+    },
+    {
+      title: 'Product knowledge',
+      items: [
+        { id: 'productDocumentReading', label: 'Documents and PDFs', icon: 'description' },
+        { id: 'productScannedReading', label: 'Scanned pages', icon: 'document_scanner' },
+        { id: 'productSuggestedAnswers', label: 'Suggested answers', icon: 'question_answer' },
+        { id: 'productQuestionnaire', label: 'Questionnaire', icon: 'quiz' },
+        { id: 'productGapCheck', label: 'Gaps and conflicts', icon: 'rule' },
+        { id: 'productKnowledgeDraft', label: 'Knowledge draft', icon: 'article' },
+        { id: 'policy', label: 'AI policy', icon: 'policy' },
+        { id: 'calls', label: 'AI call log', icon: 'receipt_long' },
+      ],
+    },
+  ];
+
   current: PlatformIntegrationSettings | null = null;
   currentAi: PlatformAiFeatureSettings | null = null;
   aiTesting = flags<boolean>(false);
@@ -269,6 +321,131 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     return this.aiResults[key];
   }
 
+  /** Every feature panel - the AI features and the product-knowledge task groups. */
+  get allAiPanels(): AiFeaturePanel[] {
+    return [...this.aiFeatures, ...this.productTaskFeatures];
+  }
+
+  select(id: string): void {
+    this.selected = id;
+  }
+
+  private isFeatureKey(id: string): id is AiFeatureKey {
+    return (ALL_AI_KEYS as string[]).includes(id);
+  }
+
+  /** What a feature runs on, as the one value the segmented control shows. */
+  engineOf(key: AiFeatureKey): AiEngine {
+    const group = this.aiForm.controls[key].controls;
+    return group.mode.value === 'Api' ? group.provider.value : group.mode.value;
+  }
+
+  /** Picks Off, the simulator or a tool for a feature. The tool is set before the mode, so the mode's own check keeps it. */
+  setEngine(key: AiFeatureKey, engine: AiEngine): void {
+    const group = this.aiForm.controls[key];
+    if (engine === 'Off' || engine === 'Simulator') {
+      group.controls.mode.setValue(engine);
+    } else {
+      group.controls.provider.setValue(engine);
+      group.controls.mode.setValue('Api');
+    }
+    group.markAsDirty();
+  }
+
+  chatEngine(): AiEngine {
+    const c = this.aiForm.controls.conversation.controls;
+    return c.mode.value === 'Api' ? c.provider.value : 'Simulator';
+  }
+
+  setChatEngine(engine: AiEngine): void {
+    const c = this.aiForm.controls.conversation.controls;
+    if (engine === 'Simulator' || engine === 'Off') {
+      c.mode.setValue('Simulator');
+    } else {
+      c.provider.setValue(engine);
+      c.mode.setValue('Api');
+    }
+    this.aiForm.controls.conversation.markAsDirty();
+  }
+
+  embeddingEngine(): AiEngine {
+    const c = this.aiForm.controls.conversation.controls;
+    return c.embeddingMode.value === 'Api' ? c.embeddingProvider.value : 'Simulator';
+  }
+
+  setEmbeddingEngine(engine: AiEngine): void {
+    const c = this.aiForm.controls.conversation.controls;
+    if (engine === 'Simulator' || engine === 'Off') {
+      c.embeddingMode.setValue('Simulator');
+    } else {
+      c.embeddingProvider.setValue(engine);
+      c.embeddingMode.setValue('Api');
+    }
+    this.aiForm.controls.conversation.markAsDirty();
+  }
+
+  conversationSupports(tool: AiToolProvider): boolean {
+    return this.conversationTools.some((t) => t.value === tool);
+  }
+
+  embeddingSupports(tool: AiToolProvider): boolean {
+    return this.embeddingTools.some((t) => t.value === tool);
+  }
+
+  supports(key: AiFeatureKey, tool: AiToolProvider): boolean {
+    return this.toolsFor(key).some((t) => t.value === tool);
+  }
+
+  notSupportedReason(key: AiFeatureKey, label: string): string {
+    return this.noToolYet(key) ? 'Not connected to a third-party tool yet' : `${label} cannot run this feature`;
+  }
+
+  /** The pill beside an item on the left: what it runs on now (as on screen, saved or not). Null for the policy and the log. */
+  engineLabel(id: string): string | null {
+    if (id === 'conversation') {
+      const engine = this.chatEngine();
+      return engine === 'Simulator' ? 'Simulator' : this.aiToolLabel(engine as AiToolProvider);
+    }
+    if (id === 'consentSms' || id === 'dndCheck') {
+      return this.isApi(id) ? 'API' : 'Simulator';
+    }
+    if (!this.isFeatureKey(id)) {
+      return null;
+    }
+    const engine = this.engineOf(id);
+    return engine === 'Off' || engine === 'Simulator' ? engine : this.aiToolLabel(engine);
+  }
+
+  /** live: a real tool or API; sim: the simulator; off: switched off; warn: a tool is chosen but cannot be used (switched off under AI
+   * Providers, or no key), so the simulator answers. */
+  engineTone(id: string): 'live' | 'sim' | 'off' | 'warn' {
+    const label = this.engineLabel(id);
+    if (label === 'Off') {
+      return 'off';
+    }
+    if (label === 'Simulator') {
+      return 'sim';
+    }
+    if (id === 'conversation') {
+      return this.conversationHasKey() ? 'live' : 'warn';
+    }
+    if (this.isFeatureKey(id) && (this.aiToolOff(id) || !this.aiHasKey(id) || this.savedToolUnsupported(id))) {
+      return 'warn';
+    }
+    return 'live';
+  }
+
+  /** An item with a change that is not saved yet. */
+  isDirty(id: string): boolean {
+    if (id === 'consentSms' || id === 'dndCheck') {
+      return this.form.controls[id].dirty;
+    }
+    if (id === 'conversation') {
+      return this.aiForm.controls.conversation.dirty;
+    }
+    return this.isFeatureKey(id) && this.aiForm.controls[id].dirty;
+  }
+
   isAiOff(key: AiFeatureKey): boolean {
     return this.aiForm.controls[key].controls.mode.value === 'Off';
   }
@@ -309,7 +486,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
   /** A tool saved earlier that the feature cannot run on: kept as saved, not used. */
   savedToolUnsupported(key: AiFeatureKey): boolean {
     const channel = this.channel(key);
-    return !!channel && !channel.savedProviderSupported;
+    // A feature with no tool at all runs on the simulator anyway: a leftover saved tool there is not worth a warning.
+    return !!channel && !channel.savedProviderSupported && !this.noToolYet(key) && this.isAiThirdParty(key);
   }
 
   get conversationTools(): { value: AiToolProvider; label: string }[] {

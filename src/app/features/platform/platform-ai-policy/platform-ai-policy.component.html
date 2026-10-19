@@ -6,7 +6,7 @@
 </mat-card>
 
 <!-- Policy: fallback, scanned documents, cost limit, simulator scenario. Saved on its own, like the provider settings. -->
-<mat-card class="delivery-card policy" *ngIf="!loading && !loadFailed" data-testid="policy">
+<mat-card class="delivery-card policy" *ngIf="!loading && !loadFailed && show !== 'calls'" data-testid="policy">
   <h2>AI policy</h2>
   <p class="muted">
     How AI calls behave for product knowledge. Provider keys, models, prices and the accuracy test are on
@@ -53,7 +53,7 @@
 </mat-card>
 
 <!-- Every AI call, newest first. -->
-<mat-card class="delivery-card" data-testid="executions">
+<mat-card class="delivery-card" *ngIf="show !== 'policy'" data-testid="executions">
   <div class="head">
     <h2>AI calls</h2>
     <span class="spacer"></span>
