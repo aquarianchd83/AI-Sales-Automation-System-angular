@@ -19,7 +19,7 @@ import { PlatformIntegrationSettingsService } from '../../../core/services/platf
 
 export type IntegrationChannelKey = 'consentSms' | 'dndCheck';
 /** The feature panels; the conversation panel has its own shape (a chat tool and an embedding tool). */
-export type AiFeatureKey = 'discoveryLead' | 'knowledgeBase' | 'contentGeneration' | 'videoRenders' | 'businessKeywords' | 'discoveryKeywords';
+export type AiFeatureKey = 'discoveryLead' | 'knowledgeBase' | 'contentGeneration' | 'videoRenders' | 'productKnowledge' | 'businessKeywords' | 'discoveryKeywords';
 
 /**
  * The Platform Admin Console's Integrations page: for each outside service - the WhatsApp consent SMS and the DND check - whether it is
@@ -83,6 +83,14 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       simulatorNote: 'A sample video is produced and no render is billed.',
     },
     {
+      key: 'productKnowledge',
+      apiName: 'ProductKnowledge',
+      title: 'Product knowledge',
+      description:
+        "Reads a tenant's brochures, PDFs and website, drafts answers from them with the source quoted, and checks for conflicts - the knowledge the AI chat answers customers from.",
+      simulatorNote: 'Fixed, labelled test data is returned. No document is read, no provider is contacted, and nothing it returns can be published as verified.',
+    },
+    {
       key: 'discoveryKeywords',
       apiName: 'DiscoveryKeywords',
       title: 'Discovery lead - AI suggest',
@@ -116,6 +124,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     knowledgeBase: this.aiGroup(),
     contentGeneration: this.aiGroup(),
     videoRenders: this.aiGroup(),
+    productKnowledge: this.aiGroup(),
     businessKeywords: this.aiGroup(),
     discoveryKeywords: this.aiGroup(),
   });
@@ -133,8 +142,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
 
   current: PlatformIntegrationSettings | null = null;
   currentAi: PlatformAiFeatureSettings | null = null;
-  aiTesting: Record<AiFeatureKey | 'conversation', boolean> = { conversation: false, discoveryLead: false, knowledgeBase: false, contentGeneration: false, videoRenders: false, businessKeywords: false, discoveryKeywords: false };
-  aiResults: Record<AiFeatureKey | 'conversation', DeliveryTestResult | null> = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null, businessKeywords: null, discoveryKeywords: null };
+  aiTesting: Record<AiFeatureKey | 'conversation', boolean> = { conversation: false, discoveryLead: false, knowledgeBase: false, contentGeneration: false, videoRenders: false, productKnowledge: false, businessKeywords: false, discoveryKeywords: false };
+  aiResults: Record<AiFeatureKey | 'conversation', DeliveryTestResult | null> = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null, productKnowledge: null, businessKeywords: null, discoveryKeywords: null };
   loading = true;
   loadFailed = false;
   saving = false;
@@ -152,7 +161,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     this.load();
     this.form.valueChanges.subscribe(() => (this.results = { consentSms: null, dndCheck: null }));
     this.aiForm.valueChanges.subscribe(
-      () => (this.aiResults = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null, businessKeywords: null, discoveryKeywords: null })
+      () => (this.aiResults = { conversation: null, discoveryLead: null, knowledgeBase: null, contentGeneration: null, videoRenders: null, productKnowledge: null, businessKeywords: null, discoveryKeywords: null })
     );
 
     // Switching a feature to a third-party tool picks one it supports, so a leftover tool it cannot run on is never submitted.
@@ -371,6 +380,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       knowledgeBase: this.aiChannelRequest('knowledgeBase'),
       contentGeneration: this.aiChannelRequest('contentGeneration'),
       videoRenders: this.aiChannelRequest('videoRenders'),
+      productKnowledge: this.aiChannelRequest('productKnowledge'),
       businessKeywords: this.aiChannelRequest('businessKeywords'),
       discoveryKeywords: this.aiChannelRequest('discoveryKeywords'),
     };
@@ -390,6 +400,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       knowledgeBase: values(settings.knowledgeBase),
       contentGeneration: values(settings.contentGeneration),
       videoRenders: values(settings.videoRenders),
+      productKnowledge: values(settings.productKnowledge),
       businessKeywords: values(settings.businessKeywords),
       discoveryKeywords: values(settings.discoveryKeywords),
     });

@@ -1,3 +1,4 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -15,6 +16,10 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PlatformIntegrationSettingsService } from '../../../core/services/platform-integration-settings.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { PlatformIntegrationSettingsComponent } from './platform-integration-settings.component';
+
+/** The AI providers section has its own spec; here it only needs to exist. */
+@Component({ selector: 'app-platform-ai-providers', template: '' })
+class AiProvidersStubComponent {}
 
 const channel = (over: Partial<IntegrationChannel> = {}): IntegrationChannel => ({
   mode: 'Simulator',
@@ -72,6 +77,7 @@ const aiStored = (over: Partial<PlatformAiFeatureSettings> = {}): PlatformAiFeat
   videoRenders: aiChannel(),
   businessKeywords: aiChannel({ mode: 'Api', provider: 'Anthropic', supportedProviders: ['Anthropic', 'OpenAI', 'Google'] }),
   discoveryKeywords: aiChannel({ mode: 'Api', provider: 'Anthropic', supportedProviders: ['Anthropic', 'OpenAI', 'Google'] }),
+  productKnowledge: aiChannel({ mode: 'Simulator', provider: 'OpenAI', supportedProviders: ['OpenAI', 'Anthropic', 'Google'] }),
   ...over,
 });
 
@@ -93,7 +99,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
 
     TestBed.configureTestingModule({
-      declarations: [PlatformIntegrationSettingsComponent],
+      declarations: [PlatformIntegrationSettingsComponent, AiProvidersStubComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: PlatformIntegrationSettingsService, useValue: service },
@@ -335,6 +341,23 @@ describe('PlatformIntegrationSettingsComponent', () => {
       component.aiForm.markAsDirty();
       component.save();
       expect(service.saveAiFeatures.calls.mostRecent().args[0].discoveryKeywords.mode).toBe('Simulator');
+    });
+
+    it('offers product knowledge as an engine choice with all three tools, starting on the simulator, and saves it', () => {
+      const { component } = create(stored());
+      const feature = component.aiFeatures.find((f) => f.key === 'productKnowledge');
+
+      expect(feature?.title).toBe('Product knowledge');
+      expect(feature?.simulatorNote).toContain('can be published as verified');
+      expect(component.toolsFor('productKnowledge').map((t) => t.label)).toEqual(['ChatGPT', 'Claude', 'Gemini']);
+      expect(component.aiForm.controls.productKnowledge.controls.mode.value).toBe('Simulator');
+
+      component.aiForm.controls.productKnowledge.controls.mode.setValue('Api');
+      component.aiForm.controls.productKnowledge.controls.provider.setValue('Anthropic');
+      component.aiForm.markAsDirty();
+      component.save();
+
+      expect(service.saveAiFeatures.calls.mostRecent().args[0].productKnowledge).toEqual({ mode: 'Api', provider: 'Anthropic' });
     });
 
     it('says so when the saved tool is switched off under AI Providers, and keeps the choice', () => {

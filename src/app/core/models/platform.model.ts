@@ -1070,6 +1070,8 @@ export interface PlatformAiFeatureSettings {
   knowledgeBase: AiFeatureChannel;
   contentGeneration: AiFeatureChannel;
   videoRenders: AiFeatureChannel;
+  /** Reading tenants' documents and websites and drafting the product knowledge the chat answers from. */
+  productKnowledge: AiFeatureChannel;
   businessKeywords: AiFeatureChannel;
   discoveryKeywords: AiFeatureChannel;
   conversation: AiConversationChannel;
@@ -1092,6 +1094,7 @@ export interface UpdatePlatformAiFeatureSettingsRequest {
   knowledgeBase: AiFeatureChannelRequest;
   contentGeneration: AiFeatureChannelRequest;
   videoRenders: AiFeatureChannelRequest;
+  productKnowledge: AiFeatureChannelRequest;
   businessKeywords: AiFeatureChannelRequest;
   discoveryKeywords: AiFeatureChannelRequest;
   conversation: AiConversationRequest;
@@ -1106,4 +1109,126 @@ export interface TestAiFeatureRequest {
 export interface SendIntegrationTestRequest {
   settings: IntegrationChannelRequest;
   to: string;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// AI providers (Integrations page): Simulator, ChatGPT, Claude, Gemini - on/off, key, model, verify, capabilities, price, measured accuracy.
+// ---------------------------------------------------------------------------------------------------------------------------------------
+
+export type AiProviderId = 'Simulator' | 'OpenAI' | 'Anthropic' | 'Google';
+
+/** Ready (simulator), Off, NotConfigured (no key), NotVerified, Verified, Failed. Verified only for the key and model actually checked. */
+export type AiProviderStatus = 'Ready' | 'Off' | 'NotConfigured' | 'NotVerified' | 'Verified' | 'Failed';
+
+export interface AiCapability {
+  task: string;
+  /** The code can send this kind of request to the provider. */
+  declared: boolean;
+  /** A real call for this task has succeeded. */
+  verified: boolean;
+  verifiedAtUtc: string | null;
+}
+
+export interface AiBenchmarkCase {
+  name: string;
+  passed: boolean;
+  note: string | null;
+}
+
+export interface AiBenchmarkSummary {
+  passed: number;
+  total: number;
+  accuracyPercent: number;
+  averageLatencyMs: number;
+  totalCostUsd: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  ranAtUtc: string;
+  model: string;
+  cases: AiBenchmarkCase[];
+}
+
+export interface AiProviderPanel {
+  provider: AiProviderId;
+  displayName: string;
+  isSimulator: boolean;
+  enabled: boolean;
+  hasKey: boolean;
+  /** A masked hint such as "••••1234". The key itself is never sent back. */
+  keyHint: string | null;
+  model: string | null;
+  status: AiProviderStatus;
+  lastCheckedAtUtc: string | null;
+  lastCheckMessage: string | null;
+  capabilities: AiCapability[];
+  inputPer1MUsd: number;
+  outputPer1MUsd: number;
+  priceSet: boolean;
+  benchmark: AiBenchmarkSummary | null;
+  chosenForProductKnowledge: boolean;
+}
+
+export interface AiPolicy {
+  fallbackEnabled: boolean;
+  fallbackOrder: AiProviderId[];
+  simulatorScenario: string;
+  scannedDocumentsViaAi: boolean;
+  maxCostPerCallUsd: number;
+  timeoutSeconds: number;
+  maxRetriesPerProvider: number;
+  scenarios: string[];
+}
+
+export interface AiProvidersOverview {
+  providers: AiProviderPanel[];
+  policy: AiPolicy;
+  /** What product-knowledge tasks run on right now. */
+  chosenMode: IntegrationMode;
+  chosenProvider: string;
+}
+
+/** Only what is given changes; an empty apiKey keeps the saved key. */
+export interface UpdateAiProviderRequest {
+  enabled?: boolean | null;
+  model?: string | null;
+  apiKey?: string | null;
+  inputPer1MUsd?: number | null;
+  outputPer1MUsd?: number | null;
+}
+
+export interface UpdateAiPolicyRequest {
+  fallbackEnabled: boolean;
+  fallbackOrder: AiProviderId[];
+  simulatorScenario: string;
+  scannedDocumentsViaAi: boolean;
+  maxCostPerCallUsd: number;
+}
+
+export interface AiProviderCheckResult {
+  success: boolean;
+  message: string;
+  provider: AiProviderPanel;
+}
+
+export interface AiExecution {
+  id: string;
+  correlationId: string;
+  task: string;
+  feature: string | null;
+  requestedProvider: string;
+  provider: string;
+  model: string | null;
+  /** Live or Simulator. */
+  mode: string;
+  /** Succeeded or Failed. */
+  status: string;
+  attempt: number;
+  fallbackFromProvider: string | null;
+  durationMs: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  estimatedCostUsd: number | null;
+  errorCode: string | null;
+  errorSummary: string | null;
+  createdAt: string;
 }
