@@ -33,12 +33,12 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 |---|---|---|---|---|---|---|
 | PK-2.1 | Search sources before asking questions | NEW | P3 | Service test: question with supporting passage is drafted, not asked | Per question the passages are searched first; a question with no relevant passage is not sent to the AI and is listed as needing the tenant's input (test). AI calls are scripted in tests; **no live provider call made by me** | IMPLEMENTED BUT NOT FULLY VERIFIED |
 | PK-2.2 | Generate suggested answers where evidence exists | NEW | P3 | Same | Answers are drafted where evidence exists, with verified quotations (tests). AI calls are scripted in tests; **no live provider call made by me** | IMPLEMENTED BUT NOT FULLY VERIFIED |
-| PK-2.3 | Tenant confirms or corrects | NEW | P4 | Spec: confirm/edit actions | — | NOT IMPLEMENTED |
-| PK-2.4 | Ask only when missing/unclear/contradictory/needs approval | NEW (readiness gaps exist for facts) | P3–P4 | Test: only unresolved items surface | — | NOT IMPLEMENTED |
-| PK-2.5 | Prefer yes/no, multiple choice, short inputs | MODIFY (questionnaire supports) | P4 | Spec | — | NOT IMPLEMENTED |
-| PK-2.6 | Save progress and resume | EXISTS (questionnaire autosave) → extend | P4 | Spec | — | NOT IMPLEMENTED |
-| PK-2.7 | Optional questions never forced | EXISTS pattern | P4 | Test | — | NOT IMPLEMENTED |
-| PK-2.8 | Show unresolved items clearly | NEW | P4 | Spec | — | NOT IMPLEMENTED |
+| PK-2.3 | Tenant confirms or corrects | NEW | P4 | Spec: confirm/edit actions | Approve, edit (own words) and reject on every answer; API tests + product-answers spec (TestBed) | COMPLETE AND VERIFIED |
+| PK-2.4 | Ask only when missing/unclear/contradictory/needs approval | NEW (readiness gaps exist for facts) | P3–P4 | Test: only unresolved items surface | Only questions the sources could not answer are marked "Needs your input"; the rest need a check, not typing; counted and filterable (tests) | COMPLETE AND VERIFIED |
+| PK-2.5 | Prefer yes/no, multiple choice, short inputs | MODIFY (questionnaire supports) | P4 | Spec | Decisions are buttons and one tick ("I have checked this"); conflicts are a choice of the sources' values; typing is only for the answer itself and "Something else". No multiple-choice questionnaire yet | PARTIALLY IMPLEMENTED |
+| PK-2.6 | Save progress and resume | EXISTS (questionnaire autosave) → extend | P4 | Spec | Every decision is saved at once; the screen resumes where the review stands, with counts and filters (tests) | COMPLETE AND VERIFIED |
+| PK-2.7 | Optional questions never forced | EXISTS pattern | P4 | Test | No question is required: unknown / not applicable / unanswered are all allowed; nothing blocks onboarding on this screen | COMPLETE AND VERIFIED |
+| PK-2.8 | Show unresolved items clearly | NEW | P4 | Spec | "Needs your input" and "Waiting for you" filters and counts; unresolved shown clearly (spec) | COMPLETE AND VERIFIED |
 
 ## §3 Source ingestion
 
@@ -104,11 +104,11 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 | PK-5.2 | Distinguish extracted / AI interpretation / suggested language / tenant-provided / tenant-approved | NEW (origin enum exists for facts) | P3 | Test | Kind is stored: source-extracted (High) vs AI-interpreted; "suggested language" and "tenant-provided" values exist but nothing produces them until P4/P5 | PARTIALLY IMPLEMENTED |
 | PK-5.3 | Dedupe without losing material distinctions | NEW | P3 | Test | Identical website pages and identical files are not read twice; no cross-source merging of near-duplicate facts yet | PARTIALLY IMPLEMENTED |
 | PK-6.1 | The 12 standard benefit/value questions | NEW | P3 | Test: all 12 present | All 12 standard questions are created for every tenant (test: all 12, unique keys) | COMPLETE AND VERIFIED |
-| PK-6.2 | Per question: search → evidence → draft → assess → show → verify → ask only unresolved | NEW | P3–P4 | Tests | Search → evidence → draft → assess → show is built (screen shows answer and sources); the verify/ask-only-unresolved steps are P4 | PARTIALLY IMPLEMENTED |
+| PK-6.2 | Per question: search → evidence → draft → assess → show → verify → ask only unresolved | NEW | P3–P4 | Tests | Search → evidence → draft → assess → show → verify → ask only the unresolved: all steps now built (the clarifying question is shown only for questions the sources could not answer) | COMPLETE AND VERIFIED |
 | PK-6.3 | Feature-to-benefit mapping | NEW | P3 | Test | Feature → problem → benefit → segment → evidence rows; a feature with no verified quotation is dropped (test). AI calls are scripted in tests; **no live provider call made by me** | IMPLEMENTED BUT NOT FULLY VERIFIED |
 | PK-6.4 | No invented quantitative outcomes | NEW | P3 | Test | A figure/percentage in an answer or benefit that no cited passage states is flagged, caps confidence at Low and is named in the limitation (tests) | COMPLETE AND VERIFIED |
-| PK-7.1 | Tenant-created questions answered from the tenant's sources with citations and confidence | NEW | P3–P4 | Tests | Tenant questions answered from their sources with citations and confidence; approval actions are P4 | PARTIALLY IMPLEMENTED |
-| PK-7.2 | Approve / edit / reject / unknown, audit saved | NEW | P4 | Tests | — | NOT IMPLEMENTED |
+| PK-7.1 | Tenant-created questions answered from the tenant's sources with citations and confidence | NEW | P3–P4 | Tests | Tenant questions answered from their sources with citations, confidence and the same approve/edit/reject actions (tests) | COMPLETE AND VERIFIED |
+| PK-7.2 | Approve / edit / reject / unknown, audit saved | NEW | P4 | Tests | Approve / edit / reject / unknown (and not applicable), each recorded in the audit trail with who and when; 19 service tests | COMPLETE AND VERIFIED |
 | PK-7.3 | Insufficient evidence → explain + clarify, never invent | NEW | P3 | Test | Insufficient evidence → no answer shown, the limitation and one clarifying question (tests: model says insufficient, nothing found, invented quote) | COMPLETE AND VERIFIED |
 | PK-7.4 | Custom questions isolated by tenant | NEW | P3 | Cross-tenant test | Custom questions are tenant-owned; another tenant's passages are never sent to the AI and their questions are "not found" (tests) | COMPLETE AND VERIFIED |
 
@@ -116,11 +116,11 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 
 | ID | Requirement | Baseline | Phase | Validation | Result | Status |
 |---|---|---|---|---|---|---|
-| PK-8.1 | Answer card: question, answer, source, page/section, evidence, confidence, status, actions | NEW | P4 | Spec | — | NOT IMPLEMENTED |
-| PK-8.1.a | Actions: confirm, edit, reject, another suggestion, unknown, not applicable, add info | NEW | P4 | Spec | — | NOT IMPLEMENTED |
-| PK-8.2 | Statuses (Pending, Verified and Approved, Correction Required, Rejected, Information Not Available); separate from confidence | NEW | P4 | Test | — | NOT IMPLEMENTED |
-| PK-8.3 | Long answers: summary, detail, evidence, limits, expand/collapse | NEW | P4 | Spec | — | NOT IMPLEMENTED |
-| PK-8.4 | Save/resume, review unresolved, filter by status, review evidence, correct without restart | NEW | P4 | Spec | — | NOT IMPLEMENTED |
+| PK-8.1 | Answer card: question, answer, source, page/section, evidence, confidence, status, actions | NEW | P4 | Spec | Answer card: question, answer, source, page/location, exact evidence, confidence, status, actions | COMPLETE AND VERIFIED |
+| PK-8.1.a | Actions: confirm, edit, reject, another suggestion, unknown, not applicable, add info | NEW | P4 | Spec | Confirm, edit, reject, another suggestion, unknown, not applicable and add missing information ("Answer it now") | COMPLETE AND VERIFIED |
+| PK-8.2 | Statuses (Pending, Verified and Approved, Correction Required, Rejected, Information Not Available); separate from confidence | NEW | P4 | Test | Pending / Verified and Approved / Correction Required / Rejected / Information Not Available (+ Not applicable), stored apart from confidence; a High answer stays Pending until acted on (tests) | COMPLETE AND VERIFIED |
+| PK-8.3 | Long answers: summary, detail, evidence, limits, expand/collapse | NEW | P4 | Spec | Summary first, detail on request, evidence, limits and "how this was judged" expandable (spec) | COMPLETE AND VERIFIED |
+| PK-8.4 | Save/resume, review unresolved, filter by status, review evidence, correct without restart | NEW | P4 | Spec | Save/resume, filter by status, review evidence, correct without restarting (reopen / edit / another suggestion) | COMPLETE AND VERIFIED |
 
 ## §9 Confidence, traceability, conflicts
 
@@ -131,7 +131,7 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 | PK-9.1.b | Citations are real; never fabricated | NEW | P3 | Quote-verification tests | Each quotation must be found in the passage it names (case, spacing and punctuation ignored); a changed figure never passes, even in a 10-word quote; the stored excerpt is cut from the passage itself; 28 rule tests | COMPLETE AND VERIFIED |
 | PK-9.2 | Four confidence categories from evidence quality, not fluency | NEW | P3 | Classification tests | High / Medium / Low / No supporting evidence from verified quotations, coverage of the answer, number of passages, conflicts and unproven figures; documented in code; 28 rule tests | COMPLETE AND VERIFIED |
 | PK-9.3 | Evidence-grounded; inferences flagged; unsupported claims flagged | PARTIAL (reply validator flags ungrounded numbers) | P3 · P7 | Tests | Inferences flagged (Medium), unsupported figures flagged, conflicts flagged, material claims flagged. The chat-side enforcement is P7 | PARTIALLY IMPLEMENTED |
-| PK-9.4 | Conflicting sources shown, tenant resolves, history kept, date does not auto-decide | NEW | P3–P4 | Tests | Conflicts between sources detected (price, duration, percentage), both values and places kept, nothing chosen for the tenant; resolving and its history are P4 | PARTIALLY IMPLEMENTED |
+| PK-9.4 | Conflicting sources shown, tenant resolves, history kept, date does not auto-decide | NEW | P3–P4 | Tests | Conflicts detected; both values and places shown; the tenant chooses (or writes) the value; open conflicts block approval; decision and who recorded; dates never decide (tests) | COMPLETE AND VERIFIED |
 | PK-9.5 | Confidence enforced identically for every provider; provider self-report not relied on | NEW | P3 | Test with each simulator scenario | Confidence, quote checking and figure checking are application code and never use the model's own confidence; the simulator can never reach High (tests) | COMPLETE AND VERIFIED |
 | PK-9.6 | Only approved info as tenant fact in customer-facing output; material claims need explicit approval; unsupported → clarify or human | PARTIAL (handoff exists) | P7 | Chat tests | — | NOT IMPLEMENTED |
 
@@ -139,9 +139,9 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 
 | ID | Requirement | Baseline | Phase | Validation | Result | Status |
 |---|---|---|---|---|---|---|
-| PK-10.1 | State tracking: extracted / pending / confirmed / corrected / rejected / unresolved | NEW | P4 | Test | — | NOT IMPLEMENTED |
-| PK-10.2 | Audit trail for ingestion, facts, answers, confidence, edits, approvals, clarifications, conflicts, publication | PARTIAL (fact revisions exist) | P3–P5 | Tests | — | NOT IMPLEMENTED |
-| PK-10.3 | Approver and timestamp; approvals never silently overwritten | NEW | P4 | Test | — | NOT IMPLEMENTED |
+| PK-10.1 | State tracking: extracted / pending / confirmed / corrected / rejected / unresolved | NEW | P4 | Test | Extracted/AI-drafted pending → confirmed → corrected (own version) → rejected → unresolved (unknown / not applicable / needs information), tracked per answer (tests) | COMPLETE AND VERIFIED |
+| PK-10.2 | Audit trail for ingestion, facts, answers, confidence, edits, approvals, clarifications, conflicts, publication | PARTIAL (fact revisions exist) | P3–P5 | Tests | Audit trail per question: drafts with their confidence, approvals, edits, rejections, reopenings, unknown/not-applicable and conflict decisions, with who, when and text before and after. Source ingestion and publication entries are in the source rows and P5 | PARTIALLY IMPLEMENTED |
+| PK-10.3 | Approver and timestamp; approvals never silently overwritten | NEW | P4 | Test | Approver and timestamp stored; an approval is never overwritten - an edit is a new version, a reopen keeps the approval time, and the history keeps every step (tests) | COMPLETE AND VERIFIED |
 | PK-11.1 | **Draft knowledge file (plain text)** with overview, features, benefits, problems/use cases, answers, custom Q&A, sources, confidence, status, conflicts, missing, unresolved; labelled draft | NEW (amended: text, not PDF) | P6 | Test | — | NOT IMPLEMENTED |
 | PK-11.2 | **Final approved knowledge file (plain text)**: approved content only, with references | NEW (amended) | P6 | Test: unresolved never appears as fact | — | NOT IMPLEMENTED |
 | PK-11.3 | Approved knowledge stored in the structured database and retrieval index, not only the file | NEW | P5 | Test | — | NOT IMPLEMENTED |
@@ -203,3 +203,10 @@ Proposal approved; matrix created. No code changed.
 **Found by testing.** A 10-word quotation with one changed price (500 → 800) passed the fuzzy match; figures must now match exactly. Two different plans with prices were reported as a conflict because "cost / Rs / month" counted as the subject; generic words are now ignored.
 **Existing logic touched.** None. The Suggested answers and Questionnaire switches decide whether drafting runs.
 **Next (P4).** Approve / edit / reject / unknown / not applicable, conflict resolution and history, the audit trail - the verification screen.
+
+### Phase 4 - verification, approval and audit (2026-10-19)
+**Built.** On Product answers the tenant now decides each answer: **Approve**, **Edit** (their own words - also how they supply what the sources lacked), **Reject** (optional reason), **Another suggestion**, **I do not know**, **Does not apply to me**, and **Reopen for correction** on an approved answer. Rules, enforced on the server: a price, guarantee, certification or result - and any weak (Low) answer or unproven figure - needs an explicit "I have checked this"; test data from the simulator and an answer with nothing in it cannot be approved; an answer whose sources still disagree cannot be approved until the tenant has chosen the value (one of the sources' values or their own). An approval is never overwritten: an edit is a new version, a reopen keeps who approved and when, and the earlier version stays. New `KnowledgeAnswerRevisions` table (migration AddKnowledgeAnswerRevisions - one new table) is the audit trail: every draft (with its confidence), approval, edit, rejection, reopening, "unknown"/"not applicable" and conflict decision, with who, when and the text before and after. The screen shows the review progress (N of M approved), filters (all / waiting for you / needs your input / approved / other), the history of a question, and drafting runs leave approved and "not applicable" questions alone.
+**Tests run.** API 1,884 passed (19 new); Angular 1,074 passed (9 new); build OK.
+**Not verified.** No live AI provider; no real user clicking through the screen in a browser (the tenant screens are exercised in TestBed).
+**Existing logic touched.** None.
+**Next (P5).** Knowledge Versions and publishing: an immutable published set, revalidation when a source changes, and a link from approved items to the chat's serving chunks. Nothing the tenant approves reaches customers until then.

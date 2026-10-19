@@ -1,7 +1,7 @@
 <div class="page">
   <app-page-header
     title="Product answers"
-    subtitle="What the AI found in your documents and website, question by question - with the exact words that back each answer. Nothing is approved until you check it."
+    subtitle="What the AI found in your documents and website, question by question - with the exact words that back each answer. Nothing is used until you approve it."
   >
     <button mat-flat-button color="primary" type="button" [disabled]="!canDraft" (click)="draft()" data-testid="draft">
       <mat-icon>auto_awesome</mat-icon>
@@ -42,10 +42,27 @@
       <mat-progress-bar *ngIf="running" mode="determinate" [value]="progress"></mat-progress-bar>
       <p class="muted small" *ngIf="!running">
         {{ run.drafted }} answered · {{ run.noEvidence }} need more information
-        <ng-container *ngIf="run.skipped"> · {{ run.skipped }} already approved, kept</ng-container>
+        <ng-container *ngIf="run.skipped"> · {{ run.skipped }} already decided, kept</ng-container>
         <ng-container *ngIf="run.failed"> · {{ run.failed }} could not be drafted</ng-container>
       </p>
       <p class="fail small" *ngIf="run.error">{{ run.error }}</p>
+    </mat-card>
+
+    <!-- Your review: how far you are, and what is left. -->
+    <mat-card class="review" data-testid="review">
+      <div class="review-head">
+        <strong>Your review</strong>
+        <span class="muted small" data-testid="review-count">{{ review.approved }} of {{ review.total }} approved</span>
+      </div>
+      <mat-progress-bar mode="determinate" [value]="approvedPercent"></mat-progress-bar>
+      <div class="filters" role="tablist" aria-label="Show">
+        <button type="button" class="filter" *ngFor="let f of filters" [class.filter--on]="filter === f.id" [attr.data-filter]="f.id" (click)="filter = f.id">
+          {{ f.label }} <span class="count">{{ countOf(f.id) }}</span>
+        </button>
+      </div>
+      <p class="muted small" *ngIf="review.needsInformation > 0" data-testid="needs-hint">
+        {{ review.needsInformation }} question{{ review.needsInformation === 1 ? '' : 's' }} could not be answered from your sources. They are the only ones that need you to type something - the rest just need a check. Optional questions never hold you up.
+      </p>
     </mat-card>
 
     <!-- Ask your own question. -->
@@ -66,19 +83,24 @@
         <button
           type="button"
           class="item"
-          *ngFor="let q of questions"
+          *ngFor="let q of visible"
           [class.item--active]="q.id === selectedId"
           [attr.data-question]="q.id"
-          (click)="selectedId = q.id"
+          (click)="select(q.id)"
         >
           <span class="item-main">
             <span class="item-text">{{ q.text }}</span>
             <span class="muted small" *ngIf="!q.isStandard">Your question</span>
           </span>
-          <span [class]="chipClass(q.answer.confidence)" *ngIf="q.answer" class="item-chip">{{ q.answer.confidence === 'NoEvidence' ? 'No evidence' : q.answer.confidence }}</span>
-          <span class="chip chip--none item-chip" *ngIf="!q.answer">Not drafted</span>
+          <ng-container *ngIf="q.answer as qa; else notDrafted">
+            <span class="chip chip--approved item-chip" *ngIf="qa.status === 'VerifiedAndApproved'">Approved</span>
+            <span class="chip chip--status item-chip" *ngIf="qa.status === 'Rejected' || qa.status === 'InformationNotAvailable' || qa.status === 'NotApplicable'">{{ statusText(qa) }}</span>
+            <span [class]="chipClass(qa.confidence)" class="item-chip" *ngIf="qa.status === 'PendingVerification' || qa.status === 'CorrectionRequired'">{{ qa.confidence === 'NoEvidence' ? 'No evidence' : qa.confidence }}</span>
+          </ng-container>
+          <ng-template #notDrafted><span class="chip chip--none item-chip">Not drafted</span></ng-template>
         </button>
-        <button type="button" class="item item--features" [class.item--active]="selectedId === featuresId" (click)="selectedId = featuresId" data-testid="features-item">
+        <div class="muted small empty-filter" *ngIf="!visible.length" data-testid="nothing-here">Nothing here.</div>
+        <button type="button" class="item item--features" [class.item--active]="selectedId === featuresId" (click)="select(featuresId)" data-testid="features-item">
           <mat-icon>list_alt</mat-icon>
           <span class="item-main"><span class="item-text">Features and benefits</span><span class="muted small">{{ features.length }} found</span></span>
         </button>
@@ -95,20 +117,29 @@
             <button mat-button color="warn" type="button" *ngIf="!q.isStandard" (click)="remove(q)" data-testid="remove"><mat-icon>delete</mat-icon> Remove</button>
           </header>
 
+          <!-- Nothing drafted yet. -->
           <div class="empty" *ngIf="!q.answer" data-testid="not-drafted">
-            <p>Not drafted yet. Use "Draft answers from my sources" above, or get a suggestion for just this one.</p>
-            <button mat-stroked-button type="button" [disabled]="busy[q.id] || overview.aiMode === 'Off' || overview.readySources === 0" (click)="redraft(q)">
-              <mat-icon>auto_awesome</mat-icon> Suggest an answer
-            </button>
+            <p>Not drafted yet. Use "Draft answers from my sources" above, get a suggestion for just this one, or write the answer yourself.</p>
+            <div class="actions">
+              <button mat-stroked-button type="button" [disabled]="busy[q.id] || overview.aiMode === 'Off' || overview.readySources === 0" (click)="redraft(q)">
+                <mat-icon>auto_awesome</mat-icon> Suggest an answer
+              </button>
+              <button mat-stroked-button type="button" (click)="startEdit(q)" data-testid="write"><mat-icon>edit</mat-icon> Write the answer myself</button>
+              <button mat-button type="button" [disabled]="busy[q.id]" (click)="markUnknown(q)" data-testid="unknown">I do not know</button>
+              <button mat-button type="button" [disabled]="busy[q.id]" (click)="markNotApplicable(q)" data-testid="not-applicable">Does not apply to me</button>
+            </div>
           </div>
 
           <ng-container *ngIf="q.answer as a">
             <div class="chips">
-              <span [class]="chipClass(a.confidence)" data-testid="confidence" [matTooltip]="help(a.confidence)">{{ confidenceText[a.confidence] }}</span>
-              <span class="chip chip--status" data-testid="verification">{{ statusText(a) }}</span>
+              <span class="chip chip--you" data-testid="written-by-you" *ngIf="a.kind === 'TenantProvided' && a.summary">Written by you</span>
+              <span [class]="chipClass(a.confidence)" data-testid="confidence" *ngIf="a.kind !== 'TenantProvided'" [matTooltip]="help(a.confidence)">{{ confidenceText[a.confidence] }}</span>
+              <span class="chip" [ngClass]="a.status === 'VerifiedAndApproved' ? 'chip--approved' : 'chip--status'" data-testid="verification">{{ statusText(a) }}</span>
               <span class="chip chip--material" *ngIf="a.isMaterialClaim" matTooltip="A price, guarantee, certification or result: it needs your explicit approval before customers are told it.">Needs your approval</span>
               <span class="chip chip--sim" *ngIf="a.isSimulated">Test data</span>
             </div>
+
+            <p class="muted small approved-by" *ngIf="a.status === 'VerifiedAndApproved' && a.approvedAt" data-testid="approved-at">You approved this on {{ a.approvedAt | zonedDate: 'medium' }}.</p>
 
             <!-- The answer: short first, the rest on request. -->
             <p class="summary" *ngIf="a.summary" data-testid="summary">{{ a.summary }}</p>
@@ -118,23 +149,24 @@
             </ng-container>
 
             <div class="note note--fail" *ngIf="!a.summary" data-testid="no-answer">
-              <mat-icon>search_off</mat-icon>
-              <span>{{ a.limitation || 'Your sources do not answer this.' }}</span>
+              <mat-icon>{{ a.status === 'InformationNotAvailable' ? 'help_outline' : a.status === 'NotApplicable' ? 'do_not_disturb_on' : 'search_off' }}</mat-icon>
+              <span>{{ a.status === 'InformationNotAvailable' ? 'You said you do not have this information.' : a.status === 'NotApplicable' ? 'You said this does not apply to your business.' : (a.limitation || 'Your sources do not answer this.') }}</span>
             </div>
             <div class="note note--warn" *ngIf="a.summary && a.limitation" data-testid="limitation">
               <mat-icon>info</mat-icon>
               <span>{{ a.limitation }}</span>
             </div>
 
-            <div class="ask-you" *ngIf="a.clarifyingQuestion && (a.confidence === 'NoEvidence' || a.confidence === 'Low')" data-testid="clarify">
+            <div class="ask-you" *ngIf="a.clarifyingQuestion && !a.summary && a.status === 'PendingVerification'" data-testid="clarify">
               <mat-icon>chat_bubble_outline</mat-icon>
               <div>
                 <strong>To fill this in, we need from you:</strong>
                 <div>{{ a.clarifyingQuestion }}</div>
+                <button mat-stroked-button type="button" class="inline-action" (click)="startEdit(q)" data-testid="answer-now"><mat-icon>edit</mat-icon> Answer it now</button>
               </div>
             </div>
 
-            <!-- Sources that disagree: both values, where each came from. -->
+            <!-- Sources that disagree: both values, where each came from, and the tenant's choice. -->
             <div class="conflict" *ngFor="let c of a.conflicts" data-testid="conflict">
               <div class="conflict-title"><mat-icon>compare_arrows</mat-icon> Your sources disagree about the {{ c.fact }}</div>
               <div class="conflict-values">
@@ -144,7 +176,22 @@
                   <div class="small">"{{ v.sentence }}"</div>
                 </div>
               </div>
-              <p class="muted small">Neither is chosen for you. Check which is current.</p>
+
+              <ng-container *ngIf="c.status === 'Open'; else decided">
+                <p class="muted small">Neither is chosen for you - not by date, not by which source is newer. Which is right?</p>
+                <mat-radio-group class="choices" [value]="conflictChoice[c.id]" (change)="conflictChoice[c.id] = $event.value" [attr.aria-label]="'Right value for the ' + c.fact" data-testid="choices">
+                  <mat-radio-button *ngFor="let v of c.values" [value]="v.value">{{ v.value }} <span class="muted">({{ v.sourceName }})</span></mat-radio-button>
+                  <mat-radio-button [value]="otherValue">Something else</mat-radio-button>
+                </mat-radio-group>
+                <mat-form-field subscriptSizing="dynamic" class="other" *ngIf="conflictChoice[c.id] === otherValue">
+                  <mat-label>The right {{ c.fact }}</mat-label>
+                  <input matInput maxlength="500" [value]="conflictOther[c.id] || ''" (input)="conflictOther[c.id] = $any($event.target).value" data-testid="other-value" />
+                </mat-form-field>
+                <button mat-flat-button color="primary" type="button" [disabled]="!conflictValue(c) || busy[q.id]" (click)="resolve(q, c)" data-testid="resolve">Save my choice</button>
+              </ng-container>
+              <ng-template #decided>
+                <p class="decided" data-testid="decided"><mat-icon>check_circle</mat-icon> You chose <strong>{{ c.chosenValue }}</strong> for the {{ c.fact }}.</p>
+              </ng-template>
             </div>
 
             <!-- The evidence: exact words, from where. -->
@@ -159,7 +206,7 @@
             </ng-container>
 
             <!-- Why this much confidence. -->
-            <ng-container *ngIf="a.reasons.length">
+            <ng-container *ngIf="a.reasons.length && a.kind !== 'TenantProvided'">
               <button mat-button type="button" class="link" (click)="toggle('why-' + a.id)">{{ expanded.has('why-' + a.id) ? 'Hide how this was judged' : 'How this was judged' }}</button>
               <ul class="reasons" *ngIf="expanded.has('why-' + a.id)" data-testid="reasons">
                 <li *ngFor="let r of a.reasons">{{ r }}</li>
@@ -167,12 +214,88 @@
               </ul>
             </ng-container>
 
-            <div class="actions">
-              <button mat-stroked-button type="button" [disabled]="busy[q.id] || overview.aiMode === 'Off' || overview.readySources === 0" (click)="redraft(q)" data-testid="redraft">
-                <mat-icon>{{ busy[q.id] ? 'hourglass_empty' : 'refresh' }}</mat-icon> Another suggestion
-              </button>
-              <span class="muted small">Drafted {{ a.generatedAt | zonedDate: 'medium' }} · version {{ a.version }}<ng-container *ngIf="!a.isSimulated"> · {{ a.provider }}</ng-container></span>
+            <!-- Your decision. -->
+            <div class="decide" data-testid="decide" *ngIf="!editing && !rejecting">
+              <ng-container *ngIf="a.status !== 'VerifiedAndApproved'">
+                <label class="confirm" *ngIf="a.summary && !a.isSimulated && needsConfirmation(a) as why" data-testid="confirm-box">
+                  <mat-checkbox [formControl]="confirm">I have checked this</mat-checkbox>
+                  <span class="muted small">{{ why }}</span>
+                </label>
+                <div class="note note--warn" *ngIf="openConflicts(a).length" data-testid="resolve-first">
+                  <mat-icon>compare_arrows</mat-icon>
+                  <span>Choose the right value above before approving.</span>
+                </div>
+              </ng-container>
+
+              <div class="actions">
+                <button mat-flat-button color="primary" type="button" *ngIf="a.status !== 'VerifiedAndApproved' && a.summary && !a.isSimulated" [disabled]="busy[q.id] || !canApprove(a)" (click)="approve(q)" data-testid="approve">
+                  <mat-icon>check</mat-icon> Approve
+                </button>
+                <button mat-stroked-button type="button" (click)="startEdit(q)" data-testid="edit"><mat-icon>edit</mat-icon> {{ a.summary ? 'Edit' : 'Write the answer' }}</button>
+                <button mat-stroked-button type="button" *ngIf="a.status === 'VerifiedAndApproved' || a.status === 'CorrectionRequired' || a.status === 'PendingVerification' || a.status === 'Rejected'" [disabled]="busy[q.id] || overview.aiMode === 'Off' || overview.readySources === 0 || a.status === 'VerifiedAndApproved'" (click)="redraft(q)" data-testid="redraft">
+                  <mat-icon>{{ busy[q.id] ? 'hourglass_empty' : 'refresh' }}</mat-icon> Another suggestion
+                </button>
+                <button mat-stroked-button type="button" *ngIf="a.status === 'VerifiedAndApproved'" [disabled]="busy[q.id]" (click)="reopen(q)" data-testid="reopen"><mat-icon>undo</mat-icon> Reopen for correction</button>
+                <button mat-button color="warn" type="button" *ngIf="a.summary && a.status !== 'VerifiedAndApproved' && a.status !== 'Rejected'" (click)="startReject()" data-testid="reject"><mat-icon>close</mat-icon> Reject</button>
+                <button mat-button type="button" *ngIf="a.status !== 'VerifiedAndApproved' && a.status !== 'InformationNotAvailable'" [disabled]="busy[q.id]" (click)="markUnknown(q)" data-testid="unknown">I do not know</button>
+                <button mat-button type="button" *ngIf="a.status !== 'VerifiedAndApproved' && a.status !== 'NotApplicable'" [disabled]="busy[q.id]" (click)="markNotApplicable(q)" data-testid="not-applicable">Does not apply to me</button>
+              </div>
             </div>
+
+            <!-- Writing your own answer. -->
+            <form class="editor" *ngIf="editing" (ngSubmit)="saveEdit(q)" data-testid="editor">
+              <mat-form-field subscriptSizing="dynamic" class="full">
+                <mat-label>Your answer, in a few sentences</mat-label>
+                <textarea matInput rows="3" maxlength="2000" [formControl]="editSummary" data-testid="edit-summary"></textarea>
+              </mat-form-field>
+              <mat-form-field subscriptSizing="dynamic" class="full">
+                <mat-label>More detail (optional)</mat-label>
+                <textarea matInput rows="4" maxlength="8000" [formControl]="editDetail" data-testid="edit-detail"></textarea>
+              </mat-form-field>
+              <label class="confirm" *ngIf="editNeedsConfirmation" data-testid="edit-confirm">
+                <mat-checkbox [formControl]="confirm">I have checked this</mat-checkbox>
+                <span class="muted small">This states a price, guarantee, certification or result, which customers will rely on.</span>
+              </label>
+              <p class="muted small">Saving makes this your approved answer. What it replaces stays in the history.</p>
+              <div class="actions">
+                <button mat-flat-button color="primary" type="submit" [disabled]="!canSaveEdit || busy[q.id]" data-testid="save-edit">Save my answer</button>
+                <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
+              </div>
+            </form>
+
+            <!-- Rejecting. -->
+            <div class="editor" *ngIf="rejecting" data-testid="rejecter">
+              <mat-form-field subscriptSizing="dynamic" class="full">
+                <mat-label>Why? (optional)</mat-label>
+                <input matInput maxlength="500" [formControl]="rejectReason" data-testid="reject-reason" />
+              </mat-form-field>
+              <div class="actions">
+                <button mat-flat-button color="warn" type="button" [disabled]="busy[q.id]" (click)="reject(q)" data-testid="confirm-reject">Reject this answer</button>
+                <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
+              </div>
+            </div>
+
+            <div class="actions meta">
+              <span class="muted small">Drafted {{ a.generatedAt | zonedDate: 'medium' }} · version {{ a.version }}<ng-container *ngIf="!a.isSimulated && a.provider !== 'Tenant' && a.provider !== 'None'"> · {{ a.provider }}</ng-container></span>
+              <button mat-button type="button" class="link" (click)="toggleHistory(q)" data-testid="history-toggle">{{ expanded.has('history-' + q.id) ? 'Hide history' : 'History' }}</button>
+            </div>
+          </ng-container>
+
+          <!-- The audit trail: every step, who, and when - newest first. -->
+          <ng-container *ngIf="expanded.has('history-' + q.id)">
+            <h3 class="sub-title">History</h3>
+            <p class="muted small" *ngIf="!history[q.id]">Loading…</p>
+            <ol class="trail" *ngIf="history[q.id] as rows" data-testid="history">
+              <li *ngFor="let r of rows">
+                <div class="trail-head">
+                  <strong>{{ kindText(r.kind) }}</strong>
+                  <span class="muted small">{{ r.at | zonedDate: 'medium' }} · {{ r.actorEmail || 'the application' }}</span>
+                </div>
+                <div class="small" *ngIf="r.note">{{ r.note }}</div>
+                <div class="small trail-text" *ngIf="r.fromText && r.toText && r.fromText !== r.toText"><span class="muted">Was:</span> {{ r.fromText }}<br /><span class="muted">Now:</span> {{ r.toText }}</div>
+              </li>
+              <li class="muted" *ngIf="!rows.length">Nothing yet.</li>
+            </ol>
           </ng-container>
         </mat-card>
 

@@ -2,7 +2,13 @@
 export type KnowledgeConfidence = 'High' | 'Medium' | 'Low' | 'NoEvidence';
 
 /** Kept separate from confidence: a High answer is still PendingVerification until the tenant acts. */
-export type KnowledgeVerificationStatus = 'PendingVerification' | 'VerifiedAndApproved' | 'CorrectionRequired' | 'Rejected' | 'InformationNotAvailable';
+export type KnowledgeVerificationStatus =
+  | 'PendingVerification'
+  | 'VerifiedAndApproved'
+  | 'CorrectionRequired'
+  | 'Rejected'
+  | 'InformationNotAvailable'
+  | 'NotApplicable';
 
 /** A quotation that was checked against the real source text. */
 export interface AnswerEvidence {
@@ -27,6 +33,8 @@ export interface KnowledgeConflict {
   fact: string;
   values: ConflictValue[];
   status: 'Open' | 'Resolved';
+  /** What the tenant decided is right. Null while open. */
+  chosenValue?: string | null;
 }
 
 export interface KnowledgeAnswer {
@@ -53,6 +61,33 @@ export interface KnowledgeAnswer {
   generatedAt: string;
   evidence: AnswerEvidence[];
   conflicts: KnowledgeConflict[];
+  /** When the tenant approved it. Kept when an approved answer is reopened. */
+  approvedAt?: string | null;
+}
+
+/** One entry in the audit trail of a question: who did what, when, and the text before and after. */
+export interface AnswerRevision {
+  id: string;
+  kind: 'Drafted' | 'Approved' | 'Edited' | 'InformationProvided' | 'Rejected' | 'MarkedUnknown' | 'MarkedNotApplicable' | 'Reopened' | 'ConflictResolved';
+  fromStatus: string | null;
+  toStatus: string | null;
+  fromText: string | null;
+  toText: string | null;
+  note: string | null;
+  /** The tenant user who acted; null when the application did (a draft). */
+  actorEmail: string | null;
+  at: string;
+}
+
+/** Where the review stands: every question is in exactly one of these. */
+export interface AnswerProgress {
+  total: number;
+  approved: number;
+  waiting: number;
+  needsInformation: number;
+  rejected: number;
+  unknown: number;
+  notApplicable: number;
 }
 
 export interface KnowledgeQuestion {
@@ -106,4 +141,5 @@ export interface KnowledgeAnswersOverview {
   aiProvider: string;
   maxCustomQuestions: number;
   customQuestions: number;
+  progress?: AnswerProgress | null;
 }
