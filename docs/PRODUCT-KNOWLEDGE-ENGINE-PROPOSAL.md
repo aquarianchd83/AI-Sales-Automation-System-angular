@@ -18,7 +18,7 @@
 2. **Website scanner** — does not exist today.
 3. **Source-to-answer drafting** — AI searches the uploaded sources first and drafts answers; the tenant confirms or corrects.
 4. **Provider layer upgrade** — capability checks, configurable fallback, per-execution log, simulator labelling, all managed from **Platform Admin → Integrations**.
-5. **Draft and Final PDF** — a PDF *writer* does not exist today (only a reader).
+5. **Draft and Final text files** — a downloadable plain-text record of the knowledge (decision: text file, not PDF — no PDF writer and no licence needed).
 6. **A published knowledge version** — chat reads from one immutable, approved version at a time, so editing never silently changes what customers are told.
 
 **What we need from you.** A decision on the 12 permission items (section 12) and the 9 open decisions (section 13). The recommended answer is given for each.
@@ -210,8 +210,14 @@ Detected when two passages assert different values for the same fact (price, qua
 - Changing/replacing a source, re-scanning a site, editing an answer, resolving a conflict or approving/rejecting a claim marks the **affected** answers *Needs revalidation* (matched through the evidence links).
 - Publishing creates **Knowledge Version N+1**; N stays available for audit and rollback. Approved items are never overwritten, only superseded.
 
-### 7.7 Draft and Final PDF (prompt §11)
-Generated from the working layer (Draft) and from a published version (Final). The Final PDF contains only approved items; unresolved/conflicting/pending content cannot appear in it as fact — enforced in code and covered by a test. Source references are printed. The PDF is an output; the database is the knowledge store. A PDF *writer* library is a new dependency (decision **D5**).
+### 7.7 Draft and Final knowledge file (prompt §11) — **text file, not PDF**
+**Decision (owner):** the content is stored and offered as a **plain-text file**, not a generated PDF. No PDF-writing library, no licence. The file is a human-readable record; the *knowledge itself* lives in the database and is what the onboarding assistant and the customer chat read.
+
+- **Draft file** — generated from the working layer: all answers with their source references, confidence, verification status, conflicts, missing and unresolved questions, clearly headed "DRAFT — NOT APPROVED".
+- **Final file** — generated from a published Knowledge Version: approved items only, grouped by category, with source references. Unresolved, conflicting or pending content cannot appear in it as fact — enforced in code and covered by a test.
+- Format: UTF-8 `.txt` with clear headings and numbered sections (so it reads well, and is also easy to feed to any AI tool). The same content can be offered as `.md` later at no extra cost.
+- **Purpose, restated:** the primary objective of product knowledge collection is (1) to answer the tenant's own questions during onboarding and (2) to answer customers' concerns in AI-powered chat. The text file is a by-product for review and record keeping, not the knowledge store.
+- The PDF *reader* (PdfPig, already in the project) is unchanged and is still what extracts text from tenants' uploaded PDFs.
 
 ### 7.8 Serving the chat (prompt §9.6, §11.3)
 Replaces what the chat reads, **behind a per-tenant switch**, so the current behaviour remains the default until you opt a tenant in:
@@ -261,7 +267,7 @@ Each phase ends with: tests run and reported honestly, the requirement matrix up
 | **3 Drafting & evidence** | Standard + custom questions, retrieval→draft→quote-check, confidence engine, conflict detection, feature→benefit mapping | No (new services) | L |
 | **4 Verification UX** | Review screen, actions, filters, revisions, resume | No | M |
 | **5 Versions & publish** | Knowledge Version, items, revalidation on change, supersede/rollback | **Yes — P3, P8** | M |
-| **6 PDFs** | Draft + Final PDF | New dependency — **P11** | M |
+| **6 Knowledge files** | Draft + Final text file | No new dependency | S |
 | **7 Chat serving** | Category routing, published-version retrieval, evidence gate, material-claim rules, validator extension — behind a per-tenant switch | **Yes — P1, P2, P4, P7** | L |
 | **8 Downstream & hardening** | Campaigns/follow-ups/video scripts read the published version; security suite; cost/limits | **Yes — P10** | M |
 | **9 Final audit** | Requirement-by-requirement audit, honest status report | No | S |
@@ -301,7 +307,7 @@ On approval, phase 0 creates `docs/product-knowledge-requirement-matrix.md` in t
 | 8 | Answer presentation & verification UX | **Requires new implementation** |
 | 9 | Confidence & traceability | **Requires new implementation** (grounding validator is a partial precursor) |
 | 10 | Approval & audit | **Partly exists** (fact history in Content Studio; article approval) → extend |
-| 11 | Draft / Final PDF | **Requires new implementation** (no PDF writer) |
+| 11 | Draft / Final knowledge file | **Requires new implementation** (text file; no PDF writer needed) |
 | 12 | Versioning & revalidation | **Requires modification** (article versions exist; no evidence-linked revalidation) |
 | 13 | Execution logging | **Requires modification** (usage audit exists; no per-execution provider/fallback record) |
 | 14 | Security & isolation | **Already strong** (tenant filters, secrets); new surfaces need tests |
@@ -325,7 +331,7 @@ You asked that anything that changes existing knowledge-base logic be put to you
 | **P8** | `KnowledgeCategory` enum (support taxonomy) | Do **not** change it; introduce a separate `ProductKnowledgeCategory` | No change to existing enum | **Approve "separate taxonomy"** |
 | **P9** | Content Studio `BusinessFact` tables and services (my Phase 1–2 work, in PRs #69/#76, unmerged) | Decide D1: keep separate, or have approved items also populate facts so readiness/gap/claim tools work on the new knowledge | Facts are new and unmerged, so low risk | See D1 |
 | **P10** | `AiUsageService` quota types | Add quota types / charge kinds for extraction and drafting jobs, or reuse `ContentGenerations` | Additive enum values; plans need the new limits | **Approve** (needs your pricing view) |
-| **P11** | Project dependencies | Add a PDF-writing library; an HTML parser for the crawler; optionally an OCR engine | New packages only | **Approve** after D5/D6 |
+| **P11** | Project dependencies | Add an HTML parser for the crawler. **No PDF-writing library** (text file chosen) and **no OCR engine** (AI-vision toggle chosen). PdfPig is already referenced. | New package(s) only | **Approve** |
 | **P12** | `AppSettingCatalog` and platform settings | Add settings for crawler limits, fallback order, thresholds, retention | Additive keys with defaults | **Approve** |
 
 ---
@@ -338,8 +344,8 @@ You asked that anything that changes existing knowledge-base logic be put to you
 | **D2** | Category taxonomy | the 16 in section 5, or trim | Start with all 16; hide unused ones per industry |
 | **D3** | Where the new engine's data lives | New tables + link to existing chunks (this proposal) vs. extend the article table | **New tables** — keeps the working layer separate from the published layer |
 | **D4** | Rollout | Per-tenant switch, default off | **Yes**, starting with the pilot tenant |
-| **D5** | PDF library | QuestPDF (good output; community licence has a revenue threshold — needs checking against your situation) vs. MIT-licensed PdfSharp/MigraDoc | Check licence first; otherwise MigraDoc |
-| **D6** | OCR | None / cloud OCR / local engine | **None in the first release**: reject scanned files with a clear message; add OCR once the main flow works |
+| **D5** | Draft/Final output format | **Decided: text file** (no PDF, no licence) | Done |
+| **D6** | OCR | **Decided:** use the selected AI provider's vision to read scanned pages, behind an Integrations-page toggle, default OFF; needs tenant data-processing consent (D8) | Done |
 | **D7** | Crawl scope | Same host, depth ≤2, ≤50 pages, robots-respecting | Start there, configurable in settings |
 | **D8** | Data-processing permission | Tenants consent before documents go to an external AI provider; per-tenant allowed-provider list | **Yes** — needed for fallback rules and for privacy |
 | **D9** | Languages | English only vs. Hindi/Hinglish sources and answers | Sources in either; answers in the tenant's chosen language |
