@@ -1,0 +1,208 @@
+<div class="page">
+  <app-page-header
+    title="Product answers"
+    subtitle="What the AI found in your documents and website, question by question - with the exact words that back each answer. Nothing is approved until you check it."
+  >
+    <button mat-flat-button color="primary" type="button" [disabled]="!canDraft" (click)="draft()" data-testid="draft">
+      <mat-icon>auto_awesome</mat-icon>
+      {{ running ? 'Drafting…' : answered ? 'Draft again' : 'Draft answers from my sources' }}
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="panel" *ngIf="loadFailed">
+    <p>Your answers could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <ng-container *ngIf="overview && !loadFailed">
+    <div class="note note--warn" *ngIf="overview.aiMode === 'Off'" data-testid="off">
+      <mat-icon>block</mat-icon>
+      <span>Drafting answers is switched off on this platform for now. Ask your platform administrator if you need it.</span>
+    </div>
+    <div class="note note--warn" *ngIf="overview.aiMode === 'Simulator'" data-testid="simulator">
+      <mat-icon>science</mat-icon>
+      <span>Drafting runs on the platform's test mode, which reads nothing and writes placeholder text. You will not get real answers until the platform administrator connects an AI provider.</span>
+    </div>
+    <div class="note" *ngIf="overview.readySources === 0 && overview.aiMode !== 'Off'" data-testid="no-sources">
+      <mat-icon>auto_stories</mat-icon>
+      <span>
+        There is nothing to draft from yet. Add a document or your website under <a routerLink="/product-knowledge/sources">Product sources</a> and let it finish reading.
+      </span>
+    </div>
+
+    <!-- A drafting run: progress while it goes, the result after. -->
+    <mat-card class="run" *ngIf="run" data-testid="run">
+      <div class="run-head">
+        <strong>{{ running ? 'Drafting from your sources…' : run.status === 'Completed' ? 'Last drafting finished' : 'Last drafting could not finish' }}</strong>
+        <span class="muted small" *ngIf="running">{{ run.done }} of {{ run.total || '…' }}</span>
+        <span class="muted small" *ngIf="!running && run.finishedAt">{{ run.finishedAt | zonedDate: 'medium' }}</span>
+      </div>
+      <mat-progress-bar *ngIf="running" mode="determinate" [value]="progress"></mat-progress-bar>
+      <p class="muted small" *ngIf="!running">
+        {{ run.drafted }} answered · {{ run.noEvidence }} need more information
+        <ng-container *ngIf="run.skipped"> · {{ run.skipped }} already approved, kept</ng-container>
+        <ng-container *ngIf="run.failed"> · {{ run.failed }} could not be drafted</ng-container>
+      </p>
+      <p class="fail small" *ngIf="run.error">{{ run.error }}</p>
+    </mat-card>
+
+    <!-- Ask your own question. -->
+    <form class="ask" (ngSubmit)="ask()">
+      <mat-form-field subscriptSizing="dynamic" class="ask-field">
+        <mat-label>Ask your own question about your product</mat-label>
+        <input matInput [formControl]="question" maxlength="500" autocomplete="off" placeholder="For example: Do you offer a free trial?" data-testid="question" />
+      </mat-form-field>
+      <button mat-stroked-button type="submit" [disabled]="asking || !canAsk || question.invalid" data-testid="ask">
+        <mat-icon>{{ asking ? 'hourglass_empty' : 'help_outline' }}</mat-icon>
+        {{ asking ? 'Searching…' : 'Ask' }}
+      </button>
+    </form>
+    <p class="muted small hint" *ngIf="overview.customQuestions >= overview.maxCustomQuestions">You have asked the most questions allowed ({{ overview.maxCustomQuestions }}). Remove one to add another.</p>
+
+    <div class="console">
+      <nav class="list" aria-label="Questions">
+        <button
+          type="button"
+          class="item"
+          *ngFor="let q of questions"
+          [class.item--active]="q.id === selectedId"
+          [attr.data-question]="q.id"
+          (click)="selectedId = q.id"
+        >
+          <span class="item-main">
+            <span class="item-text">{{ q.text }}</span>
+            <span class="muted small" *ngIf="!q.isStandard">Your question</span>
+          </span>
+          <span [class]="chipClass(q.answer.confidence)" *ngIf="q.answer" class="item-chip">{{ q.answer.confidence === 'NoEvidence' ? 'No evidence' : q.answer.confidence }}</span>
+          <span class="chip chip--none item-chip" *ngIf="!q.answer">Not drafted</span>
+        </button>
+        <button type="button" class="item item--features" [class.item--active]="selectedId === featuresId" (click)="selectedId = featuresId" data-testid="features-item">
+          <mat-icon>list_alt</mat-icon>
+          <span class="item-main"><span class="item-text">Features and benefits</span><span class="muted small">{{ features.length }} found</span></span>
+        </button>
+      </nav>
+
+      <section class="detail" aria-live="polite">
+        <!-- One question. -->
+        <mat-card class="panel" *ngIf="selected as q" [attr.data-detail]="q.id">
+          <header class="panel-head">
+            <div>
+              <div class="eyebrow">{{ q.category }}</div>
+              <h2>{{ q.text }}</h2>
+            </div>
+            <button mat-button color="warn" type="button" *ngIf="!q.isStandard" (click)="remove(q)" data-testid="remove"><mat-icon>delete</mat-icon> Remove</button>
+          </header>
+
+          <div class="empty" *ngIf="!q.answer" data-testid="not-drafted">
+            <p>Not drafted yet. Use "Draft answers from my sources" above, or get a suggestion for just this one.</p>
+            <button mat-stroked-button type="button" [disabled]="busy[q.id] || overview.aiMode === 'Off' || overview.readySources === 0" (click)="redraft(q)">
+              <mat-icon>auto_awesome</mat-icon> Suggest an answer
+            </button>
+          </div>
+
+          <ng-container *ngIf="q.answer as a">
+            <div class="chips">
+              <span [class]="chipClass(a.confidence)" data-testid="confidence" [matTooltip]="help(a.confidence)">{{ confidenceText[a.confidence] }}</span>
+              <span class="chip chip--status" data-testid="verification">{{ statusText(a) }}</span>
+              <span class="chip chip--material" *ngIf="a.isMaterialClaim" matTooltip="A price, guarantee, certification or result: it needs your explicit approval before customers are told it.">Needs your approval</span>
+              <span class="chip chip--sim" *ngIf="a.isSimulated">Test data</span>
+            </div>
+
+            <!-- The answer: short first, the rest on request. -->
+            <p class="summary" *ngIf="a.summary" data-testid="summary">{{ a.summary }}</p>
+            <ng-container *ngIf="a.detail">
+              <button mat-button type="button" class="link" (click)="toggle(a.id)">{{ expanded.has(a.id) ? 'Hide details' : 'Show details' }}</button>
+              <p class="detail-text" *ngIf="expanded.has(a.id)" data-testid="detail">{{ a.detail }}</p>
+            </ng-container>
+
+            <div class="note note--fail" *ngIf="!a.summary" data-testid="no-answer">
+              <mat-icon>search_off</mat-icon>
+              <span>{{ a.limitation || 'Your sources do not answer this.' }}</span>
+            </div>
+            <div class="note note--warn" *ngIf="a.summary && a.limitation" data-testid="limitation">
+              <mat-icon>info</mat-icon>
+              <span>{{ a.limitation }}</span>
+            </div>
+
+            <div class="ask-you" *ngIf="a.clarifyingQuestion && (a.confidence === 'NoEvidence' || a.confidence === 'Low')" data-testid="clarify">
+              <mat-icon>chat_bubble_outline</mat-icon>
+              <div>
+                <strong>To fill this in, we need from you:</strong>
+                <div>{{ a.clarifyingQuestion }}</div>
+              </div>
+            </div>
+
+            <!-- Sources that disagree: both values, where each came from. -->
+            <div class="conflict" *ngFor="let c of a.conflicts" data-testid="conflict">
+              <div class="conflict-title"><mat-icon>compare_arrows</mat-icon> Your sources disagree about the {{ c.fact }}</div>
+              <div class="conflict-values">
+                <div class="conflict-value" *ngFor="let v of c.values">
+                  <div class="conflict-amount">{{ v.value }}</div>
+                  <div class="muted small">{{ v.sourceName }} · {{ v.location }}</div>
+                  <div class="small">"{{ v.sentence }}"</div>
+                </div>
+              </div>
+              <p class="muted small">Neither is chosen for you. Check which is current.</p>
+            </div>
+
+            <!-- The evidence: exact words, from where. -->
+            <ng-container *ngIf="a.evidence.length">
+              <h3 class="sub-title">Where this comes from</h3>
+              <ul class="evidence" data-testid="evidence">
+                <li *ngFor="let e of a.evidence">
+                  <blockquote>"{{ e.excerpt }}"</blockquote>
+                  <div class="muted small">{{ e.sourceName }} · {{ e.location }}<ng-container *ngIf="e.heading"> · {{ e.heading }}</ng-container></div>
+                </li>
+              </ul>
+            </ng-container>
+
+            <!-- Why this much confidence. -->
+            <ng-container *ngIf="a.reasons.length">
+              <button mat-button type="button" class="link" (click)="toggle('why-' + a.id)">{{ expanded.has('why-' + a.id) ? 'Hide how this was judged' : 'How this was judged' }}</button>
+              <ul class="reasons" *ngIf="expanded.has('why-' + a.id)" data-testid="reasons">
+                <li *ngFor="let r of a.reasons">{{ r }}</li>
+                <li class="muted">The confidence is worked out from the quotations above, not from how sure the AI sounded.</li>
+              </ul>
+            </ng-container>
+
+            <div class="actions">
+              <button mat-stroked-button type="button" [disabled]="busy[q.id] || overview.aiMode === 'Off' || overview.readySources === 0" (click)="redraft(q)" data-testid="redraft">
+                <mat-icon>{{ busy[q.id] ? 'hourglass_empty' : 'refresh' }}</mat-icon> Another suggestion
+              </button>
+              <span class="muted small">Drafted {{ a.generatedAt | zonedDate: 'medium' }} · version {{ a.version }}<ng-container *ngIf="!a.isSimulated"> · {{ a.provider }}</ng-container></span>
+            </div>
+          </ng-container>
+        </mat-card>
+
+        <!-- Features and benefits. -->
+        <mat-card class="panel" *ngIf="selectedId === featuresId" data-testid="features">
+          <header class="panel-head">
+            <div>
+              <div class="eyebrow">Features</div>
+              <h2>Features and benefits</h2>
+              <p class="muted">Each feature your sources describe, the problem it addresses and what it does for the customer. A feature no source describes is left out, and a number no source gives is flagged.</p>
+            </div>
+          </header>
+
+          <div class="empty" *ngIf="!features.length">
+            <p>No features yet. They are listed when you draft answers and your sources describe what the product does.</p>
+          </div>
+
+          <div class="feature" *ngFor="let f of features" data-testid="feature">
+            <div class="feature-head">
+              <strong>{{ f.feature }}</strong>
+              <span [class]="chipClass(f.confidence)">{{ f.confidence === 'NoEvidence' ? 'No evidence' : f.confidence }}</span>
+              <span class="chip chip--material" *ngIf="f.hasUnsupportedClaim">Unproven number</span>
+            </div>
+            <div class="feature-row" *ngIf="f.problem"><span class="muted">Problem</span> {{ f.problem }}</div>
+            <div class="feature-row" *ngIf="f.benefit"><span class="muted">Benefit</span> {{ f.benefit }}</div>
+            <div class="feature-row" *ngIf="f.segment"><span class="muted">For</span> {{ f.segment }}</div>
+            <blockquote class="small" *ngFor="let e of f.evidence">"{{ e.excerpt }}" <span class="muted">- {{ e.sourceName }}, {{ e.location }}</span></blockquote>
+          </div>
+        </mat-card>
+      </section>
+    </div>
+  </ng-container>
+</div>

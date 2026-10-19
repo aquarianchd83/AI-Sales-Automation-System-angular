@@ -105,6 +105,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },
         { label: 'Knowledge Base', icon: 'menu_book', route: '/knowledge-base', roles: [] },
         { label: 'Product Sources', icon: 'auto_stories', route: '/product-knowledge/sources', roles: TENANT_ADMIN_ONLY },
+        { label: 'Product Answers', icon: 'rate_review', route: '/product-knowledge/answers', roles: TENANT_ADMIN_ONLY },
       ],
     },
     {

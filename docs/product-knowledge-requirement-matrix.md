@@ -31,8 +31,8 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 
 | ID | Requirement | Baseline | Phase | Validation | Result | Status |
 |---|---|---|---|---|---|---|
-| PK-2.1 | Search sources before asking questions | NEW | P3 | Service test: question with supporting passage is drafted, not asked | — | NOT IMPLEMENTED |
-| PK-2.2 | Generate suggested answers where evidence exists | NEW | P3 | Same | — | NOT IMPLEMENTED |
+| PK-2.1 | Search sources before asking questions | NEW | P3 | Service test: question with supporting passage is drafted, not asked | Per question the passages are searched first; a question with no relevant passage is not sent to the AI and is listed as needing the tenant's input (test). AI calls are scripted in tests; **no live provider call made by me** | IMPLEMENTED BUT NOT FULLY VERIFIED |
+| PK-2.2 | Generate suggested answers where evidence exists | NEW | P3 | Same | Answers are drafted where evidence exists, with verified quotations (tests). AI calls are scripted in tests; **no live provider call made by me** | IMPLEMENTED BUT NOT FULLY VERIFIED |
 | PK-2.3 | Tenant confirms or corrects | NEW | P4 | Spec: confirm/edit actions | — | NOT IMPLEMENTED |
 | PK-2.4 | Ask only when missing/unclear/contradictory/needs approval | NEW (readiness gaps exist for facts) | P3–P4 | Test: only unresolved items surface | — | NOT IMPLEMENTED |
 | PK-2.5 | Prefer yes/no, multiple choice, short inputs | MODIFY (questionnaire supports) | P4 | Spec | — | NOT IMPLEMENTED |
@@ -44,26 +44,26 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 
 | ID | Requirement | Baseline | Phase | Validation | Result | Status |
 |---|---|---|---|---|---|---|
-| PK-3.1.1 | Upload brochures, PDFs, manuals, feature/pricing docs, FAQs | MODIFY (upload → draft article exists) | P2 | Test per format | — | NOT IMPLEMENTED |
-| PK-3.1.2 | File type and size validation (size limit configurable by admin) | MODIFY | P2 | Tests: wrong type, oversize | — | NOT IMPLEMENTED |
-| PK-3.1.3 | Access authorisation, tenant-owned sources | MODIFY | P2 | Cross-tenant test | — | NOT IMPLEMENTED |
-| PK-3.1.4 | Secure storage | EXISTS (`IMediaStorageService`) | P2 | Test | — | NOT IMPLEMENTED |
-| PK-3.1.5 | Processing status, error reporting, retry | NEW | P2 | Tests | — | NOT IMPLEMENTED |
-| PK-3.1.6 | Duplicate detection | NEW | P2 | Test: same hash | — | NOT IMPLEMENTED |
+| PK-3.1.1 | Upload brochures, PDFs, manuals, feature/pricing docs, FAQs | MODIFY (upload → draft article exists) | P2 | Test per format | Upload on Product Sources (drag and drop): PDF, Word, text, markdown, HTML and photos; tests per format. The owner uploaded to AWS successfully after the IAM fix | COMPLETE AND VERIFIED |
+| PK-3.1.2 | File type and size validation (size limit configurable by admin) | MODIFY | P2 | Tests: wrong type, oversize | Real type check by file signature (a renamed .exe is refused), size limit is a platform setting (default 10 MB), source count limit; tests | COMPLETE AND VERIFIED |
+| PK-3.1.3 | Access authorisation, tenant-owned sources | MODIFY | P2 | Cross-tenant test | Tenant Admin only; every query names the tenant; cross-tenant source is "not found" (tests) | COMPLETE AND VERIFIED |
+| PK-3.1.4 | Secure storage | EXISTS (`IMediaStorageService`) | P2 | Test | Private AWS folder private/{tenantId}/product-knowledge/, outside the public media prefix, encrypted at rest, read back only through the tenant API; the AWS Settings test checks it | COMPLETE AND VERIFIED |
+| PK-3.1.5 | Processing status, error reporting, retry | NEW | P2 | Tests | Queued → Processing → Ready/Failed with a reason, Retry, background job; tests | COMPLETE AND VERIFIED |
+| PK-3.1.6 | Duplicate detection | NEW | P2 | Test: same hash | Same file (SHA-256) from the same tenant is refused with a pointer to the first upload; another tenant is not a duplicate; tests | COMPLETE AND VERIFIED |
 | PK-3.1.7 | Scanned/image PDFs read via AI vision (Integrations toggle, default OFF); unreadable never marked processed | MODIFY (scanned currently rejected) | P1 toggle · P2 flow | Tests incl. toggle off → clear rejection | Scanned pages are now their own task group on Integrations ("Reading scanned pages and images": Off / Simulator / tool, default Off); runner refuses with FEATURE_OFF while Off (test). Upload flow that uses it is P2 | PARTIALLY IMPLEMENTED |
-| PK-3.1.8 | Page-level references from PDFs (PdfPig) | MODIFY (markdown only today) | P2 | Test: page numbers kept | — | NOT IMPLEMENTED |
-| PK-3.2.1 | Validate website URL | NEW | P2 | Tests | — | NOT IMPLEMENTED |
-| PK-3.2.2 | Scan relevant public pages in an approved scope | NEW | P2 | Tests | — | NOT IMPLEMENTED |
+| PK-3.1.8 | Page-level references from PDFs (PdfPig) | MODIFY (markdown only today) | P2 | Test: page numbers kept | PDFs read page by page with PdfPig; every passage keeps its page number; test builds real PDFs | COMPLETE AND VERIFIED |
+| PK-3.2.1 | Validate website URL | NEW | P2 | Tests | Address normalised and checked (scheme, port, credentials, numeric hosts); tests | COMPLETE AND VERIFIED |
+| PK-3.2.2 | Scan relevant public pages in an approved scope | NEW | P2 | Tests | Same-site breadth-first scan within depth/page limits (platform settings); tests. The owner ran it on a real website | COMPLETE AND VERIFIED |
 | PK-3.2.3 | Extract products, features, benefits, pricing, use cases, FAQs, business info | NEW | P2–P3 | Tests | — | NOT IMPLEMENTED |
-| PK-3.2.4 | Record source URL and extraction timestamp | NEW | P2 | Test | — | NOT IMPLEMENTED |
-| PK-3.2.5 | Identify duplicate content | NEW | P2 | Test | — | NOT IMPLEMENTED |
-| PK-3.2.6 | Report inaccessible/failed pages | NEW | P2 | Test | — | NOT IMPLEMENTED |
+| PK-3.2.4 | Record source URL and extraction timestamp | NEW | P2 | Test | Every website passage keeps its page address and extraction time; tests | COMPLETE AND VERIFIED |
+| PK-3.2.5 | Identify duplicate content | NEW | P2 | Test | Pages with identical text recorded as Duplicate and add no passages; tests | COMPLETE AND VERIFIED |
+| PK-3.2.6 | Report inaccessible/failed pages | NEW | P2 | Test | Per-page report: Read / Duplicate / Blocked / Failed / Skipped with the reason; tests | COMPLETE AND VERIFIED |
 | PK-3.2.7 | Preserve source references for facts | NEW | P2–P3 | Test | — | NOT IMPLEMENTED |
-| PK-3.2.8 | Respect access restrictions and crawling policy (robots.txt) | NEW | P2 | Test | — | NOT IMPLEMENTED |
-| PK-3.2.9 | SSRF / unsafe redirect / private network protection | NEW (media fetcher pattern exists) | P2 | SSRF payload tests | — | NOT IMPLEMENTED |
-| PK-3.2.10 | More than the homepage is scanned; no bypass of access controls | NEW | P2 | Test | — | NOT IMPLEMENTED |
-| PK-3.3.1 | Multiple documents and sites per tenant | NEW | P2 | Test | — | NOT IMPLEMENTED |
-| PK-3.3.2 | One consolidated structured model, source link preserved | NEW | P3 | Test | — | NOT IMPLEMENTED |
+| PK-3.2.8 | Respect access restrictions and crawling policy (robots.txt) | NEW | P2 | Test | robots.txt respected (our agent group, longest match, wildcards); can be switched off by the platform admin; tests | COMPLETE AND VERIFIED |
+| PK-3.2.9 | SSRF / unsafe redirect / private network protection | NEW (media fetcher pattern exists) | P2 | SSRF payload tests | Private, loopback, link-local, metadata, CGNAT and multicast addresses refused for IPv4/IPv6/mapped; checked per redirect hop and again at connect time (DNS rebinding); payload tests incl. the real handler | COMPLETE AND VERIFIED |
+| PK-3.2.10 | More than the homepage is scanned; no bypass of access controls | NEW | P2 | Test | More than the homepage is scanned; only public pages, no logins or credentials followed; tests | COMPLETE AND VERIFIED |
+| PK-3.3.1 | Multiple documents and sites per tenant | NEW | P2 | Test | Many documents and sites per tenant up to a platform limit; tests | COMPLETE AND VERIFIED |
+| PK-3.3.2 | One consolidated structured model, source link preserved | NEW | P3 | Test | All sources feed one passage pool; every answer and feature keeps source name, location and excerpt. A consolidated knowledge file is P5-P6 | PARTIALLY IMPLEMENTED |
 
 ## §4 AI providers and simulator (Platform Admin → Integrations)
 
@@ -100,17 +100,17 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 
 | ID | Requirement | Baseline | Phase | Validation | Result | Status |
 |---|---|---|---|---|---|---|
-| PK-5.1 | Structured knowledge model with the listed fields; unresolved stays unresolved | NEW | P3 | Tests | — | NOT IMPLEMENTED |
-| PK-5.2 | Distinguish extracted / AI interpretation / suggested language / tenant-provided / tenant-approved | NEW (origin enum exists for facts) | P3 | Test | — | NOT IMPLEMENTED |
-| PK-5.3 | Dedupe without losing material distinctions | NEW | P3 | Test | — | NOT IMPLEMENTED |
-| PK-6.1 | The 12 standard benefit/value questions | NEW | P3 | Test: all 12 present | — | NOT IMPLEMENTED |
-| PK-6.2 | Per question: search → evidence → draft → assess → show → verify → ask only unresolved | NEW | P3–P4 | Tests | — | NOT IMPLEMENTED |
-| PK-6.3 | Feature-to-benefit mapping | NEW | P3 | Test | — | NOT IMPLEMENTED |
-| PK-6.4 | No invented quantitative outcomes | NEW | P3 | Test | — | NOT IMPLEMENTED |
-| PK-7.1 | Tenant-created questions answered from the tenant's sources with citations and confidence | NEW | P3–P4 | Tests | — | NOT IMPLEMENTED |
+| PK-5.1 | Structured knowledge model with the listed fields; unresolved stays unresolved | NEW | P3 | Tests | Answers (12 standard + own questions) and a feature-benefit list, each with evidence; "unresolved" is kept as No supporting evidence plus one clarifying question. The remaining categories (pricing tables, FAQs...) arrive through the question set; no separate structured fields yet | PARTIALLY IMPLEMENTED |
+| PK-5.2 | Distinguish extracted / AI interpretation / suggested language / tenant-provided / tenant-approved | NEW (origin enum exists for facts) | P3 | Test | Kind is stored: source-extracted (High) vs AI-interpreted; "suggested language" and "tenant-provided" values exist but nothing produces them until P4/P5 | PARTIALLY IMPLEMENTED |
+| PK-5.3 | Dedupe without losing material distinctions | NEW | P3 | Test | Identical website pages and identical files are not read twice; no cross-source merging of near-duplicate facts yet | PARTIALLY IMPLEMENTED |
+| PK-6.1 | The 12 standard benefit/value questions | NEW | P3 | Test: all 12 present | All 12 standard questions are created for every tenant (test: all 12, unique keys) | COMPLETE AND VERIFIED |
+| PK-6.2 | Per question: search → evidence → draft → assess → show → verify → ask only unresolved | NEW | P3–P4 | Tests | Search → evidence → draft → assess → show is built (screen shows answer and sources); the verify/ask-only-unresolved steps are P4 | PARTIALLY IMPLEMENTED |
+| PK-6.3 | Feature-to-benefit mapping | NEW | P3 | Test | Feature → problem → benefit → segment → evidence rows; a feature with no verified quotation is dropped (test). AI calls are scripted in tests; **no live provider call made by me** | IMPLEMENTED BUT NOT FULLY VERIFIED |
+| PK-6.4 | No invented quantitative outcomes | NEW | P3 | Test | A figure/percentage in an answer or benefit that no cited passage states is flagged, caps confidence at Low and is named in the limitation (tests) | COMPLETE AND VERIFIED |
+| PK-7.1 | Tenant-created questions answered from the tenant's sources with citations and confidence | NEW | P3–P4 | Tests | Tenant questions answered from their sources with citations and confidence; approval actions are P4 | PARTIALLY IMPLEMENTED |
 | PK-7.2 | Approve / edit / reject / unknown, audit saved | NEW | P4 | Tests | — | NOT IMPLEMENTED |
-| PK-7.3 | Insufficient evidence → explain + clarify, never invent | NEW | P3 | Test | — | NOT IMPLEMENTED |
-| PK-7.4 | Custom questions isolated by tenant | NEW | P3 | Cross-tenant test | — | NOT IMPLEMENTED |
+| PK-7.3 | Insufficient evidence → explain + clarify, never invent | NEW | P3 | Test | Insufficient evidence → no answer shown, the limitation and one clarifying question (tests: model says insufficient, nothing found, invented quote) | COMPLETE AND VERIFIED |
+| PK-7.4 | Custom questions isolated by tenant | NEW | P3 | Cross-tenant test | Custom questions are tenant-owned; another tenant's passages are never sent to the AI and their questions are "not found" (tests) | COMPLETE AND VERIFIED |
 
 ## §8 Presentation and verification UX
 
@@ -128,11 +128,11 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 |---|---|---|---|---|---|---|
 | PK-9.1 | Traceability fields stored per answer (tenant, KB, source, type, name/URL, page, excerpt, hash, timestamps, provider/model, confidence, status, approver, KB version) | NEW | P3–P5 | Test | — | NOT IMPLEMENTED |
 | PK-9.1.a | Source relationship survives into files and other AI services | NEW | P5–P8 | Test | — | NOT IMPLEMENTED |
-| PK-9.1.b | Citations are real; never fabricated | NEW | P3 | Quote-verification tests | — | NOT IMPLEMENTED |
-| PK-9.2 | Four confidence categories from evidence quality, not fluency | NEW | P3 | Classification tests | — | NOT IMPLEMENTED |
-| PK-9.3 | Evidence-grounded; inferences flagged; unsupported claims flagged | PARTIAL (reply validator flags ungrounded numbers) | P3 · P7 | Tests | — | NOT IMPLEMENTED |
-| PK-9.4 | Conflicting sources shown, tenant resolves, history kept, date does not auto-decide | NEW | P3–P4 | Tests | — | NOT IMPLEMENTED |
-| PK-9.5 | Confidence enforced identically for every provider; provider self-report not relied on | NEW | P3 | Test with each simulator scenario | — | NOT IMPLEMENTED |
+| PK-9.1.b | Citations are real; never fabricated | NEW | P3 | Quote-verification tests | Each quotation must be found in the passage it names (case, spacing and punctuation ignored); a changed figure never passes, even in a 10-word quote; the stored excerpt is cut from the passage itself; 28 rule tests | COMPLETE AND VERIFIED |
+| PK-9.2 | Four confidence categories from evidence quality, not fluency | NEW | P3 | Classification tests | High / Medium / Low / No supporting evidence from verified quotations, coverage of the answer, number of passages, conflicts and unproven figures; documented in code; 28 rule tests | COMPLETE AND VERIFIED |
+| PK-9.3 | Evidence-grounded; inferences flagged; unsupported claims flagged | PARTIAL (reply validator flags ungrounded numbers) | P3 · P7 | Tests | Inferences flagged (Medium), unsupported figures flagged, conflicts flagged, material claims flagged. The chat-side enforcement is P7 | PARTIALLY IMPLEMENTED |
+| PK-9.4 | Conflicting sources shown, tenant resolves, history kept, date does not auto-decide | NEW | P3–P4 | Tests | Conflicts between sources detected (price, duration, percentage), both values and places kept, nothing chosen for the tenant; resolving and its history are P4 | PARTIALLY IMPLEMENTED |
+| PK-9.5 | Confidence enforced identically for every provider; provider self-report not relied on | NEW | P3 | Test with each simulator scenario | Confidence, quote checking and figure checking are application code and never use the model's own confidence; the simulator can never reach High (tests) | COMPLETE AND VERIFIED |
 | PK-9.6 | Only approved info as tenant fact in customer-facing output; material claims need explicit approval; unsupported → clarify or human | PARTIAL (handoff exists) | P7 | Chat tests | — | NOT IMPLEMENTED |
 
 ## §10–§13 Approval, output file, versioning, logging
@@ -156,13 +156,13 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 | ID | Requirement | Baseline | Phase | Validation | Result | Status |
 |---|---|---|---|---|---|---|
 | PK-14.1 | Tenant isolation for documents, knowledge, retrieval, questions, answers, files, references | EXISTS (global tenant filter) → new tables | P2–P7 | Cross-tenant tests per endpoint | — | NOT IMPLEMENTED |
-| PK-14.2 | Upload validation and safe processing | MODIFY | P2 | Tests | — | NOT IMPLEMENTED |
+| PK-14.2 | Upload validation and safe processing | MODIFY | P2 | Tests | Upload validation: signature check, size cap, corrupt/password-protected PDFs refused with a reason; tests | COMPLETE AND VERIFIED |
 | PK-14.3 | Credentials protected; integration management Platform-Admin only; backend authorisation (not UI-only) | EXISTS pattern | P1 | Role-denial tests | Provider endpoints PlatformSuperAdmin-only (attribute test); credentials write-only | COMPLETE AND VERIFIED |
 | PK-14.4 | Logs/files do not expose sensitive info; unauthorised operations fail safely | NEW | P1–P8 | Tests | — | NOT IMPLEMENTED |
 | PK-15 | Logical responsibilities mapped onto existing architecture, no duplicated services | — | all | Review at P9 | — | NOT IMPLEMENTED |
 | PK-16 | DB/API/UI changes identified; migrations and indexes; reuse existing tables | — | all | Per phase | — | NOT IMPLEMENTED |
-| PK-17.1 | Source-processing tests | NEW | P2 | Run | — | NOT IMPLEMENTED |
-| PK-17.2 | Q&A tests | NEW | P3 | Run | — | NOT IMPLEMENTED |
+| PK-17.1 | Source-processing tests | NEW | P2 | Run | 52 reading/crawler tests + 36 source-service tests, all run | COMPLETE AND VERIFIED |
+| PK-17.2 | Q&A tests | NEW | P3 | Run | EvidenceRulesTests (28) + KnowledgeDraftingServiceTests (28): good answer, invented quote, unsupported figure, conflict, insufficient, simulator, failure, approval protection, isolation, run, switch | COMPLETE AND VERIFIED |
 | PK-17.3 | Confidence/verification tests | NEW | P3–P5 | Run | — | NOT IMPLEMENTED |
 | PK-17.4 | Integration tests — mocked tests clearly separated from live; live verification by owner | NEW | P1 | Run | Mocked integration tests pass and are labelled as mocked; live provider tests are the owner's (keys not available to me) | IMPLEMENTED BUT NOT FULLY VERIFIED |
 | PK-17.5 | Security tests | NEW | P2 · P8 | Run | — | NOT IMPLEMENTED |
@@ -192,3 +192,14 @@ Proposal approved; matrix created. No code changed.
 **Existing logic touched (approved P5/P6, additive).** `AiFeatures` gained `ProductKnowledge`; `PlatformAiFeatureSettingsDto`/request gained a field; `AiFeatureOptions` gained Policy/Pricing/ProductKnowledge; settings catalog gained keys. Nothing was removed or changed in behaviour for existing features.
 **Correction - no duplicate provider screen (owner feedback, 2026-10-19).** The first cut put provider cards (key, model, On/Off, Verify) on Integrations, repeating Configuration → AI Providers. Now: provider settings live only on Configuration → AI Providers, which also shows the last Verify, status, the accuracy test, capabilities and a comparison table; prices moved into each provider's settings (`AiProviders:{P}:InputPer1MUsd/OutputPer1MUsd`, the `Integrations:Ai:Pricing:*` keys are gone). Integrations keeps the Product knowledge engine choice, the AI policy card and the AI call log (`platform-ai-policy`). The duplicate endpoints (PUT provider, POST verify) were removed; the existing `POST settings/ai-providers/verify` now records its result, and saves of the AiProviders and Integrations settings are audited (key names only). Tests: API 1,688 passed; Angular 1,029 passed; build OK.
 **Owner feedback - app-wide capabilities and per-task switches (2026-10-19).** (1) The capability list on each provider card now covers every place the application uses AI, not only product knowledge: customer chat replies, knowledge base embeddings, domain keyword suggestions, the business description rewrite, search keyword suggestions, the lead discovery agent, and the 12 product tasks - grouped by area, with what each provider's code cannot run marked "not supported". Each card also says what currently runs on it. To make "verified" real for the existing features, their calls are recorded in the AI call log by recording wrappers (owner approved): the features' own code is unchanged apart from naming the use around a one-shot text call; nothing is recorded for simulated calls; no prompt, reply or key is stored; embeddings are throttled (one success per provider per 10 minutes, one failure a minute); a recording failure never fails the feature. (2) Product knowledge has six switches on Integrations instead of one - Reading documents and PDFs; Reading scanned pages and images (default Off); Suggested answers; Questionnaire and benefits; Gaps and conflicts check; Draft knowledge file - each Off, Simulator, or ChatGPT / Claude / Gemini. The policy's separate "scanned documents via AI" switch is gone: it is that group's Off. Tests: API 1,717 passed; Angular 1,032 passed; build OK. **Not verified live** (needs the running API rebuilt from this branch and real keys).
+
+### Phase 2 - source ingestion (2026-10-19)
+**Built.** Tenants upload documents and add their website on **Product Sources**. Files and the extracted text are kept privately in AWS under `private/{tenantId}/product-knowledge/` (not the public media prefix, encrypted at rest). PDFs are read page by page; scanned pages go to the AI only when the platform's "Scanned pages" switch is on. A website is read same-site, within limits, respecting robots.txt, with SSRF defences. Two platform switches (Document upload, Website scanning) on Integrations. Reading runs as a background job with a status, a reason on failure and Retry.
+**Tests run.** API 1,809 passed; Angular 1,052 passed. **Verified live by the owner:** upload to AWS (after granting `private/*`) and a real website scan. **Not verified:** scanned-page reading with a real AI provider.
+
+### Phase 3 - drafting and evidence (2026-10-19)
+**Built.** "Product answers": the 12 standard benefit/value questions plus the tenant's own questions are answered from their sources. Per question the passages are searched first (nothing is asked of the AI when none bears on it); the provider returns a structured answer that must quote its passages; the application checks every quotation against the real passage text and every figure against the cited passages, looks for sources that disagree, and works out the confidence itself (High / Medium / Low / No supporting evidence) - the model's own confidence is never used, and the simulator can never reach High. An answer the evidence does not support is not shown as an answer; the tenant sees the limitation and one question to close the gap. A feature-to-benefit list is drafted the same way. Drafting runs in the background with progress; an approved answer is never replaced. The AI cost is the platform's. New tables: KnowledgeQuestions, KnowledgeAnswers, AnswerEvidences, KnowledgeConflicts, FeatureBenefits, KnowledgeDraftRuns (migration AddKnowledgeAnswers - six new tables, nothing existing touched). Two platform settings (passages per question, custom question limit).
+**Tests run.** API 1,865 passed (56 new); Angular 1,065 passed (13 new); build OK. **Not verified:** any live provider - the AI is scripted in tests, so how often a real model returns well-formed, correctly quoted JSON is unmeasured (the accuracy test on AI Providers measures it per provider).
+**Found by testing.** A 10-word quotation with one changed price (500 → 800) passed the fuzzy match; figures must now match exactly. Two different plans with prices were reported as a conflict because "cost / Rs / month" counted as the subject; generic words are now ignored.
+**Existing logic touched.** None. The Suggested answers and Questionnaire switches decide whether drafting runs.
+**Next (P4).** Approve / edit / reject / unknown / not applicable, conflict resolution and history, the audit trail - the verification screen.
