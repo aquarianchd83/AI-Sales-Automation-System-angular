@@ -131,6 +131,20 @@ describe('StudioReadinessComponent', () => {
 
   // ----- the follow-up questions ---------------------------------------------------------------------------------------------------
 
+  it('gives real examples for the question, one per kind of business', () => {
+    const el = render(readiness({ gaps: [gap('pricing', { example: "Clinic: 'Consultation Rs 500.'  |  Kapde ki dukaan: 'Cotton kurti Rs 699 se shuru.'" })] }));
+
+    const examples = Array.from(el.querySelectorAll('[data-gap="pricing"] [data-testid="examples"] li')).map((li) => text(li));
+    expect(examples).toEqual(["Clinic: 'Consultation Rs 500.'", "Kapde ki dukaan: 'Cotton kurti Rs 699 se shuru.'"]);
+    expect(text(el.querySelector('[data-gap="pricing"] [data-testid="examples"]'))).toContain('Example (aise likh sakte hain)');
+  });
+
+  it('shows no example box when the rule has none', () => {
+    const el = render(readiness({ gaps: [gap('pricing')] }));
+
+    expect(el.querySelector('[data-gap="pricing"] [data-testid="examples"]')).toBeNull();
+  });
+
   it('asks each open gap as a simple question, with why it is needed and what it unlocks', () => {
     const el = render(readiness({ gaps: [gap('pricing', { example: 'Consultation Rs 500' })] }));
 

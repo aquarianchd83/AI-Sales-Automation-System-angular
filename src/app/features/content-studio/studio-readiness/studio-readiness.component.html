@@ -83,6 +83,14 @@
       </div>
       <p class="gap-question">{{ g.question }}</p>
       <p class="muted gap-why"><mat-icon>info</mat-icon> {{ g.why }}</p>
+
+      <div class="gap-examples" *ngIf="examplesOf(g).length" data-testid="examples">
+        <strong>Example (aise likh sakte hain):</strong>
+        <ul>
+          <li *ngFor="let e of examplesOf(g)">{{ e }}</li>
+        </ul>
+      </div>
+
       <p class="muted gap-for">Needed for: {{ g.neededFor.join(', ') }}</p>
 
       <!-- Facts that only need an Admin's confirmation: no typing needed. -->
@@ -111,7 +119,7 @@
       <div class="answer-form" *ngIf="answering === g.key">
         <mat-form-field subscriptSizing="dynamic" class="full" *ngIf="!proofOnly(g)">
           <mat-label>Your answer</mat-label>
-          <textarea matInput rows="3" [formControl]="answer" [attr.maxlength]="maxAnswer" [placeholder]="g.example ? 'e.g. ' + g.example : ''"></textarea>
+          <textarea matInput rows="3" [formControl]="answer" [attr.maxlength]="maxAnswer" [placeholder]="examplesOf(g)[0] ? 'e.g. ' + examplesOf(g)[0] : ''"></textarea>
         </mat-form-field>
 
         <mat-form-field subscriptSizing="dynamic" class="full" *ngIf="g.requiresEvidence">

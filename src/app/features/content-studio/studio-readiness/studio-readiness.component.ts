@@ -119,6 +119,14 @@ export class StudioReadinessComponent implements OnInit {
     return `badge badge--req-${state.toLowerCase()}`;
   }
 
+  /** A gap's examples: the rule gives one per kind of business, separated by a bar. */
+  examplesOf(gap: KnowledgeGap): string[] {
+    return (gap.example ?? '')
+      .split('|')
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
+  }
+
   toggle(key: string): void {
     if (!this.expanded.delete(key)) {
       this.expanded.add(key);

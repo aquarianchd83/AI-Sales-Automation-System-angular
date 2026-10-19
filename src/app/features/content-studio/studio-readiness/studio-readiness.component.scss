@@ -297,3 +297,20 @@
   margin: 6px 0 2px;
   font-weight: 500;
 }
+
+.gap-examples {
+  margin: 8px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(26, 115, 232, 0.06);
+  font-size: 13px;
+
+  ul {
+    margin: 6px 0 0;
+    padding-left: 18px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+}
