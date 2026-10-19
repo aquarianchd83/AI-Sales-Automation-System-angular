@@ -79,6 +79,7 @@ describe('ShellComponent sidenav', () => {
       'menu_bookKnowledge Base',
       'auto_storiesProduct Sources',
       'rate_reviewProduct Answers',
+      'inventoryPublished Knowledge',
       'bar_chartReports',
       'monitoringAgent Performance',
       'storefrontBusiness Profile',

@@ -63,12 +63,17 @@ export interface KnowledgeAnswer {
   conflicts: KnowledgeConflict[];
   /** When the tenant approved it. Kept when an approved answer is reopened. */
   approvedAt?: string | null;
+  /** A source this answer was drawn from changed or was removed: the tenant should look at it again. */
+  needsRevalidation?: boolean;
+  revalidationReason?: string | null;
+  /** When an approved price, guarantee or result must be confirmed again. */
+  reviewDueAt?: string | null;
 }
 
 /** One entry in the audit trail of a question: who did what, when, and the text before and after. */
 export interface AnswerRevision {
   id: string;
-  kind: 'Drafted' | 'Approved' | 'Edited' | 'InformationProvided' | 'Rejected' | 'MarkedUnknown' | 'MarkedNotApplicable' | 'Reopened' | 'ConflictResolved';
+  kind: 'Drafted' | 'Approved' | 'Edited' | 'InformationProvided' | 'Rejected' | 'MarkedUnknown' | 'MarkedNotApplicable' | 'Reopened' | 'ConflictResolved' | 'SourceChanged';
   fromStatus: string | null;
   toStatus: string | null;
   fromText: string | null;

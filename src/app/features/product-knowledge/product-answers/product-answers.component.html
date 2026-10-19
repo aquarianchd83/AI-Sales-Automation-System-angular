@@ -93,7 +93,8 @@
             <span class="muted small" *ngIf="!q.isStandard">Your question</span>
           </span>
           <ng-container *ngIf="q.answer as qa; else notDrafted">
-            <span class="chip chip--approved item-chip" *ngIf="qa.status === 'VerifiedAndApproved'">Approved</span>
+            <span class="chip chip--material item-chip" *ngIf="needsRecheck(qa)" data-testid="recheck-chip">Check again</span>
+            <span class="chip chip--approved item-chip" *ngIf="qa.status === 'VerifiedAndApproved' && !needsRecheck(qa)">Approved</span>
             <span class="chip chip--status item-chip" *ngIf="qa.status === 'Rejected' || qa.status === 'InformationNotAvailable' || qa.status === 'NotApplicable'">{{ statusText(qa) }}</span>
             <span [class]="chipClass(qa.confidence)" class="item-chip" *ngIf="qa.status === 'PendingVerification' || qa.status === 'CorrectionRequired'">{{ qa.confidence === 'NoEvidence' ? 'No evidence' : qa.confidence }}</span>
           </ng-container>
@@ -139,6 +140,10 @@
               <span class="chip chip--sim" *ngIf="a.isSimulated">Test data</span>
             </div>
 
+            <div class="note note--warn" *ngIf="needsRecheck(a)" data-testid="recheck">
+              <mat-icon>update</mat-icon>
+              <span>{{ recheckReason(a) }} It stays approved, but it will not go into a new published version until you confirm it again.</span>
+            </div>
             <p class="muted small approved-by" *ngIf="a.status === 'VerifiedAndApproved' && a.approvedAt" data-testid="approved-at">You approved this on {{ a.approvedAt | zonedDate: 'medium' }}.</p>
 
             <!-- The answer: short first, the rest on request. -->
@@ -216,7 +221,7 @@
 
             <!-- Your decision. -->
             <div class="decide" data-testid="decide" *ngIf="!editing && !rejecting">
-              <ng-container *ngIf="a.status !== 'VerifiedAndApproved'">
+              <ng-container *ngIf="a.status !== 'VerifiedAndApproved' || needsRecheck(a)">
                 <label class="confirm" *ngIf="a.summary && !a.isSimulated && needsConfirmation(a) as why" data-testid="confirm-box">
                   <mat-checkbox [formControl]="confirm">I have checked this</mat-checkbox>
                   <span class="muted small">{{ why }}</span>
@@ -228,8 +233,8 @@
               </ng-container>
 
               <div class="actions">
-                <button mat-flat-button color="primary" type="button" *ngIf="a.status !== 'VerifiedAndApproved' && a.summary && !a.isSimulated" [disabled]="busy[q.id] || !canApprove(a)" (click)="approve(q)" data-testid="approve">
-                  <mat-icon>check</mat-icon> Approve
+                <button mat-flat-button color="primary" type="button" *ngIf="(a.status !== 'VerifiedAndApproved' || needsRecheck(a)) && a.summary && !a.isSimulated" [disabled]="busy[q.id] || !canApprove(a)" (click)="approve(q)" data-testid="approve">
+                  <mat-icon>check</mat-icon> {{ needsRecheck(a) ? 'Confirm again' : 'Approve' }}
                 </button>
                 <button mat-stroked-button type="button" (click)="startEdit(q)" data-testid="edit"><mat-icon>edit</mat-icon> {{ a.summary ? 'Edit' : 'Write the answer' }}</button>
                 <button mat-stroked-button type="button" *ngIf="a.status === 'VerifiedAndApproved' || a.status === 'CorrectionRequired' || a.status === 'PendingVerification' || a.status === 'Rejected'" [disabled]="busy[q.id] || overview.aiMode === 'Off' || overview.readySources === 0 || a.status === 'VerifiedAndApproved'" (click)="redraft(q)" data-testid="redraft">

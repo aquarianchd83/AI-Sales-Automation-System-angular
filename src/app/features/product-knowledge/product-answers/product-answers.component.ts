@@ -407,11 +407,25 @@ export class ProductAnswersComponent implements OnInit, OnDestroy {
     return answer.conflicts.filter((c) => c.status === 'Open');
   }
 
+  /** An approved answer that must be looked at again: a source it came from changed, or an approved price has lapsed. */
+  needsRecheck(answer: KnowledgeAnswer): boolean {
+    return (
+      answer.status === 'VerifiedAndApproved' &&
+      (!!answer.needsRevalidation || (!!answer.reviewDueAt && new Date(answer.reviewDueAt).getTime() < Date.now()))
+    );
+  }
+
+  recheckReason(answer: KnowledgeAnswer): string {
+    return answer.needsRevalidation && answer.revalidationReason
+      ? answer.revalidationReason
+      : 'You approved this price, guarantee or result a while ago. Confirm it is still true.';
+  }
+
   canApprove(answer: KnowledgeAnswer): boolean {
     return (
       !!answer.summary &&
       !answer.isSimulated &&
-      answer.status !== 'VerifiedAndApproved' &&
+      (answer.status !== 'VerifiedAndApproved' || this.needsRecheck(answer)) &&
       this.openConflicts(answer).length === 0 &&
       (this.needsConfirmation(answer) === null || this.confirm.value)
     );
@@ -419,7 +433,8 @@ export class ProductAnswersComponent implements OnInit, OnDestroy {
 
   approve(q: KnowledgeQuestion): void {
     if (q.answer && this.canApprove(q.answer)) {
-      this.act(q, this.answers.approve(q.answer.id, this.confirm.value), 'Approved. It is now an answer you have confirmed.');
+      const again = this.needsRecheck(q.answer);
+      this.act(q, this.answers.approve(q.answer.id, this.confirm.value), again ? 'Confirmed again.' : 'Approved. It is now an answer you have confirmed.');
     }
   }
 
@@ -510,6 +525,7 @@ export class ProductAnswersComponent implements OnInit, OnDestroy {
       MarkedNotApplicable: 'Marked: does not apply',
       Reopened: 'Reopened for correction',
       ConflictResolved: 'You chose between conflicting values',
+      SourceChanged: 'A source this answer came from changed or was removed',
     };
     return text[kind];
   }

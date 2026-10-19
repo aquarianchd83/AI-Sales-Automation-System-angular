@@ -471,4 +471,36 @@ describe('ProductAnswersComponent', () => {
     expect(trail[1]).toContain('Drafted from your sources');
     expect(trail[1]).toContain('the application');
   });
+
+  it('marks an approved answer whose source changed as needing another look, and confirming it again clears that', () => {
+    render(overview({ questions: [question({ answer: plain({ status: 'VerifiedAndApproved', needsRevalidation: true, revalidationReason: 'brochure.pdf changed: the words are gone.' }) })] }));
+    api.approve.and.returnValue(of(question({ answer: plain({ status: 'VerifiedAndApproved', needsRevalidation: false }) })));
+
+    expect(text('[data-testid="recheck-chip"]')).toBe('Check again');
+    expect(text('[data-testid="recheck"]')).toContain('brochure.pdf changed: the words are gone.');
+    expect(text('[data-testid="recheck"]')).toContain('will not go into a new published version');
+    expect(text('[data-testid="approve"]')).toContain('Confirm again');
+
+    click('approve');
+
+    expect(api.approve).toHaveBeenCalledWith('a1', false);
+    expect(notify.success).toHaveBeenCalledWith('Confirmed again.');
+    expect(root().querySelector('[data-testid="recheck"]')).toBeNull();
+    expect(root().querySelector('[data-testid="recheck-chip"]')).toBeNull();
+  });
+
+  it('asks an approved price whose review date has passed to be checked again before it can be confirmed', () => {
+    render(overview({ questions: [question({ answer: answer({ status: 'VerifiedAndApproved', reviewDueAt: '2020-01-01T00:00:00Z' }) })] }));
+
+    expect(text('[data-testid="recheck"]')).toContain('a while ago');
+    expect(root().querySelector('[data-testid="confirm-box"]')).not.toBeNull(); // a price needs "I have checked this"
+    expect(root().querySelector<HTMLButtonElement>('[data-testid="approve"]')!.disabled).toBeTrue();
+  });
+
+  it('does not flag an approved answer whose review date is still ahead', () => {
+    render(overview({ questions: [question({ answer: answer({ status: 'VerifiedAndApproved', reviewDueAt: '2999-01-01T00:00:00Z' }) })] }));
+
+    expect(root().querySelector('[data-testid="recheck"]')).toBeNull();
+    expect(root().querySelector('[data-testid="approve"]')).toBeNull();
+  });
 });
