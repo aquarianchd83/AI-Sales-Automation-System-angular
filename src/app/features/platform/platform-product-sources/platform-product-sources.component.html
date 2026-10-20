@@ -1,0 +1,36 @@
+<mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+<mat-card class="panel" *ngIf="loadFailed">
+  <p>The switches could not be loaded.</p>
+  <button mat-stroked-button type="button" (click)="load()">Try again</button>
+</mat-card>
+
+<mat-card class="panel" *ngIf="!loading && !loadFailed" data-testid="sources-panel">
+  <div class="eyebrow">Product knowledge</div>
+  <h2>Source reading</h2>
+  <p class="muted lead">
+    Whether tenants can give the AI documents and their website to learn their products from. Neither of these uses AI: the platform only reads the
+    text. Reading <em>scanned</em> pages with AI is its own switch, "Scanned pages". Switching off stops new uploads, new websites and re-reads;
+    what was already read stays.
+  </p>
+
+  <div class="switch">
+    <div>
+      <div class="switch-title">Document upload</div>
+      <div class="muted small">Brochures, PDFs, manuals, price lists, Word and text files. Stored privately in the tenant's folder.</div>
+    </div>
+    <mat-slide-toggle [checked]="documentUpload" [disabled]="!!saving['Integrations:ProductSources:DocumentUpload']" (change)="setDocuments($event.checked)"
+      aria-label="Document upload" data-testid="documents">{{ documentUpload ? 'On' : 'Off' }}</mat-slide-toggle>
+  </div>
+
+  <div class="switch">
+    <div>
+      <div class="switch-title">Website scanning</div>
+      <div class="muted small">Reads the public pages of the tenant's own website, on the same site only, respecting robots.txt.</div>
+    </div>
+    <mat-slide-toggle [checked]="websiteScanning" [disabled]="!!saving['Integrations:ProductSources:WebsiteScanning']" (change)="setWebsites($event.checked)"
+      aria-label="Website scanning" data-testid="websites">{{ websiteScanning ? 'On' : 'Off' }}</mat-slide-toggle>
+  </div>
+
+  <p class="muted small">Limits (file size, pages per site, how deep to follow links) are under Configuration, "ProductKnowledge".</p>
+</mat-card>

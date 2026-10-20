@@ -1,0 +1,119 @@
+<mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+<mat-card class="delivery-card" *ngIf="loadFailed">
+  <p>The AI policy could not be loaded.</p>
+  <button mat-stroked-button type="button" (click)="load()">Try again</button>
+</mat-card>
+
+<!-- Policy: fallback, scanned documents, cost limit, simulator scenario. Saved on its own, like the provider settings. -->
+<mat-card class="delivery-card policy" *ngIf="!loading && !loadFailed && show !== 'calls'" data-testid="policy">
+  <h2>AI policy</h2>
+  <p class="muted">
+    How AI calls behave for product knowledge. Provider keys, models, prices and the accuracy test are on
+    <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>.
+  </p>
+
+  <mat-slide-toggle [checked]="policyFallback" (change)="policyFallback = $event.checked" data-testid="fallback">
+    Try another provider when the chosen one fails
+  </mat-slide-toggle>
+  <p class="muted small">Off by default. The simulator is never used as a fallback, so a failed live call is never reported as a success.</p>
+
+  <div class="order" *ngIf="policyFallback">
+    <span class="muted">Order to try after the chosen provider:</span>
+    <ol>
+      <li *ngFor="let p of policyOrder; let i = index" [attr.data-order]="p">
+        <span>{{ nameOf(p) }}</span>
+        <button mat-icon-button type="button" [disabled]="i === 0" (click)="moveUp(i)" [attr.aria-label]="'Move ' + nameOf(p) + ' up'"><mat-icon>arrow_upward</mat-icon></button>
+        <button mat-icon-button type="button" (click)="removeFromOrder(i)" [attr.aria-label]="'Remove ' + nameOf(p)"><mat-icon>close</mat-icon></button>
+      </li>
+    </ol>
+    <button mat-button type="button" *ngFor="let p of fallbackCandidates" (click)="addToOrder(p)">+ {{ nameOf(p) }}</button>
+  </div>
+
+
+  <mat-form-field subscriptSizing="dynamic" class="field">
+    <mat-label>Most one AI call may cost, US $</mat-label>
+    <input matInput type="number" min="0" step="0.05" [formControl]="policyMaxCost" data-testid="max-cost" />
+    <mat-hint>A call estimated above this is skipped. 0 means no limit.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field subscriptSizing="dynamic" class="field">
+    <mat-label>What the simulator returns</mat-label>
+    <mat-select [value]="policyScenario" (selectionChange)="policyScenario = $event.value" data-testid="scenario">
+      <mat-option *ngFor="let s of scenarios" [value]="s">{{ s }}</mat-option>
+    </mat-select>
+    <mat-hint>For testing while product knowledge runs on the Simulator: a normal answer, missing evidence, conflicting sources, a malformed reply or a provider error.</mat-hint>
+  </mat-form-field>
+
+  <div class="actions">
+    <button mat-flat-button color="primary" type="button" [disabled]="savingPolicy" (click)="savePolicy()" data-testid="save-policy">
+      {{ savingPolicy ? 'Saving…' : 'Save AI policy' }}
+    </button>
+  </div>
+</mat-card>
+
+<!-- Every AI call, newest first. -->
+<mat-card class="delivery-card" *ngIf="show !== 'policy'" data-testid="executions">
+  <div class="head">
+    <h2>AI calls</h2>
+    <span class="spacer"></span>
+    <button mat-button type="button" (click)="loadExecutions()" [disabled]="executionsLoading"><mat-icon>refresh</mat-icon> Refresh</button>
+  </div>
+  <p class="muted small">Every attempt, including Verify, accuracy tests, retries and fallbacks. No prompt, document text or key is stored.</p>
+  <mat-progress-bar mode="indeterminate" *ngIf="executionsLoading"></mat-progress-bar>
+
+  <div class="table-scroll" *ngIf="executions.items.length; else noCalls">
+    <table mat-table [dataSource]="executions.items" class="executions-table">
+      <ng-container matColumnDef="when">
+        <th mat-header-cell *matHeaderCellDef>When</th>
+        <td mat-cell *matCellDef="let e">{{ e.createdAt | zonedDate: 'short' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="task">
+        <th mat-header-cell *matHeaderCellDef>Task</th>
+        <td mat-cell *matCellDef="let e">{{ taskName(e.task) }}<span class="muted" *ngIf="e.attempt > 1"> · attempt {{ e.attempt }}</span></td>
+      </ng-container>
+      <ng-container matColumnDef="provider">
+        <th mat-header-cell *matHeaderCellDef>Provider</th>
+        <td mat-cell *matCellDef="let e">
+          {{ nameOf(e.provider) }}<span class="muted" *ngIf="e.fallbackFromProvider"> (after {{ nameOf(e.fallbackFromProvider) }} failed)</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="mode">
+        <th mat-header-cell *matHeaderCellDef>Mode</th>
+        <td mat-cell *matCellDef="let e"><span class="mode" [class.mode--sim]="e.mode === 'Simulator'">{{ e.mode }}</span></td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Result</th>
+        <td mat-cell *matCellDef="let e"><span [class]="e.status === 'Succeeded' ? 'status status--ok' : 'status status--failed'">{{ e.status }}</span></td>
+      </ng-container>
+      <ng-container matColumnDef="duration">
+        <th mat-header-cell *matHeaderCellDef class="num">Time</th>
+        <td mat-cell *matCellDef="let e" class="num">{{ e.durationMs | number }} ms</td>
+      </ng-container>
+      <ng-container matColumnDef="tokens">
+        <th mat-header-cell *matHeaderCellDef class="num">Tokens</th>
+        <td mat-cell *matCellDef="let e" class="num">{{ e.inputTokens !== null ? (e.inputTokens | number) + ' / ' + (e.outputTokens | number) : '-' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="cost">
+        <th mat-header-cell *matHeaderCellDef class="num">Cost</th>
+        <td mat-cell *matCellDef="let e" class="num">{{ e.estimatedCostUsd !== null ? '$ ' + (e.estimatedCostUsd | number: '1.4-6') : '-' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="error">
+        <th mat-header-cell *matHeaderCellDef>Reason</th>
+        <td mat-cell *matCellDef="let e" class="error-cell">{{ e.errorSummary || e.errorCode || '' }}</td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="executionColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: executionColumns"></tr>
+    </table>
+  </div>
+  <ng-template #noCalls><p class="muted">No AI calls yet.</p></ng-template>
+
+  <mat-paginator
+    *ngIf="executions.totalCount > executions.pageSize"
+    [length]="executions.totalCount"
+    [pageSize]="executions.pageSize"
+    [pageIndex]="executions.page - 1"
+    [hidePageSize]="true"
+    (page)="onExecutionsPage($event)"
+  ></mat-paginator>
+</mat-card>

@@ -153,6 +153,13 @@ const routes: Routes = [
         loadChildren: () => import('./features/social-ads/social-ads.module').then((m) => m.SocialAdsModule),
       },
       {
+        // Product knowledge: the tenant's sources (documents and website) the AI learns their products from. Tenant Admin only, as on the API.
+        path: 'product-knowledge',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () => import('./features/product-knowledge/product-knowledge.module').then((m) => m.ProductKnowledgeModule),
+      },
+      {
         path: 'content-studio',
         canActivate: [roleGuard],
         data: { roles: STUDIO_CONTENT_ROLES },

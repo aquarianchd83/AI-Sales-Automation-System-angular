@@ -1,0 +1,134 @@
+<div class="page">
+  <app-page-header
+    title="Published knowledge"
+    subtitle="The answers you approved, published as a numbered version. Each version is a record that never changes, so you can always see exactly what was published and when."
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="panel" *ngIf="loadFailed">
+    <p>Your published knowledge could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <div class="console" *ngIf="overview && !loadFailed">
+    <nav class="list" aria-label="Versions">
+      <button type="button" class="item" [class.item--active]="selectedId === nextId" (click)="select(nextId)" data-testid="next-item">
+        <mat-icon>publish</mat-icon>
+        <span class="item-main">
+          <span class="item-text">Next version</span>
+          <span class="muted small">{{ overview.preview.ready }} ready to publish</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        class="item"
+        *ngFor="let v of versions"
+        [class.item--active]="selectedId === v.id"
+        [attr.data-version]="v.id"
+        (click)="select(v.id)"
+      >
+        <span class="item-main">
+          <span class="item-text">Version {{ v.number }}</span>
+          <span class="muted small">{{ v.publishedAt | zonedDate: 'medium' }} · {{ v.itemCount }} answers</span>
+        </span>
+        <span class="chip" [class.chip--current]="v.status === 'Current'">{{ v.status === 'Current' ? 'Current' : 'Replaced' }}</span>
+      </button>
+      <div class="muted small empty-list" *ngIf="!versions.length" data-testid="no-versions">Nothing has been published yet.</div>
+    </nav>
+
+    <section class="detail" aria-live="polite">
+      <!-- The next version: what would go in, what is held back. -->
+      <mat-card class="panel" *ngIf="selectedId === nextId" data-testid="next">
+        <header class="panel-head">
+          <div>
+            <div class="eyebrow">Publish</div>
+            <h2>Next version</h2>
+          </div>
+        </header>
+
+        <p class="lead" data-testid="ready">
+          <strong>{{ overview.preview.ready }}</strong> approved answer{{ overview.preview.ready === 1 ? '' : 's' }} ready to publish.
+          <span class="muted" *ngIf="overview.preview.notYetApproved">{{ overview.preview.notYetApproved }} not approved yet.</span>
+        </p>
+
+        <div class="held" *ngIf="overview.preview.heldBack.length" data-testid="held-back">
+          <div class="note note--warn">
+            <mat-icon>update</mat-icon>
+            <span>
+              {{ overview.preview.heldBack.length }} approved answer{{ overview.preview.heldBack.length === 1 ? ' needs' : 's need' }} another look and
+              {{ overview.preview.heldBack.length === 1 ? 'is' : 'are' }} left out. Look at them under
+              <a routerLink="/product-knowledge/answers">Product answers</a>.
+            </span>
+          </div>
+          <ul class="held-list">
+            <li *ngFor="let h of overview.preview.heldBack" [attr.data-held]="h.code">
+              <strong>{{ h.question }}</strong>
+              <span class="muted small">{{ h.reason }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <form class="publish" (ngSubmit)="publish()">
+          <mat-form-field subscriptSizing="dynamic" class="note-field">
+            <mat-label>Note (optional)</mat-label>
+            <input matInput [formControl]="note" maxlength="500" autocomplete="off" placeholder="For example: New pricing for October" data-testid="note" />
+          </mat-form-field>
+          <button mat-flat-button color="primary" type="submit" [disabled]="!canPublish" data-testid="publish">
+            <mat-icon>{{ publishing ? 'hourglass_empty' : 'publish' }}</mat-icon>
+            {{ publishing ? 'Publishing…' : 'Publish version' }}
+          </button>
+        </form>
+        <div class="file-row">
+          <button mat-stroked-button type="button" (click)="downloadDraft()" data-testid="draft-file"><mat-icon>description</mat-icon> Download draft file</button>
+          <span class="muted small">A plain-text working copy of every question and answer, marked as not approved. Customers never see it.</span>
+        </div>
+        <p class="muted small" *ngIf="cannotPublishBecause as why" data-testid="cannot">{{ why }}</p>
+      </mat-card>
+
+      <!-- One version: exactly what it contained. -->
+      <mat-card class="panel" *ngIf="selectedId !== nextId">
+        <mat-progress-bar mode="indeterminate" *ngIf="loadingDetail"></mat-progress-bar>
+        <ng-container *ngIf="detail as d">
+          <header class="panel-head" [attr.data-detail]="d.version.id">
+            <div>
+              <div class="eyebrow">{{ d.version.status === 'Current' ? 'Current version' : 'Replaced by a newer version' }}</div>
+              <h2>Version {{ d.version.number }}</h2>
+              <p class="muted small">
+                Published {{ d.version.publishedAt | zonedDate: 'medium' }}<ng-container *ngIf="d.version.publishedByEmail"> by {{ d.version.publishedByEmail }}</ng-container>
+                · {{ d.version.itemCount }} answers
+              </p>
+              <p class="note-text" *ngIf="d.version.note" data-testid="version-note">{{ d.version.note }}</p>
+            </div>
+            <div class="head-actions">
+              <button mat-stroked-button type="button" (click)="downloadFinal(d.version)" data-testid="final-file"><mat-icon>download</mat-icon> Download file</button>
+              <button mat-stroked-button type="button" *ngIf="d.version.status !== 'Current'" [disabled]="restoring" (click)="restore(d.version)" data-testid="restore">
+                <mat-icon>restore</mat-icon> Restore this version
+              </button>
+            </div>
+          </header>
+
+          <article class="entry" *ngFor="let i of d.items" [attr.data-item]="i.id">
+            <div class="entry-head">
+              <span class="eyebrow">{{ i.category }}</span>
+              <span class="chip chip--material" *ngIf="i.isMaterialClaim">Price, guarantee or result</span>
+            </div>
+            <h3>{{ i.question }}</h3>
+            <p class="summary">{{ i.summary }}</p>
+            <ng-container *ngIf="i.detail">
+              <button mat-button type="button" class="link" (click)="toggle(i.id)">{{ expanded.has(i.id) ? 'Hide details' : 'Show details' }}</button>
+              <p class="detail-text" *ngIf="expanded.has(i.id)">{{ i.detail }}</p>
+            </ng-container>
+            <ul class="evidence" *ngIf="i.evidence.length">
+              <li *ngFor="let e of i.evidence">
+                <q>{{ e.excerpt }}</q>
+                <span class="muted small">{{ e.sourceName }} · {{ e.location }}</span>
+              </li>
+            </ul>
+            <p class="muted small">Approved {{ i.approvedAt | zonedDate: 'medium' }}<ng-container *ngIf="i.reviewDueAt"> · confirm again by {{ i.reviewDueAt | zonedDate: 'mediumDate' }}</ng-container></p>
+          </article>
+        </ng-container>
+      </mat-card>
+    </section>
+  </div>
+</div>

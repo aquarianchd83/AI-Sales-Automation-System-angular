@@ -1036,9 +1036,12 @@ export interface UpdatePlatformIntegrationSettingsRequest {
 /** The third-party tool an AI feature can run on: OpenAI is ChatGPT, Anthropic is Claude, Google is Gemini. */
 export type AiToolProvider = 'OpenAI' | 'Anthropic' | 'Google';
 
+/** How an AI feature runs: the simulator, a third-party tool, or - for a product-knowledge task group only - Off (the AI step is skipped). */
+export type AiFeatureMode = IntegrationMode | 'Off';
+
 /** One AI feature on the Integrations page: the simulator, or a third-party tool using the key saved under Configuration > AI Providers. */
 export interface AiFeatureChannel {
-  mode: IntegrationMode;
+  mode: AiFeatureMode;
   provider: AiToolProvider;
   /** A key is saved for `provider`, so it can be switched to. */
   providerHasKey: boolean;
@@ -1073,11 +1076,26 @@ export interface PlatformAiFeatureSettings {
   businessKeywords: AiFeatureChannel;
   discoveryKeywords: AiFeatureChannel;
   conversation: AiConversationChannel;
+  /** Product knowledge, one switch per group of tasks (reading documents, scanned pages, suggested answers, ...). */
+  productKnowledgeTasks: AiTaskGroup[];
+}
+
+/** A product-knowledge task group and its switch. `feature` is the API name, e.g. "ProductSuggestedAnswers". */
+export interface AiTaskGroup {
+  feature: string;
+  title: string;
+  description: string;
+  tasks: string[];
+  channel: AiFeatureChannel;
 }
 
 export interface AiFeatureChannelRequest {
-  mode: IntegrationMode;
+  mode: AiFeatureMode;
   provider: AiToolProvider;
+}
+
+export interface AiTaskGroupRequest extends AiFeatureChannelRequest {
+  feature: string;
 }
 
 export interface AiConversationRequest {
@@ -1095,6 +1113,7 @@ export interface UpdatePlatformAiFeatureSettingsRequest {
   businessKeywords: AiFeatureChannelRequest;
   discoveryKeywords: AiFeatureChannelRequest;
   conversation: AiConversationRequest;
+  productKnowledgeTasks: AiTaskGroupRequest[];
 }
 
 /** POST ai-features/{feature}/test: the choice on screen, saved or not. */
@@ -1106,4 +1125,108 @@ export interface TestAiFeatureRequest {
 export interface SendIntegrationTestRequest {
   settings: IntegrationChannelRequest;
   to: string;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// AI providers: what Configuration > AI Providers shows beside each provider's own settings (last Verify, capabilities, measured accuracy),
+// and the product-knowledge AI policy and call log on the Integrations page. On/Off, key, model and prices stay ordinary settings.
+// ---------------------------------------------------------------------------------------------------------------------------------------
+
+export type AiProviderId = 'OpenAI' | 'Anthropic' | 'Google';
+
+/** Off, NotConfigured (no key), NotVerified, Verified, Failed. Verified only for the key and model actually checked. */
+export type AiProviderStatus = 'Off' | 'NotConfigured' | 'NotVerified' | 'Verified' | 'Failed';
+
+export interface AiCapability {
+  task: string;
+  /** Customer chat, Onboarding and profile, Lead discovery or Product knowledge. */
+  area: string;
+  title: string;
+  /** The code can send this kind of request to the provider. */
+  declared: boolean;
+  /** A real call for this task has succeeded. */
+  verified: boolean;
+  verifiedAtUtc: string | null;
+}
+
+export interface AiBenchmarkCase {
+  name: string;
+  passed: boolean;
+  note: string | null;
+}
+
+export interface AiBenchmarkSummary {
+  passed: number;
+  total: number;
+  accuracyPercent: number;
+  averageLatencyMs: number;
+  totalCostUsd: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  ranAtUtc: string;
+  model: string;
+  cases: AiBenchmarkCase[];
+}
+
+export interface AiProviderInsight {
+  provider: AiProviderId;
+  displayName: string;
+  enabled: boolean;
+  hasKey: boolean;
+  model: string | null;
+  status: AiProviderStatus;
+  lastCheckedAtUtc: string | null;
+  lastCheckMessage: string | null;
+  capabilities: AiCapability[];
+  inputPer1MUsd: number;
+  outputPer1MUsd: number;
+  priceSet: boolean;
+  benchmark: AiBenchmarkSummary | null;
+  /** What the application runs on this provider right now, by the names the Integrations page uses. */
+  usedFor: string[];
+}
+
+export interface AiPolicy {
+  fallbackEnabled: boolean;
+  fallbackOrder: AiProviderId[];
+  simulatorScenario: string;
+  maxCostPerCallUsd: number;
+  timeoutSeconds: number;
+  maxRetriesPerProvider: number;
+  scenarios: string[];
+}
+
+export interface AiProvidersOverview {
+  providers: AiProviderInsight[];
+  policy: AiPolicy;
+}
+
+export interface UpdateAiPolicyRequest {
+  fallbackEnabled: boolean;
+  fallbackOrder: AiProviderId[];
+  simulatorScenario: string;
+  maxCostPerCallUsd: number;
+}
+
+export interface AiExecution {
+  id: string;
+  correlationId: string;
+  task: string;
+  feature: string | null;
+  requestedProvider: string;
+  provider: string;
+  model: string | null;
+  /** Live or Simulator. */
+  mode: string;
+  /** Succeeded or Failed. */
+  status: string;
+  attempt: number;
+  fallbackFromProvider: string | null;
+  durationMs: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  estimatedCostUsd: number | null;
+  errorCode: string | null;
+  errorSummary: string | null;
+  createdAt: string;
 }

@@ -8,6 +8,9 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/compo
 import { NotificationService } from '../../../core/services/notification.service';
 import { AiProviderCheck, SettingCategory, SettingItem } from '../../../core/models/settings.model';
 import { SettingsService } from '../../../core/services/settings.service';
+import { AI_STATUS_TEXT } from '../../../core/models/ai-provider-text';
+import { AiCapability, AiProviderId, AiProviderInsight, AiProviderStatus } from '../../../core/models/platform.model';
+import { PlatformAiProvidersService } from '../../../core/services/platform-ai-providers.service';
 
 interface SettingGroup {
   name: string;
@@ -52,6 +55,15 @@ export class SettingsListComponent implements OnInit {
   /** The last Verify result per provider name ("Anthropic", "OpenAI", "Google"); cleared when the page reloads. */
   checks: Record<string, AiProviderCheck> = {};
 
+  readonly statusText = AI_STATUS_TEXT;
+  /** Per provider: last recorded Verify, capabilities, price and the measured accuracy test - shown beside its settings. Null until loaded,
+   * and stays null if it cannot be loaded (the settings themselves still work). */
+  insights: Record<string, AiProviderInsight> | null = null;
+  /** The provider whose accuracy test is running, or null. */
+  benchmarking: string | null = null;
+  readonly expandedCases = new Set<string>();
+  readonly expandedCapabilities = new Set<string>();
+
   /** True on a screen that shows chosen categories only (AI Providers): each category's keys are split into one panel per
    * sub-group (General, Anthropic, OpenAI, Google) instead of one long list. */
   get grouped(): boolean {
@@ -66,7 +78,8 @@ export class SettingsListComponent implements OnInit {
     private readonly settings: SettingsService,
     private readonly fb: NonNullableFormBuilder,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly aiInsights: PlatformAiProvidersService
   ) {
     const data = route.snapshot?.data ?? {};
     this.title = data['title'] ?? this.title;
@@ -102,6 +115,7 @@ export class SettingsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.loadInsights();
   }
 
   /** `AiProviders:OpenAI:ChatModel` belongs to the "OpenAI" panel; a two-part key like `AiProviders:Provider` belongs to the
@@ -156,6 +170,7 @@ export class SettingsListComponent implements OnInit {
             return;
           }
           this.checks = { ...this.checks, [provider]: check };
+          this.loadInsights();
           if (check.success) {
             this.notify.success(check.message);
           } else if (check.configured) {
@@ -165,6 +180,91 @@ export class SettingsListComponent implements OnInit {
           }
         },
       });
+  }
+
+  // ----- what the AI Providers screen shows beside each provider's settings -----------------------------------------------------
+
+  /** The insight for a provider card, when there is one. */
+  insightOf(group: SettingGroup): AiProviderInsight | null {
+    return this.verifiable(group) ? this.insights?.[group.name] ?? null : null;
+  }
+
+  /** ChatGPT, Claude and Gemini side by side, in the order the cards are shown. */
+  get compared(): AiProviderInsight[] {
+    return ['Anthropic', 'OpenAI', 'Google'].map((p) => this.insights?.[p]).filter((p): p is AiProviderInsight => !!p);
+  }
+
+  statusClass(status: AiProviderStatus): string {
+    return `ai-status ai-status--${status.toLowerCase()}`;
+  }
+
+  verifiedCount(insight: AiProviderInsight): number {
+    return insight.capabilities.filter((c) => c.verified).length;
+  }
+
+  /** The uses this provider's code can run (Claude has no embeddings, the lead discovery agent is Claude's only). */
+  supportedCount(insight: AiProviderInsight): number {
+    return insight.capabilities.filter((c) => c.declared).length;
+  }
+
+  /** Every AI use of the application for one provider, grouped by where it is used (Customer chat, Onboarding and profile, ...). */
+  areasOf(insight: AiProviderInsight): { name: string; items: AiCapability[] }[] {
+    const cached = this.areaCache.get(insight);
+    if (cached) {
+      return cached;
+    }
+    const areas: { name: string; items: AiCapability[] }[] = [];
+    for (const c of insight.capabilities) {
+      let area = areas.find((a) => a.name === c.area);
+      if (!area) {
+        area = { name: c.area, items: [] };
+        areas.push(area);
+      }
+      area.items.push(c);
+    }
+    // Built once per insight object - never a fresh array on every change-detection pass.
+    this.areaCache.set(insight, areas);
+    return areas;
+  }
+
+  private readonly areaCache = new WeakMap<AiProviderInsight, { name: string; items: AiCapability[] }[]>();
+
+  toggle(set: Set<string>, provider: string): void {
+    if (!set.delete(provider)) {
+      set.add(provider);
+    }
+  }
+
+  /** Asks 6 short questions about a sample text with the SAVED key and model, and records accuracy, reply time and cost. */
+  runBenchmark(provider: string): void {
+    if (this.benchmarking || this.verifying) {
+      return;
+    }
+    if (this.panels.some((p) => p.groups.some((g) => g.name === provider && this.groupDirty(p, g)))) {
+      this.notify.info('Save your changes first - the accuracy test uses the saved key and model.');
+      return;
+    }
+    this.benchmarking = provider;
+    this.aiInsights
+      .benchmark(provider as AiProviderId)
+      .pipe(finalize(() => (this.benchmarking = null)))
+      .subscribe({
+        next: (insight) => {
+          this.insights = { ...(this.insights ?? {}), [insight.provider]: insight };
+          this.expandedCases.add(insight.provider);
+          this.notify.success(`${insight.displayName}: ${insight.benchmark?.passed ?? 0} of ${insight.benchmark?.total ?? 0} test questions passed.`);
+        },
+      });
+  }
+
+  private loadInsights(): void {
+    if (!this.canVerify) {
+      return;
+    }
+    this.aiInsights.get().subscribe({
+      next: (overview) => (this.insights = Object.fromEntries(overview.providers.map((p) => [p.provider, p]))),
+      error: () => (this.insights = null),
+    });
   }
 
   /** Secrets never arrive with a value — blank means "leave the stored secret alone". */
@@ -221,6 +321,7 @@ export class SettingsListComponent implements OnInit {
           // Edits in the other cards are still unsaved: carry them across the reload.
           const kept = group ? this.dirtyValues(panel, group) : {};
           this.refreshCategory(category, kept);
+          this.loadInsights();
         },
       });
   }
