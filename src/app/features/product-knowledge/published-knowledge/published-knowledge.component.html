@@ -11,6 +11,48 @@
     <button mat-stroked-button type="button" (click)="load()">Try again</button>
   </mat-card>
 
+  <!-- What customer chat reads: the switch (set by the platform administrator) and whether the latest version is ready for it. -->
+  <mat-card class="panel chat-status" *ngIf="overview && !loadFailed" data-testid="chat-status">
+    <div class="chat-row">
+      <mat-icon aria-hidden="true">{{ overview.chatUsesPublishedKnowledge ? 'forum' : 'chat_bubble_outline' }}</mat-icon>
+      <div>
+        <p class="chat-title" data-testid="chat-switch">
+          <ng-container *ngIf="overview.chatUsesPublishedKnowledge">Customer chat answers from your published knowledge.</ng-container>
+          <ng-container *ngIf="!overview.chatUsesPublishedKnowledge">Customer chat is not using your published knowledge yet.</ng-container>
+        </p>
+        <p class="muted small" *ngIf="!overview.chatUsesPublishedKnowledge" data-testid="chat-switch-off">
+          Chat still answers from the knowledge base articles. Your platform administrator switches it over when you are ready; what you publish here is prepared for chat in the
+          meantime.
+        </p>
+      </div>
+    </div>
+
+    <ng-container *ngIf="currentVersion as cur">
+      <div class="chat-row" data-testid="chat-version">
+        <span class="chip" [ngClass]="'chip--' + cur.servingStatus.toLowerCase()" data-testid="serving-chip">{{ servingLabel(cur) }}</span>
+        <span class="small">
+          Version {{ cur.number }}
+          <ng-container *ngIf="cur.servingStatus === 'Live' && cur.servingIndexedAt"> ready since {{ cur.servingIndexedAt | zonedDate: 'medium' }}.</ng-container>
+          <ng-container *ngIf="cur.servingStatus === 'Indexing'"> is being prepared. This takes a moment; check again shortly.</ng-container>
+          <ng-container *ngIf="cur.servingStatus === 'Failed'"> is published, but could not be prepared for chat<ng-container *ngIf="servingNumber !== null"> — chat is still using version {{ servingNumber }}</ng-container><ng-container *ngIf="servingNumber === null"> — chat has nothing from it yet</ng-container>.</ng-container>
+        </span>
+        <button
+          mat-stroked-button
+          type="button"
+          *ngIf="cur.servingStatus === 'Failed' || cur.servingStatus === 'Indexing'"
+          [disabled]="reindexing"
+          (click)="reindex(cur)"
+          data-testid="reindex"
+        >
+          <mat-icon>refresh</mat-icon> Try again
+        </button>
+      </div>
+      <p class="note note--warn" *ngIf="cur.servingStatus === 'Failed' && cur.servingError" data-testid="serving-error">
+        <mat-icon>error_outline</mat-icon><span>{{ cur.servingError }}</span>
+      </p>
+    </ng-container>
+  </mat-card>
+
   <div class="console" *ngIf="overview && !loadFailed">
     <nav class="list" aria-label="Versions">
       <button type="button" class="item" [class.item--active]="selectedId === nextId" (click)="select(nextId)" data-testid="next-item">
@@ -32,7 +74,12 @@
           <span class="item-text">Version {{ v.number }}</span>
           <span class="muted small">{{ v.publishedAt | zonedDate: 'medium' }} · {{ v.itemCount }} answers</span>
         </span>
-        <span class="chip" [class.chip--current]="v.status === 'Current'">{{ v.status === 'Current' ? 'Current' : 'Replaced' }}</span>
+        <span class="chips">
+          <span class="chip" [class.chip--current]="v.status === 'Current'">{{ v.status === 'Current' ? 'Current' : 'Replaced' }}</span>
+          <span class="chip" [ngClass]="'chip--' + v.servingStatus.toLowerCase()" *ngIf="v.servingStatus !== 'Replaced'" [attr.data-serving]="v.servingStatus">{{
+            servingLabel(v)
+          }}</span>
+        </span>
       </button>
       <div class="muted small empty-list" *ngIf="!versions.length" data-testid="no-versions">Nothing has been published yet.</div>
     </nav>
@@ -97,6 +144,9 @@
               <p class="muted small">
                 Published {{ d.version.publishedAt | zonedDate: 'medium' }}<ng-container *ngIf="d.version.publishedByEmail"> by {{ d.version.publishedByEmail }}</ng-container>
                 · {{ d.version.itemCount }} answers
+              </p>
+              <p class="muted small" data-testid="version-serving">
+                {{ servingLabel(d.version) }}<ng-container *ngIf="d.version.servingIndexedAt && d.version.servingStatus !== 'Indexing'"> · {{ d.version.servingIndexedAt | zonedDate: 'medium' }}</ng-container>
               </p>
               <p class="note-text" *ngIf="d.version.note" data-testid="version-note">{{ d.version.note }}</p>
             </div>

@@ -34,6 +34,7 @@ export class PublishedKnowledgeComponent implements OnInit {
   loadingDetail = false;
   publishing = false;
   restoring = false;
+  reindexing = false;
   readonly expanded = new Set<string>();
   readonly note = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(500)] });
 
@@ -49,6 +50,30 @@ export class PublishedKnowledgeComponent implements OnInit {
 
   get versions(): KnowledgeVersion[] {
     return this.overview?.versions ?? [];
+  }
+
+  /** The version published last, whether or not chat can read it yet. */
+  get currentVersion(): KnowledgeVersion | null {
+    return this.versions.find((v) => v.status === 'Current') ?? null;
+  }
+
+  /** The version chat reads now: the latest that went live, which is an older one while the newest has not (yet) finished. */
+  get servingNumber(): number | null {
+    return this.overview?.servingVersionNumber ?? null;
+  }
+
+  /** How a version stands for chat, in the tenant's words. */
+  servingLabel(v: KnowledgeVersion): string {
+    switch (v.servingStatus) {
+      case 'Live':
+        return 'Live for chat';
+      case 'Indexing':
+        return 'Getting ready for chat…';
+      case 'Failed':
+        return 'Not ready for chat';
+      default:
+        return 'Replaced';
+    }
   }
 
   get canPublish(): boolean {
@@ -157,6 +182,28 @@ export class PublishedKnowledgeComponent implements OnInit {
             },
             error: () => undefined,
           });
+      });
+  }
+
+  /** Tries again to prepare a published version for chat. Publishing is never undone by this failing; the version just stays "not ready for chat". */
+  reindex(version: KnowledgeVersion): void {
+    if (this.reindexing) {
+      return;
+    }
+    this.reindexing = true;
+    this.service
+      .reindex(version.id)
+      .pipe(finalize(() => (this.reindexing = false)))
+      .subscribe({
+        next: (v) => {
+          v.servingStatus === 'Live' ? this.notify.success(`Version ${v.number} is live for chat.`) : this.notify.error(v.servingError ?? 'It could not be made ready for chat yet.');
+          this.load();
+          if (this.selectedId !== NEXT) {
+            this.select(this.selectedId);
+          }
+        },
+        // ErrorInterceptor shows why (already live, being prepared right now).
+        error: () => undefined,
       });
   }
 

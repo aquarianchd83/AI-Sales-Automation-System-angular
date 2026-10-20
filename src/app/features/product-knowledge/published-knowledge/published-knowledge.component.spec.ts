@@ -19,12 +19,22 @@ const version = (over: Partial<KnowledgeVersion> = {}): KnowledgeVersion => ({
   itemCount: 3,
   note: 'New pricing',
   restoredFromNumber: null,
+  servingStatus: 'Live',
+  servingError: null,
+  servingIndexedAt: '2026-10-19T09:00:05Z',
   ...over,
 });
 
-const overview = (over: Partial<KnowledgeVersionsOverview['preview']> = {}, versions = [version(), version({ id: 'v1', number: 1, status: 'Superseded', note: null })]): KnowledgeVersionsOverview => ({
+const overview = (
+  over: Partial<KnowledgeVersionsOverview['preview']> = {},
+  versions = [version(), version({ id: 'v1', number: 1, status: 'Superseded', note: null, servingStatus: 'Replaced' })],
+  chat: Partial<Pick<KnowledgeVersionsOverview, 'chatUsesPublishedKnowledge' | 'servingVersionNumber'>> = {}
+): KnowledgeVersionsOverview => ({
   preview: { ready: 3, heldBack: [], notYetApproved: 2, nothingNew: false, current: versions[0] ?? null, ...over },
   versions,
+  chatUsesPublishedKnowledge: false,
+  servingVersionNumber: versions.find((v) => v.servingStatus === 'Live')?.number ?? null,
+  ...chat,
 });
 
 const detail = (v = version()): KnowledgeVersionDetail => ({
@@ -62,7 +72,7 @@ describe('PublishedKnowledgeComponent', () => {
   }
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('PublishedKnowledgeService', ['get', 'getVersion', 'publish', 'restore', 'draftFile', 'finalFile']);
+    service = jasmine.createSpyObj('PublishedKnowledgeService', ['get', 'getVersion', 'publish', 'restore', 'reindex', 'draftFile', 'finalFile']);
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
     service.getVersion.and.returnValue(of(detail()));
@@ -191,5 +201,89 @@ describe('PublishedKnowledgeComponent', () => {
     create(overview({ ready: 1, current: null }, []));
 
     expect(el('no-versions')).not.toBeNull();
+    expect(el('serving-chip')).toBeNull();
+  });
+
+  // ----- chat: the switch and whether the version is ready for it ----------------------------------------------------------------------
+
+  it('says chat is not using the published knowledge yet while the platform administrators switch is off, and that it is set by them', () => {
+    create();
+
+    expect(el('chat-switch')!.textContent).toContain('not using your published knowledge yet');
+    expect(el('chat-switch-off')!.textContent).toContain('platform administrator');
+    expect(el('serving-chip')!.textContent).toContain('Live for chat');
+  });
+
+  it('says chat answers from the published knowledge when the switch is on, and gives the tenant no way to change it', () => {
+    create(overview({}, undefined, { chatUsesPublishedKnowledge: true }));
+
+    expect(el('chat-switch')!.textContent).toContain('answers from your published knowledge');
+    expect(el('chat-switch-off')).toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-slide-toggle, mat-checkbox, [role="switch"]')).toBeNull();
+  });
+
+  it('shows when the current version became ready for chat, in the user timezone and not as UTC digits', () => {
+    create();
+
+    const text = el('chat-version')!.textContent!;
+    expect(text).toContain('Version 2');
+    expect(text).toContain('ready since');
+    expect(text).not.toContain('2026-10-19T09:00:05'); // the raw API timestamp is never shown
+  });
+
+  it('shows a version that is still being prepared and offers Try again', () => {
+    create(overview({}, [version({ servingStatus: 'Indexing', servingIndexedAt: null })], { servingVersionNumber: null }));
+
+    expect(el('serving-chip')!.textContent).toContain('Getting ready for chat');
+    expect(el('chat-version')!.textContent).toContain('is being prepared');
+    expect(el('reindex')).not.toBeNull();
+  });
+
+  it('says a version that could not be prepared is still published, that chat keeps the last good version, and why', () => {
+    const failed = version({ id: 'v2', number: 2, servingStatus: 'Failed', servingError: 'The embedding provider did not answer.' });
+    const live = version({ id: 'v1', number: 1, status: 'Superseded', servingStatus: 'Live' });
+    create(overview({}, [failed, live], { chatUsesPublishedKnowledge: true, servingVersionNumber: 1 }));
+
+    expect(el('serving-chip')!.textContent).toContain('Not ready for chat');
+    expect(el('chat-version')!.textContent).toContain('is published, but could not be prepared for chat');
+    expect(el('chat-version')!.textContent).toContain('chat is still using version 1');
+    expect(el('serving-error')!.textContent).toContain('The embedding provider did not answer.');
+    expect(fixture.nativeElement.querySelector('[data-version="v2"]').textContent).toContain('Current'); // the publish was not undone
+  });
+
+  it('says chat has nothing from a failed first version', () => {
+    create(overview({}, [version({ servingStatus: 'Failed', servingError: 'x' })], { servingVersionNumber: null }));
+
+    expect(el('chat-version')!.textContent).toContain('chat has nothing from it yet');
+  });
+
+  it('tries again on request and reports whether the version is now live', () => {
+    const failed = version({ servingStatus: 'Failed', servingError: 'The embedding provider did not answer.' });
+    const c = create(overview({}, [failed], { servingVersionNumber: null }));
+    service.reindex.and.returnValue(of(version({ servingStatus: 'Live' })));
+
+    el('reindex')!.click();
+
+    expect(service.reindex).toHaveBeenCalledWith('v2');
+    expect(notify.success).toHaveBeenCalledWith('Version 2 is live for chat.');
+    expect(service.get).toHaveBeenCalledTimes(2);
+    expect(c.reindexing).toBeFalse();
+
+    service.reindex.and.returnValue(of(version({ servingStatus: 'Failed', servingError: 'Still down.' })));
+    c.reindex(failed);
+    expect(notify.error).toHaveBeenCalledWith('Still down.');
+  });
+
+  it('shows the chat state of every version in the list and of the opened one', () => {
+    const failed = version({ servingStatus: 'Failed', servingError: 'x' });
+    const c = create(overview({}, [failed, version({ id: 'v1', number: 1, status: 'Superseded', servingStatus: 'Live' })]));
+    service.getVersion.and.returnValue(of(detail(failed)));
+
+    expect(fixture.nativeElement.querySelector('[data-version="v2"] [data-serving="Failed"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-version="v1"] [data-serving="Live"]')).not.toBeNull();
+
+    c.select('v2');
+    fixture.detectChanges();
+    expect(el('version-serving')!.textContent).toContain('Not ready for chat');
   });
 });

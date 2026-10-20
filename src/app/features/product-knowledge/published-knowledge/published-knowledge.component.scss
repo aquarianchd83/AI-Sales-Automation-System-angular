@@ -155,6 +155,56 @@
     background: #fff4e5;
     color: #7a4100;
   }
+
+  &--live {
+    background: #e6f4ea;
+    color: #1e6b34;
+  }
+
+  &--indexing {
+    background: #e8f0fe;
+    color: #1a4fa0;
+  }
+
+  &--failed {
+    background: #fdecea;
+    color: #8a1c14;
+  }
+}
+
+.chips {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.chat-status {
+  margin-bottom: 8px;
+  padding: 16px 24px;
+}
+
+.chat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  & + & {
+    margin-top: 10px;
+  }
+
+  mat-icon {
+    flex: none;
+    color: #0f766e;
+  }
+}
+
+.chat-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .lead {

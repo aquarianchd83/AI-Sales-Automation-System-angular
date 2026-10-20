@@ -34,6 +34,11 @@ export class PublishedKnowledgeService {
     return this.http.get(`${this.baseUrl}/${id}/file`, { responseType: 'blob' });
   }
 
+  /** Prepares the current version for chat again, after it failed. The version itself is not changed. */
+  reindex(id: string): Observable<KnowledgeVersion> {
+    return this.http.post<KnowledgeVersion>(`${this.baseUrl}/${id}/reindex`, {});
+  }
+
   /** Makes a new version that copies an older one; nothing is erased. */
   restore(id: string, note: string | null): Observable<KnowledgeVersion> {
     return this.http.post<KnowledgeVersion>(`${this.baseUrl}/${id}/restore`, { note });
