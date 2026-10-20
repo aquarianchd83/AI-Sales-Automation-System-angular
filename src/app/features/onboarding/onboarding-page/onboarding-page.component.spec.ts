@@ -42,7 +42,7 @@ class FakeDetailComponent {
 })
 class FakeFeatureModule {}
 
-const PREFIXES = ['/profile', '/billing', '/packages', '/lead-discovery', '/tenant-settings', '/message-templates', '/customers', '/campaigns', '/knowledge-base'];
+const PREFIXES = ['/profile', '/billing', '/packages', '/lead-discovery', '/tenant-settings', '/message-templates', '/customers', '/campaigns', '/product-knowledge'];
 const FAKE_AREAS: OnboardingArea[] = PREFIXES.map((prefix) => ({ prefix, load: () => Promise.resolve(FakeFeatureModule) }));
 
 const STEPS: [string, string, number, string][] = [
@@ -54,7 +54,7 @@ const STEPS: [string, string, number, string][] = [
   ['message-template', 'Configure Message Template', 10, '/message-templates'],
   ['customer', 'Create Customer', 10, '/customers'],
   ['campaign', 'Create Campaign', 10, '/campaigns'],
-  ['knowledge-base', 'Knowledge Base / Voucher', 10, '/knowledge-base'],
+  ['knowledge-base', 'Product Knowledge', 10, '/product-knowledge/sources'],
 ];
 
 function status(completed: number, missing: string | null = null): OnboardingStatus {

@@ -20,6 +20,7 @@ const DEFAULT_AREAS: OnboardingArea[] = [
   { prefix: '/message-templates', load: () => import('../../message-templates/message-templates.module').then((m) => m.MessageTemplatesModule) },
   { prefix: '/customers', load: () => import('../../customers/customers.module').then((m) => m.CustomersModule) },
   { prefix: '/campaigns', load: () => import('../../campaigns/campaigns.module').then((m) => m.CampaignsModule) },
+  { prefix: '/product-knowledge', load: () => import('../../product-knowledge/product-knowledge.module').then((m) => m.ProductKnowledgeModule) },
 ];
 
 /** Replaceable in tests, so a spec never has to load real feature modules. */
