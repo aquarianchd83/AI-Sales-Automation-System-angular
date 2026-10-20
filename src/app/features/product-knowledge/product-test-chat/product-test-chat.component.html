@@ -1,0 +1,93 @@
+<div class="page">
+  <app-page-header
+    title="Test chat"
+    subtitle="Talk to your AI the way a customer would. It answers only from your live published knowledge, so this is what customers would be told. Nothing here is sent, saved or charged."
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="panel" *ngIf="loadFailed" data-testid="load-failed">
+    <p>The test chat could not be opened. Try again in a moment.</p>
+  </mat-card>
+
+  <mat-card class="panel" *ngIf="!loading && !loadFailed && liveVersion === null" data-testid="nothing-live">
+    <h2>Nothing is live for chat yet</h2>
+    <p class="muted">Publish your approved answers first. Once a version is ready for chat you can test it here.</p>
+    <a mat-flat-button color="primary" routerLink="/product-knowledge/versions">Go to Published knowledge</a>
+  </mat-card>
+
+  <mat-card class="chat" *ngIf="!loading && !loadFailed && liveVersion !== null">
+    <header class="chat-head">
+      <div>
+        <strong>Testing version {{ liveVersion }}</strong>
+        <span class="muted small" data-testid="live-note">
+          {{ liveChatOn ? 'Customers are being answered from this now.' : 'Live chat is not switched over to this yet - your platform administrator does that.' }}
+        </span>
+      </div>
+      <button mat-stroked-button type="button" (click)="reset()" [disabled]="!messages.length && !sending" data-testid="reset">
+        <mat-icon>restart_alt</mat-icon> New conversation
+      </button>
+    </header>
+
+    <div class="scroller" #scroller aria-live="polite" data-testid="messages">
+      <p class="empty muted" *ngIf="!messages.length" data-testid="empty">
+        Say hello, or ask something a customer might ask - about prices, how it works, what is included.
+      </p>
+
+      <ng-container *ngFor="let m of messages">
+        <div class="row row--customer" *ngIf="m.role === 'customer'" [attr.data-role]="m.role">
+          <div class="bubble bubble--customer">{{ m.text }}</div>
+          <span class="time muted small">{{ m.at | zonedDate: 'time' }}</span>
+        </div>
+
+        <div class="row row--assistant" *ngIf="m.role === 'assistant'" [attr.data-role]="m.role">
+          <div class="bubble bubble--assistant">{{ m.text }}</div>
+          <div class="meta">
+            <span class="time muted small">{{ m.at | zonedDate: 'time' }}</span>
+            <span class="chip" [class.chip--ask]="m.reply?.outcome === 'Clarifying'" data-testid="outcome">
+              {{ m.reply?.outcome === 'Clarifying' ? 'Asked a question - nothing published covers this' : 'From your published knowledge' }}
+            </span>
+            <button type="button" class="why-link" (click)="toggleWhy(m)" data-testid="why-toggle">{{ m.showWhy ? 'Hide' : 'Why this answer' }}</button>
+          </div>
+          <div class="why" *ngIf="m.showWhy" data-testid="why">
+            <p class="small">{{ m.reply?.why }}</p>
+            <ul *ngIf="m.reply?.sources?.length">
+              <li *ngFor="let s of m.reply!.sources" [class.used]="s.cited" data-testid="source">
+                <strong>{{ s.question }}</strong>
+                <span class="chip chip--material" *ngIf="s.isMaterialClaim">Price, guarantee or result</span>
+                <q>{{ s.excerpt }}</q>
+                <span class="muted small">Version {{ s.versionNumber }} · closeness {{ s.relevance }}<ng-container *ngIf="s.cited"> · used</ng-container></span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="row row--note" *ngIf="m.role === 'note'" [attr.data-role]="m.role" data-testid="handover">
+          <div class="note">
+            <mat-icon>support_agent</mat-icon>
+            <div>
+              <strong>A person would take over here.</strong>
+              <p class="small">{{ m.text }}</p>
+              <p class="small draft" *ngIf="m.reply?.draftBlocked" data-testid="draft-blocked"><em>The AI tried to say:</em> {{ m.reply?.draftBlocked }}</p>
+              <ul *ngIf="m.reply?.sources?.length" class="small">
+                <li *ngFor="let s of m.reply!.sources">{{ s.question }} <span class="muted">(closeness {{ s.relevance }})</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <div class="row row--assistant" *ngIf="sending" data-testid="typing">
+        <div class="bubble bubble--assistant typing" aria-label="The AI is typing"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <form class="composer" (ngSubmit)="send()">
+      <mat-form-field subscriptSizing="dynamic" class="composer-field">
+        <mat-label>Message as a customer</mat-label>
+        <textarea matInput rows="2" [formControl]="input" maxlength="500" (keydown)="onKey($event)" data-testid="input"></textarea>
+      </mat-form-field>
+      <button mat-flat-button color="primary" type="submit" [disabled]="!canSend" data-testid="send"><mat-icon>send</mat-icon> Send</button>
+    </form>
+  </mat-card>
+</div>

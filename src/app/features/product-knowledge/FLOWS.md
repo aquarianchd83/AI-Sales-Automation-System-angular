@@ -52,3 +52,27 @@ flowchart TD
     Q -- no --> ASK[One clarifying question only]
     Q -- yes --> HAND[Handoff to a person]
 ```
+
+## Test chat
+
+The tenant can talk to the AI as a customer would, from **Test Chat**. It reads the live published version (whether or not live chat is switched over) with live chat's own retrieval, prompt and safety checks, and stores and sends nothing.
+
+```mermaid
+sequenceDiagram
+    participant T as Tenant (as a customer)
+    participant C as Test chat
+    participant K as Published chunks
+    participant A as AI
+    T->>C: message + the conversation so far
+    C->>K: search with this and earlier customer messages
+    C->>A: reply using only what was found
+    A-->>C: draft
+    C->>C: same safety checks as live chat
+    alt answered
+        C-->>T: reply + which approved answers were used
+    else nothing covers it
+        C-->>T: one clarifying question (a second miss hands over)
+    else a check fails / person needed
+        C-->>T: note: a person would take over, and what the AI tried to say
+    end
+```

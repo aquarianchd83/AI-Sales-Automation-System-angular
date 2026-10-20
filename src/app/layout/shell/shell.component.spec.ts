@@ -79,6 +79,7 @@ describe('ShellComponent sidenav', () => {
       'auto_storiesProduct Sources',
       'rate_reviewProduct Answers',
       'inventoryPublished Knowledge',
+      'chatTest Chat',
       'bar_chartReports',
       'monitoringAgent Performance',
       'storefrontBusiness Profile',
