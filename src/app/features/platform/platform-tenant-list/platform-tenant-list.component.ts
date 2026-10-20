@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { ActivatedRoute } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
 import {
   catchError,
@@ -56,10 +57,19 @@ export class PlatformTenantListComponent implements OnInit, OnDestroy {
     private readonly tenants: PlatformTenantService,
     private readonly impersonation: ImpersonationSessionService,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
+    // The dashboard's tenant figures link here as ?status=<TenantStatus>, so the list opens already filtered.
+    const linked = this.route.snapshot.queryParamMap.get('status');
+    const linkedStatus = linked === null || linked === '' ? NaN : Number(linked);
+    if (this.statusOptions.includes(linkedStatus)) {
+      this.query = { ...this.query, status: linkedStatus };
+      this.statusControl.setValue(linkedStatus, { emitEvent: false });
+    }
+
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((search) => {

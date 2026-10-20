@@ -37,12 +37,15 @@
 
   <ng-container *ngIf="!loading && dashboard">
     <section class="kpi-grid" aria-label="Key figures">
-      <mat-card class="kpi" *ngFor="let kpi of kpis" [ngClass]="'tone-' + kpi.tone">
-        <span class="badge"><mat-icon>{{ kpi.icon }}</mat-icon></span>
-        <div class="kpi-label">{{ kpi.label }}</div>
-        <div class="kpi-value">{{ kpi.value }}</div>
-        <div class="kpi-hint" *ngIf="kpi.hint">{{ kpi.hint }}</div>
-      </mat-card>
+      <a class="card-link" *ngFor="let kpi of kpis" [routerLink]="kpi.route" [attr.aria-label]="kpi.label + ': ' + kpi.value + '. View details'">
+        <mat-card class="kpi" [ngClass]="'tone-' + kpi.tone">
+          <span class="badge"><mat-icon>{{ kpi.icon }}</mat-icon></span>
+          <mat-icon class="kpi-arrow">arrow_outward</mat-icon>
+          <div class="kpi-label">{{ kpi.label }}</div>
+          <div class="kpi-value">{{ kpi.value }}</div>
+          <div class="kpi-hint" *ngIf="kpi.hint">{{ kpi.hint }}</div>
+        </mat-card>
+      </a>
     </section>
 
     <section class="panels">
@@ -52,32 +55,36 @@
             <h2>Tenant portfolio</h2>
             <p class="muted">Workspaces by lifecycle status</p>
           </div>
-          <div class="total">
+          <a class="total" routerLink="/platform/tenants" aria-label="All tenants">
             <span class="total-value">{{ totalTenants.toLocaleString() }}</span>
             <span class="total-label">tenants</span>
-          </div>
+          </a>
         </div>
 
         <div class="bar" role="img" [attr.aria-label]="'Tenant status split across ' + totalTenants + ' tenants'">
-          <span
+          <a
             class="bar-seg"
+            routerLink="/platform/tenants"
+            [queryParams]="{ status: s.status }"
             *ngFor="let s of segments"
             [ngClass]="'tone-' + s.tone"
             [style.flex-grow]="s.count"
             [hidden]="!s.count"
             [title]="s.label + ': ' + s.count"
-          ></span>
+          ></a>
           <span class="bar-empty" *ngIf="!totalTenants"></span>
         </div>
 
         <ul class="legend">
           <li *ngFor="let s of segments" [ngClass]="'tone-' + s.tone">
-            <span class="badge badge--sm"><mat-icon>{{ s.icon }}</mat-icon></span>
-            <span class="legend-text">
-              <span class="legend-count">{{ s.count.toLocaleString() }}</span>
-              <span class="legend-label">{{ s.label }}</span>
-            </span>
-            <span class="legend-pct">{{ s.percent | number: '1.0-0' }}%</span>
+            <a class="legend-link" routerLink="/platform/tenants" [queryParams]="{ status: s.status }" [attr.aria-label]="s.count + ' ' + s.label + ' tenants. View list'">
+              <span class="badge badge--sm"><mat-icon>{{ s.icon }}</mat-icon></span>
+              <span class="legend-text">
+                <span class="legend-count">{{ s.count.toLocaleString() }}</span>
+                <span class="legend-label">{{ s.label }}</span>
+              </span>
+              <span class="legend-pct">{{ s.percent | number: '1.0-0' }}%</span>
+            </a>
           </li>
         </ul>
       </mat-card>
@@ -91,25 +98,64 @@
         </div>
 
         <dl class="stats">
-          <div class="stat" [class.stat--bad]="dashboard.webhookFailuresLast24h > 0 && !dashboard.systemHealthy">
+          <a class="stat" routerLink="/platform/whatsapp-connections" [class.stat--bad]="dashboard.webhookFailuresLast24h > 0 && !dashboard.systemHealthy">
             <dt><mat-icon>error_outline</mat-icon> Webhook failures (24h)</dt>
             <dd>{{ dashboard.webhookFailuresLast24h.toLocaleString() }}</dd>
-          </div>
-          <div class="stat">
+          </a>
+          <a class="stat" routerLink="/platform/usage">
             <dt><mat-icon>auto_awesome</mat-icon> AI interactions</dt>
             <dd>{{ dashboard.aiInteractionsThisMonth.toLocaleString() }}</dd>
-          </div>
-          <div class="stat" *ngIf="aiCostPerInteraction">
+          </a>
+          <a class="stat" routerLink="/platform/usage" *ngIf="aiCostPerInteraction">
             <dt><mat-icon>toll</mat-icon> Avg. cost per interaction</dt>
             <dd>{{ aiCostPerInteraction }}</dd>
-          </div>
-          <div class="stat">
+          </a>
+          <a class="stat" routerLink="/platform/usage">
             <dt><mat-icon>send</mat-icon> Messages sent</dt>
             <dd>{{ dashboard.messagesSentThisMonth.toLocaleString() }}</dd>
-          </div>
+          </a>
         </dl>
       </mat-card>
     </section>
+
+    <mat-card class="panel refunds tone-rose">
+      <div class="panel-head">
+        <div class="refunds-title">
+          <span class="badge"><mat-icon>assignment_return</mat-icon></span>
+          <div>
+            <h2>Refund requests</h2>
+            <p class="muted">Waiting for your decision</p>
+          </div>
+        </div>
+        <a class="total" routerLink="/platform/refunds" [attr.aria-label]="pendingRefundCount + ' refund requests waiting. View all'">
+          <span class="total-value">{{ refundsLoaded ? pendingRefundCount.toLocaleString() : '–' }}</span>
+          <span class="total-label">pending</span>
+        </a>
+      </div>
+
+      <p class="refunds-empty" *ngIf="!refundsLoaded">Couldn't load refund requests. <button mat-button type="button" (click)="load()">Retry</button></p>
+      <p class="refunds-empty" *ngIf="refundsLoaded && !pendingRefunds.length">
+        <mat-icon>task_alt</mat-icon> No refund requests are waiting.
+      </p>
+
+      <ul class="refund-list" *ngIf="pendingRefunds.length">
+        <li *ngFor="let r of pendingRefunds">
+          <a class="refund-row" routerLink="/platform/refunds">
+            <span class="refund-main">
+              <span class="refund-tenant">{{ r.tenantName }}</span>
+              <span class="refund-reason">{{ r.paymentDescription }} — {{ r.reason }}</span>
+            </span>
+            <span class="refund-amount">up to {{ r.currencySymbol }}{{ r.eligibleLocalAmount | number: '1.2-2' }}</span>
+            <span class="refund-when">{{ r.createdAt | zonedDate: 'dd MMM yyyy, HH:mm' }}</span>
+            <mat-icon class="link-arrow">chevron_right</mat-icon>
+          </a>
+        </li>
+      </ul>
+
+      <a class="refund-all" routerLink="/platform/refunds" *ngIf="pendingRefundCount > pendingRefunds.length">
+        View all {{ pendingRefundCount }} requests <mat-icon>arrow_forward</mat-icon>
+      </a>
+    </mat-card>
 
     <section aria-label="Shortcuts">
       <h2 class="section-title">Shortcuts</h2>
