@@ -180,6 +180,30 @@ Updated after every phase. **A row is COMPLETE AND VERIFIED only when code, test
 
 ---
 
+## §23 Two RAG indexes: better drafting (Phase A), chat serving (Phase B), tenant UI cleanup (Phase C)
+
+Addendum (2026-10-20). Design decisions: a SOURCE index (embeddings of source passages, used only for drafting, never read by chat) and a SERVING index (published, approved items only, read only by chat), with a hard wall between them. Source-passage embeddings are **not** stored in `KnowledgeBaseChunks`. Chat cut-over is behind a per-tenant switch, default OFF. Embedding cost is the platform's. Product is in development mode only.
+
+| ID | Requirement | Baseline | Phase | Validation | Result | Status |
+|---|---|---|---|---|---|---|
+| RAG-A.1 | A passage is embedded when its source becomes Ready; a re-read re-embeds only passages whose text hash changed | NEW | A | `SourcePassageIndexTests` (re-read, unchanged re-run); `KnowledgeSourceServiceTests` (processor calls the index; a failure never fails the source) | Passed against a scripted embedder on SQLite. **No live embedding provider call made** | COMPLETE AND VERIFIED (logic) |
+| RAG-A.2 | Provider, model and dimensions are recorded; a provider or model change is detected and everything is re-embedded, old vectors removed | NEW | A | `A_change_of_embedding_provider_or_model_re_embeds_everything...`, `Vectors_are_returned_for_the_provider_in_use_only...` | Passed (scripted embedder) | COMPLETE AND VERIFIED (logic) |
+| RAG-A.3 | Embedding is resumable (EmbeddingBatcher reused) | NEW | A | `An_outage_part_way_keeps_what_was_done_and_the_next_run_finishes_the_rest` (100 passages, outage after the first batch of 96) | Passed | COMPLETE AND VERIFIED |
+| RAG-A.4 | Drafting retrieval fuses embedding similarity with BM25 (reciprocal rank); BM25 alone is the fallback when the provider is Simulated, has no key, or embeddings are missing | MODIFY | A | `EvidenceRulesTests` (RankHybrid: meaning-only passage found, both-agree ranks first, missing/wrong-size vector, fallback identical to word search); drafting tests (meaning-only passage offered; "nothing" and "throws" fall back; switch off ignores the index); `The_simulated_provider_stores_nothing...` | Passed. The similarity floor (0.30) is a fixed constant, **not tuned on real embeddings** | COMPLETE AND VERIFIED (logic); threshold NOT VERIFIED |
+| RAG-A.5 | Passages offered to the AI configurable (default 10, range 2-20); passage cut configurable (default 2000, 800-4000) | MODIFY | A | `The_number_of_passages_offered_and_how_much_of_each_follow_the_settings`; settings catalog and clamp tests | Passed. Finding: the old 1600 cut never fired, because passages are at most 1600 characters when read | COMPLETE AND VERIFIED |
+| RAG-A.6 | An answer whose quotations all fail is retried once for exact quotations before becoming NoEvidence; an unverifiable quotation is never accepted as evidence; the excerpt always comes from the real passage | MODIFY | A | Five retry tests: retry succeeds; still-bad quote after retry gives NoEvidence (exactly 2 calls); a different unsupported answer on retry rejected; failed second call; no retry when insufficient / already verified / simulator | Passed (scripted AI). **No live provider call made**; whether real models recover on the retry is not measured | COMPLETE AND VERIFIED (rule); effectiveness NOT VERIFIED |
+| RAG-A.7 | Tenant isolation for the source index: another tenant's passages are never embedded, compared or sent to the AI | NEW | A | `Another_tenants_passages_are_never_embedded_compared_or_returned`; `Another_tenants_passage_is_never_offered_even_if_its_vector_is_in_the_index` | Passed | COMPLETE AND VERIFIED |
+| RAG-A.8 | Tenant-provided answers (source 3) need no retrieval and flow to approval and publish unchanged | EXISTS | A | No code change on this path; the existing verification and publishing tests ran in the full suite | Full API suite passed | COMPLETE AND VERIFIED (unchanged) |
+| RAG-A.9 | Background run brings the index up to date; a single answer or redraft never waits for embedding; embedding failure never fails drafting | NEW | A | `A_background_run_brings_the_index_up_to_date...`, `A_run_still_completes_when_the_embedding_provider_is_down` | Passed | COMPLETE AND VERIFIED |
+| RAG-A.10 | Dates: UTC with a trailing Z in the API, shown in the tenant timezone in the UI | MODIFY | A, B | Phase A adds no date field to any DTO or screen. `EmbeddedAt` is internal, stored as UTC (asserted) | The Z-serialisation test belongs to Phase B where date fields are exposed | NOT APPLICABLE in Phase A; open for B |
+| RAG-A.11 | EF migration `AddSourcePassageEmbeddings` | NEW | A | Generated with `dotnet ef`; model snapshot updated; tests build the schema from the model on SQLite | **Not applied to SQL Server** | IMPLEMENTED BUT NOT FULLY VERIFIED |
+| RAG-B.1 | Serving index built on publish and restore from approved, eligible items only; held-back items excluded | NEW | B | - | - | NOT IMPLEMENTED |
+| RAG-B.2 | Chat reads only the published Product Knowledge chunks when the tenant switch is ON; OFF is unchanged | NEW | B | - | - | NOT IMPLEMENTED |
+| RAG-B.3 | Expired material claims are not served; no evidence leads to a clarifying question or handoff, not the model's memory | NEW | B | - | - | NOT IMPLEMENTED |
+| RAG-B.4 | Validator rejects a material claim not backed by an approved item (switch ON); item and version citations stored with the AI turn | NEW | B | - | - | NOT IMPLEMENTED |
+| RAG-B.5 | Published screen shows live / indexing / failed and the switch; publish is not rolled back if indexing fails | NEW | B | - | - | NOT IMPLEMENTED |
+| RAG-C.1 | Knowledge Base screens, route and sidenav entry removed from the tenant app only; backend untouched | MODIFY | C | - | - | NOT IMPLEMENTED |
+
 ## Phase log
 
 ### Phase 0 — 2026-10-19
@@ -226,3 +250,11 @@ Proposal approved; matrix created. No code changed.
 **Existing logic touched.** None.
 **Deferred.** Overview/features sections in the Draft file (features are drafted but not yet written into the file).
 **Next (P7).** Chat serving: the chunk link and serving index, per-tenant switch; customers are only told published knowledge.
+
+### Phase A - better drafting (2026-10-20)
+**Built (API).** The SOURCE index: `SourcePassageEmbeddings` (tenant, passage-text hash, provider, model, dimensions, vector), written when a source becomes Ready and brought up to date by every background draft run; resumable batch by batch through the existing `EmbeddingBatcher`; vectors from another provider or model, or for text no longer in any source, are removed, so a provider change re-embeds. The simulated provider (or one with no key) stores nothing and drafting uses word search. Drafting now ranks by words **and** meaning (reciprocal-rank fusion). The AI is offered 10 passages by default (was 6); the passage cut and the hybrid switch are platform settings (`ProductKnowledge:DraftPassages`, `MaxPassageChars`, `HybridRetrieval`). An answer none of whose quotations is found is retried once asking for exact quotations; if they still are not in the passages the answer becomes NoEvidence exactly as before, so an unverifiable quotation is never evidence.
+**Tests run.** API **1,935 passed, 0 failed** (full suite; baseline before the work was 81 of 81 in the product-knowledge subset I ran first). About 30 new tests. One unrelated rate-limiting test failed once under full-suite load and passed on rerun in isolation and in the next full run. Angular was not touched, so its suite was not run.
+**Not verified.** No live embedding or AI provider call (all scripted); the migration was not applied to SQL Server; the 0.30 similarity floor and the retry's real-world recovery rate are untuned; no browser click-through (no UI change in this phase). Existing dates in API DTOs are still serialised without a trailing Z (pre-existing; to be addressed in Phase B where date fields are touched).
+**Existing logic touched (approved).** K10 settings; K11 the retry before NoEvidence. Nothing in chat, publishing or the old knowledge base.
+**Next (Phase B).** Chat serving. Waiting for approval of the shared-code items K1-K8 and decision D-1 (where the tenant switch lives).
+
