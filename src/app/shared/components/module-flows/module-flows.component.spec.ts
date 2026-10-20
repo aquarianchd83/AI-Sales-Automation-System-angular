@@ -30,7 +30,7 @@ describe('flowDocForHref', () => {
   it('maps the cross-links the flow docs actually use', () => {
     expect(flowDocForHref('../../../../docs/MODULE-FLOWS.md')).toBe('overview');
     expect(flowDocForHref('../conversations/FLOWS.md')).toBe('conversations');
-    expect(flowDocForHref('../src/app/features/knowledge-base/FLOWS.md')).toBe('knowledge-base');
+    expect(flowDocForHref('../src/app/features/knowledge-base/FLOWS.md')).toBeNull(); // the tenant Knowledge Base screens are gone
     expect(flowDocForHref('../src/app/features/onboarding/FLOWS.md')).toBe('onboarding');
   });
 

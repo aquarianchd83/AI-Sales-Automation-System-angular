@@ -9,9 +9,9 @@ import { BillingModule } from '../../billing/billing.module';
 import { BusinessProfileModule } from '../../business-profile/business-profile.module';
 import { CampaignsModule } from '../../campaigns/campaigns.module';
 import { CustomersModule } from '../../customers/customers.module';
-import { KnowledgeBaseModule } from '../../knowledge-base/knowledge-base.module';
 import { LeadDiscoveryModule } from '../../lead-discovery/lead-discovery.module';
 import { MessageTemplatesModule } from '../../message-templates/message-templates.module';
+import { ProductKnowledgeModule } from '../../product-knowledge/product-knowledge.module';
 import { PackagesModule } from '../../packages/packages.module';
 import { TenantSettingsModule } from '../../tenant-settings/tenant-settings.module';
 import { OnboardingModule } from '../onboarding.module';
@@ -50,7 +50,7 @@ describe('OnboardingStepHostComponent with the real step screens', () => {
         MessageTemplatesModule,
         CustomersModule,
         CampaignsModule,
-        KnowledgeBaseModule,
+        ProductKnowledgeModule,
       ],
       providers: [{ provide: AuthService, useValue: auth }],
     });
@@ -79,7 +79,7 @@ describe('OnboardingStepHostComponent with the real step screens', () => {
     ['/message-templates', 'app-template-list'],
     ['/customers', 'app-customer-list'],
     ['/campaigns', 'app-campaign-list'],
-    ['/knowledge-base', 'app-article-list'],
+    ['/product-knowledge/sources', 'app-knowledge-sources'],
   ];
 
   for (const [url, selector] of cases) {

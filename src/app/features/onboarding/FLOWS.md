@@ -42,7 +42,7 @@ that module's own routes - nothing is rebuilt for onboarding. The tenant never l
 | 3 | Create Customer Package | 20% | `/packages` | an active customer package exists (the API maps it to the plan; a tenant on a free trial may create one before choosing a plan) |
 | 4 | WhatsApp Configuration | 20% | `/tenant-settings` | the tenant has given the WhatsApp **number** its customers will message (just the number - no credentials here). A connection Meta has already verified also counts |
 | 5 | Lead Discovery Profile | 15% | `/lead-discovery/profile` | a profile with a business type and at least one location is saved |
-| 6 | Knowledge Base / Voucher | 15% | `/knowledge-base` | an uploaded article of the tenant has finished processing |
+| 6 | Product Knowledge | 15% | `/product-knowledge/sources` | a document or website of the tenant has been read (Ready); a tenant who finished the old way, an uploaded article that finished processing, keeps the step |
 
 The message template, first customer and first campaign were once steps of their own; they are no longer part of setup (the screens are still in the menu). Finishing the setup also switches on the tenant's lead discovery job, which is created paused.
 

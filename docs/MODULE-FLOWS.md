@@ -10,7 +10,7 @@ docs; where the two differ, the code wins.
 | Conversations | [conversations/FLOWS.md](../src/app/features/conversations/FLOWS.md) | inbound webhook, AI orchestrator decision, agent send, conversation and message status, opt-out detection |
 | Handoffs | [handoffs/FLOWS.md](../src/app/features/handoffs/FLOWS.md) | end-to-end sequence, escalation triggers, the briefing, claim and resolve |
 | Leads | [leads/FLOWS.md](../src/app/features/leads/FLOWS.md) | qualification capture, configurable scoring, stages, agent actions, measuring whether it works |
-| Knowledge base | [knowledge-base/FLOWS.md](../src/app/features/knowledge-base/FLOWS.md) | publish and embed, per-model publishing, retrieval |
+| Product knowledge | [product-knowledge/FLOWS.md](../src/app/features/product-knowledge/FLOWS.md) | sources, drafting, approval, publishing a version, the chat index, the per-tenant switch, what chat does when nothing approved covers a question |
 | Onboarding | [onboarding/FLOWS.md](../src/app/features/onboarding/FLOWS.md) | the nine weighted setup steps, sequence and resume, the access gate, who sees what |
 
 The charts are Mermaid. They render on GitHub and in VS Code with a Mermaid preview extension.
@@ -28,7 +28,7 @@ flowchart LR
     JOBS --> CONV
     WH --> CONV["Conversations"]
     CONV -- "Mode AI or Hybrid" --> ORCH["AI orchestrator"]
-    KB["Knowledge base"] -- "relevant chunks" --> ORCH
+    KB["Published product knowledge<br/>(tenant switch ON) or articles (OFF)"] -- "relevant chunks" --> ORCH
     ORCH -- "confident" --> WA
     ORCH -- "every AI turn" --> LEAD["Leads<br/>score + stage"]
     ORCH -- "low confidence, escalation<br/>intent or hot lead" --> HO["Handoffs"]

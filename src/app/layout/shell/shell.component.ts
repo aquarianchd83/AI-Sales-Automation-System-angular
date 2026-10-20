@@ -103,10 +103,10 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [] },
         { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },
-        { label: 'Knowledge Base', icon: 'menu_book', route: '/knowledge-base', roles: [] },
         { label: 'Product Sources', icon: 'auto_stories', route: '/product-knowledge/sources', roles: TENANT_ADMIN_ONLY },
         { label: 'Product Answers', icon: 'rate_review', route: '/product-knowledge/answers', roles: TENANT_ADMIN_ONLY },
         { label: 'Published Knowledge', icon: 'inventory', route: '/product-knowledge/versions', roles: TENANT_ADMIN_ONLY },
+        { label: 'Test Chat', icon: 'chat', route: '/product-knowledge/test-chat', roles: TENANT_ADMIN_ONLY },
       ],
     },
     {
