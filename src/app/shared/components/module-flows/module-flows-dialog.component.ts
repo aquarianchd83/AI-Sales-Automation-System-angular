@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
 
-export type FlowDocKey = 'overview' | 'campaigns' | 'conversations' | 'handoffs' | 'leads' | 'knowledge-base' | 'onboarding';
+export type FlowDocKey = 'overview' | 'campaigns' | 'conversations' | 'handoffs' | 'leads' | 'onboarding';
 
 export interface FlowDoc {
   key: FlowDocKey;
@@ -22,7 +22,6 @@ export const FLOW_DOCS: FlowDoc[] = [
   { key: 'conversations', label: 'Conversations', path: 'assets/flows/conversations/FLOWS.md' },
   { key: 'handoffs', label: 'Handoffs', path: 'assets/flows/handoffs/FLOWS.md' },
   { key: 'leads', label: 'Leads', path: 'assets/flows/leads/FLOWS.md' },
-  { key: 'knowledge-base', label: 'Knowledge base', path: 'assets/flows/knowledge-base/FLOWS.md' },
   { key: 'onboarding', label: 'Onboarding', path: 'assets/flows/onboarding/FLOWS.md' },
 ];
 

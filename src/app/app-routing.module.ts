@@ -89,11 +89,11 @@ const routes: Routes = [
           import('./features/lead-discovery/lead-discovery.module').then((m) => m.LeadDiscoveryModule),
       },
       {
+        // The tenant no longer writes knowledge articles; what the AI knows comes from their sources, answers and published versions.
+        // An old bookmark lands on the new home.
         path: 'knowledge-base',
-        canActivate: [roleGuard],
-        data: { roles: TENANT_ROLES },
-        loadChildren: () =>
-          import('./features/knowledge-base/knowledge-base.module').then((m) => m.KnowledgeBaseModule),
+        pathMatch: 'full',
+        redirectTo: 'product-knowledge/sources',
       },
       {
         // "Complete Your Application Setup" - where a tenant lands until onboarding is done.

@@ -34,7 +34,7 @@ import { CampaignService } from '../../core/services/campaign.service';
 import { ConversationService } from '../../core/services/conversation.service';
 import { CustomerService } from '../../core/services/customer.service';
 import { HandoffService } from '../../core/services/handoff.service';
-import { KnowledgeBaseService } from '../../core/services/knowledge-base.service';
+import { PublishedKnowledgeService } from '../../core/services/published-knowledge.service';
 import { LeadService } from '../../core/services/lead.service';
 import { MessageTemplateService } from '../../core/services/message-template.service';
 import { TenantSettingsService } from '../../core/services/tenant-settings.service';
@@ -82,7 +82,8 @@ interface Overview {
   pendingHandoffs: PagedResult<Handoff> | null;
   campaigns: PagedResult<Campaign> | null;
   templates: number | null;
-  articles: number | null;
+  /** Versions of product knowledge the tenant has published; null when it could not be read (or the user is not an admin). */
+  publishedVersions: number | null;
 }
 
 interface Pipeline {
@@ -178,7 +179,7 @@ export class DashboardComponent implements OnInit {
     private readonly leads: LeadService,
     private readonly campaigns: CampaignService,
     private readonly templates: MessageTemplateService,
-    private readonly knowledgeBase: KnowledgeBaseService,
+    private readonly publishedKnowledge: PublishedKnowledgeService,
     private readonly tenantSettings: TenantSettingsService,
     private readonly billing: BillingService
   ) {}
@@ -237,7 +238,10 @@ export class DashboardComponent implements OnInit {
       ),
       campaigns: this.safe(this.campaigns.getPaged({ page: 1, pageSize: CAMPAIGN_SAMPLE_SIZE })),
       templates: this.total(this.templates.getPaged(page1)),
-      articles: this.total(this.knowledgeBase.getPaged(page1)),
+      publishedVersions: this.publishedKnowledge.get().pipe(
+        map((o) => o.versions.length),
+        catchError(() => of(null))
+      ),
     }).subscribe((overview) => {
       this.overview = overview;
       this.recentConversations = overview.recentConversations?.items ?? [];
@@ -446,10 +450,10 @@ export class DashboardComponent implements OnInit {
       },
       {
         label: 'Teach the AI about your business',
-        hint: 'Knowledge base articles ground the AI’s replies.',
+        hint: 'Add your documents or website, approve the answers, and publish them for the AI to use.',
         icon: 'menu_book',
-        done: (o.articles ?? 0) > 0,
-        route: '/knowledge-base',
+        done: (o.publishedVersions ?? 0) > 0,
+        route: '/product-knowledge/sources',
       },
       {
         label: 'Launch your first campaign',

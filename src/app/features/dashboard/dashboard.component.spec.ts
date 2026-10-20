@@ -10,7 +10,7 @@ import { CampaignService } from '../../core/services/campaign.service';
 import { ConversationService } from '../../core/services/conversation.service';
 import { CustomerService } from '../../core/services/customer.service';
 import { HandoffService } from '../../core/services/handoff.service';
-import { KnowledgeBaseService } from '../../core/services/knowledge-base.service';
+import { PublishedKnowledgeService } from '../../core/services/published-knowledge.service';
 import { LeadService } from '../../core/services/lead.service';
 import { MessageTemplateService } from '../../core/services/message-template.service';
 import { TenantSettingsService } from '../../core/services/tenant-settings.service';
@@ -104,7 +104,7 @@ describe('DashboardComponent', () => {
     };
     const campaignService = { getPaged: () => pick(page(empty ? [] : campaigns)) };
     const templates = { getPaged: () => pick(page([], 0)) };
-    const knowledgeBase = { getPaged: () => pick(page([], empty ? 0 : 1)) };
+    const publishedKnowledge = { get: () => pick(of({ versions: empty ? [] : [{ id: 'v1' }] })) };
     tenantSettings = jasmine.createSpyObj('TenantSettingsService', ['getUsage', 'getWhatsAppConfig']);
     tenantSettings.getUsage.and.returnValue(
       pick(of({ messagesSentThisMonth: 900, maxMessagesPerMonth: 1000 }))
@@ -127,7 +127,7 @@ describe('DashboardComponent', () => {
         { provide: LeadService, useValue: leads },
         { provide: CampaignService, useValue: campaignService },
         { provide: MessageTemplateService, useValue: templates },
-        { provide: KnowledgeBaseService, useValue: knowledgeBase },
+        { provide: PublishedKnowledgeService, useValue: publishedKnowledge },
         { provide: TenantSettingsService, useValue: tenantSettings },
         { provide: BillingService, useValue: billing },
       ],

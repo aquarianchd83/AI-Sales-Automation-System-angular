@@ -12,7 +12,6 @@ import { BillingModule } from '../billing/billing.module';
 import { BusinessProfileModule } from '../business-profile/business-profile.module';
 import { CampaignsModule } from '../campaigns/campaigns.module';
 import { CustomersModule } from '../customers/customers.module';
-import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
 import { LeadDiscoveryModule } from '../lead-discovery/lead-discovery.module';
 import { MessageTemplatesModule } from '../message-templates/message-templates.module';
 import { PackagesModule } from '../packages/packages.module';
@@ -29,7 +28,6 @@ const STEPS: [string, string, number, string, string][] = [
   ['message-template', 'Configure Message Template', 10, '/message-templates', 'app-template-list'],
   ['customer', 'Create Customer', 10, '/customers', 'app-customer-list'],
   ['campaign', 'Create Campaign', 10, '/campaigns', 'app-campaign-list'],
-  ['knowledge-base', 'Knowledge Base / Voucher', 10, '/knowledge-base', 'app-article-list'],
 ];
 
 /** Every step done except the last, so Previous and Next both have somewhere to go all the way along. */
@@ -74,7 +72,7 @@ describe('Onboarding page navigation with the real screens', () => {
       imports: [
         OnboardingModule, HttpClientTestingModule, NoopAnimationsModule, RouterTestingModule,
         BusinessProfileModule, BillingModule, PackagesModule, LeadDiscoveryModule, TenantSettingsModule,
-        MessageTemplatesModule, CustomersModule, CampaignsModule, KnowledgeBaseModule,
+        MessageTemplatesModule, CustomersModule, CampaignsModule,
       ],
       providers: [
         { provide: OnboardingService, useValue: onboarding },

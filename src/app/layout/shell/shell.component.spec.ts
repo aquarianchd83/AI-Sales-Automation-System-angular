@@ -76,7 +76,6 @@ describe('ShellComponent sidenav', () => {
       'inventory_2Packages',
       'text_snippetMessage Templates',
       'perm_mediaMedia Library',
-      'menu_bookKnowledge Base',
       'auto_storiesProduct Sources',
       'rate_reviewProduct Answers',
       'inventoryPublished Knowledge',
@@ -120,7 +119,7 @@ describe('ShellComponent sidenav', () => {
 
     expect(labels(root)).toEqual(['Engage', 'CRM', 'Content']);
     expect(items(root)).not.toContain('settingsSettings');
-    expect(items(root).length).toBe(12);
+    expect(items(root).length).toBe(11);
   });
 
   it('sends an Admin straight to Lead Discovery History - the Discovered Leads page would 403 nobody, but History is Admin-only', () => {
@@ -146,7 +145,7 @@ describe('ShellComponent sidenav', () => {
       'businessTenants',
       'manage_accountsUsers',
       'campaignAnnouncements',
-      'menu_bookKnowledge Base',
+      'menu_bookKnowledge Base', // platform knowledge: stays
       'quizStudio Questionnaires',
       'paymentsPackage',
       'data_usageUsage & Quotas',
