@@ -1,0 +1,119 @@
+.intro {
+  margin-bottom: 16px;
+  padding: 16px;
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  min-width: 220px;
+  flex: 1 1 220px;
+}
+
+.filter {
+  min-width: 160px;
+}
+
+.scenario-cell {
+  min-width: 260px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.scenario-title {
+  font-weight: 600;
+}
+
+.description {
+  max-width: 420px;
+  margin-top: 4px;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.warning {
+  color: #b26a00;
+  margin-top: 4px;
+}
+
+.units-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.units-field {
+  width: 90px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #eceff1;
+  font-size: 11px;
+}
+
+.tag-platform {
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+.wallet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.wallet-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.wallet-balance {
+  font-size: 28px;
+  font-weight: 600;
+
+  &.empty {
+    color: #b71c1c;
+  }
+}
+
+.section-title {
+  margin: 16px 16px 0;
+}
+
+.negative {
+  color: #b71c1c;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+  .filter,
+  .filter-search {
+    flex: 1 1 100%;
+  }
+}

@@ -1,0 +1,40 @@
+.head {
+  display: flex;
+  padding: 16px;
+}
+
+.filter {
+  min-width: 220px;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.num {
+  text-align: right;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #eceff1;
+  font-size: 11px;
+}
+
+.tag-covered {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.refunded {
+  margin-left: 8px;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

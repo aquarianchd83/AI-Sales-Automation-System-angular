@@ -150,6 +150,7 @@ describe('ShellComponent sidenav', () => {
       'quizStudio Questionnaires',
       'paymentsPackage',
       'data_usageUsage & Quotas',
+      'account_balance_walletCredit Payers',
       'receipt_longPayments',
       'assignment_returnRefund Requests',
       'chatPlatform WhatsApp',
