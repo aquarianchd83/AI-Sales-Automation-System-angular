@@ -182,6 +182,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Tenants', icon: 'business', route: '/platform/tenants', roles: [] },
         { label: 'Users', icon: 'manage_accounts', route: '/platform/users', roles: [] },
+        { label: 'Tickets', icon: 'confirmation_number', route: '/platform/tickets', roles: [] },
         { label: 'Announcements', icon: 'campaign', route: '/platform/announcements', roles: [] },
         { label: 'Knowledge Base', icon: 'menu_book', route: '/platform/knowledge', roles: [] },
         { label: 'Studio Questionnaires', icon: 'quiz', route: '/platform/studio-questionnaires', roles: [] },
@@ -245,7 +246,10 @@ export class ShellComponent implements OnInit, OnDestroy {
       // only profile screen a PlatformSuperAdmin has — they belong to no tenant, so the tenant-scoped
       // Users screens can neither see nor edit them.
       label: 'Account',
-      items: [{ label: 'Change Password', icon: 'lock_reset', route: '/account/change-password', roles: [] }],
+      items: [
+        { label: 'My Profile', icon: 'person', route: '/account/profile', roles: [] },
+        { label: 'Change Password', icon: 'lock_reset', route: '/account/change-password', roles: [] },
+      ],
     },
   ];
 

@@ -28,7 +28,7 @@ const version = (over: Partial<KnowledgeVersion> = {}): KnowledgeVersion => ({
 const overview = (
   over: Partial<KnowledgeVersionsOverview['preview']> = {},
   versions = [version(), version({ id: 'v1', number: 1, status: 'Superseded', note: null, servingStatus: 'Replaced' })],
-  chat: Partial<Pick<KnowledgeVersionsOverview, 'chatUsesPublishedKnowledge' | 'servingVersionNumber'>> = {}
+  chat: Partial<Pick<KnowledgeVersionsOverview, 'chatUsesPublishedKnowledge' | 'servingVersionNumber' | 'platformAiSimulated'>> = {}
 ): KnowledgeVersionsOverview => ({
   preview: { ready: 3, heldBack: [], notYetApproved: 2, nothingNew: false, current: versions[0] ?? null, ...over },
   versions,
@@ -212,6 +212,25 @@ describe('PublishedKnowledgeComponent', () => {
     expect(el('chat-switch')!.textContent).toContain('not using your published knowledge yet');
     expect(el('chat-switch-off')!.textContent).toContain('platform administrator');
     expect(el('serving-chip')!.textContent).toContain('Live for chat');
+  });
+
+  it('says connected with simulator, not live for chat, while the platform AI is the simulator', () => {
+    create(overview({}, undefined, { platformAiSimulated: true }));
+
+    expect(el('serving-chip')!.textContent).toContain('Connected with simulator');
+    expect(el('serving-chip')!.textContent).not.toContain('Live for chat');
+    expect(el('simulator-note')!.textContent).toContain('Re-index for chat');
+  });
+
+  it('offers Re-index for chat on a live version, so it can be rebuilt after the platform changes its AI', () => {
+    const c = create();
+    expect(el('reindex')!.textContent).toContain('Re-index for chat');
+    expect(el('simulator-note')).toBeNull();
+
+    service.reindex.and.returnValue(of(version({ servingStatus: 'Live' })));
+    el('reindex')!.click();
+
+    expect(service.reindex).toHaveBeenCalledWith(c.currentVersion!.id);
   });
 
   it('says chat answers from the published knowledge when the switch is on, and gives the tenant no way to change it', () => {

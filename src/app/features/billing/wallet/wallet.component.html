@@ -10,15 +10,6 @@
     </a>
   </app-page-header>
 
-  <div class="notice" *ngFor="let n of notifications" [class.notice--urgent]="urgent(n)">
-    <mat-icon>{{ urgent(n) ? 'warning' : 'info' }}</mat-icon>
-    <div class="notice-text">
-      <strong>{{ n.title }}</strong>
-      <span>{{ n.body }}</span>
-    </div>
-    <button mat-button type="button" (click)="dismiss(n)">Dismiss</button>
-  </div>
-
   <div class="notice notice--urgent ai-paused" *ngIf="aiPaused">
     <mat-icon>warning</mat-icon>
     <div class="notice-text">

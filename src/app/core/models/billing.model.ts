@@ -184,7 +184,7 @@ export enum QuotaEntryType {
 }
 
 export const QUOTA_ENTRY_LABELS: Record<QuotaEntryType, string> = {
-  [QuotaEntryType.Allocation]: 'Plan allocation',
+  [QuotaEntryType.Allocation]: 'Renew Plan allocation',
   [QuotaEntryType.Purchase]: 'Credits purchased',
   [QuotaEntryType.Consumption]: 'Used',
   [QuotaEntryType.ConsumptionReversal]: 'Returned (failed send)',

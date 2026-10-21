@@ -35,6 +35,8 @@ export class ProductTestChatComponent implements OnInit, AfterViewChecked {
   /** The version live for chat now, or null when nothing has been published and made ready. */
   liveVersion: number | null = null;
   liveChatOn = false;
+  /** The platform AI is the Simulator, so this chat is only connected with it. */
+  simulated = false;
   sending = false;
 
   @ViewChild('scroller') private scroller?: ElementRef<HTMLElement>;
@@ -54,6 +56,7 @@ export class ProductTestChatComponent implements OnInit, AfterViewChecked {
         next: (o) => {
           this.liveVersion = o.servingVersionNumber;
           this.liveChatOn = o.chatUsesPublishedKnowledge;
+          this.simulated = o.platformAiSimulated === true;
         },
         error: () => (this.loadFailed = true),
       });
@@ -93,6 +96,7 @@ export class ProductTestChatComponent implements OnInit, AfterViewChecked {
       .pipe(finalize(() => (this.sending = false)))
       .subscribe({
         next: (reply) => {
+          this.platformNotice = reply.platformNotice ?? null;
           if (reply.reply) {
             this.push('assistant', reply.reply, reply);
           } else {
@@ -107,6 +111,9 @@ export class ProductTestChatComponent implements OnInit, AfterViewChecked {
         },
       });
   }
+
+  /** What the platform asks the tester to know (the AI is in test mode); shown until a reply says otherwise. */
+  platformNotice: string | null = null;
 
   toggleWhy(message: ChatMessage): void {
     message.showWhy = !message.showWhy;

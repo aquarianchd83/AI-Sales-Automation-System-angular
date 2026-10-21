@@ -70,3 +70,30 @@
 .composer-field { flex: 1 1 auto; }
 
 @media (max-width: 700px) { .bubble, .why { max-width: 92%; } .chat-head { flex-direction: column; align-items: flex-start; } }
+
+.platform-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #fff3e0;
+  color: #7a4a00;
+  font-size: 13px;
+  line-height: 1.4;
+
+  mat-icon {
+    flex: none;
+  }
+}
+
+.sim-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #fff3e0;
+  color: #7a4a00;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}

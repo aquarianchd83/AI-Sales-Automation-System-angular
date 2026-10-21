@@ -30,4 +30,6 @@ export interface TestChatReply {
   /** When a draft was written but would not be sent: what it said and why it was stopped. */
   draftBlocked: string | null;
   detectedIntent: string;
+  /** Set when the platform AI is not fully set up (a Simulated provider): carry on, but contact the product owner, who has already been alerted. */
+  platformNotice?: string | null;
 }

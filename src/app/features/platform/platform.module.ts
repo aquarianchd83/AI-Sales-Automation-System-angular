@@ -29,6 +29,7 @@ import { PlatformQuotaAdjustDialogComponent } from './platform-quota-adjust-dial
 import { PlatformRefundListComponent } from './platform-refund-list/platform-refund-list.component';
 import { PlatformRefundReviewDialogComponent } from './platform-refund-review-dialog/platform-refund-review-dialog.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
+import { PlatformTicketsComponent } from './platform-tickets/platform-tickets.component';
 import { PlatformStudioQuestionnairesComponent } from './platform-studio-questionnaires/platform-studio-questionnaires.component';
 import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
@@ -70,6 +71,7 @@ const routes: Routes = [
       { path: 'invoices', pathMatch: 'full', redirectTo: 'payments' },
       { path: 'invoices/:id', redirectTo: 'payments' },
       { path: 'refunds', component: PlatformRefundListComponent },
+      { path: 'tickets', component: PlatformTicketsComponent },
       { path: 'whatsapp-connections', component: PlatformWhatsAppConnectionsComponent },
       { path: 'jobs', component: PlatformJobsComponent },
       { path: 'aws-settings', component: PlatformAwsSettingsComponent },
@@ -94,6 +96,7 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     PlatformShellComponent,
+    PlatformTicketsComponent,
     PlatformDashboardComponent,
     PlatformTenantListComponent,
     PlatformTenantDetailComponent,

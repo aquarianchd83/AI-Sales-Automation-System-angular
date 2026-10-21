@@ -62,11 +62,16 @@ export class PublishedKnowledgeComponent implements OnInit {
     return this.overview?.servingVersionNumber ?? null;
   }
 
+  /** The platform AI is set to the Simulator: a version can be "connected" to it, but real answers need a real AI provider. */
+  get simulated(): boolean {
+    return this.overview?.platformAiSimulated === true;
+  }
+
   /** How a version stands for chat, in the tenant's words. */
   servingLabel(v: KnowledgeVersion): string {
     switch (v.servingStatus) {
       case 'Live':
-        return 'Live for chat';
+        return this.simulated ? 'Connected with simulator' : 'Live for chat';
       case 'Indexing':
         return 'Getting ready for chat…';
       case 'Failed':
@@ -196,7 +201,7 @@ export class PublishedKnowledgeComponent implements OnInit {
       .pipe(finalize(() => (this.reindexing = false)))
       .subscribe({
         next: (v) => {
-          v.servingStatus === 'Live' ? this.notify.success(`Version ${v.number} is live for chat.`) : this.notify.error(v.servingError ?? 'It could not be made ready for chat yet.');
+          v.servingStatus === 'Live' ? this.notify.success(this.simulated ? `Version ${v.number} is connected with the simulator.` : `Version ${v.number} is live for chat.`) : this.notify.error(v.servingError ?? 'It could not be made ready for chat yet.');
           this.load();
           if (this.selectedId !== NEXT) {
             this.select(this.selectedId);
