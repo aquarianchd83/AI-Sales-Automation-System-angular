@@ -181,3 +181,15 @@ dd {
   white-space: nowrap;
   text-align: right;
 }
+
+.view-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.view-switch-note {
+  font-size: 12px;
+}

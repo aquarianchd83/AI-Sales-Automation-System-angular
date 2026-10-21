@@ -108,14 +108,29 @@
       </dl>
     </mat-card>
 
+    <div class="view-switch">
+      <mat-button-toggle-group
+        [value]="view"
+        (change)="setView($event.value)"
+        aria-label="Audience view"
+      >
+        <mat-button-toggle value="classic">Classic view</mat-button-toggle>
+        <mat-button-toggle value="pipeline">Pipeline view (preview)</mat-button-toggle>
+      </mat-button-toggle-group>
+      <span class="muted view-switch-note" *ngIf="view === 'pipeline'">
+        Preview: the audience list and progress counts are hidden here and unchanged in Classic view.
+      </span>
+    </div>
+
     <app-campaign-pipeline
+      *ngIf="view === 'pipeline'"
       [campaignId]="c.id"
       [steps]="c.steps"
       [refreshToken]="deliveryRefresh"
       (memberSelected)="showCustomerHistory($event)"
     ></app-campaign-pipeline>
 
-    <mat-card class="audience-card">
+    <mat-card class="audience-card" *ngIf="view === 'classic'">
       <div class="card-header">
         <h2>Audience</h2>
         <span class="audience-count">{{ c.audienceCount }}</span>
@@ -326,7 +341,7 @@
       [refreshToken]="deliveryRefresh"
     ></app-campaign-step-delivery>
 
-    <mat-card class="progress-card">
+    <mat-card class="progress-card" *ngIf="view === 'classic'">
       <div class="card-header">
         <h2>Progress</h2>
         <button mat-icon-button type="button" matTooltip="Refresh" (click)="refreshProgress()">
