@@ -46,6 +46,8 @@ export interface KnowledgeVersionsOverview {
   chatUsesPublishedKnowledge: boolean;
   /** The version whose chunks chat can read now (the latest that went Live), or null if none has. */
   servingVersionNumber: number | null;
+  /** True while the platform AI (chat replies or knowledge reading) is set to the Simulator - a "live" version is then only connected to the simulator. */
+  platformAiSimulated?: boolean;
 }
 
 export interface KnowledgeItem {

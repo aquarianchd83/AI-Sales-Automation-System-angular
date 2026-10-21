@@ -1,0 +1,47 @@
+<div class="page">
+  <app-page-header title="Tickets" subtitle="Problems the system found that only the platform can fix. You are alerted in the bell, by email and on WhatsApp.">
+    <a mat-stroked-button routerLink="/account/profile">
+      <mat-icon>person</mat-icon>
+      My profile &amp; alert number
+    </a>
+  </app-page-header>
+
+  <div class="filters" role="group" aria-label="Filter by status">
+    <button mat-stroked-button type="button" [class.active]="filter === null" (click)="setFilter(null)">All</button>
+    <button mat-stroked-button type="button" *ngFor="let s of statuses" [class.active]="filter === s" (click)="setFilter(s)">
+      {{ statusLabels[s] }}
+    </button>
+  </div>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="ticket-list" *ngIf="!loading">
+    <mat-card class="ticket" *ngFor="let t of tickets" [class.ticket--resolved]="t.status === 'Resolved'">
+      <div class="ticket-header">
+        <span class="chip" [ngClass]="'chip--' + t.priority.toLowerCase()">{{ t.priority }}</span>
+        <span class="chip chip--status">{{ statusLabels[t.status] }}</span>
+        <h3>{{ t.subject }}</h3>
+        <span class="spacer"></span>
+        <button mat-button type="button" *ngIf="t.status === 'Open'" [disabled]="busyId === t.id" (click)="setStatus(t, 'InProgress')">Start work</button>
+        <button mat-flat-button color="primary" type="button" *ngIf="t.status !== 'Resolved'" [disabled]="busyId === t.id" (click)="setStatus(t, 'Resolved')">
+          Mark resolved
+        </button>
+        <button mat-button type="button" *ngIf="t.status === 'Resolved'" [disabled]="busyId === t.id" (click)="setStatus(t, 'Open')">Reopen</button>
+      </div>
+      <p>{{ t.description }}</p>
+      <div class="meta muted">
+        <span *ngIf="t.tenantName">
+          First reported by <a [routerLink]="['/platform/tenants', t.tenantId]">{{ t.tenantName }}</a> ·
+        </span>
+        <span>Raised {{ t.createdAt | zonedDate: 'medium' }}</span>
+        <span *ngIf="t.resolvedAtUtc"> · Resolved {{ t.resolvedAtUtc | zonedDate: 'medium' }}</span>
+      </div>
+      <div class="meta muted" *ngIf="t.deliveryNote">Owner alert: {{ t.deliveryNote }}</div>
+    </mat-card>
+
+    <div class="empty-state" *ngIf="!tickets.length">
+      <mat-icon class="empty-icon">confirmation_number</mat-icon>
+      <p>No tickets{{ filter ? ' with this status' : '' }}.</p>
+    </div>
+  </div>
+</div>

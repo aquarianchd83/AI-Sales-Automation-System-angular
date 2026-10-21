@@ -879,7 +879,8 @@ export type PlatformNotificationKind =
   | 'TenantSignedUp'
   | 'RefundRequested'
   | 'RefundFailed'
-  | 'PlanRenewalFailed';
+  | 'PlanRenewalFailed'
+  | 'ConfigurationNeeded';
 export type PlatformNotificationSeverity = 'Info' | 'Warning' | 'Critical';
 
 /** An alert for the platform operators — a tenant's background job that keeps failing, or has recovered. */
@@ -902,6 +903,8 @@ export function platformNotificationRoute(n: Pick<PlatformNotification, 'kind' |
     case 'RefundRequested':
     case 'RefundFailed':
       return '/platform/refunds';
+    case 'ConfigurationNeeded':
+      return '/platform/tickets';
     case 'TenantSignedUp':
     case 'PlanRenewalFailed':
       return n.tenantId ? `/platform/tenants/${n.tenantId}` : '/platform/tenants';
@@ -1230,3 +1233,29 @@ export interface AiExecution {
   errorSummary: string | null;
   createdAt: string;
 }
+
+export type PlatformTicketPriority = 'Low' | 'Normal' | 'High' | 'Urgent';
+export type PlatformTicketStatus = 'Open' | 'InProgress' | 'Resolved';
+
+/** PlatformTicketDto: work the system raises for the product owner when something only the platform can fix has affected a tenant. */
+export interface PlatformTicket {
+  id: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  kind: 'SimulatedAiConfiguration';
+  subject: string;
+  description: string;
+  priority: PlatformTicketPriority;
+  status: PlatformTicketStatus;
+  /** How the product owner was told: in-app, email and WhatsApp results, one short line each. */
+  deliveryNote: string | null;
+  createdAt: string;
+  resolvedAtUtc: string | null;
+}
+
+export const PLATFORM_TICKET_STATUS_LABELS: Record<PlatformTicketStatus, string> = {
+  Open: 'Open',
+  InProgress: 'In progress',
+  Resolved: 'Resolved',
+};
+

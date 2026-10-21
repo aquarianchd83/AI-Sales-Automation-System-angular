@@ -20,6 +20,7 @@
     <header class="chat-head">
       <div>
         <strong>Testing version {{ liveVersion }}</strong>
+        <span class="sim-tag" *ngIf="simulated" data-testid="simulator-tag">Connected with simulator</span>
         <span class="muted small" data-testid="live-note">
           {{ liveChatOn ? 'Customers are being answered from this now.' : 'Live chat is not switched over to this yet - your platform administrator does that.' }}
         </span>
@@ -28,6 +29,11 @@
         <mat-icon>restart_alt</mat-icon> New conversation
       </button>
     </header>
+
+    <div class="platform-notice" *ngIf="platformNotice" role="status" data-testid="platform-notice">
+      <mat-icon>support_agent</mat-icon>
+      <span>{{ platformNotice }}</span>
+    </div>
 
     <div class="scroller" #scroller aria-live="polite" data-testid="messages">
       <p class="empty muted" *ngIf="!messages.length" data-testid="empty">

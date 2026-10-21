@@ -142,15 +142,15 @@ describe('WalletComponent', () => {
     expect(text(root)).toContain('choose a plan first');
   });
 
-  it('shows the unread alert and the ledger in plain words', () => {
+  it('shows the ledger in plain words and no in-app notifications', () => {
     const root = render();
 
-    expect(text(root.querySelector('.notice'))).toContain('running low');
+    expect(text(root)).not.toContain('running low');
     const rows = Array.from(root.querySelectorAll('tr.mat-mdc-row')).map((r) => text(r));
     expect(rows.length).toBe(2);
     expect(rows[0]).toContain('Used');
     expect(rows[0]).toContain('-200');
-    expect(rows[1]).toContain('Plan allocation');
+    expect(rows[1]).toContain('Renew Plan allocation');
     expect(rows[1]).toContain('+1,000');
   });
 

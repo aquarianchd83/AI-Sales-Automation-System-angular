@@ -75,6 +75,25 @@ describe('ProductTestChatComponent', () => {
     expect(el('live-note')!.textContent).toContain('answered from this now');
   });
 
+  it('tags the chat as connected with simulator only while the platform AI is the simulator', () => {
+    create(overview({ platformAiSimulated: true }));
+    expect(el('simulator-tag')!.textContent).toContain('Connected with simulator');
+
+    fixture.destroy();
+    create();
+    expect(el('simulator-tag')).toBeNull();
+  });
+
+  it('tells the tester to carry on and contact the product owner when the platform AI is in test mode', () => {
+    create();
+    expect(el('platform-notice')).toBeNull();
+
+    chat.ask.and.returnValue(of(answer('The fee is Rs 500.', { platformNotice: 'Please contact your product owner to finish the AI setup.' })));
+    say('What is the fee?');
+
+    expect(el('platform-notice')!.textContent).toContain('contact your product owner');
+  });
+
   it('shows the customers message, a typing indicator while waiting, then the AIs reply with the time', () => {
     create();
     const pending = new Subject<TestChatReply>();

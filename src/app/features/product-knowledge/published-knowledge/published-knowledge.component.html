@@ -29,7 +29,7 @@
 
     <ng-container *ngIf="currentVersion as cur">
       <div class="chat-row" data-testid="chat-version">
-        <span class="chip" [ngClass]="'chip--' + cur.servingStatus.toLowerCase()" data-testid="serving-chip">{{ servingLabel(cur) }}</span>
+        <span class="chip" [ngClass]="'chip--' + cur.servingStatus.toLowerCase()" [class.chip--simulator]="simulated && cur.servingStatus === 'Live'" data-testid="serving-chip">{{ servingLabel(cur) }}</span>
         <span class="small">
           Version {{ cur.number }}
           <ng-container *ngIf="cur.servingStatus === 'Live' && cur.servingIndexedAt"> ready since {{ cur.servingIndexedAt | zonedDate: 'medium' }}.</ng-container>
@@ -39,14 +39,18 @@
         <button
           mat-stroked-button
           type="button"
-          *ngIf="cur.servingStatus === 'Failed' || cur.servingStatus === 'Indexing'"
+          *ngIf="cur.servingStatus !== 'Replaced'"
           [disabled]="reindexing"
           (click)="reindex(cur)"
           data-testid="reindex"
         >
-          <mat-icon>refresh</mat-icon> Try again
+          <mat-icon>refresh</mat-icon> {{ cur.servingStatus === 'Live' ? 'Re-index for chat' : 'Try again' }}
         </button>
       </div>
+      <p class="note note--warn" *ngIf="simulated" data-testid="simulator-note">
+        <mat-icon>science</mat-icon>
+        <span>The platform AI is set to the Simulator, so chat is only connected with it and cannot answer properly yet. Once your product owner switches to a real AI, press <strong>Re-index for chat</strong> so this version is read by it.</span>
+      </p>
       <p class="note note--warn" *ngIf="cur.servingStatus === 'Failed' && cur.servingError" data-testid="serving-error">
         <mat-icon>error_outline</mat-icon><span>{{ cur.servingError }}</span>
       </p>

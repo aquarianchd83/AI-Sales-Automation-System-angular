@@ -1,0 +1,54 @@
+<div class="page">
+  <app-page-header
+    title="My profile"
+    [subtitle]="isProductOwner ? 'Your details, and the number urgent platform alerts are sent to.' : 'Your own details.'"
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card style="max-width: 520px; padding: 24px" *ngIf="!loading && profile">
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <mat-form-field class="full-width">
+        <mat-label>Full name</mat-label>
+        <input matInput formControlName="fullName" autocomplete="name" />
+        <mat-error *ngIf="form.controls.fullName.hasError('required')">Your name is required.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width">
+        <mat-label>Email (what you sign in with)</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="email" />
+        <mat-hint *ngIf="emailChanged">You will sign in with the new address from your next sign-in.</mat-hint>
+        <mat-error *ngIf="form.controls.email.hasError('required')">An email is required.</mat-error>
+        <mat-error *ngIf="form.controls.email.hasError('email')">Enter a valid email address.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width">
+        <mat-label>{{ isProductOwner ? 'WhatsApp number for urgent alerts' : 'Phone number' }}</mat-label>
+        <input matInput type="tel" formControlName="phoneNumber" autocomplete="tel" placeholder="+91 98765 43210" data-testid="phone" />
+        <mat-hint *ngIf="isProductOwner">
+          Include the country code, e.g. +91 98765 43210. When something only you can fix affects a tenant, you get a WhatsApp message here as well as in the bell.
+        </mat-hint>
+        <mat-error *ngIf="form.controls.phoneNumber.hasError('pattern')">
+          {{ isProductOwner ? 'Start with + and the country code, e.g. +919876543210.' : 'Use digits, spaces, brackets, dashes and an optional leading +.' }}
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field class="full-width">
+        <mat-label>Timezone</mat-label>
+        <mat-select formControlName="timezone">
+          <mat-option *ngFor="let zone of timezones" [value]="zone.id">{{ zone.displayName }} ({{ zone.utcOffset }})</mat-option>
+          <!-- Kept while the catalog loads, so the saved value never reads as blank. -->
+          <mat-option *ngIf="!timezones.length" [value]="form.controls.timezone.value">{{ form.controls.timezone.value }}</mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.controls.timezone.hasError('required')">Choose a timezone.</mat-error>
+      </mat-form-field>
+
+      <div class="page-toolbar" style="margin-top: 8px">
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving || form.pristine">
+          {{ saving ? 'Saving…' : 'Save' }}
+        </button>
+        <a mat-button routerLink="/account/change-password">Change password</a>
+      </div>
+    </form>
+  </mat-card>
+</div>

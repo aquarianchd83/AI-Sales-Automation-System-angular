@@ -22,9 +22,7 @@ import {
   QuotaLedgerEntry,
   QuotaType,
   Subscription,
-  TenantNotification,
   formatUnits,
-  isUrgentNotification,
   formatMoney,
   taxBreakdown,
 } from '../../../core/models/billing.model';
@@ -77,7 +75,6 @@ export class WalletComponent implements OnInit, OnDestroy {
   balances: BalanceView[] = [];
   packs: CreditPack[] = [];
   subscription: Subscription | null = null;
-  notifications: TenantNotification[] = [];
   ledger: PagedResult<QuotaLedgerEntry> = emptyPage<QuotaLedgerEntry>();
   ledgerFilter: QuotaType | null = null;
   aiUsage: PagedResult<AiTransaction> = emptyPage<AiTransaction>();
@@ -105,7 +102,6 @@ export class WalletComponent implements OnInit, OnDestroy {
     this.reloadBalances();
     this.billing.getCreditPacks().subscribe({ next: (packs) => (this.packs = packs) });
     this.billing.getSubscription().subscribe({ next: (subscription) => (this.subscription = subscription) });
-    this.loadNotifications();
     this.loadLedger();
     this.loadAiUsage();
     this.billing.getAlertSettings().subscribe({
@@ -155,10 +151,6 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   packsFor(type: QuotaType): CreditPack[] {
     return this.packs.filter((p) => p.quotaType === type);
-  }
-
-  urgent(notification: TenantNotification): boolean {
-    return isUrgentNotification(notification.kind);
   }
 
   /** "₹999 + GST 18% ₹179.82 = ₹1,178.82" — the price, the tax on top and what is charged. */
@@ -215,13 +207,6 @@ export class WalletComponent implements OnInit, OnDestroy {
             this.loadAiUsage();
           });
       });
-  }
-
-  dismiss(notification: TenantNotification): void {
-    this.billing.acknowledgeNotification(notification.id).subscribe(() => {
-      notification.acknowledged = true;
-      this.notifications = this.notifications.filter((n) => !n.acknowledged);
-    });
   }
 
   saveAlertSettings(): void {
@@ -283,10 +268,6 @@ export class WalletComponent implements OnInit, OnDestroy {
       .getQuota()
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({ next: (balances) => (this.balances = balances.map((b) => this.toView(b))) });
-  }
-
-  private loadNotifications(): void {
-    this.billing.getNotifications().subscribe({ next: (all) => (this.notifications = all.filter((n) => !n.acknowledged)) });
   }
 
   private loadLedger(): void {
