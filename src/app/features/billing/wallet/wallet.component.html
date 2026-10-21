@@ -1,5 +1,5 @@
 <div class="page">
-  <app-page-header title="Usage & credits" subtitle="What you've prepaid for, what's left, and how to top up.">
+  <app-page-header title="Usage & credits" subtitle="Your one credit balance, what each feature costs and has used, and how to top up.">
     <a mat-stroked-button routerLink="/billing/credit-usage">
       <mat-icon>receipt_long</mat-icon>
       Credit usage
@@ -16,23 +16,24 @@
       <strong>AI replies are paused</strong>
       <span>{{ aiPausedMessage }}</span>
     </div>
-    <button mat-flat-button color="primary" type="button" *ngIf="canBuy" (click)="scrollToBuy()">Buy AI credits</button>
+    <button mat-flat-button color="primary" type="button" *ngIf="canBuy" (click)="scrollToBuy()">Buy credits</button>
     <a mat-flat-button color="primary" routerLink="/billing" *ngIf="!canBuy">Choose a plan</a>
   </div>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
-  <div class="balance-grid" *ngIf="!loading">
-    <mat-card class="balance-card" *ngFor="let b of balances" [ngClass]="'balance-card--' + b.level">
+  <div class="balance-grid" *ngIf="!loading && balance as b">
+    <mat-card class="balance-card" [ngClass]="'balance-card--' + b.level" data-testid="wallet-card">
       <div class="balance-head">
-        <mat-icon>{{ typeIcons[b.type] }}</mat-icon>
-        <span>{{ typeLabels[b.type] }}</span>
+        <mat-icon>toll</mat-icon>
+        <span>Credits</span>
+        <span class="plan-chip" *ngIf="summary?.planName" data-testid="plan-chip">{{ summary?.planName }} plan</span>
       </div>
 
-      <div class="balance-number">{{ formatUnits(b.balance) }}</div>
-      <div class="muted balance-sub" *ngIf="b.level === 'none'">Nothing included yet — choose a plan or buy credits.</div>
-      <div class="muted balance-sub" *ngIf="b.level === 'empty'">Used up — anything that needs this is paused.</div>
-      <div class="muted balance-sub" *ngIf="b.level === 'low'">Running low — {{ b.percentLeft | number: '1.0-0' }}% left.</div>
+      <div class="balance-number" data-testid="balance">{{ formatUnits(b.balance) }}</div>
+      <div class="muted balance-sub" *ngIf="b.level === 'none'">Nothing here yet - choose a plan or buy credits.</div>
+      <div class="muted balance-sub" *ngIf="b.level === 'empty'">Used up - anything that needs credits is paused.</div>
+      <div class="muted balance-sub" *ngIf="b.level === 'low'">Running low - {{ b.percentLeft | number: '1.0-0' }}% left.</div>
       <div class="muted balance-sub" *ngIf="b.level === 'ok'">of {{ formatUnits(b.capacity) }} available</div>
 
       <mat-progress-bar
@@ -45,53 +46,124 @@
       <ul class="grant-list" *ngIf="b.grants.length">
         <li *ngFor="let g of b.grants">
           <span>{{ originLabels[g.origin] }}</span>
-          <span class="muted">until {{ g.expiresAtUtc | zonedDate: 'mediumDate' }}</span>
+          <span class="muted" *ngIf="g.origin === 1">until {{ g.expiresAtUtc | zonedDate: 'mediumDate' }}</span>
+          <span class="muted" *ngIf="g.origin !== 1">never expires</span>
           <strong>{{ formatUnits(g.unitsRemaining) }}</strong>
         </li>
       </ul>
     </mat-card>
+
+    <mat-card class="balance-card plan-card" data-testid="plan-card">
+      <div class="balance-head">
+        <mat-icon>workspace_premium</mat-icon>
+        <span>{{ summary?.planName || 'Your plan' }}</span>
+      </div>
+      <p class="muted balance-sub" *ngIf="onPremium" data-testid="monthly-note">
+        {{ formatUnits(summary?.monthlyCredits || 0) }} new credits arrive every month. Unspent credits carry over.
+      </p>
+      <p class="muted balance-sub" *ngIf="!onPremium && summary" data-testid="trial-note">
+        This plan has no monthly credits and never expires. Upgrade to Premium for every feature and new credits every month.
+      </p>
+      <a mat-stroked-button routerLink="/billing" *ngIf="!onPremium">See plans</a>
+    </mat-card>
   </div>
+
+  <mat-card class="section-card" id="wallet-features" *ngIf="summary">
+    <h3>Features</h3>
+    <p class="muted hint">
+      Every feature is paid for from the one balance above. Put a monthly limit on a feature to keep it from using more than you want - it stops at the limit,
+      even if credits are left, and starts again on the 1st.
+    </p>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="summary.features" data-testid="features-table">
+        <ng-container matColumnDef="feature">
+          <th mat-header-cell *matHeaderCellDef>Feature</th>
+          <td mat-cell *matCellDef="let f">
+            <div class="feature-name">
+              <mat-icon>{{ featureIcon(f.feature) }}</mat-icon>
+              <span>{{ f.label }}</span>
+            </div>
+            <div class="muted small" *ngIf="!f.includedInPlan">Not in your plan - <a routerLink="/billing">upgrade</a></div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="cost">
+          <th mat-header-cell *matHeaderCellDef>Costs</th>
+          <td mat-cell *matCellDef="let f">
+            <div *ngFor="let line of costLines(f)" class="cost-line">{{ line }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="spent">
+          <th mat-header-cell *matHeaderCellDef class="num">Used this month</th>
+          <td mat-cell *matCellDef="let f" class="num">{{ f.includedInPlan ? formatUnits(f.spentThisMonth) : '-' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="cap">
+          <th mat-header-cell *matHeaderCellDef>Monthly limit (credits)</th>
+          <td mat-cell *matCellDef="let f">
+            <ng-container *ngIf="f.includedInPlan; else noCap">
+              <div class="cap-row">
+                <input
+                  class="cap-input"
+                  type="number"
+                  min="0"
+                  placeholder="No limit"
+                  [formControl]="capControls.get(f.feature)!"
+                  [attr.aria-label]="f.label + ' monthly limit'"
+                  [attr.data-testid]="'cap-' + f.feature"
+                />
+                <button mat-stroked-button type="button" [disabled]="!capChanged(f) || !!savingCapFor" (click)="saveCap(f)" [attr.data-testid]="'save-cap-' + f.feature">
+                  Save
+                </button>
+                <button mat-button type="button" *ngIf="f.monthlyCap !== null" [disabled]="!!savingCapFor" (click)="removeCap(f)">Remove</button>
+              </div>
+              <mat-progress-bar *ngIf="capUsedPercent(f) !== null" mode="determinate" [value]="capUsedPercent(f)" [color]="capUsedPercent(f)! >= 100 ? 'warn' : 'primary'"></mat-progress-bar>
+              <div class="muted small" *ngIf="capUsedPercent(f) !== null">{{ formatUnits(f.spentThisMonth) }} of {{ formatUnits(f.monthlyCap) }} used</div>
+            </ng-container>
+            <ng-template #noCap><span class="muted">-</span></ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="history">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let f">
+            <button mat-button type="button" *ngIf="f.includedInPlan" (click)="showHistory(f.feature)">History</button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="featureColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: featureColumns" [class.feature-off]="!row.includedInPlan"></tr>
+      </table>
+    </div>
+  </mat-card>
 
   <mat-card class="section-card" id="buy-credits">
     <h3>Buy extra credits</h3>
-    <p class="muted hint" *ngIf="!canBuy">
-      Credits top up a plan — choose a plan first on the <a routerLink="/billing">Billing</a> page.
-    </p>
+    <p class="muted hint" *ngIf="!canBuy">Credits can't be bought while the account is suspended or cancelled.</p>
     <p class="muted hint" *ngIf="canBuy">
-      Add more at any time, before or after you run out. Credits are used after your plan's included quota and stay
-      valid for 12 months.
+      Top up at any time, before or after you run out. Bought credits are used before your plan's credits and stay valid for 12 months.
     </p>
 
-    <div class="pack-groups">
-      <div class="pack-group" *ngFor="let type of quotaTypes">
-        <h4>
-          <mat-icon>{{ typeIcons[type] }}</mat-icon>
-          {{ typeLabels[type] }}
-        </h4>
-        <div class="pack-row" *ngFor="let pack of packsFor(type)">
-          <div>
-            <div class="pack-name">{{ pack.name }}</div>
-            <div class="muted pack-price">{{ priceWithTax(pack) }}</div>
-          </div>
-          <button
-            mat-flat-button
-            color="primary"
-            type="button"
-            [disabled]="!canBuy || !!buyingPackId"
-            (click)="buy(pack)"
-          >
-            {{ buyingPackId === pack.id ? 'Adding…' : 'Buy' }}
-          </button>
+    <div class="pack-group">
+      <div class="pack-row" *ngFor="let pack of packs">
+        <div>
+          <div class="pack-name">{{ pack.name }}</div>
+          <div class="muted pack-price">{{ priceWithTax(pack) }}</div>
         </div>
-        <p class="muted" *ngIf="!packsFor(type).length">No packs available.</p>
+        <button mat-flat-button color="primary" type="button" [disabled]="!canBuy || !!buyingPackId" (click)="buy(pack)">
+          {{ buyingPackId === pack.id ? 'Adding…' : 'Buy' }}
+        </button>
       </div>
+      <p class="muted" *ngIf="!packs.length">No packs available.</p>
     </div>
   </mat-card>
 
   <mat-card class="section-card">
     <h3>Alerts</h3>
     <p class="muted hint">
-      We warn you when a quota is running low or used up, and before credits expire — in the app, by email and on
+      We warn you when your credits are running low or used up, and before credits expire — in the app, by email and on
       WhatsApp. With no email set, alerts go to the account owner's login email.
     </p>
 
@@ -121,7 +193,7 @@
   <mat-card class="section-card ai-usage">
     <h3>AI usage</h3>
     <p class="muted hint">
-      Each AI reply uses one AI conversation. If the AI service fails on our side, the credit is returned and the
+      Each AI reply uses credits (see the cost above). If the AI service fails on our side, the credit is returned and the
       request is listed as failed.
     </p>
 
@@ -179,14 +251,14 @@
     ></mat-paginator>
   </mat-card>
 
-  <mat-card class="section-card">
+  <mat-card class="section-card" id="wallet-history">
     <div class="ledger-head">
       <h3>History</h3>
       <mat-form-field subscriptSizing="dynamic" class="ledger-filter">
         <mat-label>Show</mat-label>
         <mat-select [value]="ledgerFilter" (selectionChange)="onLedgerFilter($event.value)">
           <mat-option [value]="null">Everything</mat-option>
-          <mat-option *ngFor="let type of quotaTypes" [value]="type">{{ typeLabels[type] }}</mat-option>
+          <mat-option *ngFor="let feature of features" [value]="feature">{{ featureLabels[feature] }}</mat-option>
         </mat-select>
       </mat-form-field>
     </div>
@@ -200,9 +272,9 @@
           <td mat-cell *matCellDef="let row">{{ row.occurredAtUtc | zonedDate: 'short' }}</td>
         </ng-container>
 
-        <ng-container matColumnDef="quota">
-          <th mat-header-cell *matHeaderCellDef>Quota</th>
-          <td mat-cell *matCellDef="let row">{{ typeLabel(row.quotaType) }}</td>
+        <ng-container matColumnDef="feature">
+          <th mat-header-cell *matHeaderCellDef>Feature</th>
+          <td mat-cell *matCellDef="let row">{{ rowFeature(row) }}</td>
         </ng-container>
 
         <ng-container matColumnDef="what">
@@ -211,7 +283,7 @@
         </ng-container>
 
         <ng-container matColumnDef="units">
-          <th mat-header-cell *matHeaderCellDef class="num">Units</th>
+          <th mat-header-cell *matHeaderCellDef class="num">Credits</th>
           <td mat-cell *matCellDef="let row" class="num" [class.units-in]="row.unitsDelta > 0" [class.units-out]="row.unitsDelta < 0">
             {{ row.unitsDelta > 0 ? '+' : '' }}{{ formatUnits(row.unitsDelta) }}
           </td>

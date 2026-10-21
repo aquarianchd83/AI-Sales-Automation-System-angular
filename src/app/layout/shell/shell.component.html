@@ -27,7 +27,7 @@
           >{{ section.label }}</button>
           <div class="nav-items">
             <ng-container *ngFor="let item of section.items">
-              <ng-container *ngIf="!item.visible || item.visible()">
+              <ng-container *ngIf="isItemVisible(item)">
               <a
                 class="nav-item"
                 matRipple

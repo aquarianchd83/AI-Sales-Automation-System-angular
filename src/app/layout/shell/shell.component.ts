@@ -14,6 +14,8 @@ import { TenantNotification, isUrgentNotification, tenantNotificationRoute } fro
 import { BillingService } from '../../core/services/billing.service';
 import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { ContentStudioService } from '../../core/services/content-studio.service';
+import { EntitlementsStore } from '../../core/services/entitlements.store';
+import { PlatformFeature } from '../../core/models/wallet.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
@@ -30,6 +32,8 @@ interface NavItem {
   exact?: boolean;
   /** Hidden while this returns false - for an entry whose screen only exists once the platform switches its module on. */
   visible?: () => boolean;
+  /** Hidden for a tenant whose plan does not include this feature. */
+  feature?: PlatformFeature;
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -78,7 +82,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
         { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
-        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [] },
+        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'WhatsAppMessaging' },
       ],
     },
     {
@@ -93,6 +97,7 @@ export class ShellComponent implements OnInit, OnDestroy {
           // Discovered Leads, since History would 403 them - see the lead-discovery route guard.
           route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/lead-discovery/history' : '/lead-discovery',
           roles: [],
+          feature: 'LeadDiscovery',
         },
         { label: 'Tags', icon: 'sell', route: '/tags', roles: [] },
         { label: 'Packages', icon: 'inventory_2', route: '/packages', roles: [] },
@@ -101,12 +106,12 @@ export class ShellComponent implements OnInit, OnDestroy {
     {
       label: 'Content',
       items: [
-        { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [] },
+        { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [], feature: 'WhatsAppMessaging' },
         { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },
-        { label: 'Product Sources', icon: 'auto_stories', route: '/product-knowledge/sources', roles: TENANT_ADMIN_ONLY },
-        { label: 'Product Answers', icon: 'rate_review', route: '/product-knowledge/answers', roles: TENANT_ADMIN_ONLY },
-        { label: 'Published Knowledge', icon: 'inventory', route: '/product-knowledge/versions', roles: TENANT_ADMIN_ONLY },
-        { label: 'Test Chat', icon: 'chat', route: '/product-knowledge/test-chat', roles: TENANT_ADMIN_ONLY },
+        { label: 'Product Sources', icon: 'auto_stories', route: '/product-knowledge/sources', roles: TENANT_ADMIN_ONLY, feature: 'ProductKnowledge' },
+        { label: 'Product Answers', icon: 'rate_review', route: '/product-knowledge/answers', roles: TENANT_ADMIN_ONLY, feature: 'ProductKnowledge' },
+        { label: 'Published Knowledge', icon: 'inventory', route: '/product-knowledge/versions', roles: TENANT_ADMIN_ONLY, feature: 'ProductKnowledge' },
+        { label: 'Test Chat', icon: 'chat', route: '/product-knowledge/test-chat', roles: TENANT_ADMIN_ONLY, feature: 'ProductKnowledge' },
       ],
     },
     {
@@ -127,9 +132,9 @@ export class ShellComponent implements OnInit, OnDestroy {
     {
       label: 'Content Studio',
       items: [
-        { label: 'Business Questionnaire', icon: 'quiz', route: '/content-studio/questionnaire', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
-        { label: 'Business Facts', icon: 'fact_check', route: '/content-studio/facts', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
-        { label: 'What the Studio Knows', icon: 'speed', route: '/content-studio/readiness', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
+        { label: 'Business Questionnaire', icon: 'quiz', route: '/content-studio/questionnaire', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled, feature: 'ContentStudio' },
+        { label: 'Business Facts', icon: 'fact_check', route: '/content-studio/facts', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled, feature: 'ContentStudio' },
+        { label: 'What the Studio Knows', icon: 'speed', route: '/content-studio/readiness', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled, feature: 'ContentStudio' },
         {
           label: 'Charges & Activity',
           icon: 'receipt_long',
@@ -137,6 +142,7 @@ export class ShellComponent implements OnInit, OnDestroy {
           roles: TENANT_ADMIN_ONLY,
           exact: true,
           visible: () => this.studioEnabled,
+          feature: 'ContentStudio',
         },
       ],
     },
@@ -193,7 +199,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Package', icon: 'payments', route: '/platform/billing', roles: [] },
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
-        { label: 'Credit Payers', icon: 'account_balance_wallet', route: '/platform/credit-payers', roles: [] },
+        { label: 'Credit Costs & Payers', icon: 'account_balance_wallet', route: '/platform/credit-payers', roles: [] },
         { label: 'Payments', icon: 'receipt_long', route: '/platform/payments', roles: [] },
         { label: 'Refund Requests', icon: 'assignment_return', route: '/platform/refunds', roles: [] },
       ],
@@ -269,7 +275,12 @@ export class ShellComponent implements OnInit, OnDestroy {
   /** Hides a section heading when the user can see none of its items (e.g. Workspace for an agent).
    * Items themselves are still filtered by *appHasRole in the template. */
   isSectionVisible(section: NavSection): boolean {
-    return section.items.some((item) => this.auth.hasAnyRole(item.roles) && (!item.visible || item.visible()));
+    return section.items.some((item) => this.auth.hasAnyRole(item.roles) && this.isItemVisible(item));
+  }
+
+  /** An entry shows when its own switch allows it and the tenant's plan includes its feature. */
+  isItemVisible(item: NavItem): boolean {
+    return (!item.visible || item.visible()) && (!item.feature || this.entitlements.has(item.feature));
   }
 
   /** Nav groups the user has folded away, by label. Remembered on this browser; a group holding the page being viewed never folds. */
@@ -384,6 +395,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly account: AccountService,
     private readonly billing: BillingService,
     private readonly contentStudio: ContentStudioService,
+    private readonly entitlements: EntitlementsStore,
     private readonly platformNotifications: PlatformNotificationService,
     private readonly notificationHub: NotificationHubService,
     private readonly tenantProfile: TenantProfileService,

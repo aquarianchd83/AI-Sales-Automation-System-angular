@@ -11,7 +11,7 @@ import { BillingListComponent } from './billing-list.component';
 const plan = (over: Partial<Plan> = {}): Plan => ({
   id: 'plan-1', code: 'growth', name: 'Growth', maxUsers: 5, maxMessagesPerMonth: 5000, maxCampaigns: 10,
   maxKnowledgeBaseArticles: 50, maxLeadDiscoveryBatchSize: 25, priceMonthlyCents: 1204, currencyCode: 'INR', currencySymbol: '₹',
-  localPriceAmount: 999, includedQuotas: [{ quotaType: QuotaType.WhatsAppMessages, units: 5000 }],
+  localPriceAmount: 999, starterCredits: 0, monthlyCredits: 100, features: ['WhatsAppMessaging'],
   taxLines: [
     { name: 'CGST', ratePercent: 9, amount: 89.91 },
     { name: 'SGST', ratePercent: 9, amount: 89.91 },

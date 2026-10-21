@@ -3,6 +3,7 @@
     title="Campaigns"
     subtitle="Initial message plus any number of follow-ups, sent on a schedule to a chosen audience."
   >
+    <app-credit-cost [scenarios]="[1]"></app-credit-cost>
     <app-module-flows-button module="campaigns"></app-module-flows-button>
     <ng-container *ngIf="!embedded">
       <button

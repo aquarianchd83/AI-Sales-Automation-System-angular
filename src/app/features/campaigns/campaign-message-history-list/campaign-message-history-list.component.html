@@ -3,6 +3,7 @@
     [title]="campaignName ? campaignName + ' — Message history' : 'Message history'"
     subtitle="Every message this campaign has sent, newest first."
   >
+    <app-credit-cost [scenarios]="[1]"></app-credit-cost>
     <a mat-button routerLink="/campaigns">
       <mat-icon>arrow_back</mat-icon>
       Back to campaigns

@@ -112,11 +112,8 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(text()).toContain('₹35.28');
   });
 
-  it('shows how much lead-candidate quota is left in the header, not used/all, with Top up alongside it', () => {
-    const balances: QuotaBalance[] = [
-      { quotaType: QuotaType.LeadCandidates, balance: 180, capacity: 1000, grants: [] },
-      { quotaType: QuotaType.WhatsAppMessages, balance: 50, capacity: 500, grants: [] },
-    ];
+  it('shows how many credits are left in the header, not used/all, with Top up alongside it', () => {
+    const balances: QuotaBalance[] = [{ quotaType: QuotaType.Credits, balance: 180, capacity: 1000, grants: [] }];
     billing.getQuota.and.returnValue(of(balances));
 
     create([]);
@@ -124,13 +121,13 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(component.quotaLabel).toBe('180');
     const chip = (fixture.nativeElement as HTMLElement).querySelector('.quota-chip');
     // Labelled, not a bare number, so it reads on its own rather than as a stray parenthetical.
-    expect(chip?.textContent).toContain('180 lead candidates left');
+    expect(chip?.textContent).toContain('180 credits left');
     // Top up lives inside the quota chip, not as a separate header button.
     expect(chip?.querySelector<HTMLAnchorElement>('a[href="/billing/wallet"]')?.textContent).toContain('Top up');
   });
 
-  it('hides the quota chip - and its Top up link - when the tenant has never had any lead-candidate quota', () => {
-    billing.getQuota.and.returnValue(of([{ quotaType: QuotaType.LeadCandidates, balance: 0, capacity: 0, grants: [] }]));
+  it('hides the quota chip - and its Top up link - when the tenant has never had any credits', () => {
+    billing.getQuota.and.returnValue(of([{ quotaType: QuotaType.Credits, balance: 0, capacity: 0, grants: [] }]));
 
     create([]);
 

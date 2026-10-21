@@ -3,12 +3,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
 import { NotificationService } from '../../../core/services/notification.service';
+import { PLATFORM_FEATURE_LABELS } from '../../../core/models/wallet.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import {
   Payment,
   Plan,
-  QUOTA_TYPE_LABELS,
   QuotaGrantOrigin,
   QuotaType,
   REFUND_STATUS_LABELS,
@@ -49,7 +49,7 @@ export class BillingListComponent implements OnInit {
   refundsEnabled = false;
   refundRequests: RefundRequest[] = [];
   readonly RefundStatus = RefundStatus;
-  readonly quotaLabels = QUOTA_TYPE_LABELS;
+  readonly featureLabels = PLATFORM_FEATURE_LABELS;
   readonly formatUnits = formatUnits;
 
   constructor(

@@ -3,6 +3,7 @@
     title="Product answers"
     subtitle="What the AI found in your documents and website, question by question - with the exact words that back each answer. Nothing is used until you approve it."
   >
+    <app-credit-cost [scenarios]="[5, 6]"></app-credit-cost>
     <button mat-flat-button color="primary" type="button" [disabled]="!canDraft" (click)="draft()" data-testid="draft">
       <mat-icon>auto_awesome</mat-icon>
       {{ running ? 'Drafting…' : answered ? 'Draft again' : 'Draft answers from my sources' }}

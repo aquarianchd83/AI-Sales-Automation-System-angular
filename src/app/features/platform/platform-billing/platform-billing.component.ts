@@ -2,13 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 
-import { QUOTA_TYPE_LABELS, QuotaType, formatUnits } from '../../../core/models/billing.model';
-import { PlatformCreditPack, PlatformPlan, TrialQuotaConfig } from '../../../core/models/platform.model';
+import { formatUnits } from '../../../core/models/billing.model';
+import { PlatformCreditPack, PlatformPlan } from '../../../core/models/platform.model';
+import { PLATFORM_FEATURE_LABELS } from '../../../core/models/wallet.model';
 import { NotificationService } from '../../../core/services/notification.service';
-import { PlatformConfigurationService } from '../../../core/services/platform-configuration.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
-import { PlatformTrialQuotaDialogComponent } from '../platform-trial-quota-dialog/platform-trial-quota-dialog.component';
 import { PlatformCreditPackFormDialogComponent } from '../platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
 
 @Component({
@@ -17,8 +16,9 @@ import { PlatformCreditPackFormDialogComponent } from '../platform-credit-pack-f
   styleUrls: ['./platform-billing.component.scss'],
 })
 export class PlatformBillingComponent implements OnInit {
-  readonly packColumns = ['name', 'type', 'units', 'price', 'status', 'actions'];
+  readonly packColumns = ['name', 'units', 'price', 'status', 'actions'];
   readonly formatUnits = formatUnits;
+  readonly featureLabels = PLATFORM_FEATURE_LABELS;
 
   plans: PlatformPlan[] = [];
   loadingPlans = true;
@@ -26,12 +26,8 @@ export class PlatformBillingComponent implements OnInit {
   packs: PlatformCreditPack[] = [];
   loadingPacks = true;
 
-  /** The free allowance a trial tenant gets. A trial has no plan row, so it is read from Configuration. */
-  trial: TrialQuotaConfig | null = null;
-
   constructor(
     private readonly billing: PlatformBillingService,
-    private readonly configuration: PlatformConfigurationService,
     private readonly dialog: MatDialog,
     private readonly notify: NotificationService,
     private readonly router: Router
@@ -40,7 +36,6 @@ export class PlatformBillingComponent implements OnInit {
   ngOnInit(): void {
     this.loadPlans();
     this.loadPacks();
-    this.configuration.get().subscribe({ next: (c) => (this.trial = c.trial), error: () => (this.trial = null) });
   }
 
   /** Shown in the operator's own currency (from their profile country); the catalog itself is still
@@ -63,29 +58,11 @@ export class PlatformBillingComponent implements OnInit {
     return `$${usd.toFixed(usd % 1 === 0 ? 0 : 2)} USD`;
   }
 
-  quotaLabel(type: QuotaType): string {
-    return QUOTA_TYPE_LABELS[type];
-  }
-
   formatPackPrice(pack: PlatformCreditPack): string {
     if (!pack.priceLocal) {
       return 'Not sold in India';
     }
     return `${pack.currencySymbol}${pack.priceLocal.toFixed(Number.isInteger(pack.priceLocal) ? 0 : 2)}`;
-  }
-
-  editTrial(): void {
-    if (!this.trial) {
-      return;
-    }
-    this.dialog
-      .open(PlatformTrialQuotaDialogComponent, { width: '25vw', minWidth: '320px', data: { trial: this.trial } })
-      .afterClosed()
-      .subscribe((saved?: TrialQuotaConfig) => {
-        if (saved) {
-          this.trial = saved;
-        }
-      });
   }
 
   addPack(): void {

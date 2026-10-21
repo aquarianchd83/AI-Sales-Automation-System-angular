@@ -145,12 +145,13 @@ describe('ShellComponent sidenav', () => {
       'dashboardDashboard',
       'businessTenants',
       'manage_accountsUsers',
+      'confirmation_numberTickets',
       'campaignAnnouncements',
       'menu_bookKnowledge Base', // platform knowledge: stays
       'quizStudio Questionnaires',
       'paymentsPackage',
       'data_usageUsage & Quotas',
-      'account_balance_walletCredit Payers',
+      'account_balance_walletCredit Costs & Payers',
       'receipt_longPayments',
       'assignment_returnRefund Requests',
       'chatPlatform WhatsApp',
@@ -169,6 +170,7 @@ describe('ShellComponent sidenav', () => {
       'ads_clickMeta Ads',
       'receipt_longLogs',
       'historyAudit Log',
+      'personMy Profile',
       'lock_resetChange Password',
     ]);
   });

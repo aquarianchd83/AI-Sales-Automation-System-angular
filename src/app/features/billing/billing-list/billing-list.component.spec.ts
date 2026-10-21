@@ -3,7 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
-import { Payment, QuotaType, RefundRequest, RefundStatus } from '../../../core/models/billing.model';
+import { Payment, RefundRequest, RefundStatus } from '../../../core/models/billing.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { BillingListComponent } from './billing-list.component';
@@ -29,11 +29,7 @@ describe('BillingListComponent refunds', () => {
             id: 'plan-1', code: 'starter', name: 'Starter', maxUsers: 2, maxMessagesPerMonth: 1000, maxCampaigns: 2,
             maxKnowledgeBaseArticles: 20, maxLeadDiscoveryBatchSize: 25, priceMonthlyCents: 3900, currencyCode: 'INR',
             currencySymbol: '₹', localPriceAmount: 3237, taxLines: [], taxLocal: 0, totalLocal: 3237,
-            includedQuotas: [
-              { quotaType: QuotaType.WhatsAppMessages, units: 500 },
-              { quotaType: QuotaType.AiConversations, units: 500 },
-              { quotaType: QuotaType.LeadCandidates, units: 50 },
-            ],
+            starterCredits: 0, monthlyCredits: 100, features: ['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery'],
           },
         ]),
       getSubscription: () => of(null),
@@ -66,12 +62,13 @@ describe('BillingListComponent refunds', () => {
   const buttons = (root: HTMLElement) =>
     Array.from(root.querySelectorAll('.payment-row button')).filter((b) => text(b) === 'Request refund');
 
-  it('lists what each plan includes per quota type', () => {
+  it('lists what each plan includes: its monthly credits and its features', () => {
     const features = text(render(false).querySelector('.plan-features'));
 
-    expect(features).toContain('500 whatsapp messages / month');
-    expect(features).toContain('500 ai conversations / month');
-    expect(features).toContain('50 lead candidates / month');
+    expect(features).toContain('100 credits every month');
+    expect(features).toContain('WhatsApp messaging');
+    expect(features).toContain('AI conversations');
+    expect(features).toContain('Lead discovery');
   });
 
   it('offers no refund button at all while the switch is off', () => {

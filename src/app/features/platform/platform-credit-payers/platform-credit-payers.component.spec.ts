@@ -29,7 +29,8 @@ const chat: CreditScenarioInfo = {
   payer: CreditPayer.Tenant,
   defaultPayer: CreditPayer.Tenant,
   unitsConfigurable: false,
-  unitsPerAction: null,
+  unitsPerAction: 1,
+  unitLabel: 'reply',
   platformBalance: 0,
   actionsLast30Days: 12,
   unitsChargedToPlatformLast30Days: 0,
@@ -111,7 +112,7 @@ describe('PlatformCreditPayersComponent', () => {
     expect(text()).toContain('Customer chat reply');
     expect(text()).toContain('Product knowledge: reading sources');
     expect(text()).toContain('12 actions');
-    expect(text()).toContain('Free today');
+    expect(text()).toContain('Free - nobody is charged.');
   });
 
   it('warns when a scenario is set to the platform but its wallet is empty', () => {
@@ -134,7 +135,7 @@ describe('PlatformCreditPayersComponent', () => {
     fixture.componentInstance.changePayer(chat, CreditPayer.Platform);
 
     expect(dialog.open).toHaveBeenCalled();
-    expect(service.setPayer).toHaveBeenCalledWith(CreditScenario.CustomerChatReply, { payer: CreditPayer.Platform, unitsPerAction: null });
+    expect(service.setPayer).toHaveBeenCalledWith(CreditScenario.CustomerChatReply, { payer: CreditPayer.Platform, unitsPerAction: 1 });
     expect(fixture.componentInstance.scenarios[0].payer).toBe(CreditPayer.Platform);
   });
 

@@ -236,7 +236,17 @@ export class StudioActivityComponent implements OnInit, OnDestroy {
       capacity,
       percentLeft,
       level,
-      totals: totals.find((t) => t.quotaType === balance.quotaType) ?? null,
+      // One wallet pays for both kinds of step, so the last 30 days are the two kinds together (in credits).
+      totals: totals.length
+        ? {
+            quotaType: balance.quotaType,
+            charged: totals.reduce((n, t) => n + t.charged, 0),
+            refunded: totals.reduce((n, t) => n + t.refunded, 0),
+            net: totals.reduce((n, t) => n + t.net, 0),
+            activities: totals.reduce((n, t) => n + t.activities, 0),
+            blocked: totals.reduce((n, t) => n + t.blocked, 0),
+          }
+        : null,
     };
   }
 }

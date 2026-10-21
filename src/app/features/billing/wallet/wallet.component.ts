@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { NonNullableFormBuilder, Validators } from '@angular/forms';
+import { FormControl, NonNullableFormBuilder, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject } from 'rxjs';
@@ -14,26 +14,31 @@ import {
   INSUFFICIENT_AI_CREDITS_MESSAGE,
   QUOTA_ENTRY_LABELS,
   QUOTA_GRANT_ORIGIN_LABELS,
-  QUOTA_TYPES,
-  QUOTA_TYPE_ICONS,
-  QUOTA_TYPE_LABELS,
   QuotaBalance,
   QuotaEntryType,
   QuotaLedgerEntry,
-  QuotaType,
   Subscription,
   formatUnits,
   formatMoney,
   taxBreakdown,
 } from '../../../core/models/billing.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
+import {
+  FeatureWallet,
+  PLATFORM_FEATURES,
+  PLATFORM_FEATURE_ICONS,
+  PLATFORM_FEATURE_LABELS,
+  PlatformFeature,
+  WalletSummary,
+  creditsLabel,
+} from '../../../core/models/wallet.model';
 import { BillingService } from '../../../core/services/billing.service';
+import { EntitlementsService } from '../../../core/services/entitlements.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
-/** A balance card's worth of derived state — kept here so the template stays a plain read. */
+/** The wallet card's derived state - kept here so the template stays a plain read. */
 interface BalanceView {
-  type: QuotaType;
   balance: number;
   /** Everything the live grants started with, so "remaining" reads as a share of something. */
   capacity: number;
@@ -43,9 +48,9 @@ interface BalanceView {
 }
 
 /**
- * The tenant's prepaid usage: how much of each quota is left and where it came from, buying extra credits, the
- * ledger of every movement, and where billing alerts are sent. Payment is simulated (see BillingService), so a
- * purchase takes effect immediately — nothing on this page collects card details.
+ * The tenant's single credit wallet: the balance and where it came from, what each feature costs, what each spent this month, the monthly cap the tenant
+ * puts on each feature, each feature's own ledger, buying extra credits and where billing alerts are sent. Payment is simulated (see BillingService), so a
+ * purchase takes effect immediately - nothing on this page collects card details.
  */
 @Component({
   selector: 'app-wallet',
@@ -55,14 +60,16 @@ interface BalanceView {
 export class WalletComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly quotaTypes = QUOTA_TYPES;
-  readonly typeLabels = QUOTA_TYPE_LABELS;
-  readonly typeIcons = QUOTA_TYPE_ICONS;
+  readonly features = PLATFORM_FEATURES;
+  readonly featureLabels = PLATFORM_FEATURE_LABELS;
+  readonly featureIcons = PLATFORM_FEATURE_ICONS;
   readonly originLabels = QUOTA_GRANT_ORIGIN_LABELS;
   readonly entryLabels = QUOTA_ENTRY_LABELS;
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly formatUnits = formatUnits;
-  readonly ledgerColumns = ['when', 'quota', 'what', 'units', 'balance', 'note'];
+  readonly creditsLabel = creditsLabel;
+  readonly featureColumns = ['feature', 'cost', 'spent', 'cap', 'history'];
+  readonly ledgerColumns = ['when', 'feature', 'what', 'units', 'balance', 'note'];
   readonly aiColumns = ['when', 'source', 'status', 'credits', 'balance', 'details'];
   readonly aiStatus = AiTransactionStatus;
 
@@ -72,17 +79,25 @@ export class WalletComponent implements OnInit, OnDestroy {
     whatsAppEnabled: [true],
   });
 
-  balances: BalanceView[] = [];
+  /** One input per feature for its monthly cap; empty means no cap. */
+  readonly capControls = new Map<PlatformFeature, FormControl<number | null>>(
+    PLATFORM_FEATURES.map((f) => [f, new FormControl<number | null>(null, { validators: [Validators.min(0)] })])
+  );
+
+  balance: BalanceView | null = null;
+  summary: WalletSummary | null = null;
   packs: CreditPack[] = [];
   subscription: Subscription | null = null;
   ledger: PagedResult<QuotaLedgerEntry> = emptyPage<QuotaLedgerEntry>();
-  ledgerFilter: QuotaType | null = null;
+  /** Null shows the whole wallet's history; a feature narrows it to that feature's own ledger. */
+  ledgerFilter: PlatformFeature | null = null;
   aiUsage: PagedResult<AiTransaction> = emptyPage<AiTransaction>();
 
   loading = true;
   loadingLedger = true;
   loadingAiUsage = true;
   savingAlerts = false;
+  savingCapFor: PlatformFeature | null = null;
   buyingPackId: string | null = null;
 
   private ledgerPage = 1;
@@ -93,13 +108,14 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly billing: BillingService,
+    private readonly entitlements: EntitlementsService,
     private readonly notify: NotificationService,
     private readonly dialog: MatDialog,
     private readonly fb: NonNullableFormBuilder
   ) {}
 
   ngOnInit(): void {
-    this.reloadBalances();
+    this.reloadWallet();
     this.billing.getCreditPacks().subscribe({ next: (packs) => (this.packs = packs) });
     this.billing.getSubscription().subscribe({ next: (subscription) => (this.subscription = subscription) });
     this.loadLedger();
@@ -119,22 +135,85 @@ export class WalletComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  /** Credits can only be bought against a live plan — the API says so too, this just explains it up front. */
+  /** Credits can be bought on any plan - they are the wallet's top-up. The API says so too; this just explains a suspended or cancelled account up front. */
   get canBuy(): boolean {
-    return !!this.subscription?.planId && ['Active', 'PastDue'].includes(this.subscription.status);
+    return !this.subscription || ['Active', 'PastDue'].includes(this.subscription.status);
   }
 
-  /** AI is paused when the tenant has nothing left to spend on it — the platform's provider needs no setup from them. */
+  /** The AI is paused when the plan does not include it or there is nothing left to spend. */
   get aiPaused(): boolean {
-    const ai = this.balances.find((b) => b.type === QuotaType.AiConversations);
-    return !this.loading && !!ai && (ai.level === 'empty' || ai.level === 'none');
+    const ai = this.featureWallet('AiConversations');
+    const noCredits = !!this.balance && (this.balance.level === 'empty' || this.balance.level === 'none');
+    return !this.loading && (noCredits || (!!ai && !ai.includedInPlan));
   }
 
-  /** A paying tenant is told to buy credits; one still on trial, with no plan, is told to upgrade first. */
   get aiPausedMessage(): string {
-    return this.canBuy
-      ? INSUFFICIENT_AI_CREDITS_MESSAGE
-      : 'Your free trial AI allowance is used up. Upgrade to a paid plan and purchase AI credits to continue using this feature.';
+    const ai = this.featureWallet('AiConversations');
+    return ai && !ai.includedInPlan
+      ? 'AI conversations are not part of your plan. Upgrade to Premium to use them.'
+      : INSUFFICIENT_AI_CREDITS_MESSAGE;
+  }
+
+  /** The Trial plan has no monthly credits: it is told what Premium would add. */
+  get onPremium(): boolean {
+    return (this.summary?.monthlyCredits ?? 0) > 0;
+  }
+
+  /** A method rather than indexing the map in the template - a *matCellDef row isn't narrowed. */
+  featureIcon(feature: PlatformFeature): string {
+    return PLATFORM_FEATURE_ICONS[feature];
+  }
+
+  featureWallet(feature: PlatformFeature): FeatureWallet | undefined {
+    return this.summary?.features.find((f) => f.feature === feature);
+  }
+
+  /** "1 credit per message" - one line per action the feature charges for. */
+  costLines(feature: FeatureWallet): string[] {
+    return feature.costs.map((c) => `${creditsLabel(c.credits)} per ${c.unitLabel}`);
+  }
+
+  /** The cap that is saved, as a number or null. */
+  capSaved(feature: FeatureWallet): number | null {
+    return feature.monthlyCap;
+  }
+
+  /** Whether the input differs from what is saved - the Save button is only live then. */
+  capChanged(feature: FeatureWallet): boolean {
+    const control = this.capControls.get(feature.feature);
+    return !!control && control.valid && (control.value ?? null) !== feature.monthlyCap;
+  }
+
+  /** Percent of the cap used this month, for the bar under the input. Null with no cap. */
+  capUsedPercent(feature: FeatureWallet): number | null {
+    return feature.monthlyCap && feature.monthlyCap > 0 ? Math.min(100, (feature.spentThisMonth / feature.monthlyCap) * 100) : null;
+  }
+
+  saveCap(feature: FeatureWallet): void {
+    const control = this.capControls.get(feature.feature);
+    if (!control || control.invalid || this.savingCapFor) {
+      return;
+    }
+    const limit = control.value === null || (control.value as unknown) === '' ? null : Number(control.value);
+
+    this.savingCapFor = feature.feature;
+    this.billing
+      .setFeatureCap({ feature: feature.feature, monthlyLimit: limit })
+      .pipe(finalize(() => (this.savingCapFor = null)))
+      .subscribe((summary) => {
+        this.applySummary(summary);
+        this.notify.success(limit === null ? `${feature.label} no longer has a monthly limit.` : `${feature.label} is limited to ${creditsLabel(limit)} a month.`);
+      });
+  }
+
+  removeCap(feature: FeatureWallet): void {
+    this.capControls.get(feature.feature)?.setValue(null);
+    this.saveCap(feature);
+  }
+
+  showHistory(feature: PlatformFeature | null): void {
+    this.onLedgerFilter(feature);
+    document.getElementById('wallet-history')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   scrollToBuy(): void {
@@ -149,11 +228,7 @@ export class WalletComponent implements OnInit, OnDestroy {
     return AI_USAGE_SOURCE_LABELS[row.source];
   }
 
-  packsFor(type: QuotaType): CreditPack[] {
-    return this.packs.filter((p) => p.quotaType === type);
-  }
-
-  /** "₹999 + GST 18% ₹179.82 = ₹1,178.82" — the price, the tax on top and what is charged. */
+  /** "₹999 + GST 18% ₹179.82 = ₹1,178.82" - the price, the tax on top and what is charged. */
   priceWithTax(pack: CreditPack): string {
     if (!pack.taxLocal) {
       return this.formatPrice(pack);
@@ -167,13 +242,14 @@ export class WalletComponent implements OnInit, OnDestroy {
     return `${pack.currencySymbol}${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
   }
 
-  /** A method rather than indexing the label maps in the template — a *matCellDef row isn't narrowed. */
+  /** A method rather than indexing the label maps in the template - a *matCellDef row isn't narrowed. */
   entryLabel(entry: QuotaEntryType): string {
     return QUOTA_ENTRY_LABELS[entry];
   }
 
-  typeLabel(type: QuotaType): string {
-    return QUOTA_TYPE_LABELS[type];
+  /** The feature a ledger row was for, or a dash for an allocation, purchase or expiry. */
+  rowFeature(row: QuotaLedgerEntry): string {
+    return row.feature ? PLATFORM_FEATURE_LABELS[row.feature] : '-';
   }
 
   buy(pack: CreditPack): void {
@@ -202,9 +278,10 @@ export class WalletComponent implements OnInit, OnDestroy {
           .pipe(finalize(() => (this.buyingPackId = null)))
           .subscribe(() => {
             this.notify.success(`${pack.name} added.`);
-            this.reloadBalances();
+            this.reloadWallet();
             this.loadLedger();
             this.loadAiUsage();
+            this.entitlements.load(true).subscribe();
           });
       });
   }
@@ -235,8 +312,8 @@ export class WalletComponent implements OnInit, OnDestroy {
       });
   }
 
-  onLedgerFilter(type: QuotaType | null): void {
-    this.ledgerFilter = type;
+  onLedgerFilter(feature: PlatformFeature | null): void {
+    this.ledgerFilter = feature;
     this.ledgerPage = 1;
     this.paginator?.firstPage();
     this.loadLedger();
@@ -262,18 +339,26 @@ export class WalletComponent implements OnInit, OnDestroy {
       .subscribe({ next: (page) => (this.aiUsage = page) });
   }
 
-  private reloadBalances(): void {
+  private reloadWallet(): void {
     this.loading = true;
     this.billing
-      .getQuota()
+      .getWallet()
       .pipe(finalize(() => (this.loading = false)))
-      .subscribe({ next: (balances) => (this.balances = balances.map((b) => this.toView(b))) });
+      .subscribe({ next: (summary) => this.applySummary(summary) });
+    this.billing.getQuota().pipe(takeUntil(this.destroy$)).subscribe({ next: (balances) => (this.balance = balances.length ? this.toView(balances[0]) : null) });
+  }
+
+  private applySummary(summary: WalletSummary): void {
+    this.summary = summary;
+    for (const feature of summary.features) {
+      this.capControls.get(feature.feature)?.setValue(feature.monthlyCap, { emitEvent: false });
+    }
   }
 
   private loadLedger(): void {
     this.loadingLedger = true;
     this.billing
-      .getLedger({ page: this.ledgerPage, pageSize: this.ledgerPageSize, quotaType: this.ledgerFilter ?? undefined })
+      .getLedger({ page: this.ledgerPage, pageSize: this.ledgerPageSize, feature: this.ledgerFilter ?? undefined })
       .pipe(finalize(() => (this.loadingLedger = false)))
       .subscribe({ next: (page) => (this.ledger = page) });
   }
@@ -281,8 +366,7 @@ export class WalletComponent implements OnInit, OnDestroy {
   private toView(balance: QuotaBalance): BalanceView {
     const capacity = balance.capacity;
     const percentLeft = capacity > 0 ? Math.min(100, (balance.balance / capacity) * 100) : 0;
-    const level: BalanceView['level'] =
-      capacity === 0 ? 'none' : balance.balance <= 0 ? 'empty' : percentLeft <= 20 ? 'low' : 'ok';
-    return { type: balance.quotaType, balance: balance.balance, capacity, percentLeft, level, grants: balance.grants };
+    const level: BalanceView['level'] = capacity === 0 ? 'none' : balance.balance <= 0 ? 'empty' : percentLeft <= 20 ? 'low' : 'ok';
+    return { balance: balance.balance, capacity, percentLeft, level, grants: balance.grants };
   }
 }

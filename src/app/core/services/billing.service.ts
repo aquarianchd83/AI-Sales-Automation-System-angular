@@ -23,6 +23,7 @@ import {
 } from '../models/billing.model';
 import { TenantCreditUsage, TenantCreditUsageQuery } from '../models/credit-payer.model';
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
+import { Entitlements, PlatformFeature, SetFeatureCapRequest, WalletSummary } from '../models/wallet.model';
 
 /**
  * Tenant-facing billing (SaaS conversion Phase D). Payments are simulated for now — see
@@ -72,7 +73,27 @@ export class BillingService {
     return this.http.get<Payment[]>(`${this.baseUrl}/payments`);
   }
 
-  /** Prepaid balance per quota type, with the live grants (included quota, credits) behind each. */
+  /** What the signed-in user's plan includes, the balance and what each action costs - for hiding what is not in the plan and the credit placeholder on each feature. Any tenant user. */
+  getEntitlements(): Observable<Entitlements> {
+    return this.http.get<Entitlements>(`${this.baseUrl}/entitlements`);
+  }
+
+  /** The single wallet: balance, plan, and per feature its cost, what it spent this month and the tenant's own monthly cap. */
+  getWallet(): Observable<WalletSummary> {
+    return this.http.get<WalletSummary>(`${this.baseUrl}/wallet`);
+  }
+
+  /** Sets - or, with a null limit, removes - the monthly credit cap for one feature. */
+  setFeatureCap(request: SetFeatureCapRequest): Observable<WalletSummary> {
+    return this.http.put<WalletSummary>(`${this.baseUrl}/wallet/caps`, request);
+  }
+
+  /** One feature's own ledger - every spend and give-back for it, newest first. */
+  getFeatureLedger(feature: PlatformFeature, query: PagedQuery): Observable<PagedResult<QuotaLedgerEntry>> {
+    return this.http.get<PagedResult<QuotaLedgerEntry>>(`${this.baseUrl}/wallet/ledger`, { params: { ...toPagedParams(query), feature } });
+  }
+
+  /** The credit balance, with the live grants behind it (one entry: there is one wallet). */
   getQuota(): Observable<QuotaBalance[]> {
     return this.http.get<QuotaBalance[]>(`${this.baseUrl}/quota`);
   }
@@ -84,6 +105,7 @@ export class BillingService {
         ...toPagedParams(query),
         // != null, not truthy: QuotaType.WhatsAppMessages is 0.
         ...(query.quotaType != null ? { QuotaType: String(query.quotaType) } : {}),
+        ...(query.feature ? { Feature: query.feature } : {}),
       },
     });
   }

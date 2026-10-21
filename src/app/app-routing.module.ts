@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { authGuard, guestGuard, homeRedirectGuard, roleGuard } from './core/guards/auth.guard';
+import { featureGuard, loadEntitlementsGuard } from './core/guards/feature.guard';
 import { onboardingGuard } from './core/guards/onboarding.guard';
 import { STUDIO_CONTENT_ROLES } from './core/models/content-studio.model';
 import { PLATFORM_ADMIN_ROLES } from './core/models/platform.model';
@@ -39,7 +40,7 @@ const routes: Routes = [
     component: ShellComponent,
     canActivate: [authGuard],
     // onboardingGuard holds a tenant in the onboarding wizard until its setup is complete.
-    canActivateChild: [authGuard, onboardingGuard],
+    canActivateChild: [authGuard, onboardingGuard, loadEntitlementsGuard],
     children: [
       // Static redirectTo can't branch on the signed-in user — homeRedirectGuard sends a
       // PlatformSuperAdmin to /platform and everyone else to /dashboard. See its own doc comment.
@@ -83,8 +84,8 @@ const routes: Routes = [
         // Discovered leads are open to every tenant user; the module's own `profile` child route is
         // gated to tenant admins.
         path: 'lead-discovery',
-        canActivate: [roleGuard],
-        data: { roles: TENANT_ROLES },
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: TENANT_ROLES, feature: 'LeadDiscovery' },
         loadChildren: () =>
           import('./features/lead-discovery/lead-discovery.module').then((m) => m.LeadDiscoveryModule),
       },
@@ -119,8 +120,8 @@ const routes: Routes = [
       },
       {
         path: 'campaigns',
-        canActivate: [roleGuard],
-        data: { roles: TENANT_ROLES },
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: TENANT_ROLES, feature: 'WhatsAppMessaging' },
         loadChildren: () =>
           import('./features/campaigns/campaigns.module').then((m) => m.CampaignsModule),
       },
@@ -133,8 +134,8 @@ const routes: Routes = [
       },
       {
         path: 'message-templates',
-        canActivate: [roleGuard],
-        data: { roles: TENANT_ROLES },
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: TENANT_ROLES, feature: 'WhatsAppMessaging' },
         loadChildren: () =>
           import('./features/message-templates/message-templates.module').then(
             (m) => m.MessageTemplatesModule
@@ -155,14 +156,14 @@ const routes: Routes = [
       {
         // Product knowledge: the tenant's sources (documents and website) the AI learns their products from. Tenant Admin only, as on the API.
         path: 'product-knowledge',
-        canActivate: [roleGuard],
-        data: { roles: TENANT_ADMIN_ROLES },
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: TENANT_ADMIN_ROLES, feature: 'ProductKnowledge' },
         loadChildren: () => import('./features/product-knowledge/product-knowledge.module').then((m) => m.ProductKnowledgeModule),
       },
       {
         path: 'content-studio',
-        canActivate: [roleGuard],
-        data: { roles: STUDIO_CONTENT_ROLES },
+        canActivate: [roleGuard, featureGuard],
+        data: { roles: STUDIO_CONTENT_ROLES, feature: 'ContentStudio' },
         loadChildren: () => import('./features/content-studio/content-studio.module').then((m) => m.ContentStudioModule),
       },
       {

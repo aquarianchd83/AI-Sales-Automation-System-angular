@@ -3,9 +3,10 @@
     title="Lead discovery history"
     subtitle="Every execution, grouped by processing date."
   >
-    <span class="quota-chip" *ngIf="quotaLabel" matTooltip="Lead candidates left to spend this billing period">
+    <app-credit-cost [scenarios]="[2]"></app-credit-cost>
+    <span class="quota-chip" *ngIf="quotaLabel" matTooltip="Credits left in your wallet">
       <mat-icon>data_usage</mat-icon>
-      {{ quotaLabel }} lead candidates left
+      {{ quotaLabel }} credits left
       <a routerLink="/billing/wallet" class="quota-chip-topup" (click)="$event.stopPropagation()">Top up</a>
     </span>
     <button
@@ -77,9 +78,9 @@
                 <div
                   class="warn-text sub quota-row"
                   *ngIf="row.quotaExhausted"
-                  matTooltip="The lead-candidate quota ran out partway through, so fewer customers were created than the batch size asked for. Buy credits or wait for the plan to renew."
+                  matTooltip="Your credits (or this month's limit for lead discovery) ran out partway through, so fewer customers were created than the batch size asked for. Buy credits or raise the limit."
                 >
-                  <span>Quota exhausted — stopped early</span>
+                  <span>Out of credits — stopped early</span>
                   <a routerLink="/billing/wallet" (click)="$event.stopPropagation()">Buy credits</a>
                 </div>
               </td>

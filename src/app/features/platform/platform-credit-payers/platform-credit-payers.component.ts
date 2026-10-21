@@ -126,11 +126,11 @@ export class PlatformCreditPayersComponent implements OnInit, OnDestroy {
   }
 
   unitsFor(scenario: CreditScenarioInfo): number | null {
-    return scenario.unitsConfigurable ? scenario.unitsPerAction ?? 0 : null;
+    return scenario.unitsPerAction ?? 0;
   }
 
   isFree(scenario: CreditScenarioInfo): boolean {
-    return scenario.unitsConfigurable && !scenario.unitsPerAction;
+    return !scenario.unitsPerAction;
   }
 
   draftUnits(scenario: CreditScenarioInfo): number | null {
@@ -171,7 +171,7 @@ export class PlatformCreditPayersComponent implements OnInit, OnDestroy {
       .afterClosed()
       .subscribe((confirmed) => {
         if (confirmed) {
-          this.saveScenario(scenario, { payer, unitsPerAction: scenario.unitsConfigurable ? scenario.unitsPerAction : null });
+          this.saveScenario(scenario, { payer, unitsPerAction: scenario.unitsPerAction });
         }
       });
   }

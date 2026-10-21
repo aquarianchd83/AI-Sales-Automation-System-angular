@@ -9,30 +9,12 @@
         </button>
       </div>
       <span class="muted">
-        Retired plans stay visible so existing subscribers keep their limits. Each plan is priced per country, in that country's currency; the price shown on a plan is India's, in rupees. A country with no
+        There are two plans - Trial (the minimum, free, with a one-time starter balance) and Premium (every feature, with credits every month) - and neither expires. Retired plans stay visible so existing subscribers keep their limits. Each plan is priced per country, in that country's currency; the price shown on a plan is India's, in rupees. A country with no
         price does not sell the plan. Tax is added on top at checkout.
       </span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
     <div class="plan-grid" *ngIf="!loadingPlans">
-      <mat-card class="plan-tile" *ngIf="trial">
-        <div class="plan-tile-header">
-          <h3>Free trial</h3>
-        </div>
-        <div class="plan-price">Free</div>
-        <ul>
-          <li>14 days, no plan or card needed</li>
-        </ul>
-        <div class="plan-quotas">
-          <div class="muted plan-quotas-title">Included during the trial</div>
-          <div>{{ formatUnits(trial.whatsAppMessages) }} WhatsApp messages</div>
-          <div>{{ formatUnits(trial.aiConversations) }} AI conversations</div>
-          <div>{{ formatUnits(trial.leadCandidates) }} Lead candidates</div>
-        </div>
-        <div class="plan-tile-actions">
-          <button mat-stroked-button type="button" (click)="editTrial()">Edit allowance</button>
-        </div>
-      </mat-card>
       <mat-card class="plan-tile" *ngFor="let plan of plans" [class.plan-tile--inactive]="!plan.isActive">
         <div class="plan-tile-header">
           <h3>{{ plan.name }}</h3>
@@ -45,11 +27,17 @@
           <li>{{ plan.maxKnowledgeBaseArticles }} KB articles</li>
           <li>up to {{ plan.maxLeadDiscoveryBatchSize }} leads per discovery run</li>
         </ul>
-        <div class="plan-quotas" *ngIf="plan.includedQuotas.length">
-          <div class="muted plan-quotas-title">Included each period</div>
-          <div *ngFor="let q of plan.includedQuotas">{{ formatUnits(q.units) }} {{ quotaLabel(q.quotaType) }}</div>
+        <div class="plan-quotas">
+          <div class="muted plan-quotas-title">Credits</div>
+          <div *ngIf="plan.starterCredits > 0">{{ formatUnits(plan.starterCredits) }} to start (once)</div>
+          <div *ngIf="plan.monthlyCredits > 0">{{ formatUnits(plan.monthlyCredits) }} every month</div>
+          <div class="muted" *ngIf="!plan.starterCredits && !plan.monthlyCredits">No credits</div>
         </div>
-        <div class="muted" *ngIf="!plan.includedQuotas.length">No prepaid quota</div>
+        <div class="plan-quotas">
+          <div class="muted plan-quotas-title">Features</div>
+          <div *ngFor="let feature of plan.features">{{ featureLabels[feature] }}</div>
+          <div class="muted" *ngIf="!plan.features.length">No features</div>
+        </div>
         <div class="plan-quotas" *ngIf="plan.countryPrices.length">
           <div class="muted plan-quotas-title">Country prices</div>
           <div *ngFor="let p of plan.countryPrices">{{ p.countryName }}: {{ p.currencySymbol }}{{ p.amount }}</div>
@@ -86,12 +74,8 @@
           <th mat-header-cell *matHeaderCellDef>Pack</th>
           <td mat-cell *matCellDef="let pack">{{ pack.name }}</td>
         </ng-container>
-        <ng-container matColumnDef="type">
-          <th mat-header-cell *matHeaderCellDef>Credits for</th>
-          <td mat-cell *matCellDef="let pack">{{ quotaLabel(pack.quotaType) }}</td>
-        </ng-container>
         <ng-container matColumnDef="units">
-          <th mat-header-cell *matHeaderCellDef>Units</th>
+          <th mat-header-cell *matHeaderCellDef>Credits</th>
           <td mat-cell *matCellDef="let pack">{{ formatUnits(pack.units) }}</td>
         </ng-container>
         <ng-container matColumnDef="price">

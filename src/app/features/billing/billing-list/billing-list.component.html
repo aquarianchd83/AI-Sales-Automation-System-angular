@@ -17,6 +17,7 @@
               {{ subscription.status }}
             </mat-chip>
           </mat-chip-listbox>
+          <span class="muted period" *ngIf="!subscription.currentPeriodEndUtc">Never expires</span>
           <span class="muted period" *ngIf="subscription.currentPeriodStartUtc || subscription.currentPeriodEndUtc">
             <ng-container *ngIf="subscription.currentPeriodStartUtc">
               Started {{ subscription.currentPeriodStartUtc | zonedDate: 'mediumDate' }}
@@ -33,15 +34,15 @@
       <div class="subscription-summary">
         <div>
           <span class="muted">Current plan</span>
-          <h3>Free trial</h3>
+          <h3>Trial</h3>
           <span class="muted" *ngIf="!embedded">Choose a plan below to get started.</span>
           <span class="muted" *ngIf="embedded">
-            Choose a plan below, or carry on with your free trial and choose later - press Next either way.
+            Choose a plan below, or carry on with your trial and choose later - press Next either way.
           </span>
           <div class="trial-features" *ngIf="trialAllowance.length">
-            <span class="muted">Included in your free trial</span>
+            <span class="muted">Included in your trial plan</span>
             <ul class="plan-features">
-              <li *ngFor="let a of trialAllowance">{{ formatUnits(a.units) }} {{ quotaLabels[a.quotaType] | lowercase }}</li>
+              <li *ngFor="let a of trialAllowance">{{ formatUnits(a.units) }} credits to start</li>
             </ul>
           </div>
         </div>
@@ -63,7 +64,9 @@
 
       <ul class="plan-features">
         <li>{{ plan.maxUsers }} users</li>
-        <li *ngFor="let q of plan.includedQuotas">{{ formatUnits(q.units) }} {{ quotaLabels[q.quotaType] | lowercase }} / month</li>
+        <li *ngIf="plan.starterCredits > 0">{{ formatUnits(plan.starterCredits) }} credits to start</li>
+        <li *ngIf="plan.monthlyCredits > 0"><strong>{{ formatUnits(plan.monthlyCredits) }} credits every month</strong></li>
+        <li *ngFor="let feature of plan.features">{{ featureLabels[feature] }}</li>
         <li>{{ plan.maxCampaigns }} campaigns</li>
         <li>{{ plan.maxKnowledgeBaseArticles }} knowledge base articles</li>
         <li>{{ plan.maxLeadDiscoveryBatchSize }} discovered leads per run</li>

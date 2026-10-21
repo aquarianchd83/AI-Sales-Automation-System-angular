@@ -2,7 +2,9 @@
   <app-page-header
     title="Test chat"
     subtitle="Talk to your AI the way a customer would. It answers only from your live published knowledge, so this is what customers would be told. Nothing here is sent, saved or charged."
-  ></app-page-header>
+  >
+    <app-credit-cost [scenarios]="[5, 6]"></app-credit-cost>
+  </app-page-header>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 

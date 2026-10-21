@@ -1,7 +1,8 @@
 <div class="page">
   <mat-card class="intro">
     <p>
-      Every time the app spends credits, one account pays: the <strong>tenant's own balance</strong> or the <strong>platform wallet</strong>.
+      Every action costs credits from the one wallet. Set below <strong>what each action costs</strong> - this is the number every feature shows tenants ("Uses 2 credits per reply") - and
+      who pays: the <strong>tenant's own balance</strong> or the <strong>platform wallet</strong>.
       Pick who pays for each scenario below. You can switch at any time; it applies to what happens next, and past activity keeps the
       account it was charged to. If the platform wallet cannot cover an action, the tenant is charged instead so the customer is never left
       waiting - and you can give those credits back from the Activity tab.
@@ -20,7 +21,7 @@
               <th mat-header-cell *matHeaderCellDef>Scenario</th>
               <td mat-cell *matCellDef="let s" class="scenario-cell">
                 <div class="scenario-title">{{ s.title }}</div>
-                <div class="muted small">{{ s.area }} · {{ quotaLabel(s.quotaType) }}</div>
+                <div class="muted small">{{ s.area }}</div>
                 <div class="muted small description">{{ s.description }}</div>
               </td>
             </ng-container>
@@ -46,9 +47,9 @@
             </ng-container>
 
             <ng-container matColumnDef="units">
-              <th mat-header-cell *matHeaderCellDef>Credits per action</th>
+              <th mat-header-cell *matHeaderCellDef>Credits per unit</th>
               <td mat-cell *matCellDef="let s">
-                <ng-container *ngIf="s.unitsConfigurable; else sizedByApp">
+                <ng-container>
                   <div class="units-edit">
                     <mat-form-field class="units-field" subscriptSizing="dynamic">
                       <input
@@ -58,9 +59,10 @@
                         step="any"
                         [value]="draftUnits(s) ?? ''"
                         (input)="setDraftUnits(s, $any($event.target).value)"
-                        [attr.aria-label]="'Credits per action for ' + s.title"
+                        [attr.aria-label]="'Credits per ' + s.unitLabel + ' for ' + s.title"
                       />
                     </mat-form-field>
+                    <span class="muted small">per {{ s.unitLabel }}</span>
                     <button
                       mat-stroked-button
                       type="button"
@@ -70,9 +72,8 @@
                       Save
                     </button>
                   </div>
-                  <div class="muted small" *ngIf="isFree(s)">Free today - nobody is charged.</div>
+                  <div class="muted small" *ngIf="isFree(s)">Free - nobody is charged.</div>
                 </ng-container>
-                <ng-template #sizedByApp><span class="muted small">Set by the app</span></ng-template>
               </td>
             </ng-container>
 
