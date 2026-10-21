@@ -21,6 +21,7 @@ import {
   Subscription,
   TenantNotification,
 } from '../models/billing.model';
+import { TenantCreditUsage, TenantCreditUsageQuery } from '../models/credit-payer.model';
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
 
 /**
@@ -90,6 +91,18 @@ export class BillingService {
   /** The tenant's AI request history, newest first — credits before/spent/after, and failures that were refunded. */
   getAiUsage(query: PagedQuery): Observable<PagedResult<AiTransaction>> {
     return this.http.get<PagedResult<AiTransaction>>(`${this.baseUrl}/ai-usage`, { params: toPagedParams(query) });
+  }
+
+  /** The tenant's own credit usage, newest first - including the actions the platform covered. */
+  getCreditUsage(query: TenantCreditUsageQuery): Observable<PagedResult<TenantCreditUsage>> {
+    return this.http.get<PagedResult<TenantCreditUsage>>(`${this.baseUrl}/credit-usage`, {
+      params: {
+        ...toPagedParams(query),
+        // != null, not truthy: CreditScenario.CustomerChatReply is 0 and "not covered" is false.
+        ...(query.scenario != null ? { Scenario: String(query.scenario) } : {}),
+        ...(query.coveredByPlatform != null ? { CoveredByPlatform: String(query.coveredByPlatform) } : {}),
+      },
+    });
   }
 
   getCreditPacks(): Observable<CreditPack[]> {

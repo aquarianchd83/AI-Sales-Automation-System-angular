@@ -1,0 +1,304 @@
+<div class="page">
+  <mat-card class="intro">
+    <p>
+      Every time the app spends credits, one account pays: the <strong>tenant's own balance</strong> or the <strong>platform wallet</strong>.
+      Pick who pays for each scenario below. You can switch at any time; it applies to what happens next, and past activity keeps the
+      account it was charged to. If the platform wallet cannot cover an action, the tenant is charged instead so the customer is never left
+      waiting - and you can give those credits back from the Activity tab.
+    </p>
+  </mat-card>
+
+  <mat-tab-group animationDuration="0ms">
+    <!-- ───────────── Scenarios ───────────── -->
+    <mat-tab label="Scenarios">
+      <mat-card class="table-card">
+        <mat-progress-bar mode="indeterminate" *ngIf="scenariosLoading"></mat-progress-bar>
+
+        <div class="table-scroll">
+          <table mat-table [dataSource]="scenarios">
+            <ng-container matColumnDef="scenario">
+              <th mat-header-cell *matHeaderCellDef>Scenario</th>
+              <td mat-cell *matCellDef="let s" class="scenario-cell">
+                <div class="scenario-title">{{ s.title }}</div>
+                <div class="muted small">{{ s.area }} · {{ quotaLabel(s.quotaType) }}</div>
+                <div class="muted small description">{{ s.description }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="payer">
+              <th mat-header-cell *matHeaderCellDef>Who pays</th>
+              <td mat-cell *matCellDef="let s">
+                <mat-button-toggle-group
+                  [value]="s.payer"
+                  [disabled]="savingScenario.has(s.scenario)"
+                  (change)="changePayer(s, $event.value)"
+                  [attr.aria-label]="'Who pays for ' + s.title"
+                >
+                  <mat-button-toggle [value]="CreditPayer.Tenant">Tenant</mat-button-toggle>
+                  <mat-button-toggle [value]="CreditPayer.Platform">Platform</mat-button-toggle>
+                </mat-button-toggle-group>
+                <div class="warning small" *ngIf="walletEmptyFor(s)">
+                  <mat-icon inline>warning</mat-icon>
+                  Platform wallet is empty - tenants are being charged instead.
+                  <a href="javascript:void(0)" (click)="openWalletDialog(s.quotaType)">Top up</a>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="units">
+              <th mat-header-cell *matHeaderCellDef>Credits per action</th>
+              <td mat-cell *matCellDef="let s">
+                <ng-container *ngIf="s.unitsConfigurable; else sizedByApp">
+                  <div class="units-edit">
+                    <mat-form-field class="units-field" subscriptSizing="dynamic">
+                      <input
+                        matInput
+                        type="number"
+                        min="0"
+                        step="any"
+                        [value]="draftUnits(s) ?? ''"
+                        (input)="setDraftUnits(s, $any($event.target).value)"
+                        [attr.aria-label]="'Credits per action for ' + s.title"
+                      />
+                    </mat-form-field>
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="!unitsChanged(s) || !unitsValid(s) || savingScenario.has(s.scenario)"
+                      (click)="saveUnits(s)"
+                    >
+                      Save
+                    </button>
+                  </div>
+                  <div class="muted small" *ngIf="isFree(s)">Free today - nobody is charged.</div>
+                </ng-container>
+                <ng-template #sizedByApp><span class="muted small">Set by the app</span></ng-template>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="activity">
+              <th mat-header-cell *matHeaderCellDef>Last 30 days</th>
+              <td mat-cell *matCellDef="let s">
+                <div>{{ s.actionsLast30Days | number }} action{{ s.actionsLast30Days === 1 ? '' : 's' }}</div>
+                <div class="muted small">
+                  Platform {{ s.unitsChargedToPlatformLast30Days | number: '1.0-2' }} · Tenants
+                  {{ s.unitsChargedToTenantsLast30Days | number: '1.0-2' }}
+                </div>
+                <div class="warning small" *ngIf="s.fallbackCountLast30Days">
+                  {{ s.fallbackCountLast30Days }} fell back to the tenant
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="cost">
+              <th mat-header-cell *matHeaderCellDef>AI provider cost</th>
+              <td mat-cell *matCellDef="let s">
+                <span *ngIf="s.providerCostLast30DaysUsd != null; else noCost" matTooltip="Estimated from list prices - what the AI provider bills the platform, whoever pays the credits.">
+                  {{ s.providerCostLast30DaysUsd | currency: 'USD':'symbol':'1.2-4' }}
+                </span>
+                <ng-template #noCost><span class="muted">—</span></ng-template>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="scenarioColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: scenarioColumns"></tr>
+          </table>
+        </div>
+      </mat-card>
+    </mat-tab>
+
+    <!-- ───────────── Activity ───────────── -->
+    <mat-tab label="Activity">
+      <mat-card class="table-card">
+        <div class="filters">
+          <mat-form-field class="filter-search" subscriptSizing="dynamic">
+            <mat-label>Search</mat-label>
+            <input matInput [formControl]="searchControl" placeholder="Tenant or description" />
+            <mat-icon matPrefix>search</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field class="filter" subscriptSizing="dynamic">
+            <mat-label>Scenario</mat-label>
+            <mat-select [(ngModel)]="scenarioFilter" (selectionChange)="filtersChanged()">
+              <mat-option [value]="null">All scenarios</mat-option>
+              <mat-option *ngFor="let s of scenarios" [value]="s.scenario">{{ s.title }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field class="filter" subscriptSizing="dynamic">
+            <mat-label>Paid by</mat-label>
+            <mat-select [(ngModel)]="chargedToFilter" (selectionChange)="filtersChanged()">
+              <mat-option [value]="null">Anyone</mat-option>
+              <mat-option *ngFor="let p of payers" [value]="p">{{ payerLabel(p) }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field class="filter" subscriptSizing="dynamic">
+            <mat-label>Status</mat-label>
+            <mat-select [(ngModel)]="statusFilter" (selectionChange)="filtersChanged()">
+              <mat-option [value]="null">Any status</mat-option>
+              <mat-option *ngFor="let st of statuses" [value]="st">{{ statusLabel(st) }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-slide-toggle [(ngModel)]="fallbackOnly" (change)="filtersChanged()">Only where tenant paid instead of platform</mat-slide-toggle>
+          <span class="spacer"></span>
+          <span class="muted" *ngIf="!usageLoading">{{ usage.totalCount | number }} record{{ usage.totalCount === 1 ? '' : 's' }}</span>
+        </div>
+
+        <mat-progress-bar mode="indeterminate" *ngIf="usageLoading"></mat-progress-bar>
+
+        <div class="table-scroll">
+          <table mat-table [dataSource]="usage.items">
+            <ng-container matColumnDef="occurredAt">
+              <th mat-header-cell *matHeaderCellDef>When</th>
+              <td mat-cell *matCellDef="let u">{{ u.occurredAtUtc | zonedDate: 'medium' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="tenant">
+              <th mat-header-cell *matHeaderCellDef>Tenant</th>
+              <td mat-cell *matCellDef="let u">
+                <a [routerLink]="['/platform/tenants', u.tenantId]">{{ u.tenantName || u.tenantId }}</a>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="scenario">
+              <th mat-header-cell *matHeaderCellDef>Scenario</th>
+              <td mat-cell *matCellDef="let u">
+                <div>{{ u.scenarioTitle }}</div>
+                <div class="muted small" *ngIf="u.description">{{ u.description }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="units">
+              <th mat-header-cell *matHeaderCellDef>Credits</th>
+              <td mat-cell *matCellDef="let u">{{ u.units | number: '1.0-4' }} <span class="muted small">{{ quotaLabel(u.quotaType) }}</span></td>
+            </ng-container>
+
+            <ng-container matColumnDef="paidBy">
+              <th mat-header-cell *matHeaderCellDef>Paid by</th>
+              <td mat-cell *matCellDef="let u">
+                <span class="tag" [class.tag-platform]="u.chargedTo === CreditPayer.Platform">{{ payerLabel(u.chargedTo) }}</span>
+                <div
+                  class="warning small"
+                  *ngIf="u.fellBackToTenant"
+                  matTooltip="The platform was set to pay, but its wallet could not cover this, so the tenant was charged."
+                >
+                  Platform wallet was empty
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let u">
+                {{ statusLabel(u.status) }}
+                <div class="muted small" *ngIf="u.settledAtUtc">{{ u.settledAtUtc | zonedDate: 'medium' }}</div>
+                <div class="muted small" *ngIf="u.settlementNote">{{ u.settlementNote }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let u">
+                <button mat-stroked-button type="button" *ngIf="canRedeem(u)" (click)="redeem(u)">Give back</button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="usageColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: usageColumns"></tr>
+          </table>
+        </div>
+
+        <div class="empty-state" *ngIf="!usageLoading && !usage.items.length">
+          <mat-icon class="empty-icon">payments</mat-icon>
+          <p>No credit activity matches these filters.</p>
+        </div>
+
+        <mat-paginator
+          [length]="usage.totalCount"
+          [pageSize]="usage.pageSize"
+          [pageIndex]="usage.page - 1"
+          [pageSizeOptions]="pageSizeOptions"
+          showFirstLastButtons
+          (page)="onUsagePage($event)"
+        ></mat-paginator>
+      </mat-card>
+    </mat-tab>
+
+    <!-- ───────────── Platform wallet ───────────── -->
+    <mat-tab label="Platform wallet">
+      <div class="wallet-grid">
+        <mat-card class="wallet-card" *ngFor="let w of wallets">
+          <div class="muted small">{{ quotaLabel(w.quotaType) }}</div>
+          <div class="wallet-balance" [class.empty]="w.balance <= 0">{{ w.balance | number: '1.0-2' }}</div>
+          <button mat-stroked-button type="button" (click)="openWalletDialog(w.quotaType)">Top up / adjust</button>
+        </mat-card>
+      </div>
+
+      <mat-card class="table-card">
+        <h3 class="section-title">Wallet history</h3>
+        <mat-progress-bar mode="indeterminate" *ngIf="ledgerLoading"></mat-progress-bar>
+
+        <div class="table-scroll">
+          <table mat-table [dataSource]="ledger.items">
+            <ng-container matColumnDef="occurredAt">
+              <th mat-header-cell *matHeaderCellDef>When</th>
+              <td mat-cell *matCellDef="let e">{{ e.occurredAtUtc | zonedDate: 'medium' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Entry</th>
+              <td mat-cell *matCellDef="let e">
+                {{ entryLabel(e.entryType) }}
+                <div class="muted small">{{ quotaLabel(e.quotaType) }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="units">
+              <th mat-header-cell *matHeaderCellDef>Credits</th>
+              <td mat-cell *matCellDef="let e" [class.negative]="e.unitsDelta < 0">
+                {{ e.unitsDelta > 0 ? '+' : '' }}{{ e.unitsDelta | number: '1.0-4' }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="balance">
+              <th mat-header-cell *matHeaderCellDef>Balance after</th>
+              <td mat-cell *matCellDef="let e">{{ e.balanceAfter | number: '1.0-4' }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="tenant">
+              <th mat-header-cell *matHeaderCellDef>For tenant</th>
+              <td mat-cell *matCellDef="let e">
+                <a *ngIf="e.tenantId" [routerLink]="['/platform/tenants', e.tenantId]">{{ e.tenantName || e.tenantId }}</a>
+                <span class="muted" *ngIf="!e.tenantId">—</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="note">
+              <th mat-header-cell *matHeaderCellDef>Note</th>
+              <td mat-cell *matCellDef="let e">{{ e.note || '—' }}</td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="ledgerColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: ledgerColumns"></tr>
+          </table>
+        </div>
+
+        <div class="empty-state" *ngIf="!ledgerLoading && !ledger.items.length">
+          <mat-icon class="empty-icon">account_balance_wallet</mat-icon>
+          <p>The platform wallet has no history yet. Top it up so scenarios set to "Platform" can use it.</p>
+        </div>
+
+        <mat-paginator
+          [length]="ledger.totalCount"
+          [pageSize]="ledger.pageSize"
+          [pageIndex]="ledger.page - 1"
+          [pageSizeOptions]="pageSizeOptions"
+          showFirstLastButtons
+          (page)="onLedgerPage($event)"
+        ></mat-paginator>
+      </mat-card>
+    </mat-tab>
+  </mat-tab-group>
+</div>
