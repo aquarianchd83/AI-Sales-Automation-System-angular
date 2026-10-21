@@ -108,6 +108,13 @@
       </dl>
     </mat-card>
 
+    <app-campaign-pipeline
+      [campaignId]="c.id"
+      [steps]="c.steps"
+      [refreshToken]="deliveryRefresh"
+      (memberSelected)="showCustomerHistory($event)"
+    ></app-campaign-pipeline>
+
     <mat-card class="audience-card">
       <div class="card-header">
         <h2>Audience</h2>

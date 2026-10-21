@@ -185,3 +185,21 @@ flowchart TD
 
 > **Known gap:** `HandedOff` exists in the enum and the progress legend, but nothing sets it for a
 > campaign customer yet.
+
+## 6. Pipeline view (campaign detail)
+
+`app-campaign-pipeline` shows the audience as stages, read-only. The grouping is `buildPipelineStages` in
+[campaign-pipeline.model.ts](../../core/models/campaign-pipeline.model.ts); it reads the roster from
+`GET campaigns/{id}/audience` (100 per page, first 5 pages) and does not move customers by hand.
+
+| Stage | Customer status |
+| --- | --- |
+| Queued | `Pending`, `WaitingForContent` |
+| Initial sent, FollowUp1 sent, … | `AwaitingResponse`, by `currentStepNumber` |
+| Replied | `Responded` |
+| Handed off (only shown when non-empty) | `HandedOff` |
+| No reply | `Completed` |
+| Opted out | `OptedOut` |
+| Failed | `Failed` |
+
+Times on the cards use `zonedDate`, which reads zone-less API timestamps as UTC and shows them in the user's timezone.
