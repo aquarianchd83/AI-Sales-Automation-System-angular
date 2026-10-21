@@ -7,6 +7,7 @@ import { CampaignDetailComponent } from './campaign-detail/campaign-detail.compo
 import { CampaignFormDialogComponent } from './campaign-form-dialog/campaign-form-dialog.component';
 import { CampaignListComponent } from './campaign-list/campaign-list.component';
 import { CampaignMessageHistoryListComponent } from './campaign-message-history-list/campaign-message-history-list.component';
+import { CampaignPipelineComponent } from './campaign-pipeline/campaign-pipeline.component';
 import { CampaignRetireDialogComponent } from './campaign-retire-dialog/campaign-retire-dialog.component';
 import { CampaignStepDeliveryComponent } from './campaign-step-delivery/campaign-step-delivery.component';
 import { CampaignStepDialogComponent } from './campaign-step-dialog/campaign-step-dialog.component';
@@ -29,6 +30,7 @@ const routes: Routes = [
     CampaignAudienceDialogComponent,
     CampaignMessageHistoryListComponent,
     CampaignStepDeliveryComponent,
+    CampaignPipelineComponent,
   ],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })

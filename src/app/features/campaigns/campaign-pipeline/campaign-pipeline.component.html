@@ -1,0 +1,85 @@
+<mat-card class="pipeline-card">
+  <div class="card-header">
+    <h2>Pipeline</h2>
+    <span class="spacer"></span>
+    <button mat-icon-button type="button" matTooltip="Refresh" aria-label="Refresh pipeline" (click)="retry()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <p class="muted pipeline-note">
+    Where every customer in this campaign is right now. Customers move right on their own as messages go out and replies arrive.
+    Times are shown in your timezone.
+  </p>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <div class="empty-state" *ngIf="failed">
+    <mat-icon class="empty-icon">error_outline</mat-icon>
+    <p>The pipeline could not be loaded. Your customers are safe.</p>
+    <button mat-stroked-button type="button" (click)="retry()">Try again</button>
+  </div>
+
+  <div class="empty-state" *ngIf="isEmpty">
+    <mat-icon class="empty-icon">view_kanban</mat-icon>
+    <p>No customers in this campaign yet. Add an audience and the pipeline appears here.</p>
+  </div>
+
+  <ng-container *ngIf="!loading && !failed && !isEmpty">
+    <p class="muted truncation-note" *ngIf="truncated">
+      Showing the {{ loaded }} most recently active of {{ totalInCampaign }} customers. Use the audience list below to find the rest.
+    </p>
+
+    <div class="funnel" aria-hidden="true">
+      <div
+        *ngFor="let stage of stages"
+        class="funnel-seg stage--{{ stage.kind }}"
+        [style.flex-grow]="barShare(stage)"
+        [style.display]="stage.members.length ? 'block' : 'none'"
+      ></div>
+    </div>
+    <div class="funnel-legend">
+      <span class="legend-item" *ngFor="let stage of stages; trackBy: trackStage">
+        <span class="legend-dot stage--{{ stage.kind }}"></span>
+        {{ stage.label }} <strong>{{ stage.members.length }}</strong>
+      </span>
+    </div>
+
+    <div class="board" role="list">
+      <section class="stage" role="listitem" *ngFor="let stage of stages; trackBy: trackStage" [attr.aria-label]="stage.label">
+        <header class="stage-head stage-head--{{ stage.kind }}">
+          <div class="stage-title">
+            <h3>{{ stage.label }}</h3>
+            <span class="stage-count">{{ stage.members.length }}</span>
+          </div>
+          <div class="muted stage-help">{{ stage.help }}</div>
+        </header>
+
+        <div class="stage-empty muted" *ngIf="!stage.members.length">No customers here</div>
+
+        <button
+          type="button"
+          class="lead-card"
+          *ngFor="let m of visibleMembers(stage); trackBy: trackMember"
+          [matTooltip]="statusDescription(m.status)"
+          (click)="memberSelected.emit(m)"
+        >
+          <span class="lead-name">{{ displayName(m) }}</span>
+          <span class="muted lead-phone" *ngIf="displayName(m) !== m.phoneNumberE164">{{ m.phoneNumberE164 }}</span>
+          <span class="lead-line" *ngIf="m.lastMessageSentAt">Last message {{ m.lastMessageSentAt | zonedDate: 'dd MMM yyyy, HH:mm' }}</span>
+          <span class="lead-line lead-line--overdue" *ngIf="isOverdue(m)">
+            <mat-icon inline>warning_amber</mat-icon> Follow-up overdue since {{ m.nextFollowUpDueAt | zonedDate: 'dd MMM yyyy, HH:mm' }}
+          </span>
+          <span class="lead-line" *ngIf="!isOverdue(m) && m.nextFollowUpDueAt && stage.kind === 'step'">
+            Next follow-up {{ m.nextFollowUpDueAt | zonedDate: 'dd MMM yyyy, HH:mm' }}
+          </span>
+          <span class="lead-line muted" *ngIf="m.stoppedReason">{{ m.stoppedReason }}</span>
+        </button>
+
+        <button type="button" class="show-more" *ngIf="hiddenCount(stage) as hidden" (click)="showMore(stage)">
+          Show {{ hidden }} more
+        </button>
+      </section>
+    </div>
+  </ng-container>
+</mat-card>

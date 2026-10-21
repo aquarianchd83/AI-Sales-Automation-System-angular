@@ -43,6 +43,9 @@ import { CAMPAIGN_JOB_TYPES } from '../../../core/models/tenant-job.model';
 import { NotificationHubService } from '../../../core/services/notification-hub.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
+/** Which audience layout the page shows. Classic is the default until the pipeline has been reviewed. */
+export type CampaignDetailView = 'classic' | 'pipeline';
+
 /** Busy key for the whole-campaign "send next step now" call. */
 const ALL_FORCING = '*';
 
@@ -64,6 +67,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   readonly audiencePageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly audienceSearchControl = new FormControl<string>('', { nonNullable: true });
 
+  /** Set from `?view=pipeline` so the preview can be linked to; anything else is Classic. */
+  view: CampaignDetailView = 'classic';
   campaign: Campaign | null = null;
   progress: CampaignProgress | null = null;
   loading = true;
@@ -91,6 +96,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.view = this.route.snapshot.queryParamMap.get('view') === 'pipeline' ? 'pipeline' : 'classic';
+
     // A campaign job just ran: this campaign's status, audience and progress (and, through progress, the
     // step delivery card) may have moved, so refetch in place instead of making the user reload.
     this.notificationHub
@@ -151,6 +158,16 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  setView(view: CampaignDetailView): void {
+    this.view = view;
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { view: view === 'pipeline' ? 'pipeline' : null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   onAudiencePage(event: PageEvent): void {
