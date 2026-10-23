@@ -13,7 +13,7 @@
 
 .editor-layout {
   display: grid;
-  grid-template-columns: minmax(340px, 760px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -49,6 +49,7 @@
 }
 
 .field-grid {
+  align-items: start;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px 12px;

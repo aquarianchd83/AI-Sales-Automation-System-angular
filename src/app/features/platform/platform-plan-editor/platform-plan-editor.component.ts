@@ -101,7 +101,7 @@ export class PlatformPlanEditorComponent implements OnInit {
 
           // A new plan starts with India's row, since the platform is based there: the price is entered in rupees.
           if (!this.planId && this.countryPrices.length === 0) {
-            this.countryPrices.push(newCountryPriceRow('IN', 0));
+            this.countryPrices.push(newCountryPriceRow('IN', null, 0));
           }
 
           this.form.markAsPristine();
@@ -204,7 +204,7 @@ export class PlatformPlanEditorComponent implements OnInit {
 
     this.countryPrices.clear();
     for (const p of plan.countryPrices) {
-      this.countryPrices.push(countryPriceRows([p]).at(0));
+      this.countryPrices.push(countryPriceRows([p], 0).at(0));
     }
   }
 }

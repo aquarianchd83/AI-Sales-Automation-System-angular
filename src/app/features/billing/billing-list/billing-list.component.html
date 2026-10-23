@@ -1,5 +1,5 @@
 <div class="page">
-  <app-page-header title="Billing" subtitle="Choose a plan or switch to another one.">
+  <app-page-header title="Billing" subtitle="Upgrade, downgrade or switch to another plan.">
     <a mat-stroked-button routerLink="/billing/wallet" *ngIf="!embedded">
       <mat-icon>data_usage</mat-icon>
       Usage &amp; credits
@@ -85,7 +85,7 @@
             ? 'Current plan'
             : switchingPlanId === plan.id
             ? 'Switching…'
-            : 'Choose plan'
+            : actionLabel(plan)
         }}
       </button>
     </mat-card>

@@ -3,52 +3,28 @@
     <div class="section-header">
       <div class="section-header-row">
         <h2>Plan catalog</h2>
-        <button mat-stroked-button type="button" (click)="addPlan()">
-          <mat-icon>add</mat-icon>
-          Add plan
-        </button>
+        <div class="section-header-actions">
+          <button mat-stroked-button type="button" *ngIf="retiredPlans.length" (click)="showRetired(retiredDialog)">
+            <mat-icon>inventory_2</mat-icon>
+            Show retired ({{ retiredPlans.length }})
+          </button>
+          <button mat-stroked-button type="button" (click)="addPlan()">
+            <mat-icon>add</mat-icon>
+            Add plan
+          </button>
+        </div>
       </div>
       <span class="muted">
-        There are two plans - Trial (the minimum, free, with a one-time starter balance) and Premium (every feature, with credits every month) - and neither expires. Retired plans stay visible so existing subscribers keep their limits. Each plan is priced per country, in that country's currency; the price shown on a plan is India's, in rupees. A country with no
+        There are two plans - Trial (the minimum, free, with a one-time starter balance) and Premium (every feature, with credits every month) - and neither expires. Retired plans are kept under Show retired so existing subscribers keep their limits. Each plan is priced per country, in that country's currency; the price shown on a plan is India's, in rupees. A country with no
         price does not sell the plan. Tax is added on top at checkout.
       </span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
     <div class="plan-grid" *ngIf="!loadingPlans">
-      <mat-card class="plan-tile" *ngFor="let plan of plans" [class.plan-tile--inactive]="!plan.isActive">
-        <div class="plan-tile-header">
-          <h3>{{ plan.name }}</h3>
-          <span class="muted" *ngIf="!plan.isActive">Retired</span>
-        </div>
-        <div class="plan-price">{{ formatPrice(plan) }}</div>
-        <ul>
-          <li>{{ plan.maxUsers }} users</li>
-          <li>{{ plan.maxCampaigns }} campaigns</li>
-          <li>{{ plan.maxKnowledgeBaseArticles }} KB articles</li>
-          <li>up to {{ plan.maxLeadDiscoveryBatchSize }} leads per discovery run</li>
-        </ul>
-        <div class="plan-quotas">
-          <div class="muted plan-quotas-title">Credits</div>
-          <div *ngIf="plan.starterCredits > 0">{{ formatUnits(plan.starterCredits) }} to start (once)</div>
-          <div *ngIf="plan.monthlyCredits > 0">{{ formatUnits(plan.monthlyCredits) }} every month</div>
-          <div class="muted" *ngIf="!plan.starterCredits && !plan.monthlyCredits">No credits</div>
-        </div>
-        <div class="plan-quotas">
-          <div class="muted plan-quotas-title">Features</div>
-          <div *ngFor="let feature of plan.features">{{ featureLabels[feature] }}</div>
-          <div class="muted" *ngIf="!plan.features.length">No features</div>
-        </div>
-        <div class="plan-quotas" *ngIf="plan.countryPrices.length">
-          <div class="muted plan-quotas-title">Country prices</div>
-          <div *ngFor="let p of plan.countryPrices">{{ p.countryName }}: {{ p.currencySymbol }}{{ p.amount }}</div>
-        </div>
-        <div class="plan-tile-actions">
-          <button mat-stroked-button type="button" (click)="editPlan(plan)">Edit</button>
-          <button mat-stroked-button color="warn" type="button" *ngIf="plan.isActive" (click)="deletePlan(plan)">
-            Delete
-          </button>
-        </div>
-      </mat-card>
+      <ng-container *ngFor="let plan of activePlans">
+        <ng-container *ngTemplateOutlet="planTile; context: { $implicit: plan }"></ng-container>
+      </ng-container>
+      <p class="muted" *ngIf="!activePlans.length">No active plans.</p>
     </div>
   </mat-card>
 
@@ -56,61 +32,145 @@
     <div class="section-header">
       <div class="section-header-row">
         <h2>Credit packs</h2>
-        <button mat-stroked-button type="button" (click)="addPack()">
-          <mat-icon>add</mat-icon>
-          Add credit pack
-        </button>
+        <div class="section-header-actions">
+          <button mat-stroked-button type="button" *ngIf="retiredPacks.length" (click)="showRetiredPacks(retiredPacksDialog)">
+            <mat-icon>inventory_2</mat-icon>
+            Show retired ({{ retiredPacks.length }})
+          </button>
+          <button mat-stroked-button type="button" (click)="addPack()">
+            <mat-icon>add</mat-icon>
+            Add credit pack
+          </button>
+        </div>
       </div>
       <span class="muted">
         Extra units tenants can buy any time; they stay valid for 12 months. Each pack is priced per country; the price
-        shown here is India's, in rupees. A country with no price does not sell the pack. Retired packs stop being offered but purchases already made keep their credits.
+        shown here is India's, in rupees. A country with no price does not sell the pack. Retired packs stop being offered but purchases already made keep their credits; find them under Show retired.
       </span>
     </div>
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPacks"></mat-progress-bar>
 
-    <div class="table-scroll">
-      <table mat-table [dataSource]="packs" *ngIf="packs.length">
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Pack</th>
-          <td mat-cell *matCellDef="let pack">{{ pack.name }}</td>
-        </ng-container>
-        <ng-container matColumnDef="units">
-          <th mat-header-cell *matHeaderCellDef>Credits</th>
-          <td mat-cell *matCellDef="let pack">{{ formatUnits(pack.units) }}</td>
-        </ng-container>
-        <ng-container matColumnDef="price">
-          <th mat-header-cell *matHeaderCellDef>Price</th>
-          <td mat-cell *matCellDef="let pack">
-            {{ formatPackPrice(pack) }}
-            <div class="muted pack-base" *ngIf="pack.countryPrices.length">
-              {{ pack.countryPrices.length }} country price{{ pack.countryPrices.length === 1 ? '' : 's' }}
-            </div>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
-          <td mat-cell *matCellDef="let pack">
-            <span class="status-chip status-chip--opted-in" *ngIf="pack.isActive">Active</span>
-            <span class="muted" *ngIf="!pack.isActive">Retired</span>
-          </td>
-        </ng-container>
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef></th>
-          <td mat-cell *matCellDef="let pack">
-            <button mat-button type="button" (click)="editPack(pack)">Edit</button>
-            <button mat-button color="warn" type="button" *ngIf="pack.isActive" (click)="retirePack(pack)">Retire</button>
-          </td>
-        </ng-container>
+    <ng-container *ngTemplateOutlet="packTable; context: { $implicit: activePacks }"></ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="packColumns"></tr>
-        <tr mat-row *matRowDef="let pack; columns: packColumns"></tr>
-      </table>
-    </div>
-
-    <div class="empty-state" *ngIf="!loadingPacks && !packs.length">
+    <div class="empty-state" *ngIf="!loadingPacks && !activePacks.length">
       <mat-icon class="empty-icon">add_shopping_cart</mat-icon>
-      <p>No credit packs yet - tenants cannot top up until you add one.</p>
+      <p>No active credit packs - tenants cannot top up until you add one.</p>
     </div>
   </mat-card>
 
 </div>
+
+<ng-template #planTile let-plan>
+    <mat-card class="plan-tile" [class.plan-tile--inactive]="!plan.isActive">
+      <div class="plan-tile-header">
+        <h3>{{ plan.name }}</h3>
+        <span class="muted" *ngIf="!plan.isActive">Retired</span>
+      </div>
+      <div class="plan-price">{{ formatPrice(plan) }}</div>
+      <ul>
+        <li>{{ plan.maxUsers }} users</li>
+        <li>{{ plan.maxCampaigns }} campaigns</li>
+        <li>{{ plan.maxKnowledgeBaseArticles }} KB articles</li>
+        <li>up to {{ plan.maxLeadDiscoveryBatchSize }} leads per discovery run</li>
+      </ul>
+      <div class="plan-quotas">
+        <div class="muted plan-quotas-title">Credits</div>
+        <div *ngIf="plan.starterCredits > 0">{{ formatUnits(plan.starterCredits) }} to start (once)</div>
+        <div *ngIf="plan.monthlyCredits > 0">{{ formatUnits(plan.monthlyCredits) }} every month</div>
+        <div class="muted" *ngIf="!plan.starterCredits && !plan.monthlyCredits">No credits</div>
+      </div>
+      <div class="plan-quotas">
+        <div class="muted plan-quotas-title">Features</div>
+        <div *ngFor="let feature of plan.features">{{ $any(featureLabels)[feature] }}</div>
+        <div class="muted" *ngIf="!plan.features.length">No features</div>
+      </div>
+      <div class="plan-quotas" *ngIf="plan.countryPrices.length">
+        <div class="muted plan-quotas-title">Country prices</div>
+        <div *ngFor="let p of plan.countryPrices">{{ p.countryName }}: {{ p.currencySymbol }}{{ p.amount }}</div>
+      </div>
+      <div class="plan-tile-actions">
+        <button mat-stroked-button type="button" (click)="editPlan(plan)">Edit</button>
+        <button mat-stroked-button color="warn" type="button" *ngIf="plan.isActive" (click)="retirePlan(plan)">
+          Retire
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          *ngIf="!plan.isActive"
+          [disabled]="reactivatingId === plan.id"
+          (click)="reactivatePlan(plan)"
+        >
+          Reactivate
+        </button>
+      </div>
+    </mat-card>
+</ng-template>
+
+<ng-template #retiredDialog>
+  <h2 mat-dialog-title>Retired plans</h2>
+  <mat-dialog-content>
+    <p class="muted">No longer offered. Existing subscribers keep their limits.</p>
+    <div class="plan-grid plan-grid--dialog">
+      <ng-container *ngFor="let plan of retiredPlans">
+        <ng-container *ngTemplateOutlet="planTile; context: { $implicit: plan }"></ng-container>
+      </ng-container>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Close</button>
+  </mat-dialog-actions>
+</ng-template>
+
+<ng-template #packTable let-packs>
+  <div class="table-scroll">
+    <table mat-table [dataSource]="packs" *ngIf="packs.length">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Pack</th>
+        <td mat-cell *matCellDef="let pack">{{ pack.name }}</td>
+      </ng-container>
+      <ng-container matColumnDef="units">
+        <th mat-header-cell *matHeaderCellDef>Credits</th>
+        <td mat-cell *matCellDef="let pack">{{ formatUnits(pack.units) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="price">
+        <th mat-header-cell *matHeaderCellDef>Price</th>
+        <td mat-cell *matCellDef="let pack">
+          {{ formatPackPrice(pack) }}
+          <div class="muted pack-base" *ngIf="pack.countryPrices.length">
+            {{ pack.countryPrices.length }} country price{{ pack.countryPrices.length === 1 ? '' : 's' }}
+          </div>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let pack">
+          <span class="status-chip status-chip--opted-in" *ngIf="pack.isActive">Active</span>
+          <span class="muted" *ngIf="!pack.isActive">Retired</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let pack">
+          <button mat-button type="button" (click)="editPack(pack)">Edit</button>
+          <button mat-button color="warn" type="button" *ngIf="pack.isActive" (click)="retirePack(pack)">Retire</button>
+          <button mat-button color="primary" type="button" *ngIf="!pack.isActive" [disabled]="reactivatingId === pack.id" (click)="reactivatePack(pack)">Reactivate</button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="packColumns"></tr>
+      <tr mat-row *matRowDef="let pack; columns: packColumns"></tr>
+    </table>
+  </div>
+</ng-template>
+
+<ng-template #retiredPacksDialog>
+  <h2 mat-dialog-title>Retired credit packs</h2>
+  <mat-dialog-content>
+    <p class="muted">No longer offered. Credits tenants already bought from them are unaffected.</p>
+    <ng-container *ngTemplateOutlet="packTable; context: { $implicit: retiredPacks }"></ng-container>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Close</button>
+  </mat-dialog-actions>
+</ng-template>

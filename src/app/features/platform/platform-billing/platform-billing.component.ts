@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, TemplateRef } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 
 import { formatUnits } from '../../../core/models/billing.model';
 import { PlatformCreditPack, PlatformPlan } from '../../../core/models/platform.model';
@@ -22,6 +23,7 @@ export class PlatformBillingComponent implements OnInit {
 
   plans: PlatformPlan[] = [];
   loadingPlans = true;
+  reactivatingId: string | null = null;
 
   packs: PlatformCreditPack[] = [];
   loadingPacks = true;
@@ -65,6 +67,36 @@ export class PlatformBillingComponent implements OnInit {
     return `${pack.currencySymbol}${pack.priceLocal.toFixed(Number.isInteger(pack.priceLocal) ? 0 : 2)}`;
   }
 
+  get activePacks(): PlatformCreditPack[] {
+    return this.packs.filter((p) => p.isActive);
+  }
+
+  get retiredPacks(): PlatformCreditPack[] {
+    return this.packs.filter((p) => !p.isActive);
+  }
+
+  /** Retired packs stay out of the table; this opens them in a popup. */
+  showRetiredPacks(template: TemplateRef<unknown>): void {
+    this.dialog.open(template, { width: '900px', maxWidth: '95vw' });
+  }
+
+  /** Puts a retired pack back on sale; its country prices stay as they are. */
+  reactivatePack(pack: PlatformCreditPack): void {
+    this.reactivatingId = pack.id;
+    this.billing
+      .updateCreditPack(pack.id, { name: pack.name, units: pack.units, priceCents: pack.priceCents, isActive: true })
+      .pipe(finalize(() => (this.reactivatingId = null)))
+      .subscribe({
+        next: () => {
+          this.notify.success('Credit pack reactivated.');
+          this.loadPacks();
+          if (this.retiredPacks.every((p) => p.id === pack.id)) {
+            this.dialog.closeAll();
+          }
+        },
+      });
+  }
+
   addPack(): void {
     this.openPackDialog(null);
   }
@@ -101,11 +133,25 @@ export class PlatformBillingComponent implements OnInit {
     this.router.navigate(['/platform/billing/plans/new']);
   }
 
+  get activePlans(): PlatformPlan[] {
+    return this.plans.filter((p) => p.isActive);
+  }
+
+  get retiredPlans(): PlatformPlan[] {
+    return this.plans.filter((p) => !p.isActive);
+  }
+
+  /** Retired plans stay out of the catalog; this opens them in a popup. */
+  showRetired(template: TemplateRef<unknown>): void {
+    this.dialog.open(template, { width: '980px', maxWidth: '95vw' });
+  }
+
   editPlan(plan: PlatformPlan): void {
+    this.dialog.closeAll();
     this.router.navigate(['/platform/billing/plans', plan.id]);
   }
 
-  deletePlan(plan: PlatformPlan): void {
+  retirePlan(plan: PlatformPlan): void {
     const data: ConfirmDialogData = {
       title: 'Retire this plan?',
       message: `${plan.name} will no longer be offered to new or upgrading tenants. Existing subscribers keep their current limits — this never deletes the plan outright.`,
@@ -125,6 +171,31 @@ export class PlatformBillingComponent implements OnInit {
             this.loadPlans();
           },
         });
+      });
+  }
+
+  /** Puts a retired plan back on sale. Only the identifying fields are sent - credits, features and country prices stay as they are. */
+  reactivatePlan(plan: PlatformPlan): void {
+    this.reactivatingId = plan.id;
+    this.billing
+      .updatePlan(plan.id, {
+        name: plan.name,
+        maxUsers: plan.maxUsers,
+        maxMessagesPerMonth: plan.maxMessagesPerMonth,
+        maxCampaigns: plan.maxCampaigns,
+        maxKnowledgeBaseArticles: plan.maxKnowledgeBaseArticles,
+        priceMonthlyCents: plan.priceMonthlyCents,
+        isActive: true,
+      })
+      .pipe(finalize(() => (this.reactivatingId = null)))
+      .subscribe({
+        next: () => {
+          this.notify.success('Plan reactivated.');
+          this.loadPlans();
+          if (!this.retiredPlans.length || this.retiredPlans.every((p) => p.id === plan.id)) {
+            this.dialog.closeAll();
+          }
+        },
       });
   }
 

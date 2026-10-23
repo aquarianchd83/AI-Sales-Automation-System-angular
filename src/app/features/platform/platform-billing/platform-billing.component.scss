@@ -28,6 +28,15 @@
   padding: 0 16px 16px;
 }
 
+.section-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.plan-grid--dialog {
+  padding: 0;
+}
+
 .plan-tile {
   padding: 16px;
 

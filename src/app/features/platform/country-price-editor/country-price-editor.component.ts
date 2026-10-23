@@ -6,23 +6,24 @@ import { CountryPrice, CountryPriceInput } from '../../../core/models/platform.m
 
 export type CountryPriceRow = FormGroup<{
   countryCode: FormControl<string>;
-  amount: FormControl<number>;
+  amount: FormControl<number | null>;
 }>;
 
-export function newCountryPriceRow(countryCode = '', amount = 0): CountryPriceRow {
+/** A blank price is invalid until typed. `minAmount` is 0.01 for anything sold, and 0 where a free price is allowed (a plan). */
+export function newCountryPriceRow(countryCode = '', amount: number | null = null, minAmount = 0.01): CountryPriceRow {
   return new FormGroup({
     countryCode: new FormControl(countryCode, { nonNullable: true, validators: [Validators.required] }),
-    amount: new FormControl(amount, { nonNullable: true, validators: [Validators.required, Validators.min(0.01)] }),
+    amount: new FormControl<number | null>(amount, { validators: [Validators.required, Validators.min(minAmount)] }),
   });
 }
 
-export function countryPriceRows(prices: CountryPrice[] | undefined | null): FormArray<CountryPriceRow> {
-  return new FormArray((prices ?? []).map((p) => newCountryPriceRow(p.countryCode, p.amount)));
+export function countryPriceRows(prices: CountryPrice[] | undefined | null, minAmount = 0.01): FormArray<CountryPriceRow> {
+  return new FormArray((prices ?? []).map((p) => newCountryPriceRow(p.countryCode, p.amount, minAmount)));
 }
 
 /** The complete set to send: a country left out of it loses its price (it falls back to the converted USD price). */
 export function toCountryPriceInputs(rows: FormArray<CountryPriceRow>): CountryPriceInput[] {
-  return rows.getRawValue().map((r) => ({ countryCode: r.countryCode, amount: r.amount }));
+  return rows.getRawValue().map((r) => ({ countryCode: r.countryCode, amount: r.amount ?? 0 }));
 }
 
 /**
@@ -53,6 +54,8 @@ export function toCountryPriceInputs(rows: FormArray<CountryPriceRow>): CountryP
 export class CountryPriceEditorComponent {
   @Input() rows!: FormArray<CountryPriceRow>;
   @Input() regions: RegionOption[] = [];
+  /** Lets a price be 0 - a free offer. Only a plan may be free; a pack always has a price. */
+  @Input() allowFree = false;
 
   /** Countries not already priced by another row - one price per country. */
   availableRegions(current: string): RegionOption[] {
@@ -73,7 +76,7 @@ export class CountryPriceEditorComponent {
   }
 
   add(): void {
-    this.rows.push(newCountryPriceRow());
+    this.rows.push(newCountryPriceRow('', null, this.allowFree ? 0 : 0.01));
   }
 
   remove(index: number): void {

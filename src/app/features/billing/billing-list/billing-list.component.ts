@@ -82,9 +82,40 @@ export class BillingListComponent implements OnInit {
     return !!this.subscription && this.subscription.planId === plan.id;
   }
 
+  /**
+   * What moving to this plan means for the tenant, by price: dearer is an upgrade, cheaper a downgrade. A tenant with no
+   * subscription is simply choosing. A current plan that is not on the list (a free one is never sold) counts as free,
+   * so everything listed is an upgrade from it.
+   */
+  changeKind(plan: Plan): 'upgrade' | 'downgrade' | 'choose' {
+    if (!this.subscription?.planId) {
+      return 'choose';
+    }
+    const current = this.plans.find((p) => p.id === this.subscription!.planId);
+    const currentPrice = current?.localPriceAmount ?? 0;
+    if (plan.localPriceAmount > currentPrice) {
+      return 'upgrade';
+    }
+    return plan.localPriceAmount < currentPrice ? 'downgrade' : 'choose';
+  }
+
+  actionLabel(plan: Plan): string {
+    switch (this.changeKind(plan)) {
+      case 'upgrade':
+        return 'Upgrade';
+      case 'downgrade':
+        return 'Downgrade';
+      default:
+        return 'Choose plan';
+    }
+  }
+
   /** Shows the plan's localized quote (currencySymbol/localPriceAmount, resolved server-side from
    * this tenant's own country — see Plan's own doc comment). */
   formatPrice(plan: Plan): string {
+    if (!plan.localPriceAmount) {
+      return 'Free';
+    }
     return `${this.formatAmount(plan.currencySymbol, plan.localPriceAmount)}/mo`;
   }
 
@@ -165,12 +196,16 @@ export class BillingListComponent implements OnInit {
       return;
     }
 
+    const kind = this.changeKind(plan);
     this.dialog
       .open(ConfirmDialogComponent, {
         data: {
-          title: `Switch to ${plan.name}?`,
-          message: `This takes effect immediately, at ${this.formatPrice(plan)}.`,
-          confirmLabel: 'Switch plan',
+          title: `${kind === 'upgrade' ? 'Upgrade' : kind === 'downgrade' ? 'Downgrade' : 'Switch'} to ${plan.name}?`,
+          message:
+            kind === 'downgrade'
+              ? `This takes effect immediately, at ${this.formatPrice(plan)}. Anything ${plan.name} does not include will no longer be available to you.`
+              : `This takes effect immediately, at ${this.formatPrice(plan)}.`,
+          confirmLabel: this.actionLabel(plan),
         } as ConfirmDialogData,
         width: '460px',
       })
@@ -187,7 +222,7 @@ export class BillingListComponent implements OnInit {
           .subscribe({
             next: (subscription) => {
               this.subscription = subscription;
-              this.notify.success(`Switched to ${plan.name}.`);
+              this.notify.success(`${kind === 'upgrade' ? 'Upgraded' : kind === 'downgrade' ? 'Downgraded' : 'Switched'} to ${plan.name}.`);
               this.loadPaymentHistory();
             },
           });
