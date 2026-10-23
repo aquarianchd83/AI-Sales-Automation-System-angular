@@ -4,7 +4,9 @@ import { Router } from '@angular/router';
 import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { AppRole } from '../../core/models/user.model';
 import { AuthService } from '../../core/services/auth.service';
+import { PlatformFeature } from '../../core/models/wallet.model';
 import { ContentStudioService } from '../../core/services/content-studio.service';
+import { EntitlementsStore } from '../../core/services/entitlements.store';
 
 interface HubItem {
   label: string;
@@ -13,6 +15,8 @@ interface HubItem {
   roles: string[];
   /** Hidden until the platform switches the AI Content Studio on for this tenant. */
   needsStudio?: boolean;
+  /** Hidden for a tenant whose plan does not include this feature. */
+  feature: PlatformFeature;
 }
 
 /**
@@ -27,19 +31,20 @@ interface HubItem {
 })
 export class KnowledgeHubComponent implements OnInit {
   readonly items: HubItem[] = [
-    { label: 'Product Sources', icon: 'auto_stories', route: '/product-knowledge/sources', roles: [AppRole.Admin] },
-    { label: 'Product Answers', icon: 'rate_review', route: '/product-knowledge/answers', roles: [AppRole.Admin] },
-    { label: 'Business Questionnaire', icon: 'quiz', route: '/content-studio/questionnaire', roles: STUDIO_CONTENT_ROLES, needsStudio: true },
-    { label: 'Business Facts', icon: 'fact_check', route: '/content-studio/facts', roles: STUDIO_CONTENT_ROLES, needsStudio: true },
-    { label: 'What the Studio Knows', icon: 'speed', route: '/content-studio/readiness', roles: STUDIO_CONTENT_ROLES, needsStudio: true },
-    { label: 'Published Knowledge', icon: 'inventory', route: '/product-knowledge/versions', roles: [AppRole.Admin] },
-    { label: 'Test Chat', icon: 'chat', route: '/product-knowledge/test-chat', roles: [AppRole.Admin] },
+    { label: 'Product Sources', icon: 'auto_stories', route: '/product-knowledge/sources', roles: [AppRole.Admin], feature: 'ProductKnowledge' },
+    { label: 'Product Answers', icon: 'rate_review', route: '/product-knowledge/answers', roles: [AppRole.Admin], feature: 'ProductKnowledge' },
+    { label: 'Business Questionnaire', icon: 'quiz', route: '/content-studio/questionnaire', roles: STUDIO_CONTENT_ROLES, needsStudio: true, feature: 'ContentStudio' },
+    { label: 'Business Facts', icon: 'fact_check', route: '/content-studio/facts', roles: STUDIO_CONTENT_ROLES, needsStudio: true, feature: 'ContentStudio' },
+    { label: 'What the Studio Knows', icon: 'speed', route: '/content-studio/readiness', roles: STUDIO_CONTENT_ROLES, needsStudio: true, feature: 'ContentStudio' },
+    { label: 'Published Knowledge', icon: 'inventory', route: '/product-knowledge/versions', roles: [AppRole.Admin], feature: 'ProductKnowledge' },
+    { label: 'Test Chat', icon: 'chat', route: '/product-knowledge/test-chat', roles: [AppRole.Admin], feature: 'ProductKnowledge' },
   ];
 
   studioEnabled = false;
 
   constructor(
     private readonly auth: AuthService,
+    private readonly entitlements: EntitlementsStore,
     private readonly router: Router,
     private readonly studio: ContentStudioService,
   ) {}
@@ -57,6 +62,6 @@ export class KnowledgeHubComponent implements OnInit {
   }
 
   visibleItems(): HubItem[] {
-    return this.items.filter((i) => this.auth.hasAnyRole(i.roles) && (!i.needsStudio || this.studioEnabled));
+    return this.items.filter((i) => this.auth.hasAnyRole(i.roles) && (!i.needsStudio || this.studioEnabled) && this.entitlements.has(i.feature));
   }
 }

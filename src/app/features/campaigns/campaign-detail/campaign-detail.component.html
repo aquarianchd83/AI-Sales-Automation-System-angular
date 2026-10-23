@@ -13,6 +13,7 @@
 
   <ng-container *ngIf="campaign as c">
     <app-page-header [title]="c.name">
+      <app-credit-cost [scenarios]="[1]"></app-credit-cost>
       <span [class]="statusClass(c.status)">{{ c.status }}</span>
       <span class="spacer"></span>
 

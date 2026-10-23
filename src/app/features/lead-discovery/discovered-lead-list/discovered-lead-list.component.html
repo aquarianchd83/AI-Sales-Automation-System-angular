@@ -1,5 +1,6 @@
 <div class="page">
   <app-page-header title="Lead discovery" subtitle="Businesses found on the web that match your lead discovery profile.">
+    <app-credit-cost [scenarios]="[2]"></app-credit-cost>
     <ng-container *appHasRole="adminRoles">
       <a mat-button routerLink="history">
         <mat-icon>arrow_back</mat-icon>

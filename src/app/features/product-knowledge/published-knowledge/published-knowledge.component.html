@@ -2,7 +2,9 @@
   <app-page-header
     title="Published knowledge"
     subtitle="The answers you approved, published as a numbered version. Each version is a record that never changes, so you can always see exactly what was published and when."
-  ></app-page-header>
+  >
+    <app-credit-cost [scenarios]="[5, 6]"></app-credit-cost>
+  </app-page-header>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 

@@ -82,7 +82,7 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (balances) => {
-          const quota = balances.find((b) => b.quotaType === QuotaType.LeadCandidates);
+          const quota = balances.find((b) => b.quotaType === QuotaType.Credits);
           if (quota && quota.capacity > 0) {
             this.quotaLabel = formatUnits(quota.balance);
           }

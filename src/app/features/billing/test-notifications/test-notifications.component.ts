@@ -26,14 +26,14 @@ import { NotificationService } from '../../../core/services/notification.service
 export class TestNotificationsComponent {
   readonly kinds = TEST_NOTIFICATION_KINDS;
   readonly kindLabels = NOTIFICATION_KIND_LABELS;
-  readonly quotaTypeOptions = [QuotaType.LeadCandidates, QuotaType.WhatsAppMessages, QuotaType.AiConversations];
+  readonly quotaTypeOptions = [QuotaType.Credits];
   readonly quotaTypeLabels = QUOTA_TYPE_LABELS;
   readonly needsQuotaType = notificationKindNeedsQuotaType;
   readonly DeliveryStatus = DeliveryStatus;
 
   /** One quota-type choice per quota-threshold kind, so switching kinds doesn't lose the others'. */
   quotaTypeByKind: Partial<Record<TenantNotificationKind, QuotaType>> = Object.fromEntries(
-    this.kinds.filter((k) => this.needsQuotaType(k)).map((k) => [k, QuotaType.LeadCandidates])
+    this.kinds.filter((k) => this.needsQuotaType(k)).map((k) => [k, QuotaType.Credits])
   );
 
   /** Kinds a send is currently in flight for — disables just that row's button. */
@@ -53,7 +53,7 @@ export class TestNotificationsComponent {
     }
     const request: SendTestNotificationRequest = {
       kind,
-      quotaType: this.needsQuotaType(kind) ? this.quotaTypeByKind[kind] ?? QuotaType.LeadCandidates : null,
+      quotaType: this.needsQuotaType(kind) ? this.quotaTypeByKind[kind] ?? QuotaType.Credits : null,
     };
 
     this.sending.add(kind);

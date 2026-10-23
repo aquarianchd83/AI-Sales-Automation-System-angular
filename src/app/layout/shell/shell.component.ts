@@ -14,6 +14,8 @@ import { TenantNotification, isUrgentNotification, tenantNotificationRoute } fro
 import { BillingService } from '../../core/services/billing.service';
 import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { ContentStudioService } from '../../core/services/content-studio.service';
+import { EntitlementsStore } from '../../core/services/entitlements.store';
+import { PlatformFeature } from '../../core/models/wallet.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
@@ -32,6 +34,8 @@ interface NavItem {
   visible?: () => boolean;
   /** Other url prefixes that also mean this entry is the current one - for an entry that opens a page holding several routes. */
   matches?: string[];
+  /** Hidden for a tenant whose plan does not include this feature. */
+  feature?: PlatformFeature;
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -94,11 +98,12 @@ export class ShellComponent implements OnInit, OnDestroy {
           // Discovered Leads, since History would 403 them - see the lead-discovery route guard.
           route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/lead-discovery/history' : '/lead-discovery',
           roles: [],
+          feature: 'LeadDiscovery',
         },
         // Tags is opened from the Customers page, so it stays under this entry.
         { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'] },
-        { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [] },
-        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [] },
+        { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [], feature: 'WhatsAppMessaging' },
+        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'WhatsAppMessaging' },
       ],
     },
     {
@@ -116,9 +121,9 @@ export class ShellComponent implements OnInit, OnDestroy {
           label: 'Knowledge',
           icon: 'psychology',
           // An Admin lands on Product Sources; a Sales Manager only has the studio screens, so lands on the questionnaire.
-          route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/product-knowledge/sources' : '/content-studio/questionnaire',
+          route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ?'/product-knowledge/sources' : '/content-studio/questionnaire',
           roles: STUDIO_CONTENT_ROLES,
-          visible: () => this.auth.hasAnyRole(TENANT_ADMIN_ONLY) || this.studioEnabled,
+          visible: () => this.canOpenProductKnowledge() || this.canOpenStudio(),
           matches: ['/product-knowledge', '/content-studio/questionnaire', '/content-studio/facts', '/content-studio/readiness'],
         },
       ],
@@ -148,6 +153,7 @@ export class ShellComponent implements OnInit, OnDestroy {
           roles: TENANT_ADMIN_ONLY,
           exact: true,
           visible: () => this.studioEnabled,
+          feature: 'ContentStudio',
         },
       ],
     },
@@ -203,7 +209,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Package', icon: 'payments', route: '/platform/billing', roles: [] },
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
-        { label: 'Credit Payers', icon: 'account_balance_wallet', route: '/platform/credit-payers', roles: [] },
+        { label: 'Credit Costs & Payers', icon: 'account_balance_wallet', route: '/platform/credit-payers', roles: [] },
         { label: 'Payments', icon: 'receipt_long', route: '/platform/payments', roles: [] },
         { label: 'Refund Requests', icon: 'assignment_return', route: '/platform/refunds', roles: [] },
       ],
@@ -279,7 +285,20 @@ export class ShellComponent implements OnInit, OnDestroy {
   /** Hides a section heading when the user can see none of its items (e.g. Workspace for an agent).
    * Items themselves are still filtered by *appHasRole in the template. */
   isSectionVisible(section: NavSection): boolean {
-    return section.items.some((item) => this.auth.hasAnyRole(item.roles) && (!item.visible || item.visible()));
+    return section.items.some((item) => this.auth.hasAnyRole(item.roles) && this.isItemVisible(item));
+  }
+
+  private canOpenProductKnowledge(): boolean {
+    return this.auth.hasAnyRole(TENANT_ADMIN_ONLY) && this.entitlements.has('ProductKnowledge');
+  }
+
+  private canOpenStudio(): boolean {
+    return this.studioEnabled && this.entitlements.has('ContentStudio');
+  }
+
+  /** An entry shows when its own switch allows it and the tenant's plan includes its feature. */
+  isItemVisible(item: NavItem): boolean {
+    return (!item.visible || item.visible()) && (!item.feature || this.entitlements.has(item.feature));
   }
 
   /** Nav groups the user has folded away, by label. Remembered on this browser; a group holding the page being viewed never folds. */
@@ -405,6 +424,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly account: AccountService,
     private readonly billing: BillingService,
     private readonly contentStudio: ContentStudioService,
+    private readonly entitlements: EntitlementsStore,
     private readonly platformNotifications: PlatformNotificationService,
     private readonly notificationHub: NotificationHubService,
     private readonly tenantProfile: TenantProfileService,

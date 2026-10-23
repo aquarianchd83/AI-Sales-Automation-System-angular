@@ -36,8 +36,6 @@
           <dd>{{ tenant.userCount }}</dd>
           <dt>Signed up</dt>
           <dd>{{ tenant.createdAt | zonedDate: 'medium' }}</dd>
-          <dt>Trial ends</dt>
-          <dd>{{ tenant.trialEndsAtUtc ? (tenant.trialEndsAtUtc | zonedDate: 'medium') : '—' }}</dd>
           <dt>Timezone</dt>
           <dd>{{ tenant.timezone }}</dd>
           <dt>Country</dt>

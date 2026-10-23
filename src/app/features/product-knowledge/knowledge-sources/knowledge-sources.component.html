@@ -2,7 +2,9 @@
   <app-page-header
     title="Product sources"
     subtitle="Give the AI what it should learn your products from: brochures, PDFs, manuals, price lists and your website. Each one is read page by page."
-  ></app-page-header>
+  >
+    <app-credit-cost [scenarios]="[5, 6]"></app-credit-cost>
+  </app-page-header>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 

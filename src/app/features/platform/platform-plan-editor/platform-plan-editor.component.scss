@@ -13,7 +13,7 @@
 
 .editor-layout {
   display: grid;
-  grid-template-columns: minmax(340px, 5fr) minmax(420px, 6fr);
+  grid-template-columns: minmax(340px, 760px);
   gap: 16px;
   align-items: start;
 }
@@ -152,4 +152,10 @@
 
 .loss-row {
   background: rgba(179, 38, 30, 0.05);
+}
+
+.feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }

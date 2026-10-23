@@ -1,37 +1,30 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { NonNullableFormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, forkJoin, merge, of } from 'rxjs';
-import { catchError, debounceTime, finalize, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
-import { QuotaType, RegionOption, formatCharge } from '../../../core/models/billing.model';
-import {
-  CreatePlanRequest,
-  PlanCostReport,
-  PlanCostReportRequest,
-  PlanQuotaInput,
-  PlatformPlan,
-  UpdatePlanRequest,
-} from '../../../core/models/platform.model';
+import { RegionOption } from '../../../core/models/billing.model';
+import { CreatePlanRequest, PlatformPlan, UpdatePlanRequest } from '../../../core/models/platform.model';
+import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature } from '../../../core/models/wallet.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { countryPriceRows, newCountryPriceRow, toCountryPriceInputs } from '../country-price-editor/country-price-editor.component';
 
 /**
- * The page for creating or editing a plan (it replaces the old dialog). Beside the plan's fields it shows a live
- * consolidated report - what the quotas cost to serve, country by country, and the margin at the price entered - built
- * by the server from the Configuration page's charges, so the operator never works the WhatsApp, AI and lead discovery
- * costs out by hand. The prices and the typical-usage figures behind it all come from the Configuration page - nothing is
- * entered twice. The report recalculates as the plan changes; nothing is saved until "Create plan" / "Save".
+ * The page for creating or editing a plan. A plan is its credits (granted once when a tenant goes onto it, and every month after - unspent credits carry
+ * over, and the plan never expires), the features its tenants can use (any other is hidden in the app and refused by the API), its limits and its price.
+ * Changing a plan's credits or features changes what its tenants get from now on; it never takes back what they already received.
  */
 @Component({
   selector: 'app-platform-plan-editor',
   templateUrl: './platform-plan-editor.component.html',
   styleUrls: ['./platform-plan-editor.component.scss'],
 })
-export class PlatformPlanEditorComponent implements OnInit, OnDestroy {
-  readonly formatCharge = formatCharge;
+export class PlatformPlanEditorComponent implements OnInit {
+  readonly allFeatures = PLATFORM_FEATURES;
+  readonly featureLabels = PLATFORM_FEATURE_LABELS;
 
   planId: string | null = null;
   plan: PlatformPlan | null = null;
@@ -44,25 +37,20 @@ export class PlatformPlanEditorComponent implements OnInit, OnDestroy {
     maxKnowledgeBaseArticles: [0, [Validators.required, Validators.min(0)]],
     // 25 is Plan.DefaultLeadDiscoveryBatchSize on the backend.
     maxLeadDiscoveryBatchSize: [25, [Validators.required, Validators.min(0)]],
-    quotaWhatsApp: [0, [Validators.required, Validators.min(0)]],
-    quotaAi: [0, [Validators.required, Validators.min(0)]],
-    quotaLeads: [0, [Validators.required, Validators.min(0)]],
+    starterCredits: [0, [Validators.required, Validators.min(0)]],
+    monthlyCredits: [0, [Validators.required, Validators.min(0)]],
     isActive: [true],
   });
+
+  /** The features the plan includes. */
+  readonly features = new Set<PlatformFeature>();
 
   readonly countryPrices = countryPriceRows([]);
   regions: RegionOption[] = [];
 
-  report: PlanCostReport | null = null;
-  reportLoading = false;
-  reportFailed = false;
-
   loading = true;
   loadFailed = false;
   saving = false;
-
-  private readonly refresh$ = new Subject<void>();
-  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly fb: NonNullableFormBuilder,
@@ -79,38 +67,7 @@ export class PlatformPlanEditorComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.planId = this.route.snapshot.paramMap.get('id');
-
-    // The report follows the plan as it is edited; a short pause keeps it from recalculating on every keystroke.
-    merge(this.form.valueChanges, this.countryPrices.valueChanges, this.refresh$)
-      .pipe(
-        debounceTime(350),
-        tap(() => {
-          this.reportLoading = true;
-          this.reportFailed = false;
-        }),
-        switchMap(() =>
-          this.billing.buildPlanCostReport(this.reportRequest()).pipe(
-            catchError(() => {
-              this.reportFailed = true;
-              return of(null);
-            })
-          )
-        ),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((report) => {
-        this.reportLoading = false;
-        if (report) {
-          this.report = report;
-        }
-      });
-
     this.load();
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   load(): void {
@@ -148,10 +105,22 @@ export class PlatformPlanEditorComponent implements OnInit, OnDestroy {
           }
 
           this.form.markAsPristine();
-          this.refresh$.next();
         },
         error: () => (this.loadFailed = true),
       });
+  }
+
+  hasFeature(feature: PlatformFeature): boolean {
+    return this.features.has(feature);
+  }
+
+  toggleFeature(feature: PlatformFeature, on: boolean): void {
+    if (on) {
+      this.features.add(feature);
+    } else {
+      this.features.delete(feature);
+    }
+    this.form.markAsDirty();
   }
 
   save(): void {
@@ -164,7 +133,7 @@ export class PlatformPlanEditorComponent implements OnInit, OnDestroy {
     const raw = this.form.getRawValue();
     // The price is the country prices below - there is no separate base price. The server derives the one legacy USD figure.
     const priceMonthlyCents = 0;
-    const includedQuotas = this.quotas();
+    const features = PLATFORM_FEATURES.filter((f) => this.features.has(f));
     const countryPrices = toCountryPriceInputs(this.countryPrices);
 
     this.saving = true;
@@ -178,20 +147,24 @@ export class PlatformPlanEditorComponent implements OnInit, OnDestroy {
           maxLeadDiscoveryBatchSize: raw.maxLeadDiscoveryBatchSize,
           priceMonthlyCents,
           isActive: raw.isActive,
-          includedQuotas,
+          starterCredits: raw.starterCredits,
+          monthlyCredits: raw.monthlyCredits,
+          features,
           countryPrices,
         } as UpdatePlanRequest)
       : this.billing.createPlan({
           code: raw.code,
           name: raw.name,
           maxUsers: raw.maxUsers,
-          // There is no monthly message cap any more - sending is limited by the WhatsApp quota above.
+          // There is no monthly message cap any more - sending is paid for with credits.
           maxMessagesPerMonth: 0,
           maxCampaigns: raw.maxCampaigns,
           maxKnowledgeBaseArticles: raw.maxKnowledgeBaseArticles,
           maxLeadDiscoveryBatchSize: raw.maxLeadDiscoveryBatchSize,
           priceMonthlyCents,
-          includedQuotas,
+          starterCredits: raw.starterCredits,
+          monthlyCredits: raw.monthlyCredits,
+          features,
           countryPrices,
         } as CreatePlanRequest);
 
@@ -211,41 +184,7 @@ export class PlatformPlanEditorComponent implements OnInit, OnDestroy {
     this.router.navigate(['/platform/billing']);
   }
 
-  /** The country where the plan earns the least - the number that decides whether it is safe to sell. */
-  get worstMargin(): { countryName: string; marginPercent: number } | null {
-    const rows = (this.report?.countries ?? []).filter((c) => c.isSold && c.marginPercent !== null);
-    if (!rows.length) {
-      return null;
-    }
-    const worst = rows.reduce((a, b) => ((a.marginPercent as number) <= (b.marginPercent as number) ? a : b));
-    return { countryName: worst.countryName, marginPercent: worst.marginPercent as number };
-  }
-
-  /** A USD unit cost in rupees, at the rate the report was built with. */
-  toInr(usd: number): number {
-    return usd * (this.report?.inrPerUsd ?? 0);
-  }
-
-  private quotas(): PlanQuotaInput[] {
-    const raw = this.form.getRawValue();
-    return [
-      { quotaType: QuotaType.WhatsAppMessages, units: raw.quotaWhatsApp },
-      { quotaType: QuotaType.AiConversations, units: raw.quotaAi },
-      { quotaType: QuotaType.LeadCandidates, units: raw.quotaLeads },
-    ];
-  }
-
-  /** Rows still being filled in (no country yet, or no price) are left out - the report only prices complete ones. */
-  private reportRequest(): PlanCostReportRequest {
-    const raw = this.form.getRawValue();
-    return {
-      includedQuotas: this.quotas().map((q) => ({ ...q, units: Number(q.units) || 0 })),
-      countryPrices: toCountryPriceInputs(this.countryPrices).filter((p) => p.countryCode && p.amount > 0),
-    };
-  }
-
   private patchPlan(plan: PlatformPlan): void {
-    const units = (type: QuotaType) => plan.includedQuotas.find((q) => q.quotaType === type)?.units ?? 0;
     this.form.patchValue({
       code: plan.code,
       name: plan.name,
@@ -253,13 +192,15 @@ export class PlatformPlanEditorComponent implements OnInit, OnDestroy {
       maxCampaigns: plan.maxCampaigns,
       maxKnowledgeBaseArticles: plan.maxKnowledgeBaseArticles,
       maxLeadDiscoveryBatchSize: plan.maxLeadDiscoveryBatchSize,
-      quotaWhatsApp: units(QuotaType.WhatsAppMessages),
-      quotaAi: units(QuotaType.AiConversations),
-      quotaLeads: units(QuotaType.LeadCandidates),
+      starterCredits: plan.starterCredits,
+      monthlyCredits: plan.monthlyCredits,
       isActive: plan.isActive,
     });
     // Code is immutable once a plan exists.
     this.form.controls.code.disable();
+
+    this.features.clear();
+    plan.features.forEach((f) => this.features.add(f));
 
     this.countryPrices.clear();
     for (const p of plan.countryPrices) {

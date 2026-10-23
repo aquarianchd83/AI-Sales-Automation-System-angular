@@ -17,6 +17,7 @@
       [title]="d.execution.profileName"
       [subtitle]="(d.execution.processingDate | date: 'mediumDate') + ' · ' + d.execution.trigger"
     >
+      <app-credit-cost [scenarios]="[2]"></app-credit-cost>
       <button
         mat-flat-button
         color="primary"

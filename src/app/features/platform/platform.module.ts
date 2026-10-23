@@ -23,7 +23,6 @@ import { PlatformLogsComponent } from './platform-logs/platform-logs.component';
 import { CountryPriceEditorComponent } from './country-price-editor/country-price-editor.component';
 import { PlatformConfigurationComponent } from './platform-configuration/platform-configuration.component';
 import { PlatformCreditPackFormDialogComponent } from './platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
-import { PlatformTrialQuotaDialogComponent } from './platform-trial-quota-dialog/platform-trial-quota-dialog.component';
 import { PlatformPlanEditorComponent } from './platform-plan-editor/platform-plan-editor.component';
 import { PlatformQuotaAdjustDialogComponent } from './platform-quota-adjust-dialog/platform-quota-adjust-dialog.component';
 import { PlatformRefundListComponent } from './platform-refund-list/platform-refund-list.component';
@@ -107,7 +106,6 @@ const routes: Routes = [
     PlatformBillingComponent,
     PlatformPlanEditorComponent,
     PlatformCreditPackFormDialogComponent,
-    PlatformTrialQuotaDialogComponent,
     CountryPriceEditorComponent,
     PlatformUsageComponent,
     PlatformCreditPayersComponent,

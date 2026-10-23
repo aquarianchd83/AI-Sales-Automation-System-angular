@@ -63,30 +63,25 @@ describe('ShellComponent sidenav', () => {
   it('groups a tenant admin nav into labelled sections', () => {
     const root = render(['Admin']);
 
-    expect(labels(root)).toEqual(['Engage', 'CRM', 'Content', 'Insights', 'Business', 'Team & Security', 'Billing']);
+    expect(labels(root)).toEqual(['Engage', 'Outreach', 'CRM', 'Content', 'Insights', 'Business', 'Team & Security', 'Billing']);
     expect(items(root)).toEqual([
       'dashboardDashboard',
       'inboxInbox',
       'support_agentHandoffs',
-      'campaignCampaigns',
-      'groupsCustomers',
       'insightsLeads',
       'travel_exploreLead Discovery',
-      'sellTags',
-      'inventory_2Packages',
+      'groupsCustomers',
       'text_snippetMessage Templates',
+      'campaignCampaigns',
+      'inventory_2Packages',
       'perm_mediaMedia Library',
-      'auto_storiesProduct Sources',
-      'rate_reviewProduct Answers',
-      'inventoryPublished Knowledge',
-      'chatTest Chat',
+      'psychologyKnowledge',
       'bar_chartReports',
       'monitoringAgent Performance',
       'storefrontBusiness Profile',
       'publicSocial Ads',
       'settingsSettings',
       'manage_accountsUsers & Roles',
-      'historyAudit Log',
       'paymentsBilling',
       'data_usageUsage & Credits',
       'scienceTest Notifications',
@@ -118,9 +113,9 @@ describe('ShellComponent sidenav', () => {
   it('drops every admin-only section for a sales agent', () => {
     const root = render(['SalesAgent']);
 
-    expect(labels(root)).toEqual(['Engage', 'CRM', 'Content']);
+    expect(labels(root)).toEqual(['Engage', 'Outreach', 'CRM', 'Content']);
     expect(items(root)).not.toContain('settingsSettings');
-    expect(items(root).length).toBe(11);
+    expect(items(root).length).toBe(10);
   });
 
   it('sends an Admin straight to Lead Discovery History - the Discovered Leads page would 403 nobody, but History is Admin-only', () => {
@@ -145,12 +140,13 @@ describe('ShellComponent sidenav', () => {
       'dashboardDashboard',
       'businessTenants',
       'manage_accountsUsers',
+      'confirmation_numberTickets',
       'campaignAnnouncements',
       'menu_bookKnowledge Base', // platform knowledge: stays
       'quizStudio Questionnaires',
       'paymentsPackage',
       'data_usageUsage & Quotas',
-      'account_balance_walletCredit Payers',
+      'account_balance_walletCredit Costs & Payers',
       'receipt_longPayments',
       'assignment_returnRefund Requests',
       'chatPlatform WhatsApp',
@@ -169,6 +165,7 @@ describe('ShellComponent sidenav', () => {
       'ads_clickMeta Ads',
       'receipt_longLogs',
       'historyAudit Log',
+      'personMy Profile',
       'lock_resetChange Password',
     ]);
   });

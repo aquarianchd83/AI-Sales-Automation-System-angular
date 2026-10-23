@@ -74,6 +74,8 @@ export interface CreditScenarioInfo {
   /** The AI provider's estimated bill for the scenario - what it really costs the platform, whoever pays the credits. */
   providerCostLast30DaysUsd: number | null;
   changedAtUtc: string | null;
+  /** What one unit is - "reply", "message", "candidate", "step", "video", "action". */
+  unitLabel: string;
 }
 
 export interface UpdateCreditPayerRequest {

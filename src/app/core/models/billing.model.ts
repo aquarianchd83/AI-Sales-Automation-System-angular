@@ -1,3 +1,4 @@
+import { PlatformFeature } from './wallet.model';
 /** PlanDto — one row of the public plan catalog (GET /billing/plans, no auth required).
  * priceMonthlyCents stays the base USD list price; currencyCode/currencySymbol/localPriceAmount are
  * a display/quote figure resolved server-side from the caller's country (an authenticated tenant's
@@ -42,17 +43,16 @@ export interface Plan {
   currencySymbol: string;
   /** The price set for this country, before tax. A plan with no price for the country is not returned at all. */
   localPriceAmount: number;
-  /** What the plan includes each billing period, per prepaid quota type. */
-  includedQuotas: IncludedQuota[];
+  /** Credits put in the wallet once when a tenant goes onto the plan. They never expire - the plan does not. */
+  starterCredits: number;
+  /** Credits added to the wallet every month while on the plan. Unspent credits carry over. */
+  monthlyCredits: number;
+  /** The features a tenant on the plan can use. */
+  features: PlatformFeature[];
   /** Tax added on top of localPriceAmount for this tenant, and what they would pay in all. */
   taxLines: TaxLine[];
   taxLocal: number;
   totalLocal: number;
-}
-
-export interface IncludedQuota {
-  quotaType: QuotaType;
-  units: number;
 }
 
 /**
@@ -125,11 +125,14 @@ export interface Payment {
 // ---------------------------------------------------------------------------
 
 export enum QuotaType {
+  /** The five types below are retired: there is one credit wallet now. They only appear on old ledger rows. */
   WhatsAppMessages = 0,
   AiConversations = 1,
   LeadCandidates = 2,
   ContentGenerations = 3,
   VideoRenders = 4,
+  /** The single wallet every feature spends from. */
+  Credits = 5,
 }
 
 export const QUOTA_TYPE_LABELS: Record<QuotaType, string> = {
@@ -138,6 +141,7 @@ export const QUOTA_TYPE_LABELS: Record<QuotaType, string> = {
   [QuotaType.LeadCandidates]: 'Lead candidates',
   [QuotaType.ContentGenerations]: 'Content generations',
   [QuotaType.VideoRenders]: 'Video renders',
+  [QuotaType.Credits]: 'Credits',
 };
 
 export const QUOTA_TYPE_ICONS: Record<QuotaType, string> = {
@@ -146,15 +150,11 @@ export const QUOTA_TYPE_ICONS: Record<QuotaType, string> = {
   [QuotaType.LeadCandidates]: 'travel_explore',
   [QuotaType.ContentGenerations]: 'auto_awesome',
   [QuotaType.VideoRenders]: 'movie',
+  [QuotaType.Credits]: 'toll',
 };
 
-export const QUOTA_TYPES: QuotaType[] = [
-  QuotaType.WhatsAppMessages,
-  QuotaType.AiConversations,
-  QuotaType.LeadCandidates,
-  QuotaType.ContentGenerations,
-  QuotaType.VideoRenders,
-];
+/** The wallets a tenant has: one. */
+export const QUOTA_TYPES: QuotaType[] = [QuotaType.Credits];
 
 export enum QuotaGrantOrigin {
   PlanAllocation = 0,
@@ -167,7 +167,7 @@ export const QUOTA_GRANT_ORIGIN_LABELS: Record<QuotaGrantOrigin, string> = {
   [QuotaGrantOrigin.PlanAllocation]: 'Included in plan',
   [QuotaGrantOrigin.CreditPurchase]: 'Purchased credits',
   [QuotaGrantOrigin.Adjustment]: 'Adjustment',
-  [QuotaGrantOrigin.Trial]: 'Free trial',
+  [QuotaGrantOrigin.Trial]: 'Trial plan credits',
 };
 
 export enum QuotaEntryType {
@@ -221,6 +221,8 @@ export interface QuotaBalance {
 export interface QuotaLedgerEntry {
   id: string;
   quotaType: QuotaType;
+  /** The feature the entry was for (a spend, or a give-back), or null for an allocation, purchase or expiry. */
+  feature?: PlatformFeature | null;
   entryType: QuotaEntryType;
   unitsDelta: number;
   balanceAfter: number;
@@ -235,6 +237,7 @@ export interface QuotaLedgerQuery {
   page?: number;
   pageSize?: number;
   quotaType?: QuotaType;
+  feature?: PlatformFeature;
 }
 
 /** Where the credit an AI request spent came from. A trial allowance is never purchased credit. */

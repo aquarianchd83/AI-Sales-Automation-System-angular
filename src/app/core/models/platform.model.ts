@@ -1,4 +1,5 @@
-import { IncludedQuota, QuotaType } from './billing.model';
+import { QuotaType } from './billing.model';
+import { PlatformFeature } from './wallet.model';
 import { AppRole } from './user.model';
 
 /**
@@ -207,8 +208,12 @@ export interface PlatformPlan {
   currencyCode: string;
   currencySymbol: string;
   priceMonthlyLocal: number;
-  /** What the plan grants each billing period, per prepaid quota type. Empty = no prepaid quota. */
-  includedQuotas: IncludedQuota[];
+  /** Credits put in a tenant's wallet once when it goes onto the plan, kept until spent (the plan never expires). */
+  starterCredits: number;
+  /** Credits added to the wallet every month. Unspent credits carry over. */
+  monthlyCredits: number;
+  /** The features a tenant on the plan can use; any other is hidden in the app and refused by the API. */
+  features: PlatformFeature[];
   /** Explicit prices set per country, each in that country's own currency. A country without one is quoted the
    * USD price converted at the platform rate. */
   countryPrices: CountryPrice[];
@@ -247,7 +252,9 @@ export interface CreatePlanRequest {
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
   maxLeadDiscoveryBatchSize?: number | null;
-  includedQuotas?: PlanQuotaInput[] | null;
+  starterCredits?: number;
+  monthlyCredits?: number;
+  features?: PlatformFeature[] | null;
   countryPrices?: CountryPriceInput[] | null;
 }
 
@@ -263,8 +270,11 @@ export interface UpdatePlanRequest {
   priceMonthlyCents: number;
   isActive: boolean;
   maxLeadDiscoveryBatchSize?: number | null;
-  /** Omitted leaves the plan's quotas unchanged; when sent it is the complete set. */
-  includedQuotas?: PlanQuotaInput[] | null;
+  /** Omitted leaves the credits unchanged. */
+  starterCredits?: number | null;
+  monthlyCredits?: number | null;
+  /** Omitted leaves the plan's features unchanged; when sent it is the complete set. */
+  features?: PlatformFeature[] | null;
   /** Omitted leaves the plan's country prices unchanged; when sent it is the complete set. */
   countryPrices?: CountryPriceInput[] | null;
 }

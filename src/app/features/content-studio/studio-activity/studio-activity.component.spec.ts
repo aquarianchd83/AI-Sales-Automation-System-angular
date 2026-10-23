@@ -43,10 +43,7 @@ const row = (id: string, over: Partial<StudioActivity> = {}): StudioActivity => 
 const overview = (over: Partial<StudioOverview> = {}): StudioOverview => ({
   enabled: true,
   approvalPolicy: StudioApprovalPolicy.AdminOnly,
-  balances: [
-    { quotaType: QuotaType.ContentGenerations, balance: 8, capacity: 10, grants: [] },
-    { quotaType: QuotaType.VideoRenders, balance: 0, capacity: 3, grants: [] },
-  ],
+  balances: [{ quotaType: QuotaType.Credits, balance: 8, capacity: 10, grants: [] }],
   last30Days: [
     { quotaType: QuotaType.ContentGenerations, charged: 3, refunded: 1, net: 2, activities: 4, blocked: 1 },
     { quotaType: QuotaType.VideoRenders, charged: 3, refunded: 0, net: 3, activities: 3, blocked: 0 },
@@ -82,17 +79,23 @@ describe('StudioActivityComponent', () => {
 
   const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-  it('shows a balance card for each studio quota with its last-30-day totals', () => {
+  it('shows the one credit wallet with the last-30-day totals of both kinds of step together', () => {
     const cards = Array.from(render().querySelectorAll('.balance-card'));
 
-    expect(cards.length).toBe(2);
-    expect(text(cards[0])).toContain('Content generations');
+    expect(cards.length).toBe(1);
+    expect(text(cards[0])).toContain('Credits');
     expect(text(cards[0])).toContain('8');
     expect(text(cards[0])).toContain('of 10 available');
-    expect(text(cards[0])).toContain('2 used');
+    expect(text(cards[0])).toContain('5 used'); // 2 (generations) + 3 (renders)
     expect(text(cards[0])).toContain('Refused');
-    expect(cards[1].classList).toContain('balance-card--empty');
-    expect(text(cards[1])).toContain('Used up');
+  });
+
+  it('says a drained wallet pauses the studio', () => {
+    const el = render({ overview: overview({ balances: [{ quotaType: QuotaType.Credits, balance: 0, capacity: 10, grants: [] }] }) });
+
+    const card = el.querySelector('.balance-card')!;
+    expect(card.classList).toContain('balance-card--empty');
+    expect(text(card)).toContain('Used up');
   });
 
   it('lists each activity with what it cost and how it ended', () => {

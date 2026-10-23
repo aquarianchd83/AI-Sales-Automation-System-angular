@@ -55,12 +55,12 @@ describe('TestNotificationsComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.kind-table tbody tr').length).toBe(component.kinds.length);
   });
 
-  it('sends a quota-threshold kind with its picked quota type, defaulting to lead candidates', () => {
+  it('sends a quota-threshold kind with its picked quota type, defaulting to credits', () => {
     billing.sendTestNotification.and.returnValue(of(result()));
 
     component.send(TenantNotificationKind.QuotaExhausted);
 
-    expect(billing.sendTestNotification).toHaveBeenCalledWith({ kind: TenantNotificationKind.QuotaExhausted, quotaType: QuotaType.LeadCandidates });
+    expect(billing.sendTestNotification).toHaveBeenCalledWith({ kind: TenantNotificationKind.QuotaExhausted, quotaType: QuotaType.Credits });
     expect(notify.success).toHaveBeenCalled();
   });
 

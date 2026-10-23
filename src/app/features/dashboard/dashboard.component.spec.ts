@@ -165,7 +165,7 @@ describe('DashboardComponent', () => {
     expect(text).toContain('3 of 5 steps complete');
     // Plan & usage
     expect(text).toContain('Plan & usage');
-    expect(text).toContain('Free trial');
+    expect(text).toContain('Trial');
   });
 
   it('hides admin-only widgets and skips their requests for a sales agent', () => {

@@ -23,13 +23,12 @@ describe('BillingListComponent inside onboarding', () => {
         id: 'plan-1', code: 'silver', name: 'Silver', maxUsers: 2, maxMessagesPerMonth: 1000, maxCampaigns: 2,
         maxKnowledgeBaseArticles: 20, maxLeadDiscoveryBatchSize: 25, priceMonthlyCents: 3900, currencyCode: 'INR',
         currencySymbol: '₹', localPriceAmount: 3237, taxLines: [], taxLocal: 0, totalLocal: 3237,
-        includedQuotas: [{ quotaType: QuotaType.WhatsAppMessages, units: 500 }],
+        starterCredits: 0, monthlyCredits: 100, features: ['WhatsAppMessaging'],
       },
     ]));
     billing.getSubscription.and.returnValue(of(null));
     billing.getQuota.and.returnValue(of([
-      { quotaType: QuotaType.WhatsAppMessages, balance: 50, capacity: 50, grants: [{ id: 'g', origin: QuotaGrantOrigin.Trial, unitsGranted: 50, unitsRemaining: 50, expiresAtUtc: '' }] },
-      { quotaType: QuotaType.AiConversations, balance: 0, capacity: 0, grants: [] },
+      { quotaType: QuotaType.Credits, balance: 50, capacity: 50, grants: [{ id: 'g', origin: QuotaGrantOrigin.Trial, unitsGranted: 50, unitsRemaining: 50, expiresAtUtc: '' }] },
     ]));
     billing.getPaymentHistory.and.returnValue(of([]));
     billing.getCapabilities.and.returnValue(of({ refundRequestsEnabled: true }));
@@ -67,23 +66,22 @@ describe('BillingListComponent inside onboarding', () => {
     expect(root.textContent).not.toContain('Usage & credits');
   });
 
-  it('tells a tenant on its free trial it can carry on without choosing a plan', () => {
-    expect(render(true).querySelector('.subscription-card')!.textContent).toContain('carry on with your free trial');
+  it('tells a tenant on its trial it can carry on without choosing a plan', () => {
+    expect(render(true).querySelector('.subscription-card')!.textContent).toContain('carry on with your trial');
   });
 
-  it('lists what the free trial includes, leaving out anything it grants none of', () => {
+  it('lists the starter credits the trial plan gave', () => {
     const text = render(true).querySelector('.subscription-card')!.textContent!;
 
-    expect(text).toContain('Included in your free trial');
-    expect(text).toContain('50 whatsapp messages');
-    expect(text).not.toContain('ai conversations');
+    expect(text).toContain('Included in your trial plan');
+    expect(text).toContain('50 credits to start');
   });
 
   it('keeps the usual wording on the full Billing page', () => {
     const text = render(false).querySelector('.subscription-card')!.textContent!;
 
     expect(text).toContain('Choose a plan below to get started.');
-    expect(text).not.toContain('carry on with your free trial');
+    expect(text).not.toContain('carry on with your trial');
   });
 
   it('does not even ask for the history it is not showing', () => {
