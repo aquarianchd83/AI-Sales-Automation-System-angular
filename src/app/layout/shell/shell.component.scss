@@ -427,6 +427,44 @@
   }
 }
 
+// The credits left in the wallet, beside the bell.
+.wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  margin-right: 8px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f5f59;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+
+  &[href]:hover,
+  &:is(button):hover {
+    background: rgba(15, 118, 110, 0.18);
+  }
+}
+
+button.wallet-chip {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.wallet-caret {
+  margin-left: -2px;
+}
+
 .bell {
   position: relative;
 }

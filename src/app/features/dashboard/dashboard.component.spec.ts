@@ -5,6 +5,8 @@ import { Observable, of, throwError } from 'rxjs';
 
 import { PagedResult } from '../../core/models/paged-result.model';
 import { AuthService } from '../../core/services/auth.service';
+import { EntitlementsStore } from '../../core/services/entitlements.store';
+import { PlatformFeature } from '../../core/models/wallet.model';
 import { BillingService } from '../../core/services/billing.service';
 import { CampaignService } from '../../core/services/campaign.service';
 import { ConversationService } from '../../core/services/conversation.service';
@@ -196,5 +198,36 @@ describe('DashboardComponent', () => {
     expect(text).toContain('No scored leads yet.');
     expect(text).toContain('No campaigns yet.');
     expect(text).toContain('0 of 4 steps complete');
+  });
+
+  describe('upgrade badges', () => {
+    const withPlan = (features: PlatformFeature[], admin = true): HTMLElement => {
+      create({ admin });
+      TestBed.inject(EntitlementsStore).set({ planCode: 'trial', planName: 'Trial', features, balance: 50, costs: [] });
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    };
+    const badges = (root: HTMLElement) => Array.from(root.querySelectorAll('.plan-badge-text')).map((e) => e.textContent?.trim());
+
+    it('names each feature the plan lacks, as a badge that links to the plans page', () => {
+      const root = withPlan(['WhatsAppMessaging', 'AiConversations']);
+
+      expect(badges(root)).toEqual([
+        'Lead discovery is not part of your plan. Upgrade to Premium to use it.',
+        'Content Studio is not part of your plan. Upgrade to Premium to use it.',
+        'Product knowledge is not part of your plan. Upgrade to Premium to use it.',
+      ]);
+      expect(root.querySelector('.plan-badge')?.getAttribute('href')).toBe('/billing');
+    });
+
+    it('shows none on a plan that includes everything', () => {
+      const root = withPlan(['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge']);
+
+      expect(root.querySelector('.plan-badges')).toBeNull();
+    });
+
+    it('shows none to a user who cannot upgrade the plan', () => {
+      expect(badges(withPlan(['WhatsAppMessaging'], false))).toEqual([]);
+    });
   });
 });

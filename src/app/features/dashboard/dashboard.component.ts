@@ -28,11 +28,13 @@ import {
   TenantWhatsAppConfig,
 } from '../../core/models/tenant-settings.model';
 import { TENANT_ADMIN_ROLES, User } from '../../core/models/user.model';
+import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS } from '../../core/models/wallet.model';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
 import { CampaignService } from '../../core/services/campaign.service';
 import { ConversationService } from '../../core/services/conversation.service';
 import { CustomerService } from '../../core/services/customer.service';
+import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { HandoffService } from '../../core/services/handoff.service';
 import { PublishedKnowledgeService } from '../../core/services/published-knowledge.service';
 import { LeadService } from '../../core/services/lead.service';
@@ -139,6 +141,20 @@ export class DashboardComponent implements OnInit {
   /** Subscription, usage and WhatsApp status endpoints are tenant-admin only. */
   readonly isTenantAdmin = this.auth.hasAnyRole(TENANT_ADMIN_ROLES);
 
+  /**
+   * One badge for each feature the plan lacks, to nudge an upgrade. Only an Admin sees them - upgrading is the Admin's to do - and none shows
+   * until the plan is known, so a Premium tenant never sees them flash.
+   */
+  readonly planBadges$: Observable<string[]> = this.entitlements.entitlements$.pipe(
+    map((e) =>
+      !e || !this.isTenantAdmin
+        ? []
+        : PLATFORM_FEATURES.filter((f) => !e.features.includes(f)).map(
+            (f) => `${PLATFORM_FEATURE_LABELS[f]} is not part of your plan. Upgrade to Premium to use it.`
+          )
+    )
+  );
+
   readonly greeting = greetingFor(new Date());
   readonly today = new Date();
 
@@ -181,7 +197,8 @@ export class DashboardComponent implements OnInit {
     private readonly templates: MessageTemplateService,
     private readonly publishedKnowledge: PublishedKnowledgeService,
     private readonly tenantSettings: TenantSettingsService,
-    private readonly billing: BillingService
+    private readonly billing: BillingService,
+    private readonly entitlements: EntitlementsStore
   ) {}
 
   ngOnInit(): void {

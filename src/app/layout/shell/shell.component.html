@@ -71,6 +71,39 @@
 
       <span class="spacer"></span>
 
+      <ng-container *ngIf="showWallet && { value: walletBalance$ | async } as wallet">
+        <ng-container *ngIf="wallet.value !== null">
+        <button
+          *ngIf="canOpenWallet; else walletPlain"
+          type="button"
+          class="wallet-chip"
+          [matMenuTriggerFor]="walletMenu"
+          matTooltip="Credits left in your wallet"
+          aria-label="Wallet balance"
+        >
+          <mat-icon>account_balance_wallet</mat-icon>
+          <span>{{ wallet.value | number: '1.0-2' }}</span>
+          <mat-icon class="wallet-caret">expand_more</mat-icon>
+        </button>
+        <mat-menu #walletMenu="matMenu">
+          <a mat-menu-item routerLink="/billing/credit-usage">
+            <mat-icon>history</mat-icon>
+            <span>Spend credit history</span>
+          </a>
+          <a mat-menu-item routerLink="/billing/wallet">
+            <mat-icon>data_usage</mat-icon>
+            <span>Usage &amp; credits</span>
+          </a>
+        </mat-menu>
+        <ng-template #walletPlain>
+          <span class="wallet-chip" matTooltip="Credits left in your wallet" aria-label="Wallet balance">
+            <mat-icon>account_balance_wallet</mat-icon>
+            <span>{{ wallet.value | number: '1.0-2' }}</span>
+          </span>
+        </ng-template>
+        </ng-container>
+      </ng-container>
+
       <ng-container *ngIf="showBillingBell && !onboardingActive">
         <button mat-icon-button type="button" class="bell" #billingTrigger="matMenuTrigger" [matMenuTriggerFor]="alertsMenu" aria-label="Billing alerts">
           <mat-icon>{{ unreadBillingCount ? 'notifications_active' : 'notifications_none' }}</mat-icon>

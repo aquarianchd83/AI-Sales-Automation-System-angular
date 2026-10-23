@@ -23,6 +23,17 @@
     <mat-icon class="hero-art" aria-hidden="true">chat</mat-icon>
   </section>
 
+  <!-- Features the plan lacks -->
+  <ng-container *ngIf="planBadges$ | async as badges">
+    <div class="plan-badges" *ngIf="badges.length">
+      <a class="plan-badge" *ngFor="let text of badges" routerLink="/billing">
+        <mat-icon>workspace_premium</mat-icon>
+        <span class="plan-badge-text">{{ text }}</span>
+        <span class="plan-badge-cta">Upgrade</span>
+      </a>
+    </div>
+  </ng-container>
+
   <!-- Needs attention -->
   <div class="alerts" *ngIf="alerts.length">
     <div class="alert" *ngFor="let alert of alerts" [class]="'alert alert--' + alert.tone">

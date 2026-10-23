@@ -63,27 +63,26 @@ describe('ShellComponent sidenav', () => {
   it('groups a tenant admin nav into labelled sections', () => {
     const root = render(['Admin']);
 
-    expect(labels(root)).toEqual(['Engage', 'Outreach', 'CRM', 'Content', 'Insights', 'Business', 'Team & Security', 'Billing']);
+    expect(labels(root)).toEqual(['Outreach', 'Engage', 'Extra', 'Marketing', 'Billing', 'Settings']);
     expect(items(root)).toEqual([
       'dashboardDashboard',
-      'inboxInbox',
-      'support_agentHandoffs',
-      'insightsLeads',
       'travel_exploreLead Discovery',
       'groupsCustomers',
       'text_snippetMessage Templates',
       'campaignCampaigns',
+      'psychologyKnowledge',
+      'inboxInbox',
+      'support_agentHandoffs',
+      'insightsLeads',
       'inventory_2Packages',
       'perm_mediaMedia Library',
-      'psychologyKnowledge',
+      'publicSocial Ads',
+      'paymentsMembership',
+      'data_usageUsage & Credits',
       'bar_chartReports',
       'monitoringAgent Performance',
-      'storefrontBusiness Profile',
-      'publicSocial Ads',
-      'settingsSettings',
+      'settingsWhatsApp Settings',
       'manage_accountsUsers & Roles',
-      'paymentsBilling',
-      'data_usageUsage & Credits',
       'scienceTest Notifications',
     ]);
   });
@@ -92,7 +91,7 @@ describe('ShellComponent sidenav', () => {
     localStorage.removeItem('wsa.collapsedNavSections');
     const fixture = createFixture(['Admin']);
     const root = fixture.nativeElement as HTMLElement;
-    const heading = () => Array.from(root.querySelectorAll<HTMLButtonElement>('.nav-section-label')).find((b) => b.textContent!.trim() === 'Content')!;
+    const heading = () => Array.from(root.querySelectorAll<HTMLButtonElement>('.nav-section-label')).find((b) => b.textContent!.trim() === 'Extra')!;
     const section = () => heading().closest('.nav-section')!;
 
     expect(heading().getAttribute('aria-expanded')).toBe('true');
@@ -102,7 +101,7 @@ describe('ShellComponent sidenav', () => {
     fixture.detectChanges();
     expect(heading().getAttribute('aria-expanded')).toBe('false');
     expect(section().classList).toContain('nav-section--collapsed');
-    expect(localStorage.getItem('wsa.collapsedNavSections')).toBe('["Content"]');
+    expect(localStorage.getItem('wsa.collapsedNavSections')).toBe('["Extra"]');
 
     heading().click();
     fixture.detectChanges();
@@ -113,8 +112,8 @@ describe('ShellComponent sidenav', () => {
   it('drops every admin-only section for a sales agent', () => {
     const root = render(['SalesAgent']);
 
-    expect(labels(root)).toEqual(['Engage', 'Outreach', 'CRM', 'Content']);
-    expect(items(root)).not.toContain('settingsSettings');
+    expect(labels(root)).toEqual(['Outreach', 'Engage', 'Extra']);
+    expect(items(root)).not.toContain('settingsWhatsApp Settings');
     expect(items(root).length).toBe(10);
   });
 

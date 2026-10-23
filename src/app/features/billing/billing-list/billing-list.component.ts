@@ -1,10 +1,11 @@
-import { Component, Inject, OnInit, Optional } from '@angular/core';
+import { Component, Inject, OnInit, Optional, Injector } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
 import { NotificationService } from '../../../core/services/notification.service';
 import { PLATFORM_FEATURE_LABELS } from '../../../core/models/wallet.model';
 import { BillingService } from '../../../core/services/billing.service';
+import { EntitlementsService } from '../../../core/services/entitlements.service';
 import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import {
   Payment,
@@ -45,9 +46,30 @@ export class BillingListComponent implements OnInit {
   trialAllowance: { quotaType: QuotaType; units: number }[] = [];
   paymentHistory: Payment[] = [];
 
+  /** Both histories open with this many rows; the rest are revealed as the tenant scrolls to the bottom. */
+  static readonly pageSize = 10;
+  paymentsShown = BillingListComponent.pageSize;
+  refundsShown = BillingListComponent.pageSize;
+
   /** Whether the platform operator has switched refund requests on for this tenant - no button without it. */
   refundsEnabled = false;
   refundRequests: RefundRequest[] = [];
+
+  get visiblePayments(): Payment[] {
+    return this.paymentHistory.slice(0, this.paymentsShown);
+  }
+
+  get visibleRefunds(): RefundRequest[] {
+    return this.refundRequests.slice(0, this.refundsShown);
+  }
+
+  showMorePayments(): void {
+    this.paymentsShown += BillingListComponent.pageSize;
+  }
+
+  showMoreRefunds(): void {
+    this.refundsShown += BillingListComponent.pageSize;
+  }
   readonly RefundStatus = RefundStatus;
   readonly featureLabels = PLATFORM_FEATURE_LABELS;
   readonly formatUnits = formatUnits;
@@ -56,6 +78,7 @@ export class BillingListComponent implements OnInit {
     private readonly billing: BillingService,
     private readonly notify: NotificationService,
     private readonly dialog: MatDialog,
+    private readonly injector: Injector,
     @Optional() @Inject(EMBEDDED_IN_ONBOARDING) embedded: boolean | null
   ) {
     this.embedded = !!embedded;
@@ -224,6 +247,8 @@ export class BillingListComponent implements OnInit {
               this.subscription = subscription;
               this.notify.success(`${kind === 'upgrade' ? 'Upgraded' : kind === 'downgrade' ? 'Downgraded' : 'Switched'} to ${plan.name}.`);
               this.loadPaymentHistory();
+              // The plan decides what the menu shows and the wallet figure, so read both again now rather than on the next page change.
+              this.injector.get(EntitlementsService).load(true).subscribe({ error: () => undefined });
             },
           });
       });

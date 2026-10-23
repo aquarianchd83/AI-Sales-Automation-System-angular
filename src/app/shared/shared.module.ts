@@ -10,6 +10,7 @@ import { PageHeaderComponent } from './components/page-header/page-header.compon
 import { ModuleFlowsButtonComponent } from './components/module-flows/module-flows-button.component';
 import { ModuleFlowsDialogComponent } from './components/module-flows/module-flows-dialog.component';
 import { HasRoleDirective } from './directives/has-role.directive';
+import { InViewportDirective } from './directives/in-viewport.directive';
 import { MaterialModule } from './material.module';
 import { ZonedDatePipe } from './pipes/zoned-date.pipe';
 import { CustomerHistoryDialogComponent } from './components/customer-history-dialog/customer-history-dialog.component';
@@ -26,6 +27,7 @@ const DECLARATIONS = [
   PageHeaderComponent,
   StateSelectComponent,
   HasRoleDirective,
+  InViewportDirective,
   ModuleFlowsButtonComponent,
   ModuleFlowsDialogComponent,
   ZonedDatePipe,

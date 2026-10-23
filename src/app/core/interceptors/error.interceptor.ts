@@ -23,7 +23,8 @@ interface ProblemDetails {
 /**
  * Turns API failures into a single readable toast, then rethrows so callers can
  * still react (e.g. re-enable a submit button). 401 is skipped — AuthInterceptor
- * owns that path and either refreshes silently or redirects to /login.
+ * owns that path and either refreshes silently or redirects to /login. So is a refusal for a feature outside the tenant's plan: the dashboard
+ * already shows an upgrade badge for it, and the screens are guarded, so a toast on top (from a background call at sign-in) would only nag.
  */
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
@@ -38,13 +39,18 @@ export class ErrorInterceptor implements HttpInterceptor {
         if (error instanceof HttpErrorResponse) {
           // 401s are recorded too: a user bounced back to /login is a prime "stuck" signal.
           this.analytics.trackApiError(req.method, error.url ?? req.url, error.status);
-          if (error.status !== 401) {
+          if (error.status !== 401 && !this.isPlanRefusal(error)) {
             this.notify.error(this.toMessage(error));
           }
         }
         return throwError(() => error);
       })
     );
+  }
+
+  /** The API's 403 for a feature the plan does not include - "Content Studio is not part of your plan. Upgrade to Premium to use it." */
+  private isPlanRefusal(error: HttpErrorResponse): boolean {
+    return error.status === 403 && /is not part of your plan/i.test(this.toMessage(error));
   }
 
   private toMessage(error: HttpErrorResponse): string {

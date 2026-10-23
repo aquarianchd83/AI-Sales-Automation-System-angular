@@ -1,5 +1,5 @@
 <div class="page">
-  <app-page-header title="Credit usage" subtitle="Every action that used credits, and who paid for it.">
+  <app-page-header title="Spend credit history" subtitle="Every AI action that used credits - taken from your balance or covered by the platform - and any credits returned.">
     <a mat-stroked-button routerLink="/billing/wallet">
       <mat-icon>data_usage</mat-icon>
       Usage & credits
@@ -38,7 +38,9 @@
         <ng-container matColumnDef="credits">
           <th mat-header-cell *matHeaderCellDef class="num">Credits</th>
           <td mat-cell *matCellDef="let row" class="num">
-            {{ row.units | number: '1.0-4' }}
+            <span class="debit" *ngIf="!row.coveredByPlatform && !row.refunded">−{{ row.units | number: '1.0-4' }}</span>
+            <span class="credit" *ngIf="!row.coveredByPlatform && row.refunded">+{{ row.units | number: '1.0-4' }}</span>
+            <span *ngIf="row.coveredByPlatform">{{ row.units | number: '1.0-4' }}</span>
             <div class="muted small">{{ quotaLabel(row.quotaType) }}</div>
           </td>
         </ng-container>

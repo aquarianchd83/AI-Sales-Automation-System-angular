@@ -14,6 +14,7 @@ import { TenantNotification, isUrgentNotification, tenantNotificationRoute } fro
 import { BillingService } from '../../core/services/billing.service';
 import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { ContentStudioService } from '../../core/services/content-studio.service';
+import { EntitlementsService } from '../../core/services/entitlements.service';
 import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { PlatformFeature } from '../../core/models/wallet.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
@@ -80,14 +81,6 @@ export class ShellComponent implements OnInit, OnDestroy {
       ],
     },
     {
-      label: 'Engage',
-      items: [
-        { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
-        { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
-        { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
-      ],
-    },
-    {
       // Finding people and reaching out to them: discover, the customers they become, the messages, the campaigns that send them.
       label: 'Outreach',
       items: [
@@ -104,24 +97,12 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'] },
         { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [], feature: 'WhatsAppMessaging' },
         { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'WhatsAppMessaging' },
-      ],
-    },
-    {
-      label: 'CRM',
-      items: [
-        { label: 'Packages', icon: 'inventory_2', route: '/packages', roles: [] },
-      ],
-    },
-    {
-      label: 'Content',
-      items: [
-        { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },
+        // One entry for everything the AI knows; its screens are listed on the page itself (KnowledgeHubComponent).
         {
-          // One entry for everything the AI knows; its screens are listed on the page itself (KnowledgeHubComponent).
           label: 'Knowledge',
           icon: 'psychology',
           // An Admin lands on Product Sources; a Sales Manager only has the studio screens, so lands on the questionnaire.
-          route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ?'/product-knowledge/sources' : '/content-studio/questionnaire',
+          route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/product-knowledge/sources' : '/content-studio/questionnaire',
           roles: STUDIO_CONTENT_ROLES,
           visible: () => this.canOpenProductKnowledge() || this.canOpenStudio(),
           matches: ['/product-knowledge', '/content-studio/questionnaire', '/content-studio/facts', '/content-studio/readiness'],
@@ -129,23 +110,24 @@ export class ShellComponent implements OnInit, OnDestroy {
       ],
     },
     {
-      label: 'Insights',
+      label: 'Engage',
       items: [
-        { label: 'Reports', icon: 'bar_chart', route: '/reports', roles: REPORT_ROLES },
-        { label: 'Agent Performance', icon: 'monitoring', route: '/agent-performance', roles: TENANT_ADMIN_ONLY },
+        { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
+        { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
+        { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
       ],
     },
     {
-      label: 'Business',
+      label: 'Extra',
       items: [
-        { label: 'Business Profile', icon: 'storefront', route: '/profile', roles: TENANT_ADMIN_ONLY },
+        { label: 'Packages', icon: 'inventory_2', route: '/packages', roles: [] },
+        { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },
+      ],
+    },
+    {
+      label: 'Marketing',
+      items: [
         { label: 'Social Ads', icon: 'public', route: '/social-ads', roles: TENANT_ADMIN_ONLY },
-        { label: 'Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
-      ],
-    },
-    {
-      label: 'Content Studio',
-      items: [
         {
           label: 'Charges & Activity',
           icon: 'receipt_long',
@@ -158,16 +140,19 @@ export class ShellComponent implements OnInit, OnDestroy {
       ],
     },
     {
-      label: 'Team & Security',
+      label: 'Billing',
       items: [
-        { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
+        { label: 'Membership', icon: 'payments', route: '/billing', roles: TENANT_ADMIN_ONLY, exact: true },
+        { label: 'Usage & Credits', icon: 'data_usage', route: '/billing/wallet', roles: TENANT_ADMIN_ONLY, matches: ['/billing/credit-usage'] },
       ],
     },
     {
-      label: 'Billing',
+      label: 'Settings',
       items: [
-        { label: 'Billing', icon: 'payments', route: '/billing', roles: TENANT_ADMIN_ONLY, exact: true },
-        { label: 'Usage & Credits', icon: 'data_usage', route: '/billing/wallet', roles: TENANT_ADMIN_ONLY },
+        { label: 'Reports', icon: 'bar_chart', route: '/reports', roles: REPORT_ROLES },
+        { label: 'Agent Performance', icon: 'monitoring', route: '/agent-performance', roles: TENANT_ADMIN_ONLY },
+        { label: 'WhatsApp Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
+        { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
         { label: 'Test Notifications', icon: 'science', route: '/billing/notifications/test', roles: TENANT_ADMIN_ONLY },
       ],
     },
@@ -425,6 +410,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly billing: BillingService,
     private readonly contentStudio: ContentStudioService,
     private readonly entitlements: EntitlementsStore,
+    private readonly entitlementsLoader: EntitlementsService,
     private readonly platformNotifications: PlatformNotificationService,
     private readonly notificationHub: NotificationHubService,
     private readonly tenantProfile: TenantProfileService,
@@ -483,6 +469,18 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.currentTitle = best?.item.label ?? '';
   }
 
+  /** The credits left in the wallet, shown beside the bell - null until known (and never for a platform admin, who has no wallet). */
+  readonly walletBalance$ = this.entitlements.entitlements$.pipe(map((e) => (e ? e.balance : null)));
+
+  /** Whether the wallet figure sits in the toolbar: every tenant user sees it, but only an Admin can open the wallet page behind it. */
+  get showWallet(): boolean {
+    return !this.isPlatformSuperAdmin && !this.onboardingActive;
+  }
+
+  get canOpenWallet(): boolean {
+    return this.auth.hasAnyRole(TENANT_ADMIN_ONLY);
+  }
+
   ngOnInit(): void {
     this.updateHeading(this.router.url);
     this.router.events
@@ -490,7 +488,13 @@ export class ShellComponent implements OnInit, OnDestroy {
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntil(this.destroy$)
       )
-      .subscribe((e) => this.updateHeading(e.urlAfterRedirects));
+      .subscribe((e) => {
+        this.updateHeading(e.urlAfterRedirects);
+        // Credits are spent in the background and by what the tenant does on any page, so the figure is read again as they move around.
+        if (!this.isPlatformSuperAdmin) {
+          this.entitlementsLoader.load(true).subscribe({ error: () => undefined });
+        }
+      });
 
     // Unconditional - the sidenav's open/close toggle works the same in a support session as
     // anywhere else, so it isn't gated behind the isImpersonating early return below.

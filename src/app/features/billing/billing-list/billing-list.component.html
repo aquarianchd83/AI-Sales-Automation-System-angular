@@ -1,53 +1,28 @@
 <div class="page">
-  <app-page-header title="Billing" subtitle="Upgrade, downgrade or switch to another plan.">
+  <app-page-header title="Membership" subtitle="Upgrade, downgrade or switch to another plan.">
     <a mat-stroked-button routerLink="/billing/wallet" *ngIf="!embedded">
       <mat-icon>data_usage</mat-icon>
       Usage &amp; credits
     </a>
   </app-page-header>
 
-  <mat-card class="subscription-card" *ngIf="!loadingSubscription">
-    <ng-container *ngIf="subscription; else noSubscription">
-      <div class="subscription-summary">
-        <div>
-          <span class="muted">Current plan</span>
-          <h3>{{ subscription.planName || 'No plan selected' }}</h3>
-          <mat-chip-listbox [selectable]="false">
-            <mat-chip [color]="subscription.status === 'Active' ? 'primary' : undefined" [highlighted]="true">
-              {{ subscription.status }}
-            </mat-chip>
-          </mat-chip-listbox>
-          <span class="muted period" *ngIf="!subscription.currentPeriodEndUtc">Never expires</span>
-          <span class="muted period" *ngIf="subscription.currentPeriodStartUtc || subscription.currentPeriodEndUtc">
-            <ng-container *ngIf="subscription.currentPeriodStartUtc">
-              Started {{ subscription.currentPeriodStartUtc | zonedDate: 'mediumDate' }}
-            </ng-container>
-            <ng-container *ngIf="subscription.currentPeriodStartUtc && subscription.currentPeriodEndUtc"> · </ng-container>
-            <ng-container *ngIf="subscription.currentPeriodEndUtc">
-              Renews {{ subscription.currentPeriodEndUtc | zonedDate: 'mediumDate' }}
-            </ng-container>
-          </span>
+  <mat-card class="subscription-card" *ngIf="!loadingSubscription && !subscription">
+    <div class="subscription-summary">
+      <div>
+        <span class="muted">Current plan</span>
+        <h3>Trial</h3>
+        <span class="muted" *ngIf="!embedded">Choose a plan below to get started.</span>
+        <span class="muted" *ngIf="embedded">
+          Choose a plan below, or carry on with your trial and choose later - press Next either way.
+        </span>
+        <div class="trial-features" *ngIf="trialAllowance.length">
+          <span class="muted">Included in your trial plan</span>
+          <ul class="plan-features">
+            <li *ngFor="let a of trialAllowance">{{ formatUnits(a.units) }} credits to start</li>
+          </ul>
         </div>
       </div>
-    </ng-container>
-    <ng-template #noSubscription>
-      <div class="subscription-summary">
-        <div>
-          <span class="muted">Current plan</span>
-          <h3>Trial</h3>
-          <span class="muted" *ngIf="!embedded">Choose a plan below to get started.</span>
-          <span class="muted" *ngIf="embedded">
-            Choose a plan below, or carry on with your trial and choose later - press Next either way.
-          </span>
-          <div class="trial-features" *ngIf="trialAllowance.length">
-            <span class="muted">Included in your trial plan</span>
-            <ul class="plan-features">
-              <li *ngFor="let a of trialAllowance">{{ formatUnits(a.units) }} credits to start</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </ng-template>
+    </div>
   </mat-card>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
@@ -103,13 +78,16 @@
     <mat-progress-bar mode="indeterminate" *ngIf="loadingPayments"></mat-progress-bar>
     <ng-container *ngIf="!loadingPayments">
       <div class="payment-list" *ngIf="paymentHistory.length">
-        <div class="payment-row" *ngFor="let payment of paymentHistory">
+        <div class="payment-row" *ngFor="let payment of visiblePayments">
           <span class="muted payment-date">{{ payment.paidAtUtc | zonedDate: 'mediumDate' }}</span>
           <span class="payment-name">{{ payment.planName }}</span>
           <span class="payment-amount" [class.refund]="payment.kind === 'Refund'">{{ formatPayment(payment) }}<small class="muted payment-tax" *ngIf="paymentTax(payment) as tax"> {{ tax }}</small></span>
           <span class="payment-action">
             <button mat-button type="button" *ngIf="canRequestRefund(payment)" (click)="requestRefund(payment)">Request refund</button>
           </span>
+        </div>
+        <div class="load-more" *ngIf="paymentsShown < paymentHistory.length" (appInViewport)="showMorePayments()">
+          <button mat-button type="button" (click)="showMorePayments()">Show more ({{ paymentHistory.length - paymentsShown }} left)</button>
         </div>
       </div>
       <p class="muted" *ngIf="!paymentHistory.length">No payments yet.</p>
@@ -119,7 +97,7 @@
   <mat-card class="payment-history-card" *ngIf="!embedded && refundRequests.length">
     <h3>Refund requests</h3>
     <div class="payment-list">
-      <div class="refund-row" *ngFor="let request of refundRequests">
+      <div class="refund-row" *ngFor="let request of visibleRefunds">
         <div class="refund-main">
           <span>{{ request.paymentDescription }}</span>
           <span class="muted refund-meta">
@@ -139,6 +117,9 @@
         <button mat-button type="button" *ngIf="request.status === RefundStatus.Requested" (click)="cancelRefundRequest(request)">
           Withdraw
         </button>
+      </div>
+      <div class="load-more" *ngIf="refundsShown < refundRequests.length" (appInViewport)="showMoreRefunds()">
+        <button mat-button type="button" (click)="showMoreRefunds()">Show more ({{ refundRequests.length - refundsShown }} left)</button>
       </div>
     </div>
   </mat-card>

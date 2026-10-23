@@ -4,6 +4,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
 import { BillingService } from '../../../core/services/billing.service';
+import { EntitlementsService } from '../../../core/services/entitlements.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { BillingListComponent } from './billing-list.component';
 
@@ -47,5 +48,38 @@ describe('BillingListComponent changing plan', () => {
 
   it('treats a current plan that is not on the list (a free one) as free, so every listed plan is an upgrade', () => {
     expect(labels('trial')).toEqual(['Upgrade', 'Upgrade', 'Upgrade']);
+  });
+
+  it('reads the plan access again right after a plan change, so the menu updates at once', async () => {
+    const load = jasmine.createSpy('load').and.returnValue(of(null));
+    const billing = {
+      getPlans: () => of([plan('basic', 500), plan('pro', 1500)]),
+      getSubscription: () => of({ planId: 'basic', planName: 'basic', status: 'Active', currentPeriodStartUtc: null, currentPeriodEndUtc: null }),
+      getQuota: () => of([]),
+      getPaymentHistory: () => of([]),
+      getCapabilities: () => of({ refundRequestsEnabled: false }),
+      getRefundRequests: () => of([]),
+      choosePlan: () => of({ planId: 'pro', planName: 'pro', status: 'Active', currentPeriodStartUtc: null, currentPeriodEndUtc: null }),
+    };
+    TestBed.configureTestingModule({
+      declarations: [BillingListComponent],
+      imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
+      providers: [
+        { provide: BillingService, useValue: billing },
+        { provide: EntitlementsService, useValue: { load } },
+      ],
+    });
+    const fixture = TestBed.createComponent(BillingListComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.choosePlan(fixture.componentInstance.plans.find((p) => p.id === 'pro')!);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    document.querySelector<HTMLButtonElement>('mat-dialog-container button.mat-mdc-unelevated-button')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(load).toHaveBeenCalledWith(true);
   });
 });
