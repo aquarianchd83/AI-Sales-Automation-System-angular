@@ -30,6 +30,8 @@ interface NavItem {
   exact?: boolean;
   /** Hidden while this returns false - for an entry whose screen only exists once the platform switches its module on. */
   visible?: () => boolean;
+  /** Other url prefixes that also mean this entry is the current one - for an entry that opens a page holding several routes. */
+  matches?: string[];
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -78,14 +80,13 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
         { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
-        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [] },
+        { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
       ],
     },
     {
-      label: 'CRM',
+      // Finding people and reaching out to them: discover, the customers they become, the messages, the campaigns that send them.
+      label: 'Outreach',
       items: [
-        { label: 'Customers', icon: 'groups', route: '/customers', roles: [] },
-        { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
         {
           label: 'Lead Discovery',
           icon: 'travel_explore',
@@ -94,19 +95,32 @@ export class ShellComponent implements OnInit, OnDestroy {
           route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/lead-discovery/history' : '/lead-discovery',
           roles: [],
         },
-        { label: 'Tags', icon: 'sell', route: '/tags', roles: [] },
+        // Tags is opened from the Customers page, so it stays under this entry.
+        { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'] },
+        { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [] },
+        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [] },
+      ],
+    },
+    {
+      label: 'CRM',
+      items: [
         { label: 'Packages', icon: 'inventory_2', route: '/packages', roles: [] },
       ],
     },
     {
       label: 'Content',
       items: [
-        { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [] },
         { label: 'Media Library', icon: 'perm_media', route: '/media', roles: [] },
-        { label: 'Product Sources', icon: 'auto_stories', route: '/product-knowledge/sources', roles: TENANT_ADMIN_ONLY },
-        { label: 'Product Answers', icon: 'rate_review', route: '/product-knowledge/answers', roles: TENANT_ADMIN_ONLY },
-        { label: 'Published Knowledge', icon: 'inventory', route: '/product-knowledge/versions', roles: TENANT_ADMIN_ONLY },
-        { label: 'Test Chat', icon: 'chat', route: '/product-knowledge/test-chat', roles: TENANT_ADMIN_ONLY },
+        {
+          // One entry for everything the AI knows; its screens are listed on the page itself (KnowledgeHubComponent).
+          label: 'Knowledge',
+          icon: 'psychology',
+          // An Admin lands on Product Sources; a Sales Manager only has the studio screens, so lands on the questionnaire.
+          route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/product-knowledge/sources' : '/content-studio/questionnaire',
+          roles: STUDIO_CONTENT_ROLES,
+          visible: () => this.auth.hasAnyRole(TENANT_ADMIN_ONLY) || this.studioEnabled,
+          matches: ['/product-knowledge', '/content-studio/questionnaire', '/content-studio/facts', '/content-studio/readiness'],
+        },
       ],
     },
     {
@@ -127,9 +141,6 @@ export class ShellComponent implements OnInit, OnDestroy {
     {
       label: 'Content Studio',
       items: [
-        { label: 'Business Questionnaire', icon: 'quiz', route: '/content-studio/questionnaire', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
-        { label: 'Business Facts', icon: 'fact_check', route: '/content-studio/facts', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
-        { label: 'What the Studio Knows', icon: 'speed', route: '/content-studio/readiness', roles: STUDIO_CONTENT_ROLES, visible: () => this.studioEnabled },
         {
           label: 'Charges & Activity',
           icon: 'receipt_long',
@@ -144,7 +155,6 @@ export class ShellComponent implements OnInit, OnDestroy {
       label: 'Team & Security',
       items: [
         { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
-        { label: 'Audit Log', icon: 'history', route: '/audit-log', roles: TENANT_ADMIN_ONLY },
       ],
     },
     {
@@ -295,7 +305,9 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   /** True when the page on screen is one of the group's items, so the group stays open around it. */
   private holdsCurrentPage(section: NavSection): boolean {
+    const path = this.router.url.split(/[?#]/)[0];
     return section.items.some((item) =>
+      this.claimsPath(item, path) ||
       this.router.isActive(item.route, {
         paths: item.exact ? 'exact' : 'subset',
         queryParams: 'ignored',
@@ -303,6 +315,15 @@ export class ShellComponent implements OnInit, OnDestroy {
         matrixParams: 'ignored',
       })
     );
+  }
+
+  private claimsPath(item: NavItem, path: string): boolean {
+    return !!item.matches?.some((prefix) => path === prefix || path.startsWith(prefix + '/'));
+  }
+
+  /** True when the current page is one of the extra routes an entry claims (see NavItem.matches). */
+  claimsCurrentPage(item: NavItem): boolean {
+    return this.claimsPath(item, this.router.url.split(/[?#]/)[0]);
   }
 
   private loadCollapsedSections(): Set<string> {
@@ -431,8 +452,9 @@ export class ShellComponent implements OnInit, OnDestroy {
     let best: { section: NavSection; item: NavItem } | null = null;
     for (const section of this.navSections) {
       for (const item of section.items) {
-        const hit = path === item.route || path.startsWith(item.route + '/');
-        if (hit && (!best || item.route.length > best.item.route.length)) {
+        const claimed = this.claimsPath(item, path);
+        const hit = claimed || path === item.route || path.startsWith(item.route + '/');
+        if (hit && (!best || claimed || item.route.length > best.item.route.length)) {
           best = { section, item };
         }
       }

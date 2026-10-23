@@ -7,6 +7,7 @@ import { STUDIO_CONTENT_ROLES } from './core/models/content-studio.model';
 import { PLATFORM_ADMIN_ROLES } from './core/models/platform.model';
 import { SETTINGS_ADMIN_ROLES } from './core/models/settings.model';
 import { REPORT_ROLES, TENANT_ADMIN_ROLES, TENANT_ROLES, USER_ADMIN_ROLES } from './core/models/user.model';
+import { KnowledgeHubComponent } from './layout/knowledge-hub/knowledge-hub.component';
 import { ShellComponent } from './layout/shell/shell.component';
 
 const routes: Routes = [
@@ -153,17 +154,24 @@ const routes: Routes = [
         loadChildren: () => import('./features/social-ads/social-ads.module').then((m) => m.SocialAdsModule),
       },
       {
-        // Product knowledge: the tenant's sources (documents and website) the AI learns their products from. Tenant Admin only, as on the API.
-        path: 'product-knowledge',
-        canActivate: [roleGuard],
-        data: { roles: TENANT_ADMIN_ROLES },
-        loadChildren: () => import('./features/product-knowledge/product-knowledge.module').then((m) => m.ProductKnowledgeModule),
-      },
-      {
-        path: 'content-studio',
-        canActivate: [roleGuard],
-        data: { roles: STUDIO_CONTENT_ROLES },
-        loadChildren: () => import('./features/content-studio/content-studio.module').then((m) => m.ContentStudioModule),
+        // Knowledge hub: one sidenav entry, the list of knowledge screens beside whichever one is open. Pathless, so each
+        // screen keeps its own URL. Product knowledge is Tenant Admin only, as on the API; the studio screens also admit Sales Managers.
+        path: '',
+        component: KnowledgeHubComponent,
+        children: [
+          {
+            path: 'product-knowledge',
+            canActivate: [roleGuard],
+            data: { roles: TENANT_ADMIN_ROLES },
+            loadChildren: () => import('./features/product-knowledge/product-knowledge.module').then((m) => m.ProductKnowledgeModule),
+          },
+          {
+            path: 'content-studio',
+            canActivate: [roleGuard],
+            data: { roles: STUDIO_CONTENT_ROLES },
+            loadChildren: () => import('./features/content-studio/content-studio.module').then((m) => m.ContentStudioModule),
+          },
+        ],
       },
       {
         path: 'audit-log',

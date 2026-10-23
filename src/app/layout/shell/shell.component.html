@@ -34,6 +34,7 @@
                 *appHasRole="item.roles"
                 [routerLink]="item.route"
                 routerLinkActive="nav-active"
+                [class.nav-active]="claimsCurrentPage(item)"
                 ariaCurrentWhenActive="page"
                 [routerLinkActiveOptions]="{ exact: !!item.exact }"
                 [title]="item.label"
@@ -181,7 +182,7 @@
             <mat-icon>storefront</mat-icon>
             <span>Business profile</span>
           </a>
-          <a mat-menu-item routerLink="/account/profile">
+          <a mat-menu-item routerLink="/account/profile" *ngIf="isPlatformSuperAdmin">
             <mat-icon>person</mat-icon>
             <span>My profile</span>
           </a>

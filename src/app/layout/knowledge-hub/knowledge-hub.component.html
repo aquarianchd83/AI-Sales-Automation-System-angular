@@ -1,0 +1,19 @@
+<div class="hub" [class.hub--bare]="!showList">
+  <nav class="hub-nav" aria-label="Knowledge" *ngIf="showList">
+    <div class="hub-title">Knowledge</div>
+    <a
+      class="hub-item"
+      *ngFor="let item of visibleItems(); let i = index"
+      [routerLink]="item.route"
+      routerLinkActive="hub-item--active"
+      ariaCurrentWhenActive="page"
+    >
+      <mat-icon class="hub-icon">{{ item.icon }}</mat-icon>
+      <span class="hub-label">{{ i + 1 }}. {{ item.label }}</span>
+    </a>
+  </nav>
+
+  <section class="hub-content">
+    <router-outlet></router-outlet>
+  </section>
+</div>
