@@ -13,16 +13,17 @@ import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { OnboardingService } from '../../core/services/onboarding.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
 describe('ShellComponent wallet balance', () => {
-  function render(roles: string[], balance: number | null): HTMLElement {
-    return renderWithFixture(roles, balance).root;
+  function render(roles: string[], balance: number | null, platformBalance = 0): HTMLElement {
+    return renderWithFixture(roles, balance, platformBalance).root;
   }
 
-  function renderWithFixture(roles: string[], balance: number | null) {
+  function renderWithFixture(roles: string[], balance: number | null, platformBalance = 0) {
     const auth = {
       currentUser$: of({ fullName: 'Test User', email: 't@example.com', roles }),
       isImpersonating: false,
@@ -40,6 +41,7 @@ describe('ShellComponent wallet balance', () => {
         { provide: ContentStudioService, useValue: { getStatus: () => of({ enabled: false }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]), getEntitlements: () => of(null) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },
+        { provide: PlatformWalletService, useValue: { summary$: of({ balance: platformBalance, topUpCount: 1, lastTopUpDate: '2026-10-23' }), refresh: () => undefined } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: NotificationHubService, useValue: { connect: () => undefined, disconnect: () => undefined, notificationReceived$: NEVER } },
       ],
@@ -82,7 +84,19 @@ describe('ShellComponent wallet balance', () => {
     expect(chip(render(['Admin'], null))).toBeNull();
   });
 
-  it('is absent for a platform admin, who has no wallet', () => {
-    expect(chip(render(['PlatformSuperAdmin'], 500))).toBeNull();
+  it('shows a platform admin the platform wallet in rupees, with a menu for the credit history and adding credit', () => {
+    const { root, fixture } = renderWithFixture(['PlatformSuperAdmin'], null, 2500);
+
+    expect(text(chip(root))).toContain('₹2,500');
+    (chip(root) as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const items = Array.from(document.querySelectorAll('.mat-mdc-menu-panel a, .mat-mdc-menu-panel button')).map((e) => ({ label: text(e), href: e.getAttribute('href') }));
+    expect(items.map((i) => i.label)).toEqual(['historyCredit history', 'add_cardAdd credit']);
+    expect(items[0].href).toBe('/platform/wallet');
+  });
+
+  it('never shows a tenant the platform wallet', () => {
+    expect(text(chip(render(['Admin'], 80, 9999)))).not.toContain('9,999');
   });
 });

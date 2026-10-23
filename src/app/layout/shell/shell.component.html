@@ -144,6 +144,32 @@
         </mat-menu>
       </ng-container>
 
+      <ng-container *ngIf="showPlatformBell && { value: platformWalletBalance$ | async } as platformWallet">
+        <ng-container *ngIf="platformWallet.value !== null">
+          <button
+            type="button"
+            class="wallet-chip"
+            [matMenuTriggerFor]="platformWalletMenu"
+            matTooltip="Platform wallet balance"
+            aria-label="Platform wallet balance"
+          >
+            <mat-icon>account_balance_wallet</mat-icon>
+            <span>{{ platformWallet.value | currency: 'INR' : 'symbol' : '1.0-2' }}</span>
+            <mat-icon class="wallet-caret">expand_more</mat-icon>
+          </button>
+          <mat-menu #platformWalletMenu="matMenu">
+            <a mat-menu-item routerLink="/platform/wallet">
+              <mat-icon>history</mat-icon>
+              <span>Credit history</span>
+            </a>
+            <button mat-menu-item type="button" (click)="addWalletCredit()">
+              <mat-icon>add_card</mat-icon>
+              <span>Add credit</span>
+            </button>
+          </mat-menu>
+        </ng-container>
+      </ng-container>
+
       <ng-container *ngIf="showPlatformBell">
         <button mat-icon-button type="button" class="bell" #platformTrigger="matMenuTrigger" [matMenuTriggerFor]="platformAlertsMenu" aria-label="Platform alerts">
           <mat-icon>{{ unreadPlatformCount ? 'notifications_active' : 'notifications_none' }}</mat-icon>

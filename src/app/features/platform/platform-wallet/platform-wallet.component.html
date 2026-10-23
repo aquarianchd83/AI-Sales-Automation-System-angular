@@ -1,0 +1,61 @@
+<div class="page">
+  <app-page-header title="Credit history" subtitle="Money added to the platform wallet for the AI providers.">
+    <button mat-flat-button color="primary" type="button" (click)="addCredit()">
+      <mat-icon>add</mat-icon>
+      Add credit
+    </button>
+  </app-page-header>
+
+  <mat-card class="balance-card" *ngIf="summary$ | async as summary">
+    <div class="balance-label">Wallet balance</div>
+    <div class="balance-value">{{ summary.balance | currency: 'INR' : 'symbol' : '1.0-2' }}</div>
+    <div class="muted small" *ngIf="summary.topUpCount">
+      {{ summary.topUpCount }} top-up{{ summary.topUpCount === 1 ? '' : 's' }}, the latest on {{ dateOf(summary.lastTopUpDate!) | date: 'mediumDate' }}
+    </div>
+  </mat-card>
+
+  <mat-card class="section-card">
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="topUps.items">
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let row">{{ dateOf(row.date) | date: 'mediumDate' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="provider">
+          <th mat-header-cell *matHeaderCellDef>AI provider</th>
+          <td mat-cell *matCellDef="let row">{{ providerLabel(row.provider) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef class="num">Amount</th>
+          <td mat-cell *matCellDef="let row" class="num">{{ row.amount | currency: 'INR' : 'symbol' : '1.0-2' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="added">
+          <th mat-header-cell *matHeaderCellDef>Recorded</th>
+          <td mat-cell *matCellDef="let row" class="muted">{{ row.addedAtUtc | zonedDate: 'short' }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !topUps.items.length">
+      <mat-icon class="empty-icon">account_balance_wallet</mat-icon>
+      <p>No credit added yet. Use Add credit to record the first top-up.</p>
+    </div>
+
+    <mat-paginator
+      [length]="topUps.totalCount"
+      [pageSize]="topUps.pageSize"
+      [pageIndex]="topUps.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

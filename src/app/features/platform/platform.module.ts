@@ -36,6 +36,7 @@ import { PlatformTenantFormDialogComponent } from './platform-tenant-form-dialog
 import { PlatformTenantListComponent } from './platform-tenant-list/platform-tenant-list.component';
 import { PlatformTenantWhatsAppConfigDialogComponent } from './platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
 import { PlatformCreditPayersComponent } from './platform-credit-payers/platform-credit-payers.component';
+import { PlatformWalletComponent } from './platform-wallet/platform-wallet.component';
 import { PlatformCreditRedeemDialogComponent } from './platform-credit-payers/platform-credit-redeem-dialog.component';
 import { PlatformCreditWalletDialogComponent } from './platform-credit-payers/platform-credit-wallet-dialog.component';
 import { PlatformUsageComponent } from './platform-usage/platform-usage.component';
@@ -62,6 +63,7 @@ const routes: Routes = [
       { path: 'usage', component: PlatformUsageComponent },
       // Who pays for each credit-spending scenario - the tenant or the platform - and who paid for each spend.
       { path: 'credit-payers', component: PlatformCreditPayersComponent },
+      { path: 'wallet', component: PlatformWalletComponent },
       { path: 'payments', component: PlatformPaymentListComponent },
       { path: 'configuration', component: PlatformConfigurationComponent },
       // The same page, cut down to what the AI providers charge: WhatsApp message, lead discovery and AI conversation rates.
@@ -109,6 +111,7 @@ const routes: Routes = [
     CountryPriceEditorComponent,
     PlatformUsageComponent,
     PlatformCreditPayersComponent,
+    PlatformWalletComponent,
     PlatformCreditWalletDialogComponent,
     PlatformCreditRedeemDialogComponent,
     PlatformPaymentListComponent,

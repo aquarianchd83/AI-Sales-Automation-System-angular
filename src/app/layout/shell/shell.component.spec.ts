@@ -13,6 +13,7 @@ import { ContentStudioService } from '../../core/services/content-studio.service
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotification } from '../../core/models/platform.model';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
@@ -44,6 +45,7 @@ describe('ShellComponent sidenav', () => {
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of(platformAlerts) } },
+        { provide: PlatformWalletService, useValue: { summary$: of({ balance: 0, topUpCount: 0, lastTopUpDate: null }), refresh: () => undefined } },
         { provide: NotificationHubService, useValue: { connect: () => undefined, disconnect: () => undefined, notificationReceived$: NEVER } },
       ],
     });

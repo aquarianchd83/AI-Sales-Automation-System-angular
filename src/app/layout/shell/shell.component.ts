@@ -1,7 +1,8 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, Injector, OnDestroy, OnInit } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { NavigationEnd, Router } from '@angular/router';
-import { Observable, Subject, timer } from 'rxjs';
+import { Observable, Subject, of, timer } from 'rxjs';
 import { filter, finalize, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -16,6 +17,8 @@ import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { ContentStudioService } from '../../core/services/content-studio.service';
 import { EntitlementsService } from '../../core/services/entitlements.service';
 import { EntitlementsStore } from '../../core/services/entitlements.store';
+import { PlatformWalletService } from '../../core/services/platform-wallet.service';
+import { PlatformWalletTopUpDialogComponent } from '../../shared/components/platform-wallet-top-up-dialog/platform-wallet-top-up-dialog.component';
 import { PlatformFeature } from '../../core/models/wallet.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
@@ -417,7 +420,9 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly notificationsChanged: NotificationsChangedService,
     private readonly recovery: AccountRecoveryService,
     private readonly onboardingService: OnboardingService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly injector: Injector,
+    private readonly dialog: MatDialog
   ) {}
 
   get onboardingActive(): boolean {
@@ -470,6 +475,15 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   /** The credits left in the wallet, shown beside the bell - null until known (and never for a platform admin, who has no wallet). */
+  /** The platform admin's own wallet - rupees loaded into the AI providers. Looked up only for a platform admin, so a tenant's shell never builds it. */
+  readonly platformWalletBalance$ = this.showPlatformBell
+    ? this.injector.get(PlatformWalletService).summary$.pipe(map((s) => (s ? s.balance : null)))
+    : of<number | null>(null);
+
+  addWalletCredit(): void {
+    this.dialog.open(PlatformWalletTopUpDialogComponent, { width: '440px', maxWidth: '95vw' });
+  }
+
   readonly walletBalance$ = this.entitlements.entitlements$.pipe(map((e) => (e ? e.balance : null)));
 
   /** Whether the wallet figure sits in the toolbar: every tenant user sees it, but only an Admin can open the wallet page behind it. */
@@ -564,6 +578,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     }
 
     if (this.showPlatformBell) {
+      this.injector.get(PlatformWalletService).refresh();
+
       // Job runs are minutely at their fastest, so a minute is the useful resolution for noticing a failure.
       timer(0, 60 * 1000)
         .pipe(

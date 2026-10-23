@@ -1,0 +1,33 @@
+.balance-card {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+
+.balance-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.balance-value {
+  margin: 4px 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.num {
+  text-align: right;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}

@@ -13,6 +13,7 @@ import { BillingService } from '../../core/services/billing.service';
 import { ContentStudioService } from '../../core/services/content-studio.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
@@ -58,6 +59,7 @@ describe('ShellComponent billing bell', () => {
         { provide: ContentStudioService, useValue: { getStatus: () => of({ enabled: false }) } },
         { provide: BillingService, useValue: { getNotifications, acknowledgeNotification, acknowledgeAllNotifications, deleteNotification } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },
+        { provide: PlatformWalletService, useValue: { summary$: of({ balance: 0, topUpCount: 0, lastTopUpDate: null }), refresh: () => undefined } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'America/New_York' }) } },
         {
           provide: NotificationHubService,
