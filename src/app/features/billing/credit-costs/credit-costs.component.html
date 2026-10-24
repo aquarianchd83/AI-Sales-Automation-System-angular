@@ -1,0 +1,83 @@
+<div class="page">
+  <app-page-header title="Credit costs" subtitle="What every action costs, in one place. All of it comes out of your one credit balance.">
+    <a mat-stroked-button routerLink="/billing/wallet">
+      <mat-icon>data_usage</mat-icon>
+      Usage & credits
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="balance-strip" *ngIf="summary" data-testid="costs-balance">
+    <mat-icon>toll</mat-icon>
+    <span>Your balance</span>
+    <strong>{{ formatUnits(summary.balance) }}</strong>
+    <span class="muted" *ngIf="summary.planName">· {{ summary.planName }} plan</span>
+  </mat-card>
+
+  <mat-card class="section-card" *ngFor="let f of summary?.features; trackBy: trackFeature" [class.feature-off]="!f.includedInPlan" [attr.data-testid]="'costs-' + f.feature">
+    <div class="feature-head">
+      <mat-icon>{{ featureIcon(f.feature) }}</mat-icon>
+      <div>
+        <h3>{{ f.label }}</h3>
+        <div class="muted small">{{ f.description }}</div>
+      </div>
+      <span class="spacer"></span>
+      <span class="tag" *ngIf="!f.includedInPlan">Not in your plan - <a routerLink="/billing">upgrade</a></span>
+    </div>
+
+    <div class="table-scroll">
+      <table class="cost-table">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th class="num">Cost</th>
+            <th class="num" *ngIf="f.includedInPlan">How many?</th>
+            <th class="num" *ngIf="f.includedInPlan">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of f.costs">
+            <td>
+              <div class="action-title">{{ c.title }}</div>
+              <div class="muted small" *ngIf="c.description">{{ c.description }}</div>
+            </td>
+            <td class="num">
+              <ng-container *ngIf="!isFree(c); else free">
+                <strong>{{ creditsLabel(c.credits) }}</strong>
+                <div class="muted small">per {{ c.unitLabel }}</div>
+              </ng-container>
+              <ng-template #free><span class="muted">Free</span></ng-template>
+            </td>
+            <td class="num" *ngIf="f.includedInPlan">
+              <input
+                class="qty-input"
+                type="number"
+                min="0"
+                placeholder="0"
+                [value]="quantityOf(c) ?? ''"
+                (input)="setQuantity(c, $any($event.target).value)"
+                [attr.aria-label]="'How many ' + c.unitLabel + 's of ' + c.title"
+                [attr.data-testid]="'qty-' + c.scenario"
+              />
+            </td>
+            <td class="num" *ngIf="f.includedInPlan">{{ quantityOf(c) ? creditsLabel(lineTotal(c)) : '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </mat-card>
+
+  <mat-card class="estimate-card" *ngIf="summary && estimating" data-testid="costs-estimate">
+    <div>
+      <div class="muted small">Estimated cost</div>
+      <div class="estimate-number">{{ creditsLabel(estimate) }}</div>
+    </div>
+    <div class="estimate-note" [class.short]="shortfall > 0">
+      <ng-container *ngIf="shortfall === 0">Covered by your balance of {{ formatUnits(summary.balance) }}.</ng-container>
+      <ng-container *ngIf="shortfall > 0">
+        {{ creditsLabel(shortfall) }} more than your balance. <a routerLink="/billing/wallet" fragment="buy-credits">Buy credits</a>
+      </ng-container>
+    </div>
+  </mat-card>
+</div>

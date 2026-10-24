@@ -81,6 +81,7 @@ describe('ShellComponent sidenav', () => {
       'publicSocial Ads',
       'paymentsMembership',
       'data_usageUsage & Credits',
+      'price_checkCredit Costs',
       'bar_chartReports',
       'monitoringAgent Performance',
       'settingsWhatsApp Settings',

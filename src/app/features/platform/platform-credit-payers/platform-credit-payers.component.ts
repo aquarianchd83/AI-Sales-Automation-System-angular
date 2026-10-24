@@ -50,7 +50,8 @@ export class PlatformCreditPayersComponent implements OnInit, OnDestroy {
   readonly statuses = [CreditUsageStatus.Charged, CreditUsageStatus.Reversed, CreditUsageStatus.Redeemed, CreditUsageStatus.Unpaid];
   readonly payers = [CreditPayer.Tenant, CreditPayer.Platform];
 
-  readonly scenarioColumns = ['scenario', 'payer', 'units', 'activity', 'cost'];
+  readonly priceColumns = ['scenario', 'units', 'updated'];
+  readonly scenarioColumns = ['scenario', 'payer', 'price', 'activity', 'cost'];
   readonly usageColumns = ['occurredAt', 'tenant', 'scenario', 'units', 'paidBy', 'status', 'actions'];
   readonly ledgerColumns = ['occurredAt', 'type', 'units', 'balance', 'tenant', 'note'];
 

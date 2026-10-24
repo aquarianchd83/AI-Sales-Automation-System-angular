@@ -65,8 +65,9 @@ describe('ShellComponent wallet balance', () => {
     fixture.detectChanges();
 
     const items = Array.from(document.querySelectorAll('.mat-mdc-menu-panel a')).map((e) => ({ label: text(e), href: e.getAttribute('href') }));
-    expect(items.map((i) => i.label)).toEqual(['historySpend credit history', 'data_usageUsage & credits']);
+    expect(items.map((i) => i.label)).toEqual(['historySpend credit history', 'data_usageUsage & credits', 'price_checkCredit costs']);
     expect(items[0].href).toBe('/billing/credit-usage');
+    expect(items[2].href).toBe('/billing/credit-costs');
   });
 
   it('still shows a balance of zero', () => {

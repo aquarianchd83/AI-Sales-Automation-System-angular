@@ -1,0 +1,94 @@
+.balance-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.section-card {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.feature-off {
+  opacity: 0.7;
+}
+
+.feature-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.spacer {
+  flex: 1;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.num {
+  text-align: right;
+}
+
+.tag {
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: #fff8e1;
+  color: #6d4c00;
+  font-size: 12px;
+}
+
+.cost-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    vertical-align: top;
+  }
+
+  th.num,
+  td.num {
+    text-align: right;
+  }
+}
+
+.action-title {
+  font-weight: 500;
+}
+
+.qty-input {
+  width: 80px;
+  text-align: right;
+  padding: 4px 6px;
+}
+
+.estimate-card {
+  position: sticky;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+}
+
+.estimate-number {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.estimate-note.short {
+  color: #b3261e;
+}

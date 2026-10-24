@@ -33,6 +33,8 @@ export interface FeatureCost {
   credits: number;
   /** True when the credits are per action (product knowledge) rather than per unit the code sizes. */
   perAction: boolean;
+  /** What the action is, for the Credit costs page. */
+  description?: string;
 }
 
 export interface FeatureWallet {

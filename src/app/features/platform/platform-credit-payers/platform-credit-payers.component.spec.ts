@@ -106,23 +106,40 @@ describe('PlatformCreditPayersComponent', () => {
     }).overrideProvider(MatDialog, { useValue: dialog });
   });
 
-  it('lists every scenario with who pays and what it did over the last 30 days', () => {
+  /** Only the open tab is rendered: 0 Prices, 1 Who pays, 2 Activity, 3 Platform wallet. */
+  async function openTab(index: number): Promise<void> {
+    (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.mat-mdc-tab')[index].click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  it('lists every action with its editable price on the Prices tab', () => {
     create([chat, knowledge]);
 
     expect(text()).toContain('Customer chat reply');
     expect(text()).toContain('Product knowledge: reading sources');
-    expect(text()).toContain('12 actions');
     expect(text()).toContain('Free - nobody is charged.');
   });
 
-  it('warns when a scenario is set to the platform but its wallet is empty', () => {
+  it('lists every scenario with who pays and what it did over the last 30 days', async () => {
+    create([chat, knowledge]);
+    await openTab(1);
+
+    expect(text()).toContain('Customer chat reply');
+    expect(text()).toContain('12 actions');
+  });
+
+  it('warns when a scenario is set to the platform but its wallet is empty', async () => {
     create([{ ...chat, payer: CreditPayer.Platform, platformBalance: 0 }]);
+    await openTab(1);
 
     expect(text()).toContain('Platform wallet is empty');
   });
 
-  it('does not warn when the platform wallet can cover the scenario', () => {
+  it('does not warn when the platform wallet can cover the scenario', async () => {
     create([{ ...chat, payer: CreditPayer.Platform, platformBalance: 25 }]);
+    await openTab(1);
 
     expect(text()).not.toContain('Platform wallet is empty');
   });
@@ -171,12 +188,7 @@ describe('PlatformCreditPayersComponent', () => {
   it('shows who paid for each spend, and flags the ones where the tenant paid because the platform wallet was empty', async () => {
     create([chat], [usage({ configuredPayer: CreditPayer.Platform, fellBackToTenant: true })]);
 
-    // Only the open tab is rendered, so open Activity.
-    const tabs = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.mat-mdc-tab');
-    tabs[1].click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await openTab(2);
 
     expect(text()).toContain('SunVolt Energy');
     expect(text()).toContain('Platform wallet was empty');

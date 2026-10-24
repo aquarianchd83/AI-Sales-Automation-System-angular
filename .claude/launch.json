@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
       "port": 4200
+    },
+    {
+      "name": "angular-dev-4201",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start", "--", "--port", "4201"],
+      "port": 4201
     }
   ]
 }

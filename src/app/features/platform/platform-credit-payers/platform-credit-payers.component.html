@@ -10,8 +10,73 @@
   </mat-card>
 
   <mat-tab-group animationDuration="0ms">
+    <!-- ───────────── Prices ───────────── -->
+    <mat-tab label="Prices">
+      <mat-card class="table-card">
+        <p class="muted prices-hint">
+          The credit price of every action. Tenants see exactly these numbers on their <strong>Credit costs</strong> page and beside each feature. A new price
+          applies to what happens next; past spends keep the price they were charged. Set 0 to make an action free.
+        </p>
+        <mat-progress-bar mode="indeterminate" *ngIf="scenariosLoading"></mat-progress-bar>
+
+        <div class="table-scroll">
+          <table mat-table [dataSource]="scenarios" data-testid="prices-table">
+            <ng-container matColumnDef="scenario">
+              <th mat-header-cell *matHeaderCellDef>Action</th>
+              <td mat-cell *matCellDef="let s" class="scenario-cell">
+                <div class="scenario-title">{{ s.title }}</div>
+                <div class="muted small">{{ s.area }}</div>
+                <div class="muted small description">{{ s.description }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="units">
+              <th mat-header-cell *matHeaderCellDef>Credits per unit</th>
+              <td mat-cell *matCellDef="let s">
+                <div class="units-edit">
+                  <mat-form-field class="units-field" subscriptSizing="dynamic">
+                    <input
+                      matInput
+                      type="number"
+                      min="0"
+                      step="any"
+                      [value]="draftUnits(s) ?? ''"
+                      (input)="setDraftUnits(s, $any($event.target).value)"
+                      (keydown.enter)="unitsChanged(s) && unitsValid(s) && saveUnits(s)"
+                      [attr.aria-label]="'Credits per ' + s.unitLabel + ' for ' + s.title"
+                    />
+                  </mat-form-field>
+                  <span class="muted small">per {{ s.unitLabel }}</span>
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="!unitsChanged(s) || !unitsValid(s) || savingScenario.has(s.scenario)"
+                    (click)="saveUnits(s)"
+                  >
+                    Save
+                  </button>
+                </div>
+                <div class="muted small" *ngIf="isFree(s)">Free - nobody is charged.</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="updated">
+              <th mat-header-cell *matHeaderCellDef>Last changed</th>
+              <td mat-cell *matCellDef="let s">
+                <span *ngIf="s.changedAtUtc; else defaultPrice">{{ s.changedAtUtc | zonedDate: 'medium' }}</span>
+                <ng-template #defaultPrice><span class="muted">Default</span></ng-template>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="priceColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: priceColumns"></tr>
+          </table>
+        </div>
+      </mat-card>
+    </mat-tab>
+
     <!-- ───────────── Scenarios ───────────── -->
-    <mat-tab label="Scenarios">
+    <mat-tab label="Who pays">
       <mat-card class="table-card">
         <mat-progress-bar mode="indeterminate" *ngIf="scenariosLoading"></mat-progress-bar>
 
@@ -46,34 +111,10 @@
               </td>
             </ng-container>
 
-            <ng-container matColumnDef="units">
-              <th mat-header-cell *matHeaderCellDef>Credits per unit</th>
+            <ng-container matColumnDef="price">
+              <th mat-header-cell *matHeaderCellDef>Price</th>
               <td mat-cell *matCellDef="let s">
-                <ng-container>
-                  <div class="units-edit">
-                    <mat-form-field class="units-field" subscriptSizing="dynamic">
-                      <input
-                        matInput
-                        type="number"
-                        min="0"
-                        step="any"
-                        [value]="draftUnits(s) ?? ''"
-                        (input)="setDraftUnits(s, $any($event.target).value)"
-                        [attr.aria-label]="'Credits per ' + s.unitLabel + ' for ' + s.title"
-                      />
-                    </mat-form-field>
-                    <span class="muted small">per {{ s.unitLabel }}</span>
-                    <button
-                      mat-stroked-button
-                      type="button"
-                      [disabled]="!unitsChanged(s) || !unitsValid(s) || savingScenario.has(s.scenario)"
-                      (click)="saveUnits(s)"
-                    >
-                      Save
-                    </button>
-                  </div>
-                  <div class="muted small" *ngIf="isFree(s)">Free - nobody is charged.</div>
-                </ng-container>
+                {{ s.unitsPerAction | number: '1.0-4' }} <span class="muted small">credits per {{ s.unitLabel }}</span>
               </td>
             </ng-container>
 

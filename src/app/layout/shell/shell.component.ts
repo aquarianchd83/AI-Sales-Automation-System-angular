@@ -147,6 +147,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Membership', icon: 'payments', route: '/billing', roles: TENANT_ADMIN_ONLY, exact: true },
         { label: 'Usage & Credits', icon: 'data_usage', route: '/billing/wallet', roles: TENANT_ADMIN_ONLY, matches: ['/billing/credit-usage'] },
+        { label: 'Credit Costs', icon: 'price_check', route: '/billing/credit-costs', roles: TENANT_ADMIN_ONLY },
       ],
     },
     {
