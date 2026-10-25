@@ -47,4 +47,11 @@ describe('ErrorInterceptor', () => {
 
     expect(notify.error).toHaveBeenCalledTimes(1);
   });
+
+  it('stays quiet on the customer-facing /public/ pages, which explain every outcome themselves', () => {
+    http.get('/api/v1/public/consent/tok').subscribe({ error: () => undefined });
+    backend.expectOne('/api/v1/public/consent/tok').flush({ state: 'Invalid' }, { status: 404, statusText: 'Not Found' });
+
+    expect(notify.error).not.toHaveBeenCalled();
+  });
 });

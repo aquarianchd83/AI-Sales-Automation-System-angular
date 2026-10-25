@@ -1,4 +1,4 @@
-import { TenantNotificationKind, isUrgentNotification, tenantNotificationRoute, NOTIFICATION_KIND_LABELS } from './billing.model';
+import { TenantNotificationKind, isUrgentNotification, tenantNotificationActionLabel, tenantNotificationRoute, NOTIFICATION_KIND_LABELS } from './billing.model';
 import { PlatformNotificationKind, platformNotificationRoute } from './platform.model';
 
 describe('notification routes', () => {
@@ -12,6 +12,14 @@ describe('notification routes', () => {
     expect(tenantNotificationRoute(TenantNotificationKind.JobCompleted)).toBe('/tenant-settings/jobs');
     expect(tenantNotificationRoute(TenantNotificationKind.QuotaExhausted)).toBe('/billing/wallet');
     expect(tenantNotificationRoute(TenantNotificationKind.CreditsAdded)).toBe('/billing/wallet');
+  });
+
+  it('sends the consent page notice straight to WhatsApp Consent Page Settings, as an urgent one with a Complete Setup button', () => {
+    expect(tenantNotificationRoute(TenantNotificationKind.ConsentPageSetupRequired)).toBe('/consent-page-settings');
+    expect(isUrgentNotification(TenantNotificationKind.ConsentPageSetupRequired)).toBeTrue();
+    expect(tenantNotificationActionLabel(TenantNotificationKind.ConsentPageSetupRequired)).toBe('Complete Setup');
+    expect(tenantNotificationActionLabel(TenantNotificationKind.QuotaExhausted)).toBeNull();
+    expect(tenantNotificationActionLabel(TenantNotificationKind.TemplateApproved)).toBeNull();
   });
 
   it('sends an operator alert to the refund queue, the tenant, or the jobs', () => {

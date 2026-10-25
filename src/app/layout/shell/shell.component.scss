@@ -525,6 +525,18 @@ button.wallet-chip {
     color: rgba(0, 0, 0, 0.6);
   }
 
+  .alert-cta {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+    color: #fff;
+    background: #0d9488;
+  }
+
   &--urgent .alert-title {
     color: #b3261e;
   }

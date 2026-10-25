@@ -1,0 +1,191 @@
+<div class="page">
+  <app-page-header
+    title="WhatsApp Consent Page Settings"
+    subtitle="What customers read, and agree to, before you message them on WhatsApp."
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="load-failed" *ngIf="!loading && loadFailed">
+    <mat-icon>cloud_off</mat-icon>
+    <p>We couldn't load your consent page settings.</p>
+    <button mat-stroked-button color="primary" type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <div class="layout" *ngIf="!loading && !loadFailed && settings">
+    <form class="main" [formGroup]="form" (ngSubmit)="onSave()" novalidate>
+      <!-- Status -->
+      <mat-card class="section status" [ngClass]="'status--' + status.toLowerCase()">
+        <div class="status-head">
+          <span class="status-chip" data-testid="status-chip">{{ statusLabels[status] }}</span>
+          <span class="muted" *ngIf="settings.publishedVersion > 0">
+            Version {{ settings.publishedVersion }}<ng-container *ngIf="settings.publishedAtUtc"> · published {{ settings.publishedAtUtc | zonedDate: 'medium' }}</ng-container>
+          </span>
+          <span class="status-unpublished" *ngIf="settings.hasUnpublishedChanges && settings.publishedVersion > 0">Unpublished changes</span>
+        </div>
+        <p class="status-help">{{ statusHelp[status] }}</p>
+
+        <div class="issues" *ngIf="issues.length" role="alert">
+          <strong>To publish, fix:</strong>
+          <ul>
+            <li *ngFor="let issue of issues">{{ issue.message }}</li>
+          </ul>
+        </div>
+      </mat-card>
+
+      <!-- Product information -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-teal"><mat-icon>storefront</mat-icon></span>
+          <div>
+            <h2>Product information</h2>
+            <p>Shown on the page the customer opens from your text message. Plain text only.</p>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Business or product name (required to publish)</mat-label>
+            <input matInput formControlName="businessName" [maxlength]="limits.businessName" />
+            <mat-hint *ngIf="!issueFor('businessName')">The business, product or service you are offering.</mat-hint>
+            <mat-hint *ngIf="issueFor('businessName') as message" class="issue">{{ message }}</mat-hint>
+            <mat-error *ngIf="form.controls.businessName.hasError('markup')">Use plain text only.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Short product description (required to publish)</mat-label>
+            <textarea matInput formControlName="productDescription" rows="4" [maxlength]="limits.productDescription"></textarea>
+            <mat-hint align="end">{{ form.controls.productDescription.value.length | number }} / {{ limits.productDescription | number }}</mat-hint>
+            <mat-hint *ngIf="!issueFor('productDescription')">What it is, the benefit, and the problem it solves - in customer-friendly words.</mat-hint>
+            <mat-hint *ngIf="issueFor('productDescription') as message" class="issue">{{ message }}</mat-hint>
+            <mat-error *ngIf="form.controls.productDescription.hasError('markup')">Use plain text only.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Additional product information (optional)</mat-label>
+            <textarea matInput formControlName="additionalInfo" rows="4" [maxlength]="limits.additionalInfo"></textarea>
+            <mat-hint align="end">{{ form.controls.additionalInfo.value.length | number }} / {{ limits.additionalInfo | number }}</mat-hint>
+            <mat-hint>Anything else that helps a customer decide. Line breaks are kept.</mat-hint>
+            <mat-error *ngIf="form.controls.additionalInfo.hasError('markup')">Use plain text only.</mat-error>
+          </mat-form-field>
+        </div>
+      </mat-card>
+
+      <!-- Consent wording -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-indigo"><mat-icon>fact_check</mat-icon></span>
+          <div>
+            <h2>WhatsApp consent statement</h2>
+            <p>Shown beside an unticked box. The customer must tick it before "Yes, I Agree" is accepted.</p>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <mat-form-field appearance="outline" class="span-2">
+            <mat-label>Consent statement</mat-label>
+            <textarea
+              matInput
+              formControlName="consentStatement"
+              rows="3"
+              [maxlength]="limits.consentStatement"
+              [placeholder]="defaultStatement"
+            ></textarea>
+            <mat-hint align="end">{{ form.controls.consentStatement.value.length | number }} / {{ limits.consentStatement | number }}</mat-hint>
+            <mat-hint>Leave blank to use the default wording. You can use [Business Name] and [Product/Service].</mat-hint>
+            <mat-error *ngIf="form.controls.consentStatement.hasError('whatsapp')">It must say that the customer agrees to receive WhatsApp messages.</mat-error>
+            <mat-error *ngIf="form.controls.consentStatement.hasError('markup')">Use plain text only.</mat-error>
+          </mat-form-field>
+        </div>
+
+        <div class="default-wording">
+          <span class="muted">Default wording</span>
+          <p>{{ defaultStatement }}</p>
+          <button mat-button type="button" color="primary" (click)="useDefaultStatement()">Use this wording</button>
+        </div>
+      </mat-card>
+
+      <!-- Legal links -->
+      <mat-card class="section">
+        <div class="section-head">
+          <span class="section-icon tone-violet"><mat-icon>policy</mat-icon></span>
+          <div>
+            <h2>Policies</h2>
+            <p>Linked from the page. Opening a link never counts as agreeing to anything.</p>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Privacy policy link (optional)</mat-label>
+            <mat-icon matPrefix>link</mat-icon>
+            <input matInput formControlName="privacyPolicyUrl" type="url" [maxlength]="limits.url" placeholder="https://example.com/privacy" />
+            <mat-error>Enter a full https:// address.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Terms and conditions link (optional)</mat-label>
+            <mat-icon matPrefix>link</mat-icon>
+            <input matInput formControlName="termsUrl" type="url" [maxlength]="limits.url" placeholder="https://example.com/terms" />
+            <mat-error>Enter a full https:// address.</mat-error>
+          </mat-form-field>
+        </div>
+      </mat-card>
+
+      <div class="actions">
+        <button mat-stroked-button color="primary" type="submit" [disabled]="busy">
+          <mat-spinner *ngIf="saving" diameter="18"></mat-spinner>
+          <span>Save</span>
+        </button>
+        <button mat-stroked-button type="button" (click)="onPreview()" [disabled]="busy">
+          <mat-icon>visibility</mat-icon>
+          <span>Preview Consent Page</span>
+        </button>
+        <button mat-flat-button color="primary" type="button" (click)="onPublish()" [disabled]="busy">
+          <mat-spinner *ngIf="publishing" diameter="18"></mat-spinner>
+          <span>Publish Configuration</span>
+        </button>
+        <span class="spacer"></span>
+        <button
+          mat-button
+          type="button"
+          *ngIf="settings.publishedVersion > 0"
+          (click)="toggleActive()"
+          [disabled]="busy"
+          [color]="settings.isActive ? 'warn' : 'primary'"
+        >
+          {{ settings.isActive ? 'Switch off' : 'Switch on' }}
+        </button>
+      </div>
+    </form>
+
+    <!-- Preview: the page as the customer sees it, not interactive -->
+    <aside class="side" *ngIf="preview">
+      <mat-card class="preview" aria-label="Preview of the consent page">
+        <div class="preview-head">
+          <strong>Preview</strong>
+          <button mat-icon-button type="button" (click)="closePreview()" aria-label="Close preview"><mat-icon>close</mat-icon></button>
+        </div>
+        <p class="muted">This is how the saved draft looks to a customer. Nothing here is sent.</p>
+
+        <div class="phone">
+          <h3>{{ preview.page.businessName || 'Your business name' }}</h3>
+          <p class="description">{{ preview.page.productDescription || 'Your product description appears here.' }}</p>
+          <p class="description" *ngIf="preview.page.additionalInfo">{{ preview.page.additionalInfo }}</p>
+
+          <div class="consent-box">
+            <mat-checkbox [checked]="false" [disabled]="true">{{ preview.page.consentStatement }}</mat-checkbox>
+          </div>
+
+          <div class="policy-links" *ngIf="preview.page.privacyPolicyUrl || preview.page.termsUrl">
+            <span *ngIf="preview.page.privacyPolicyUrl">Privacy Policy</span>
+            <span *ngIf="preview.page.termsUrl">Terms and Conditions</span>
+          </div>
+
+          <button mat-flat-button color="primary" type="button" disabled>Yes, I Agree</button>
+          <button mat-stroked-button type="button" disabled>No, Not Interested</button>
+        </div>
+      </mat-card>
+    </aside>
+  </div>
+</div>

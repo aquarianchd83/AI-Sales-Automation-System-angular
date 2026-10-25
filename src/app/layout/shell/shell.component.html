@@ -124,6 +124,7 @@
               <span class="alert-title">{{ alert.title }}</span>
               <span class="alert-body">{{ alert.body }}</span>
               <span class="alert-time">{{ alert.createdAt | zonedDate: 'medium' : tenantTimezone }}</span>
+              <span class="alert-cta" *ngIf="billingAlertAction(alert) as action">{{ action }}</span>
             </a>
             <div class="alert-actions" (click)="$event.stopPropagation()">
               <button mat-icon-button type="button" class="alert-action" (click)="deleteBillingAlert(alert)" aria-label="Delete notification">

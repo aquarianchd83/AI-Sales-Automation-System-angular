@@ -7,7 +7,7 @@ import { Subject, Observable, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, map, switchMap, takeUntil } from 'rxjs/operators';
 
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
-import { DeliveryStatus, TenantNotification, isUrgentNotification, tenantNotificationRoute } from '../../core/models/billing.model';
+import { DeliveryStatus, TenantNotification, isUrgentNotification, tenantNotificationActionLabel, tenantNotificationRoute } from '../../core/models/billing.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../core/models/paged-result.model';
 import { PLATFORM_ADMIN_ROLES, PlatformNotification, platformNotificationRoute } from '../../core/models/platform.model';
 import { AuthService } from '../../core/services/auth.service';
@@ -29,6 +29,8 @@ export interface NotificationRow {
   meta: string | null;
   /** Where opening it goes. */
   link: string;
+  /** A button that goes there, for a notice the tenant has to act on (e.g. "Complete Setup"); null for the rest. */
+  actionLabel?: string | null;
 }
 
 export type NotificationFilter = 'all' | 'unread';
@@ -272,5 +274,6 @@ function tenantRow(n: TenantNotification): NotificationRow {
     urgent: isUrgentNotification(n.kind),
     meta: delivered.length ? delivered.join(' · ') : null,
     link: tenantNotificationRoute(n.kind),
+    actionLabel: tenantNotificationActionLabel(n.kind),
   };
 }
