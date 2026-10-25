@@ -1,0 +1,45 @@
+<div class="page">
+  <app-page-header
+    title="Demo SMS Outbox"
+    subtitle="The text messages the simulated SMS provider 'sent'. Click a link as the customer would."
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="note" *ngIf="problem === 'off'" data-testid="off">
+    <mat-icon>info</mat-icon>
+    <p>The demo outbox is switched off. Set <code>ConsentPage:DemoOutboxEnabled</code> to <code>true</code> (it is on in Development) and use the simulated SMS provider.</p>
+  </mat-card>
+
+  <mat-card class="note" *ngIf="problem === 'failed'">
+    <mat-icon>cloud_off</mat-icon>
+    <p>The outbox could not be loaded.</p>
+    <button mat-stroked-button color="primary" type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <div class="toolbar" *ngIf="!loading && !problem">
+    <span class="muted">{{ messages.length }} message{{ messages.length === 1 ? '' : 's' }}. Kept in memory only - cleared when the API restarts.</span>
+    <button mat-stroked-button type="button" (click)="load()"><mat-icon>refresh</mat-icon> Refresh</button>
+  </div>
+
+  <mat-card class="note" *ngIf="!loading && !problem && !messages.length" data-testid="empty">
+    <mat-icon>sms</mat-icon>
+    <p>No messages yet. Run lead discovery with "Send WhatsApp consent SMS" on and a published consent page, then refresh.</p>
+  </mat-card>
+
+  <ul class="list" *ngIf="messages.length">
+    <li class="sms" *ngFor="let sms of messages" data-testid="sms">
+      <div class="meta">
+        <strong>To {{ sms.to }}</strong>
+        <span class="muted">{{ sms.sentAtUtc | zonedDate: 'medium' }}</span>
+      </div>
+      <p class="body">{{ textOf(sms) }}</p>
+      <div class="links" *ngIf="sms.link">
+        <a mat-flat-button color="primary" [routerLink]="sms.path" target="_blank" data-testid="open-here">
+          <mat-icon>open_in_new</mat-icon> Open consent page
+        </a>
+        <code class="url">{{ sms.link }}</code>
+      </div>
+    </li>
+  </ul>
+</div>

@@ -227,6 +227,13 @@ const routes: Routes = [
           ),
       },
       {
+        // Demo only: the API answers 404 unless ConsentPage:DemoOutboxEnabled is on.
+        path: 'demo/sms-outbox',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () => import('./features/demo-sms-outbox/demo-sms-outbox.module').then((m) => m.DemoSmsOutboxModule),
+      },
+      {
         path: 'consent-page-settings',
         canActivate: [roleGuard],
         data: { roles: TENANT_ADMIN_ROLES },

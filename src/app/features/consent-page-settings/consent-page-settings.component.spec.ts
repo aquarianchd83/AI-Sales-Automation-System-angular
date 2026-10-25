@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
 import { ConsentPagePreview, ConsentPageSettings } from '../../core/models/consent-page.model';
@@ -71,7 +72,7 @@ describe('ConsentPageSettingsComponent', () => {
 
     TestBed.configureTestingModule({
       declarations: [ConsentPageSettingsComponent],
-      imports: [SharedModule, NoopAnimationsModule],
+      imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: ConsentPageService, useValue: service },
         { provide: NotificationService, useValue: notify },
