@@ -28,6 +28,12 @@ const routes: Routes = [
   { path: 'reset-password', redirectTo: 'recover/reset-password', pathMatch: 'full' },
   { path: 'verify-email', redirectTo: 'recover/verify-email', pathMatch: 'full' },
   {
+    // What a customer reaches from the link in the SMS. No guard of any kind: the customer has no account, and the secret in the
+    // link is the whole credential. Outside ShellComponent, so none of the app's chrome (menus, tenant data) is on it.
+    path: 'consent/:token',
+    loadChildren: () => import('./features/public-consent/public-consent.module').then((m) => m.PublicConsentModule),
+  },
+  {
     // No authGuard/roleGuard — a brand-new tab with no session yet. See
     // ImpersonateSessionComponent's own doc comment.
     path: 'impersonate-session',
@@ -218,6 +224,22 @@ const routes: Routes = [
         loadChildren: () =>
           import('./features/tenant-settings/tenant-settings.module').then(
             (m) => m.TenantSettingsModule
+          ),
+      },
+      {
+        // Demo only: the API answers 404 unless ConsentPage:DemoOutboxEnabled is on.
+        path: 'demo/sms-outbox',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () => import('./features/demo-sms-outbox/demo-sms-outbox.module').then((m) => m.DemoSmsOutboxModule),
+      },
+      {
+        path: 'consent-page-settings',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ADMIN_ROLES },
+        loadChildren: () =>
+          import('./features/consent-page-settings/consent-page-settings.module').then(
+            (m) => m.ConsentPageSettingsModule
           ),
       },
       {

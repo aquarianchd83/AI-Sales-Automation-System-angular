@@ -85,6 +85,7 @@ describe('ShellComponent sidenav', () => {
       'bar_chartReports',
       'monitoringAgent Performance',
       'settingsWhatsApp Settings',
+      'fact_checkConsent Page',
       'manage_accountsUsers & Roles',
       'scienceTest Notifications',
     ]);

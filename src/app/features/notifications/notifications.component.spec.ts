@@ -154,6 +154,22 @@ describe('NotificationsComponent', () => {
     expect(fixture.componentInstance.page.items[0].acknowledged).toBeTrue();
   });
 
+  it('a consent page notice has a Complete Setup button that opens WhatsApp Consent Page Settings; ordinary ones have none', () => {
+    const fixture = create(false);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.notification-cta')).toBeNull();
+
+    billing.getNotificationHistory.and.returnValue(of(page([
+      tenantNotice({ id: 'c1', kind: TenantNotificationKind.ConsentPageSetupRequired, title: 'WhatsApp Consent Page Setup Required' }),
+    ])));
+    fixture.componentInstance.setFilter('unread');
+    fixture.detectChanges();
+
+    const cta = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.notification-cta')!;
+    expect(cta.textContent).toContain('Complete Setup');
+    cta.click();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/consent-page-settings');
+  });
+
   it('opening a read notification only navigates', () => {
     const fixture = create(false);
 

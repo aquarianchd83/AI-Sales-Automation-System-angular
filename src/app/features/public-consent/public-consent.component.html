@@ -1,0 +1,85 @@
+<main class="consent-page">
+  <mat-card class="consent-card">
+    <ng-container [ngSwitch]="view">
+      <!-- Loading -->
+      <div *ngSwitchCase="'loading'" class="state" role="status" aria-live="polite">
+        <mat-spinner diameter="32"></mat-spinner>
+        <p>Loading…</p>
+      </div>
+
+      <!-- The page -->
+      <ng-container *ngSwitchCase="'ready'">
+        <ng-container *ngIf="page as p">
+          <h1 data-testid="business-name">{{ p.businessName }}</h1>
+          <p class="description" data-testid="description">{{ p.productDescription }}</p>
+          <p class="description" *ngIf="p.additionalInfo" data-testid="additional-info">{{ p.additionalInfo }}</p>
+
+          <div class="notice" *ngIf="message" role="alert">{{ message }}</div>
+
+          <section class="consent" aria-labelledby="consent-heading">
+            <h2 id="consent-heading">WhatsApp messages</h2>
+            <mat-checkbox [formControl]="agree" class="consent-check" data-testid="consent-checkbox">
+              <span class="consent-text">{{ p.consentStatement }}</span>
+            </mat-checkbox>
+          </section>
+
+          <nav class="policy-links" *ngIf="safeLink(p.privacyPolicyUrl) || safeLink(p.termsUrl)" aria-label="Policies">
+            <a *ngIf="safeLink(p.privacyPolicyUrl) as url" [href]="url" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+            <a *ngIf="safeLink(p.termsUrl) as url" [href]="url" target="_blank" rel="noopener noreferrer">Terms and Conditions</a>
+          </nav>
+
+          <div class="choices">
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              class="choice"
+              data-testid="agree"
+              [disabled]="!canAgree"
+              (click)="submit('agree')"
+            >
+              <mat-spinner *ngIf="submitting === 'agree'" diameter="18"></mat-spinner>
+              <span>Yes, I Agree</span>
+            </button>
+            <button mat-stroked-button type="button" class="choice" data-testid="decline" [disabled]="!canDecline" (click)="submit('decline')">
+              <mat-spinner *ngIf="submitting === 'decline'" diameter="18"></mat-spinner>
+              <span>No, Not Interested</span>
+            </button>
+          </div>
+          <p class="fine-print">Ticking the box is how you say yes. Opening this page does not sign you up for anything.</p>
+        </ng-container>
+      </ng-container>
+
+      <!-- Answered -->
+      <div *ngSwitchCase="'answered'" class="state" role="status" aria-live="polite" data-testid="confirmation">
+        <mat-icon class="state-icon ok">{{ answered === 'agree' ? 'check_circle' : 'info' }}</mat-icon>
+        <p class="state-title">{{ answered === 'agree' ? 'Preference saved' : 'Preference saved' }}</p>
+        <p>{{ message }}</p>
+      </div>
+
+      <div *ngSwitchCase="'unavailable'" class="state" data-testid="unavailable">
+        <mat-icon class="state-icon">schedule</mat-icon>
+        <p class="state-title">This page isn't available right now</p>
+        <p>Please try again a little later.</p>
+      </div>
+
+      <div *ngSwitchCase="'expired'" class="state" data-testid="expired">
+        <mat-icon class="state-icon">link_off</mat-icon>
+        <p class="state-title">This link has expired</p>
+        <p>Nothing has been changed. If you'd still like to hear from the business, you can ask them for a new link.</p>
+      </div>
+
+      <div *ngSwitchCase="'invalid'" class="state" data-testid="invalid">
+        <mat-icon class="state-icon">link_off</mat-icon>
+        <p class="state-title">This link isn't valid</p>
+        <p>Please check the link in your text message, or ask the business to send it again.</p>
+      </div>
+
+      <div *ngSwitchCase="'error'" class="state" data-testid="error">
+        <mat-icon class="state-icon">cloud_off</mat-icon>
+        <p class="state-title">We couldn't load this page</p>
+        <button mat-stroked-button color="primary" type="button" (click)="load()">Try again</button>
+      </div>
+    </ng-container>
+  </mat-card>
+</main>

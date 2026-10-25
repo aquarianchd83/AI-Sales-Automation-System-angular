@@ -11,7 +11,7 @@ import { Announcement, PLATFORM_ADMIN_ROLES, PlatformNotification, platformNotif
 import { AccountRecoveryService } from '../../core/services/account-recovery.service';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
-import { TenantNotification, isUrgentNotification, tenantNotificationRoute } from '../../core/models/billing.model';
+import { TenantNotification, isUrgentNotification, tenantNotificationActionLabel, tenantNotificationRoute } from '../../core/models/billing.model';
 import { BillingService } from '../../core/services/billing.service';
 import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { ContentStudioService } from '../../core/services/content-studio.service';
@@ -156,6 +156,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Reports', icon: 'bar_chart', route: '/reports', roles: REPORT_ROLES },
         { label: 'Agent Performance', icon: 'monitoring', route: '/agent-performance', roles: TENANT_ADMIN_ONLY },
         { label: 'WhatsApp Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
+        { label: 'Consent Page', icon: 'fact_check', route: '/consent-page-settings', roles: TENANT_ADMIN_ONLY },
         { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
         { label: 'Test Notifications', icon: 'science', route: '/billing/notifications/test', roles: TENANT_ADMIN_ONLY },
       ],
@@ -665,6 +666,16 @@ export class ShellComponent implements OnInit, OnDestroy {
   /** Opening an alert goes to where it can be dealt with, not always the same screen. */
   billingAlertLink(alert: TenantNotification): string {
     return tenantNotificationRoute(alert.kind);
+  }
+
+  /** The banner's button: where the notice is dealt with. Quota alerts are fixed by buying credits; others (e.g. the consent page) go to their own screen. */
+  billingBannerLabel(alert: TenantNotification): string {
+    return tenantNotificationActionLabel(alert.kind) ?? (tenantNotificationRoute(alert.kind) === '/billing/wallet' ? 'Buy credits' : 'Open');
+  }
+
+  /** "Complete Setup" for a notice the tenant has to act on; null for the rest. */
+  billingAlertAction(alert: TenantNotification): string | null {
+    return tenantNotificationActionLabel(alert.kind);
   }
 
   platformAlertLink(alert: PlatformNotification): string {

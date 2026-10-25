@@ -362,6 +362,8 @@ export enum TenantNotificationKind {
   WhatsAppTokenFailing = 16,
   /** Someone's account was locked after repeated wrong passwords - a forgotten password, or someone guessing. */
   AccountLocked = 17,
+  /** Customer discovery did not start: the WhatsApp Consent Page is incomplete, unpublished or switched off. Nothing was charged. */
+  ConsentPageSetupRequired = 21,
 }
 
 export interface TenantNotification {
@@ -422,6 +424,7 @@ export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = 
   [TenantNotificationKind.PlanRenewalFailed]: 'Plan could not renew',
   [TenantNotificationKind.WhatsAppTokenFailing]: 'WhatsApp access token failing',
   [TenantNotificationKind.AccountLocked]: 'Account locked after wrong passwords',
+  [TenantNotificationKind.ConsentPageSetupRequired]: 'WhatsApp Consent Page setup required',
 };
 
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */
@@ -434,7 +437,8 @@ export function isUrgentNotification(kind: TenantNotificationKind): boolean {
     kind === TenantNotificationKind.TemplateNeedsAttention ||
     kind === TenantNotificationKind.PlanRenewalFailed ||
     kind === TenantNotificationKind.WhatsAppTokenFailing ||
-    kind === TenantNotificationKind.AccountLocked
+    kind === TenantNotificationKind.AccountLocked ||
+    kind === TenantNotificationKind.ConsentPageSetupRequired
   );
 }
 
@@ -448,6 +452,8 @@ export function tenantNotificationRoute(kind: TenantNotificationKind): string {
       return '/tenant-settings';
     case TenantNotificationKind.AccountLocked:
       return '/audit-log';
+    case TenantNotificationKind.ConsentPageSetupRequired:
+      return '/consent-page-settings';
     case TenantNotificationKind.JobStarted:
     case TenantNotificationKind.JobCompleted:
       return '/tenant-settings/jobs';
@@ -458,6 +464,11 @@ export function tenantNotificationRoute(kind: TenantNotificationKind): string {
     default:
       return '/billing/wallet';
   }
+}
+
+/** The label of the button on a notification that asks the tenant to do something, or null when opening it is all there is to do. */
+export function tenantNotificationActionLabel(kind: TenantNotificationKind): string | null {
+  return kind === TenantNotificationKind.ConsentPageSetupRequired ? 'Complete Setup' : null;
 }
 
 export enum RefundStatus {
