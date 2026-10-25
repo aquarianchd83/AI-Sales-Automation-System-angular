@@ -257,6 +257,24 @@ describe('ShellComponent billing bell', () => {
       discardPeriodicTasks();
     }));
 
+    it('offers Buy credits, to the wallet, for a quota alert', fakeAsync(() => {
+      const { root } = render({ roles: ['Admin'], notifications: [alert('1', TenantNotificationKind.QuotaExhausted)] });
+
+      const action = root.querySelector('.billing-alert-banner [data-testid="banner-action"]');
+      expect(action?.textContent?.trim()).toBe('Buy credits');
+      expect(action?.getAttribute('href')).toBe('/billing/wallet');
+      discardPeriodicTasks();
+    }));
+
+    it('offers Complete Setup, to the consent page settings, for the consent page notice', fakeAsync(() => {
+      const { root } = render({ roles: ['Admin'], notifications: [alert('2', TenantNotificationKind.ConsentPageSetupRequired)] });
+
+      const action = root.querySelector('.billing-alert-banner [data-testid="banner-action"]');
+      expect(action?.textContent?.trim()).toBe('Complete Setup');
+      expect(action?.getAttribute('href')).toBe('/consent-page-settings');
+      discardPeriodicTasks();
+    }));
+
     it('does not banner a non-urgent alert - the bell alone is enough for that', fakeAsync(() => {
       const { root } = render({ roles: ['Admin'], notifications: [alert('1', TenantNotificationKind.QuotaLow20)] });
 

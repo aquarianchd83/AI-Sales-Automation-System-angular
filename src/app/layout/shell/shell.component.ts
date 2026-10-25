@@ -668,6 +668,11 @@ export class ShellComponent implements OnInit, OnDestroy {
     return tenantNotificationRoute(alert.kind);
   }
 
+  /** The banner's button: where the notice is dealt with. Quota alerts are fixed by buying credits; others (e.g. the consent page) go to their own screen. */
+  billingBannerLabel(alert: TenantNotification): string {
+    return tenantNotificationActionLabel(alert.kind) ?? (tenantNotificationRoute(alert.kind) === '/billing/wallet' ? 'Buy credits' : 'Open');
+  }
+
   /** "Complete Setup" for a notice the tenant has to act on; null for the rest. */
   billingAlertAction(alert: TenantNotification): string | null {
     return tenantNotificationActionLabel(alert.kind);

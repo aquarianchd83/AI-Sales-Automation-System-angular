@@ -292,7 +292,7 @@
       <span>
         <strong>{{ alert.title }}</strong> — {{ alert.body }}
       </span>
-      <a mat-stroked-button color="warn" routerLink="/billing/wallet">Buy credits</a>
+      <a mat-stroked-button color="warn" [routerLink]="billingAlertLink(alert)" data-testid="banner-action">{{ billingBannerLabel(alert) }}</a>
       <button
         mat-icon-button
         type="button"
