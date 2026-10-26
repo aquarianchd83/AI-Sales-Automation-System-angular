@@ -209,6 +209,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       label: 'WhatsApp Notices',
       items: [
         { label: 'Platform WhatsApp', icon: 'chat', route: '/platform/whatsapp-settings', roles: [] },
+        { label: 'WhatsApp Provider', icon: 'swap_horiz', route: '/platform/whatsapp-provider', roles: [] },
         { label: 'Notice Templates', icon: 'description', route: '/platform/notice-templates', roles: [] },
         { label: 'Notice Media', icon: 'perm_media', route: '/platform/notice-media', roles: [] },
       ],

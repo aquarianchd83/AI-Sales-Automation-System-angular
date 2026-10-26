@@ -153,6 +153,7 @@ describe('ShellComponent sidenav', () => {
       'receipt_longPayments',
       'assignment_returnRefund Requests',
       'chatPlatform WhatsApp',
+      'swap_horizWhatsApp Provider',
       'descriptionNotice Templates',
       'perm_mediaNotice Media',
       'cloud_syncWhatsApp Connections',
