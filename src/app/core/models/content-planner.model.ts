@@ -241,6 +241,72 @@ export const ASPECT_RATIOS: { value: string; label: string }[] = [
 
 export const ACTIVE_RENDER: RenderStatus[] = ['Queued', 'Preparing', 'Rendering'];
 
+// ----- publishing ------------------------------------------------------------------------------------------------------------------
+
+export interface SocialConnection {
+  id: string;
+  platform: 'YouTube' | 'Instagram';
+  accountName: string;
+  status: 'Connected' | 'NeedsReconnect';
+  /** Why the account needs attention, in a sentence. */
+  lastError: string | null;
+  connectedAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface ConnectionsOverview {
+  /** False when the platform has no Google OAuth client set up: Connect is then not offered. */
+  youTubeAvailable: boolean;
+  connections: SocialConnection[];
+}
+
+export type PublicationStatus = 'Scheduled' | 'Uploading' | 'Published' | 'Failed' | 'Cancelled';
+export type Privacy = 'private' | 'unlisted' | 'public';
+
+export interface Publication {
+  id: string;
+  versionId: string;
+  versionNumber: number;
+  renderJobId: string;
+  platform: string;
+  accountName: string;
+  status: PublicationStatus;
+  title: string;
+  description: string | null;
+  privacy: Privacy;
+  scheduledAtUtc: string | null;
+  /** The link to the post, once it is on the platform. */
+  url: string | null;
+  attempts: number;
+  nextRetryAtUtc: string | null;
+  lastError: string | null;
+  createdAt: string;
+  publishedAtUtc: string | null;
+}
+
+export interface PublishBody {
+  renderJobId: string;
+  connectionId: string;
+  title: string;
+  description: string | null;
+  privacy: Privacy;
+  scheduledAtUtc: string | null;
+  idempotencyKey: string;
+}
+
+export const PRIVACY_OPTIONS: { value: Privacy; label: string; hint: string }[] = [
+  { value: 'private', label: 'Private - only you can see it', hint: 'The safe choice. Google keeps videos from new, unverified apps private anyway.' },
+  { value: 'unlisted', label: 'Unlisted - anyone with the link', hint: 'Not shown in search or on your channel page.' },
+  { value: 'public', label: 'Public - everyone', hint: 'Shown on your channel and in search.' },
+];
+
+export const ACTIVE_PUBLICATION: PublicationStatus[] = ['Scheduled', 'Uploading'];
+
+/** Where Google sends the tenant back to after signing in; must be registered with Google exactly. */
+export function connectionsRedirectUri(origin: string): string {
+  return `${origin}/content-studio/connections`;
+}
+
 // ----- review and approval --------------------------------------------------------------------------------------------------------
 
 export type ReviewAction = 'Submitted' | 'Withdrawn' | 'Approved' | 'Rejected' | 'Revised';

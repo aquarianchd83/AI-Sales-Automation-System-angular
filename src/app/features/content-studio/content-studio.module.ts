@@ -6,6 +6,7 @@ import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { TENANT_ADMIN_ROLES } from '../../core/models/user.model';
 import { SharedModule } from '../../shared/shared.module';
 import { StudioActivityComponent } from './studio-activity/studio-activity.component';
+import { StudioConnectionsComponent } from './studio-connections/studio-connections.component';
 import { StudioPlannerComponent } from './studio-planner/studio-planner.component';
 import { StudioFactsComponent } from './studio-facts/studio-facts.component';
 import { StudioQuestionnaireComponent } from './studio-questionnaire/studio-questionnaire.component';
@@ -16,12 +17,13 @@ const routes: Routes = [
   { path: '', pathMatch: 'full', component: StudioActivityComponent, canActivate: [roleGuard], data: { roles: TENANT_ADMIN_ROLES } },
   { path: 'questionnaire', component: StudioQuestionnaireComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
   { path: 'facts', component: StudioFactsComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
+  { path: 'connections', component: StudioConnectionsComponent, canActivate: [roleGuard], data: { roles: TENANT_ADMIN_ROLES } },
   { path: 'planner', component: StudioPlannerComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
   { path: 'readiness', component: StudioReadinessComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
 ];
 
 @NgModule({
-  declarations: [StudioActivityComponent, StudioQuestionnaireComponent, StudioFactsComponent, StudioReadinessComponent, StudioPlannerComponent],
+  declarations: [StudioActivityComponent, StudioQuestionnaireComponent, StudioFactsComponent, StudioReadinessComponent, StudioPlannerComponent, StudioConnectionsComponent],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })
 export class ContentStudioModule {}

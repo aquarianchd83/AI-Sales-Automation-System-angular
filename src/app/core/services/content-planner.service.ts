@@ -6,12 +6,16 @@ import { environment } from '../../../environments/environment';
 import {
   AssetCandidates,
   AssetSummary,
+  ConnectionsOverview,
   CreateProjectBody,
   ProjectDetail,
   ProjectSummary,
+  Publication,
+  PublishBody,
   RenderJob,
   ReviewState,
   ScriptVersion,
+  SocialConnection,
   StudioAsset,
   UpdateSceneBody,
 } from '../models/content-planner.model';
@@ -98,6 +102,41 @@ export class ContentPlannerService {
   /** Multipart: file, kind, name, tags and the two confirmations. */
   uploadAsset(form: FormData): Observable<StudioAsset> {
     return this.http.post<StudioAsset>(`${this.baseUrl}/assets`, form);
+  }
+
+  // ----- publishing (Admin only) -------------------------------------------------------------------------------------------
+
+  connections(): Observable<ConnectionsOverview> {
+    return this.http.get<ConnectionsOverview>(`${this.baseUrl}/connections`);
+  }
+
+  /** The Google sign-in address; `redirectUri` is the page Google sends the tenant back to. */
+  youTubeConnectUrl(redirectUri: string): Observable<{ url: string }> {
+    return this.http.get<{ url: string }>(`${this.baseUrl}/connections/youtube/connect-url`, { params: new HttpParams().set('redirectUri', redirectUri) });
+  }
+
+  connectYouTube(code: string, state: string, redirectUri: string): Observable<SocialConnection> {
+    return this.http.post<SocialConnection>(`${this.baseUrl}/connections/youtube/connect`, { code, state, redirectUri });
+  }
+
+  disconnect(connectionId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/connections/${connectionId}`);
+  }
+
+  publish(versionId: string, body: PublishBody): Observable<Publication> {
+    return this.http.post<Publication>(`${this.baseUrl}/versions/${versionId}/publish`, body);
+  }
+
+  publications(versionId: string): Observable<Publication[]> {
+    return this.http.get<Publication[]>(`${this.baseUrl}/versions/${versionId}/publications`);
+  }
+
+  cancelPublication(id: string): Observable<Publication> {
+    return this.http.post<Publication>(`${this.baseUrl}/publications/${id}/cancel`, {});
+  }
+
+  retryPublication(id: string): Observable<Publication> {
+    return this.http.post<Publication>(`${this.baseUrl}/publications/${id}/retry`, {});
   }
 
   // ----- review and approval ------------------------------------------------------------------------------------------

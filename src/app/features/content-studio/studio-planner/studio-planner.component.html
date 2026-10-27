@@ -436,7 +436,7 @@
             </form>
             <p class="muted small">The narration is read by a synthetic voice, and the video says so.</p>
 
-            <ul class="renders" *ngIf="renders.length" data-testid="renders">
+            <ul class="renders" *ngIf="renders.length" data-testid="renders-list">
               <li class="render" *ngFor="let r of renders" [attr.data-render]="r.id">
                 <div class="render-head">
                   <span class="chip" [class.chip--chosen]="r.status === 'Succeeded'" [class.chip--fail]="r.status === 'Failed'" data-testid="render-status">{{ r.status }}</span>
@@ -455,6 +455,70 @@
                 <video class="player" *ngIf="watching === r.id && videoUrl" [src]="videoUrl" controls preload="metadata" data-testid="player"></video>
               </li>
             </ul>
+
+            <!-- 5. Publishing (Admin only, once approved). -->
+            <ng-container *ngIf="showPublishing">
+              <h3 class="section">5. Publish</h3>
+              <div data-testid="publishing">
+                <p class="muted small" *ngIf="cannotPublishBecause as why" data-testid="cannot-publish">{{ why }} <a routerLink="/content-studio/connections" *ngIf="!connectedAccounts.length">Publishing accounts</a></p>
+                <form class="form" [formGroup]="publishForm" (ngSubmit)="publish()" *ngIf="!cannotPublishBecause" data-testid="publish-form">
+                  <mat-form-field subscriptSizing="dynamic" class="narrow">
+                    <mat-label>Publish to</mat-label>
+                    <mat-select formControlName="connectionId" data-testid="account">
+                      <mat-option *ngFor="let c of connectedAccounts" [value]="c.id">YouTube - {{ c.accountName }}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Title</mat-label>
+                    <input matInput formControlName="title" maxlength="100" data-testid="publish-title" />
+                  </mat-form-field>
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Description (optional)</mat-label>
+                    <textarea matInput formControlName="description" rows="2" maxlength="4800"></textarea>
+                  </mat-form-field>
+                  <mat-form-field subscriptSizing="dynamic" class="narrow">
+                    <mat-label>Who can watch</mat-label>
+                    <mat-select formControlName="privacy" data-testid="privacy">
+                      <mat-option *ngFor="let p of privacies" [value]="p.value">{{ p.label }}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <div class="row">
+                    <mat-form-field subscriptSizing="dynamic" class="narrow">
+                      <mat-label>When</mat-label>
+                      <mat-select formControlName="when" data-testid="when">
+                        <mat-option value="now">As soon as possible</mat-option>
+                        <mat-option value="later">At a set time</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field subscriptSizing="dynamic" *ngIf="publishForm.controls.when.value === 'later'">
+                      <mat-label>Date and time</mat-label>
+                      <input matInput type="datetime-local" formControlName="at" data-testid="at" />
+                    </mat-form-field>
+                  </div>
+                  <p class="muted small">The video is marked as using a synthetic voice, and the credit lines of any stock photos are added to the description.</p>
+                  <div class="actions">
+                    <button mat-flat-button color="primary" type="submit" [disabled]="!canPublish" data-testid="publish">
+                      <mat-icon>{{ busy.publish ? 'hourglass_empty' : 'publish' }}</mat-icon> {{ busy.publish ? 'Publishing…' : 'Publish to YouTube' }}
+                    </button>
+                  </div>
+                </form>
+
+                <ul class="renders" *ngIf="publications.length" data-testid="publications">
+                  <li class="render" *ngFor="let p of publications" [attr.data-publication]="p.id">
+                    <div class="render-head">
+                      <span class="chip" [class.chip--chosen]="p.status === 'Published'" [class.chip--fail]="p.status === 'Failed'" data-testid="publication-status">{{ p.status === 'Uploading' ? 'Sending' : p.status }}</span>
+                      <strong>{{ p.title }}</strong>
+                      <span class="muted small">{{ p.accountName }} · {{ p.privacy }}<ng-container *ngIf="p.scheduledAtUtc && p.status === 'Scheduled'"> · at {{ p.scheduledAtUtc | zonedDate: 'medium' }}</ng-container></span>
+                      <span class="grow"></span>
+                      <a mat-stroked-button [href]="p.url" target="_blank" rel="noopener noreferrer" *ngIf="p.url" data-testid="publication-link"><mat-icon>open_in_new</mat-icon> Open on YouTube</a>
+                      <button mat-button type="button" *ngIf="p.status === 'Scheduled'" (click)="cancelPublication(p)" data-testid="cancel-publication">Cancel</button>
+                      <button mat-stroked-button type="button" *ngIf="p.status === 'Failed' && !p.url" (click)="retryPublication(p)" data-testid="retry-publication">Try again</button>
+                    </div>
+                    <p class="problem small" *ngIf="p.lastError" data-testid="publication-error">{{ p.lastError }}</p>
+                  </li>
+                </ul>
+              </div>
+            </ng-container>
           </ng-container>
         </mat-card>
       </ng-container>

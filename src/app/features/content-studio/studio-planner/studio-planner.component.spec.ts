@@ -2,25 +2,28 @@ import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, tick } from
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import {
   AssetCandidates,
   AssetSummary,
+  ConnectionsOverview,
   ContentScene,
   ContentTopic,
   ProjectDetail,
   ProjectSummary,
+  Publication,
   RenderJob,
   ReviewState,
   ScriptVersion,
   StockPhoto,
   StudioAsset,
 } from '../../../core/models/content-planner.model';
+import { AuthService } from '../../../core/services/auth.service';
 import { ContentPlannerService } from '../../../core/services/content-planner.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { SharedModule } from '../../../shared/shared.module';
-import { RENDER_POLL_MS, StudioPlannerComponent } from './studio-planner.component';
+import { PUBLISH_POLL_MS, RENDER_POLL_MS, StudioPlannerComponent } from './studio-planner.component';
 
 const summary = (over: Partial<ProjectSummary> = {}): ProjectSummary => ({
   id: 'p1', title: 'Cataract awareness', goal: 'Get more bookings', language: 'English', status: 'Draft', topicCount: 0, versionCount: 0, chosenTopic: null, createdAt: '2026-10-27T10:00:00Z', updatedAt: null, ...over,
@@ -59,6 +62,15 @@ const reviewState = (over: Partial<ReviewState> = {}): ReviewState => ({
   integrityOk: true, history: [], ...over,
 });
 
+const connectionsOverview = (over: Partial<ConnectionsOverview> = {}): ConnectionsOverview => ({
+  youTubeAvailable: true, connections: [{ id: 'c1', platform: 'YouTube', accountName: 'Clinic Channel', status: 'Connected', lastError: null, connectedAt: '2026-10-20T10:00:00Z', lastUsedAt: null }], ...over,
+});
+
+const publication = (over: Partial<Publication> = {}): Publication => ({
+  id: 'pub1', versionId: 'v1', versionNumber: 1, renderJobId: 'r1', platform: 'YouTube', accountName: 'Clinic Channel', status: 'Scheduled', title: 'Cataract surgery explained', description: null,
+  privacy: 'private', scheduledAtUtc: null, url: null, attempts: 0, nextRetryAtUtc: null, lastError: null, createdAt: '2026-10-27T14:00:00Z', publishedAtUtc: null, ...over,
+});
+
 const candidates = (over: Partial<AssetCandidates> = {}): AssetCandidates => ({
   query: 'reception desk', own: [{ asset: studioAsset(), score: 0.5, reason: 'Matches: reception' }], stock: [], stockAvailable: true, stockMessage: null, ...over,
 });
@@ -79,6 +91,9 @@ describe('StudioPlannerComponent', () => {
   let api: jasmine.SpyObj<ContentPlannerService>;
   let notify: jasmine.SpyObj<NotificationService>;
   let dialogResult = true;
+  let isAdmin = true;
+  let accounts: ConnectionsOverview = connectionsOverview();
+  let publications: Publication[] = [];
 
   const root = () => fixture.nativeElement as HTMLElement;
   const text = (sel: string) => (root().querySelector(sel)?.textContent ?? '').replace(/\s+/g, ' ').trim();
@@ -89,7 +104,9 @@ describe('StudioPlannerComponent', () => {
   const present = (testId: string) => root().querySelector(`[data-testid="${testId}"]`) !== null;
 
   function render(projects: ProjectSummary[], first: ProjectDetail | null, jobs: RenderJob[] = [], review: ReviewState = reviewState()): StudioPlannerComponent {
-    api = jasmine.createSpyObj('ContentPlannerService', ['list', 'create', 'get', 'update', 'remove', 'generateTopics', 'updateTopic', 'generateScript', 'getVersion', 'recheck', 'updateScene', 'deleteScene', 'candidates', 'chooseAsset', 'clearAsset', 'uploadAsset', 'assetContent', 'startRender', 'renders', 'render', 'cancelRender', 'video', 'review', 'submit', 'withdraw', 'approve', 'reject', 'revise']);
+    api = jasmine.createSpyObj('ContentPlannerService', ['list', 'create', 'get', 'update', 'remove', 'generateTopics', 'updateTopic', 'generateScript', 'getVersion', 'recheck', 'updateScene', 'deleteScene', 'candidates', 'chooseAsset', 'clearAsset', 'uploadAsset', 'assetContent', 'startRender', 'renders', 'render', 'cancelRender', 'video', 'review', 'submit', 'withdraw', 'approve', 'reject', 'revise', 'connections', 'publish', 'publications', 'cancelPublication', 'retryPublication']);
+    api.connections.and.callFake(() => of(accounts));
+    api.publications.and.callFake(() => of(publications));
     api.review.and.returnValue(of(review));
     api.renders.and.returnValue(of(jobs));
     api.assetContent.and.returnValue(of(new Blob(['x'], { type: 'image/png' })));
@@ -104,6 +121,7 @@ describe('StudioPlannerComponent', () => {
       providers: [
         { provide: ContentPlannerService, useValue: api },
         { provide: NotificationService, useValue: notify },
+        { provide: AuthService, useValue: { hasAnyRole: () => isAdmin } },
         { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(dialogResult) }) } },
       ],
     });
@@ -112,7 +130,12 @@ describe('StudioPlannerComponent', () => {
     return fixture.componentInstance;
   }
 
-  beforeEach(() => (dialogResult = true));
+  beforeEach(() => {
+    dialogResult = true;
+    isAdmin = true;
+    accounts = connectionsOverview();
+    publications = [];
+  });
   afterEach(() => fixture?.destroy());
 
   it('says there are no projects yet and offers a new one', () => {
@@ -689,5 +712,134 @@ describe('StudioPlannerComponent', () => {
     fixture.detectChanges();
 
     expect(api.review).toHaveBeenCalledWith('v1');
+  });
+
+  // ----- publishing ------------------------------------------------------------------------------------------------------------
+
+  const approvedVersion = () => ({ ...readyScript(), status: 'Approved' as const });
+  const approvedReview = () => reviewState({ status: 'Approved', integrityOk: true });
+  const approvedVideo = () => [renderJob({ status: 'Succeeded', hasVideo: true, isOfApprovedScript: true })];
+
+  function renderApproved(): StudioPlannerComponent {
+    return render([summary({ status: 'Scripted' })], detail({ currentVersion: approvedVersion() }), approvedVideo(), approvedReview());
+  }
+
+  it('shows publishing only to an Admin, only for an approved script that still matches what was approved', () => {
+    isAdmin = false;
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: approvedVersion() }), approvedVideo(), approvedReview());
+    expect(present('publishing')).toBeFalse();
+    expect(api.connections).not.toHaveBeenCalled();
+    fixture.destroy();
+    TestBed.resetTestingModule();
+
+    isAdmin = true;
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: readyScript() }), [], reviewState({ status: 'Draft' }));
+    expect(present('publishing')).toBeFalse(); // not approved
+    fixture.destroy();
+    TestBed.resetTestingModule();
+
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: approvedVersion() }), approvedVideo(), reviewState({ status: 'Approved', integrityOk: false }));
+    expect(present('publishing')).toBeFalse(); // changed after approval
+  });
+
+  it('says what is missing: a video of the approved script, or a connected account', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: approvedVersion() }), [renderJob({ status: 'Succeeded', hasVideo: true, isOfApprovedScript: false })], approvedReview());
+    expect(text('[data-testid="cannot-publish"]')).toContain('Make a video from this approved script first');
+    expect(present('publish-form')).toBeFalse();
+    fixture.destroy();
+    TestBed.resetTestingModule();
+
+    accounts = connectionsOverview({ connections: [] });
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: approvedVersion() }), approvedVideo(), approvedReview());
+    expect(text('[data-testid="cannot-publish"]')).toContain('No YouTube account is connected');
+  });
+
+  it('publishes after the Admin confirms, privately by default, with a key that makes a second press the same publication', () => {
+    const c = renderApproved();
+    expect(c.publishForm.controls.connectionId.value).toBe('c1');
+    expect(c.publishForm.controls.title.value).toBe('Cataract awareness');
+    expect(c.publishForm.controls.privacy.value).toBe('private');
+    api.publish.and.returnValues(throwError(() => new Error('network')), of(publication()));
+    c.publishForm.patchValue({ title: '  Cataract surgery explained  ', description: '  A short explainer.  ' });
+    fixture.detectChanges();
+
+    dialogResult = false;
+    click('publish');
+    expect(api.publish).not.toHaveBeenCalled(); // not confirmed
+
+    dialogResult = true;
+    click('publish'); // fails
+    click('publish'); // again
+
+    expect(api.publish).toHaveBeenCalledTimes(2);
+    const [versionId, first] = api.publish.calls.argsFor(0);
+    const second = api.publish.calls.argsFor(1)[1];
+    expect(versionId).toBe('v1');
+    expect(first).toEqual(jasmine.objectContaining({ renderJobId: 'r1', connectionId: 'c1', title: 'Cataract surgery explained', description: 'A short explainer.', privacy: 'private', scheduledAtUtc: null }));
+    expect(first.idempotencyKey).toBeTruthy();
+    expect(second.idempotencyKey).toBe(first.idempotencyKey); // the same click, retried
+    expect(text('[data-publication="pub1"] [data-testid="publication-status"]')).toBe('Scheduled');
+    expect(notify.success).toHaveBeenCalledWith('Sending to YouTube. This takes a few minutes.');
+
+    // The next, separate publication gets a new key.
+    c.publishForm.patchValue({ title: 'Another' });
+    api.publish.and.returnValue(of(publication({ id: 'pub2' })));
+    publications = [];
+    click('publish');
+    expect(api.publish.calls.mostRecent().args[1].idempotencyKey).not.toBe(first.idempotencyKey);
+  });
+
+  it('needs a date and time to schedule, and sends it as UTC', () => {
+    const c = renderApproved();
+    api.publish.and.returnValue(of(publication({ scheduledAtUtc: '2027-01-01T04:30:00Z' })));
+    c.publishForm.patchValue({ when: 'later' });
+    fixture.detectChanges();
+    expect(c.canPublish).toBeFalse();
+
+    c.publishForm.patchValue({ at: '2027-01-01T10:00' });
+    fixture.detectChanges();
+    expect(c.canPublish).toBeTrue();
+    click('publish');
+
+    expect(api.publish.calls.mostRecent().args[1].scheduledAtUtc).toBe(new Date('2027-01-01T10:00').toISOString());
+    expect(notify.success).toHaveBeenCalledWith('Scheduled.');
+  });
+
+  it('shows where a publication stands, links to the post, and follows a sending one until it is on YouTube', fakeAsync(() => {
+    publications = [publication({ status: 'Uploading' })];
+    renderApproved();
+    expect(text('[data-testid="publication-status"]')).toBe('Sending');
+    publications = [publication({ status: 'Published', url: 'https://www.youtube.com/watch?v=abc', publishedAtUtc: '2027-01-01T04:30:00Z' })];
+
+    tick(PUBLISH_POLL_MS);
+    fixture.detectChanges();
+
+    expect(text('[data-testid="publication-status"]')).toBe('Published');
+    expect(root().querySelector<HTMLAnchorElement>('[data-testid="publication-link"]')!.href).toBe('https://www.youtube.com/watch?v=abc');
+    expect(notify.success).toHaveBeenCalledWith('Published to YouTube.');
+    tick(PUBLISH_POLL_MS * 3);
+    expect(api.publications).toHaveBeenCalledTimes(2); // stopped asking
+    discardPeriodicTasks();
+  }));
+
+  it('cancels a waiting publication and tries a failed one again, asking first when the video may already be there', () => {
+    publications = [publication({ id: 'w', status: 'Scheduled', scheduledAtUtc: '2027-01-01T04:30:00Z' }), publication({ id: 'f', status: 'Failed', lastError: 'Contact was lost while the video was being sent, so it may or may not be on YouTube. Look at your channel before trying again.' })];
+    renderApproved();
+    api.cancelPublication.and.returnValue(of(publication({ id: 'w', status: 'Cancelled' })));
+    api.retryPublication.and.returnValue(of(publication({ id: 'f', status: 'Scheduled' })));
+
+    click('cancel-publication');
+    expect(api.cancelPublication).toHaveBeenCalledWith('w');
+    expect(text('[data-publication="w"] [data-testid="publication-status"]')).toBe('Cancelled');
+    expect(text('[data-publication="f"] [data-testid="publication-error"]')).toContain('may or may not be on YouTube');
+
+    dialogResult = false;
+    click('retry-publication');
+    expect(api.retryPublication).not.toHaveBeenCalled(); // the warning was not accepted
+
+    dialogResult = true;
+    click('retry-publication');
+    expect(api.retryPublication).toHaveBeenCalledWith('f');
+    expect(text('[data-publication="f"] [data-testid="publication-status"]')).toBe('Scheduled');
   });
 });

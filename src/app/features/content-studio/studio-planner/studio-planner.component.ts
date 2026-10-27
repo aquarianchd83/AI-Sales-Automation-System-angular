@@ -5,6 +5,7 @@ import { Observable, Subscription, timer } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
+  ACTIVE_PUBLICATION,
   ACTIVE_RENDER,
   ASPECT_RATIOS,
   AssetCandidates,
@@ -13,10 +14,13 @@ import {
   ClaimStatus,
   ContentScene,
   ContentTopic,
+  ConnectionsOverview,
   ContentTopicStatus,
   MAX_IMAGE_MB,
   PLANNER_LANGUAGES,
+  PRIVACY_OPTIONS,
   ProjectDetail,
+  Publication,
   ProjectSummary,
   RenderJob,
   REVIEW_ACTION_LABELS,
@@ -27,12 +31,21 @@ import {
   StockPhoto,
   StudioAsset,
 } from '../../../core/models/content-planner.model';
+import { TENANT_ADMIN_ROLES } from '../../../core/models/user.model';
+import { AuthService } from '../../../core/services/auth.service';
 import { ContentPlannerService } from '../../../core/services/content-planner.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /** How often a running video is asked how it is going. */
 export const RENDER_POLL_MS = 4000;
+
+/** How often a publication that is waiting or being sent is asked about. */
+export const PUBLISH_POLL_MS = 5000;
+
+function newKey(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 /**
  * Plans a video: pick a goal, let the AI suggest topics that rest on the facts the tenant has verified, choose one, and have it written scene
@@ -73,12 +86,13 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
       this.reviewNote.reset('');
       this.loadReview();
       this.loadRenders();
+      this.loadPublishing();
     }
     this.loadThumbs((value?.scenes ?? []).map((s) => s.asset?.id));
   }
   creating = false;
 
-  busy = { project: false, topics: false, script: false, scene: false, recheck: false, pick: false, upload: false, render: false, review: false };
+  busy = { project: false, topics: false, script: false, scene: false, recheck: false, pick: false, upload: false, render: false, review: false, publish: false };
 
   // ----- review and approval -----------------------------------------------------------------------------------------------------
 
@@ -138,7 +152,27 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
     personal: new FormControl(false, { nonNullable: true }),
   });
 
+  // ----- publishing (Admin only) -------------------------------------------------------------------------------------------------
+
+  /** Only an Admin connects accounts and publishes: it speaks for the business in public. */
+  readonly isAdmin = this.auth.hasAnyRole(TENANT_ADMIN_ROLES);
+  readonly privacies = PRIVACY_OPTIONS;
+  accounts: ConnectionsOverview | null = null;
+  publications: Publication[] = [];
+  private publishPoll: Subscription | null = null;
+  /** One key per publishing click, kept until it succeeds, so pressing the button again is the same publication and never a second post. */
+  private publishKey: string | null = null;
+  readonly publishForm = new FormGroup({
+    connectionId: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    title: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
+    description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(4800)] }),
+    privacy: new FormControl<'private' | 'unlisted' | 'public'>('private', { nonNullable: true }),
+    when: new FormControl<'now' | 'later'>('now', { nonNullable: true }),
+    at: new FormControl('', { nonNullable: true }),
+  });
+
   constructor(
+    private readonly auth: AuthService,
     private readonly planner: ContentPlannerService,
     private readonly notify: NotificationService,
     private readonly dialog: MatDialog
@@ -150,6 +184,7 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.poll?.unsubscribe();
+    this.publishPoll?.unsubscribe();
     this.releaseVideo();
     Object.values(this.thumbs).forEach((url) => URL.revokeObjectURL(url));
     this.thumbs = {};
@@ -409,6 +444,179 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
         },
         error: () => undefined,
       });
+  }
+
+  // ----- publishing ---------------------------------------------------------------------------------------------------------------
+
+  /** The video that may be published: finished, and made from exactly the approved script. */
+  get approvedVideo(): RenderJob | null {
+    return this.renders.find((r) => r.isOfApprovedScript && r.hasVideo) ?? null;
+  }
+
+  /** The publishing section is shown for an Admin once the script is approved and still matches what was approved. */
+  get showPublishing(): boolean {
+    return this.isAdmin && this.review?.status === 'Approved' && this.review.integrityOk;
+  }
+
+  get connectedAccounts() {
+    return (this.accounts?.connections ?? []).filter((c) => c.status === 'Connected');
+  }
+
+  get activePublication(): Publication | null {
+    return this.publications.find((p) => ACTIVE_PUBLICATION.includes(p.status)) ?? null;
+  }
+
+  /** Why nothing can be published yet, or null when it can. */
+  get cannotPublishBecause(): string | null {
+    if (!this.approvedVideo) {
+      return 'Make a video from this approved script first (step 4). Only a video made from exactly the approved words and pictures can be published.';
+    }
+    if (!this.connectedAccounts.length) {
+      return 'No YouTube account is connected. Connect one under Publishing accounts.';
+    }
+    return null;
+  }
+
+  get canPublish(): boolean {
+    return !this.cannotPublishBecause && this.publishForm.valid && !this.busy.publish && (this.publishForm.controls.when.value === 'now' || !!this.publishForm.controls.at.value);
+  }
+
+  private loadPublishing(): void {
+    const id = this.shown?.id;
+    this.publishPoll?.unsubscribe();
+    this.accounts = null;
+    this.publications = [];
+    if (!id || !this.isAdmin) {
+      return;
+    }
+    this.planner.connections().subscribe({
+      next: (o) => {
+        if (this.shown?.id === id) {
+          this.accounts = o;
+          const first = o.connections.find((c) => c.status === 'Connected');
+          if (first && !this.publishForm.controls.connectionId.value) {
+            this.publishForm.patchValue({ connectionId: first.id });
+          }
+        }
+      },
+      error: () => undefined,
+    });
+    this.planner.publications(id).subscribe({
+      next: (rows) => {
+        if (this.shown?.id === id) {
+          this.publications = rows;
+          this.pollPublications();
+        }
+      },
+      error: () => undefined,
+    });
+    if (!this.publishForm.controls.title.value) {
+      this.publishForm.patchValue({ title: this.detail?.title ?? '' });
+    }
+  }
+
+  private pollPublications(): void {
+    this.publishPoll?.unsubscribe();
+    const id = this.shown?.id;
+    if (!id || !this.activePublication) {
+      return;
+    }
+    this.publishPoll = timer(PUBLISH_POLL_MS).subscribe(() =>
+      this.planner.publications(id).subscribe({
+        next: (rows) => {
+          if (this.shown?.id !== id) {
+            return;
+          }
+          const before = this.publications;
+          this.publications = rows;
+          const done = rows.find((r) => r.status === 'Published' && before.some((b) => b.id === r.id && b.status !== 'Published'));
+          if (done) {
+            this.notify.success('Published to YouTube.');
+          }
+          this.pollPublications();
+        },
+        error: () => this.pollPublications(),
+      }),
+    );
+  }
+
+  publish(): void {
+    const v = this.version;
+    const video = this.approvedVideo;
+    if (!v || !video || !this.canPublish) {
+      return;
+    }
+    const value = this.publishForm.getRawValue();
+    const account = this.connectedAccounts.find((c) => c.id === value.connectionId);
+    const when = value.when === 'later' && value.at ? new Date(value.at) : null;
+    const data: ConfirmDialogData = {
+      title: 'Publish to YouTube?',
+      message:
+        `"${value.title.trim()}" will be published to the channel "${account?.accountName ?? ''}" as ${value.privacy}, ` +
+        (when ? `on ${when.toLocaleString()}.` : 'right away.') +
+        ' The video says it uses a synthetic voice.',
+      confirmLabel: 'Publish',
+    };
+    this.dialog
+      .open(ConfirmDialogComponent, { data, width: '480px' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.busy = { ...this.busy, publish: true };
+        this.publishKey ??= newKey();
+        this.planner
+          .publish(v.id, {
+            renderJobId: video.id,
+            connectionId: value.connectionId,
+            title: value.title.trim(),
+            description: value.description.trim() || null,
+            privacy: value.privacy,
+            scheduledAtUtc: when ? when.toISOString() : null,
+            idempotencyKey: this.publishKey,
+          })
+          .pipe(finalize(() => (this.busy = { ...this.busy, publish: false })))
+          .subscribe({
+            next: (row) => {
+              this.publishKey = null;
+              this.publications = [row, ...this.publications.filter((p) => p.id !== row.id)];
+              this.notify.success(when ? 'Scheduled.' : 'Sending to YouTube. This takes a few minutes.');
+              this.pollPublications();
+            },
+            // ErrorInterceptor shows why (not approved any more, the daily limit, the account needs connecting again).
+            error: () => undefined,
+          });
+      });
+  }
+
+  cancelPublication(row: Publication): void {
+    this.planner.cancelPublication(row.id).subscribe({
+      next: (fresh) => (this.publications = this.publications.map((p) => (p.id === fresh.id ? fresh : p))),
+      error: () => undefined,
+    });
+  }
+
+  retryPublication(row: Publication): void {
+    const maybeThere = (row.lastError ?? '').includes('may or may not be on YouTube');
+    const run = () =>
+      this.planner.retryPublication(row.id).subscribe({
+        next: (fresh) => {
+          this.publications = this.publications.map((p) => (p.id === fresh.id ? fresh : p));
+          this.pollPublications();
+        },
+        error: () => undefined,
+      });
+    if (!maybeThere) {
+      run();
+      return;
+    }
+    const data: ConfirmDialogData = {
+      title: 'It may already be on YouTube',
+      message: 'Contact was lost while this video was being sent, so it may already be on your channel. Look at your channel first - sending it again could post it twice.',
+      confirmLabel: 'Send it again',
+    };
+    this.dialog.open(ConfirmDialogComponent, { data, width: '480px' }).afterClosed().subscribe((confirmed) => confirmed && run());
   }
 
   // ----- review and approval -------------------------------------------------------------------------------------------------------
