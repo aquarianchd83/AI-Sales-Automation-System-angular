@@ -50,6 +50,8 @@ export interface ContentScene {
   claimNote: string | null;
   editedByTenant: boolean;
   facts: CitedFact[];
+  /** The picture chosen for the scene, or null while none is. */
+  asset: AssetSummary | null;
 }
 
 export interface ScriptVersionSummary {
@@ -83,6 +85,8 @@ export interface ScriptVersion {
   supported: number;
   /** Scenes with a claim no verified fact backs: the ones to look at. */
   flagged: number;
+  /** Scenes that have no picture chosen yet. */
+  scenesWithoutPicture: number;
   scenes: ContentScene[];
 }
 
@@ -131,3 +135,66 @@ export const CLAIM_LABELS: Record<ClaimStatus, string> = {
   Unverified: 'Not verified yet',
   Unsupported: 'No fact behind it',
 };
+
+// ----- pictures --------------------------------------------------------------------------------------------------------------------
+
+export type AssetKind = 'Upload' | 'Screenshot' | 'Stock';
+
+/** The part of a picture a scene shows: what it is, whose it is and under what terms. */
+export interface AssetSummary {
+  id: string;
+  kind: AssetKind;
+  /** "Your upload", "Your screenshot" or "Stock photo (Pexels)": always shown, so a stock photo is never passed off as the tenant's own. */
+  kindLabel: string;
+  name: string;
+  licenseName: string;
+  attribution: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+export interface StudioAsset extends AssetSummary {
+  description: string | null;
+  tags: string[];
+  contentType: string;
+  sizeBytes: number;
+  provider: string | null;
+  licenseUrl: string | null;
+  sourceUrl: string | null;
+  rightsConfirmed: boolean;
+  personalDataChecked: boolean;
+  usedInScenes: number;
+  createdAt: string;
+}
+
+export interface AssetCandidate {
+  asset: StudioAsset;
+  /** 0-1: the share of the scene's picture-note words the picture shares. */
+  score: number;
+  reason: string;
+}
+
+export interface StockPhoto {
+  providerAssetId: string;
+  provider: string;
+  previewUrl: string;
+  pageUrl: string;
+  photographer: string;
+  width: number;
+  height: number;
+  description: string | null;
+  licenseName: string;
+  licenseUrl: string;
+  attribution: string;
+}
+
+export interface AssetCandidates {
+  query: string;
+  own: AssetCandidate[];
+  stock: StockPhoto[];
+  /** False when stock search is not set up on the platform; `stockMessage` then says so. */
+  stockAvailable: boolean;
+  stockMessage: string | null;
+}
+
+export const MAX_IMAGE_MB = 10;

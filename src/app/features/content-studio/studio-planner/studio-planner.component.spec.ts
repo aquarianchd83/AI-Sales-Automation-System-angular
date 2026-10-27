@@ -5,11 +5,15 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
 import {
+  AssetCandidates,
+  AssetSummary,
   ContentScene,
   ContentTopic,
   ProjectDetail,
   ProjectSummary,
   ScriptVersion,
+  StockPhoto,
+  StudioAsset,
 } from '../../../core/models/content-planner.model';
 import { ContentPlannerService } from '../../../core/services/content-planner.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -26,12 +30,30 @@ const topic = (over: Partial<ContentTopic> = {}): ContentTopic => ({
 
 const scene = (over: Partial<ContentScene> = {}): ContentScene => ({
   id: 's1', order: 1, narration: 'We are open Monday to Saturday.', onScreenText: 'Open', durationSeconds: 8, visualHint: 'Clinic', claimStatus: 'Supported', claimNote: 'Backed by 1 verified fact.', editedByTenant: false,
-  facts: [{ id: 'f1', category: 'Services', statement: 'The clinic is open Monday to Saturday.' }], ...over,
+  facts: [{ id: 'f1', category: 'Services', statement: 'The clinic is open Monday to Saturday.' }], asset: null, ...over,
+});
+
+const summaryAsset = (over: Partial<AssetSummary> = {}): AssetSummary => ({
+  id: 'a1', kind: 'Upload', kindLabel: 'Your upload', name: 'Reception', licenseName: 'Provided by you', attribution: null, width: 800, height: 600, ...over,
+});
+
+const studioAsset = (over: Partial<StudioAsset> = {}): StudioAsset => ({
+  ...summaryAsset(), description: null, tags: ['reception'], contentType: 'image/png', sizeBytes: 1000, provider: null, licenseUrl: null, sourceUrl: null, rightsConfirmed: true,
+  personalDataChecked: false, usedInScenes: 0, createdAt: '2026-10-27T10:00:00Z', ...over,
+});
+
+const stockPhoto = (over: Partial<StockPhoto> = {}): StockPhoto => ({
+  providerAssetId: '1001', provider: 'Pexels', previewUrl: 'https://images.pexels.com/photos/1001/m.jpg', pageUrl: 'https://www.pexels.com/photo/1001/', photographer: 'Jane Doe', width: 1880, height: 1253,
+  description: 'A clinic reception', licenseName: 'Pexels License', licenseUrl: 'https://www.pexels.com/license/', attribution: 'Photo by Jane Doe on Pexels', ...over,
+});
+
+const candidates = (over: Partial<AssetCandidates> = {}): AssetCandidates => ({
+  query: 'reception desk', own: [{ asset: studioAsset(), score: 0.5, reason: 'Matches: reception' }], stock: [], stockAvailable: true, stockMessage: null, ...over,
 });
 
 const version = (over: Partial<ScriptVersion> = {}): ScriptVersion => ({
   id: 'v1', projectId: 'p1', number: 1, topicId: 't1', topicTitle: 'Why cataract surgery is quick', status: 'Draft', targetSeconds: 45, totalSeconds: 16, notes: null, provider: 'OpenAI', model: 'gpt',
-  promptVersion: 'planner-v1', isSimulated: false, activityId: null, createdAt: '2026-10-27T10:05:00Z', supported: 2, flagged: 0,
+  promptVersion: 'planner-v1', isSimulated: false, activityId: null, createdAt: '2026-10-27T10:05:00Z', supported: 2, flagged: 0, scenesWithoutPicture: 2,
   scenes: [scene(), scene({ id: 's2', order: 2, narration: 'Book your visit today.', claimStatus: 'NoClaim', claimNote: null, facts: [] })], ...over,
 });
 
@@ -55,7 +77,8 @@ describe('StudioPlannerComponent', () => {
   const present = (testId: string) => root().querySelector(`[data-testid="${testId}"]`) !== null;
 
   function render(projects: ProjectSummary[], first: ProjectDetail | null): StudioPlannerComponent {
-    api = jasmine.createSpyObj('ContentPlannerService', ['list', 'create', 'get', 'update', 'remove', 'generateTopics', 'updateTopic', 'generateScript', 'getVersion', 'recheck', 'updateScene', 'deleteScene']);
+    api = jasmine.createSpyObj('ContentPlannerService', ['list', 'create', 'get', 'update', 'remove', 'generateTopics', 'updateTopic', 'generateScript', 'getVersion', 'recheck', 'updateScene', 'deleteScene', 'candidates', 'chooseAsset', 'clearAsset', 'uploadAsset', 'assetContent']);
+    api.assetContent.and.returnValue(of(new Blob(['x'], { type: 'image/png' })));
     api.list.and.returnValue(of(projects));
     if (first) {
       api.get.and.returnValue(of(first));
@@ -262,5 +285,147 @@ describe('StudioPlannerComponent', () => {
     expect(api.remove).toHaveBeenCalledWith('p1');
     expect(c.projects.map((p) => p.id)).toEqual(['p2']);
     expect(c.selectedId).toBe('p2');
+  });
+
+  // ----- pictures ------------------------------------------------------------------------------------------------------------
+
+  function openPickerOnFirstScene(): StudioPlannerComponent {
+    const c = render([summary({ status: 'Scripted' })], detail({ currentVersion: version() }));
+    api.candidates.and.returnValue(of(candidates()));
+    root().querySelector<HTMLElement>('[data-scene="s1"] [data-testid="choose-picture"]')!.click();
+    fixture.detectChanges();
+    return c;
+  }
+
+  it('says how many scenes have no picture and offers to choose one', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: version() }));
+
+    expect(text('[data-testid="no-pictures"]')).toBe('2 of 2 scenes have no picture yet.');
+    expect(present('choose-picture')).toBeTrue();
+  });
+
+  it('lists the tenant\'s own pictures for a scene with why each matches, then sets the one they choose and shows what it is and its licence', () => {
+    const c = openPickerOnFirstScene();
+
+    expect(api.candidates).toHaveBeenCalledWith('s1', false, null);
+    expect(text('[data-own="a1"]')).toContain('Your upload');
+    expect(text('[data-own="a1"]')).toContain('Matches: reception');
+    expect(c.thumbs['a1']).toBeDefined(); // fetched through the API, shown from an object URL
+
+    api.chooseAsset.and.returnValue(of(summaryAsset()));
+    root().querySelector<HTMLElement>('[data-own="a1"] [data-testid="use-own"]')!.click();
+    fixture.detectChanges();
+
+    expect(api.chooseAsset).toHaveBeenCalledWith('s1', { assetId: 'a1', stockProviderAssetId: null });
+    expect(present('picker')).toBeFalse();
+    const scene1 = '[data-scene="s1"]';
+    expect(text(scene1 + ' [data-testid="picture-kind"]')).toBe('Your upload');
+    expect(text(scene1 + ' [data-testid="picture-license"]')).toBe('Provided by you');
+    expect(text('[data-testid="no-pictures"]')).toBe('1 of 2 scenes have no picture yet.');
+    expect(notify.success).toHaveBeenCalledWith('Picture chosen.');
+  });
+
+  it('shows a stock photo plainly as one, with its credit and licence, and copies it only when the tenant chooses it', () => {
+    const c = openPickerOnFirstScene();
+    api.candidates.and.returnValue(of(candidates({ stock: [stockPhoto()] })));
+
+    root().querySelector<HTMLElement>('[data-testid="tab-stock"]')!.click();
+    fixture.detectChanges();
+
+    expect(api.candidates).toHaveBeenCalledWith('s1', true, 'reception desk'); // the scene's own picture note, already in the box
+    expect(c.stockQuery.value).toBe('reception desk');
+    expect(text('[data-stock="1001"]')).toContain('Stock photo (Pexels)');
+    expect(text('[data-stock="1001"]')).toContain('Photo by Jane Doe on Pexels · Pexels License');
+    expect(api.chooseAsset).not.toHaveBeenCalled();
+
+    api.chooseAsset.and.returnValue(of(summaryAsset({ id: 'a2', kind: 'Stock', kindLabel: 'Stock photo (Pexels)', licenseName: 'Pexels License', attribution: 'Photo by Jane Doe on Pexels' })));
+    root().querySelector<HTMLElement>('[data-stock="1001"] [data-testid="use-stock"]')!.click();
+    fixture.detectChanges();
+
+    expect(api.chooseAsset).toHaveBeenCalledWith('s1', { assetId: null, stockProviderAssetId: '1001' }); // only the id goes to the server
+    expect(text('[data-scene="s1"] [data-testid="picture-kind"]')).toBe('Stock photo (Pexels)');
+    expect(text('[data-scene="s1"] [data-testid="picture-license"]')).toBe('Pexels License · Photo by Jane Doe on Pexels');
+  });
+
+  it('searches stock with the tenant\'s own words and says so when stock is not set up', () => {
+    const c = openPickerOnFirstScene();
+    api.candidates.and.returnValue(of(candidates({ stockAvailable: false, stockMessage: 'Stock photo search is not set up on this platform yet. Your own pictures can still be used.' })));
+    root().querySelector<HTMLElement>('[data-testid="tab-stock"]')!.click();
+    fixture.detectChanges();
+
+    expect(text('[data-testid="stock-message"]')).toContain('not set up');
+    expect(root().querySelector<HTMLButtonElement>('[data-testid="stock-search"]')!.disabled).toBeTrue();
+
+    api.candidates.and.returnValue(of(candidates({ stock: [stockPhoto()] })));
+    c.stockQuery.setValue('  eye doctor  ');
+    c.searchStock();
+    expect(api.candidates).toHaveBeenCalledWith('s1', true, 'eye doctor');
+  });
+
+  it('accepts an upload only with a picture and the tenant\'s confirmation, and a screenshot needs the personal data check as well', () => {
+    const c = openPickerOnFirstScene();
+    root().querySelector<HTMLElement>('[data-testid="tab-upload"]')!.click();
+    fixture.detectChanges();
+    const uploadButton = () => root().querySelector<HTMLButtonElement>('[data-testid="upload"]')!;
+    expect(uploadButton().disabled).toBeTrue();
+
+    c.onFileChosen({ target: { files: [new File(['x'], 'doc.pdf', { type: 'application/pdf' })] } } as unknown as Event);
+    fixture.detectChanges();
+    expect(text('[data-testid="file-problem"]')).toContain('Only JPEG, PNG and WebP');
+
+    c.onFileChosen({ target: { files: [new File(['x'], 'front.png', { type: 'image/png' })] } } as unknown as Event);
+    fixture.detectChanges();
+    expect(present('file-problem')).toBeFalse();
+    expect(uploadButton().disabled).toBeTrue(); // not confirmed yet
+
+    c.uploadForm.patchValue({ rights: true });
+    fixture.detectChanges();
+    expect(uploadButton().disabled).toBeFalse();
+
+    c.uploadForm.patchValue({ kind: 'Screenshot' });
+    fixture.detectChanges();
+    expect(present('personal')).toBeTrue();
+    expect(uploadButton().disabled).toBeTrue();
+    c.uploadForm.patchValue({ personal: true });
+    expect(c.canUpload).toBeTrue();
+  });
+
+  it('uploads the picture with its details and confirmations and shows the library again', () => {
+    const c = openPickerOnFirstScene();
+    api.uploadAsset.and.returnValue(of(studioAsset({ id: 'a9', name: 'Front desk' })));
+    c.onFileChosen({ target: { files: [new File(['x'], 'front.png', { type: 'image/png' })] } } as unknown as Event);
+    c.uploadForm.patchValue({ name: ' Front desk ', tags: 'reception', rights: true });
+    c.setPickerTab('upload');
+
+    c.upload();
+
+    const form = api.uploadAsset.calls.mostRecent().args[0] as FormData;
+    expect(form.get('kind')).toBe('Upload');
+    expect(form.get('name')).toBe('Front desk');
+    expect(form.get('tags')).toBe('reception');
+    expect(form.get('rightsConfirmed')).toBe('true');
+    expect(form.get('personalDataChecked')).toBe('false');
+    expect((form.get('file') as File).name).toBe('front.png');
+    expect(notify.success).toHaveBeenCalledWith('Picture added to your library.');
+    expect(c.pickerTab).toBe('own');
+    expect(api.candidates).toHaveBeenCalledTimes(2); // opened, then refreshed
+  });
+
+  it('takes a picture off a scene, and offers no picture controls once the script is no longer a draft', () => {
+    const withPicture = version({ scenesWithoutPicture: 1, scenes: [scene({ asset: summaryAsset() }), scene({ id: 's2', order: 2, claimStatus: 'NoClaim', facts: [] })] });
+    const c = render([summary({ status: 'Scripted' })], detail({ currentVersion: withPicture }));
+    api.clearAsset.and.returnValue(of(undefined));
+
+    root().querySelector<HTMLElement>('[data-scene="s1"] [data-testid="clear-picture"]')!.click();
+    fixture.detectChanges();
+
+    expect(api.clearAsset).toHaveBeenCalledWith('s1');
+    expect(c.version!.scenes[0].asset).toBeNull();
+    expect(c.version!.scenesWithoutPicture).toBe(2);
+
+    c.version = { ...c.version!, status: 'InReview' };
+    fixture.detectChanges();
+    expect(present('choose-picture')).toBeFalse();
+    expect(present('change-picture')).toBeFalse();
   });
 });

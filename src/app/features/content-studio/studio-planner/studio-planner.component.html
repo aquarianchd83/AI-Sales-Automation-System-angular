@@ -172,6 +172,7 @@
               <span>{{ v.flagged }} scene{{ v.flagged === 1 ? ' says' : 's say' }} something none of your verified facts back. Reword {{ v.flagged === 1 ? 'it' : 'them' }}, or verify the fact under
                 <a routerLink="/content-studio/facts">Business facts</a>.</span>
             </div>
+            <p class="muted small" *ngIf="v.scenesWithoutPicture && editable" data-testid="no-pictures">{{ v.scenesWithoutPicture }} of {{ v.scenes.length }} scenes have no picture yet.</p>
             <div class="note" *ngIf="!v.flagged && !v.isSimulated" data-testid="all-backed">
               <mat-icon>verified</mat-icon>
               <span>Every scene is backed by a verified fact, or states nothing that needs one.</span>
@@ -198,6 +199,104 @@
                   <ul class="facts" *ngIf="s.facts.length">
                     <li *ngFor="let f of s.facts"><mat-icon>check_circle</mat-icon> {{ f.statement }}</li>
                   </ul>
+
+                  <!-- The picture for this scene. -->
+                  <div class="picture" data-testid="picture">
+                    <ng-container *ngIf="s.asset as a; else noPicture">
+                      <img class="thumb" *ngIf="thumbs[a.id]" [src]="thumbs[a.id]" [alt]="a.name" />
+                      <div class="thumb thumb--wait" *ngIf="!thumbs[a.id]"><mat-icon>image</mat-icon></div>
+                      <div class="picture-info">
+                        <div>
+                          <span class="chip" [class.chip--stock]="a.kind === 'Stock'" data-testid="picture-kind">{{ a.kindLabel }}</span>
+                          <strong>{{ a.name }}</strong>
+                        </div>
+                        <span class="muted small" data-testid="picture-license">{{ a.licenseName }}<ng-container *ngIf="a.attribution"> · {{ a.attribution }}</ng-container></span>
+                        <div *ngIf="editable">
+                          <button mat-button type="button" (click)="openPicker(s)" data-testid="change-picture">Change</button>
+                          <button mat-button type="button" (click)="clearPicture(s)" data-testid="clear-picture">Remove</button>
+                        </div>
+                      </div>
+                    </ng-container>
+                    <ng-template #noPicture>
+                      <span class="muted small">No picture yet.</span>
+                      <button mat-stroked-button type="button" *ngIf="editable" (click)="openPicker(s)" data-testid="choose-picture"><mat-icon>add_photo_alternate</mat-icon> Choose a picture</button>
+                    </ng-template>
+                  </div>
+
+                  <div class="picker" *ngIf="pickerSceneId === s.id" data-testid="picker">
+                    <div class="versions" role="tablist" aria-label="Where to find a picture">
+                      <button type="button" class="filter" [class.filter--on]="pickerTab === 'own'" (click)="setPickerTab('own')" data-testid="tab-own">Your pictures</button>
+                      <button type="button" class="filter" [class.filter--on]="pickerTab === 'stock'" (click)="setPickerTab('stock')" data-testid="tab-stock">Stock photos</button>
+                      <button type="button" class="filter" [class.filter--on]="pickerTab === 'upload'" (click)="setPickerTab('upload')" data-testid="tab-upload">Upload</button>
+                      <span class="grow"></span>
+                      <button mat-button type="button" (click)="closePicker()" data-testid="close-picker">Close</button>
+                    </div>
+                    <mat-progress-bar mode="indeterminate" *ngIf="busy.pick"></mat-progress-bar>
+
+                    <ng-container *ngIf="pickerTab === 'own' && candidates as c">
+                      <p class="muted small" *ngIf="!c.own.length" data-testid="no-own">You have not added any pictures yet. Upload one, or look at the stock photos.</p>
+                      <div class="grid">
+                        <figure class="card" *ngFor="let o of c.own" [attr.data-own]="o.asset.id">
+                          <img *ngIf="thumbs[o.asset.id]" [src]="thumbs[o.asset.id]" [alt]="o.asset.name" />
+                          <figcaption>
+                            <span class="chip" [class.chip--stock]="o.asset.kind === 'Stock'">{{ o.asset.kindLabel }}</span>
+                            <strong>{{ o.asset.name }}</strong>
+                            <span class="muted small">{{ o.score > 0 ? o.reason : 'Not matched to this scene' }}</span>
+                            <button mat-stroked-button type="button" [disabled]="busy.pick" (click)="useOwn(o.asset)" data-testid="use-own">Use this</button>
+                          </figcaption>
+                        </figure>
+                      </div>
+                    </ng-container>
+
+                    <ng-container *ngIf="pickerTab === 'stock' && candidates as c">
+                      <form class="stock-search" (ngSubmit)="searchStock()">
+                        <mat-form-field subscriptSizing="dynamic" class="grow">
+                          <mat-label>What should the picture show?</mat-label>
+                          <input matInput [formControl]="stockQuery" maxlength="120" data-testid="stock-query" />
+                        </mat-form-field>
+                        <button mat-stroked-button type="submit" [disabled]="busy.pick || !c.stockAvailable" data-testid="stock-search"><mat-icon>search</mat-icon> Search</button>
+                      </form>
+                      <p class="muted small" *ngIf="c.stockMessage" data-testid="stock-message">{{ c.stockMessage }}</p>
+                      <div class="grid">
+                        <figure class="card" *ngFor="let p of c.stock" [attr.data-stock]="p.providerAssetId">
+                          <img [src]="p.previewUrl" [alt]="p.description || 'Stock photo'" loading="lazy" />
+                          <figcaption>
+                            <span class="chip chip--stock">Stock photo ({{ p.provider }})</span>
+                            <span class="muted small">{{ p.attribution }} · {{ p.licenseName }}</span>
+                            <button mat-stroked-button type="button" [disabled]="busy.pick" (click)="useStock(p)" data-testid="use-stock">Use this</button>
+                          </figcaption>
+                        </figure>
+                      </div>
+                    </ng-container>
+
+                    <form class="form upload" *ngIf="pickerTab === 'upload'" [formGroup]="uploadForm" (ngSubmit)="upload()" data-testid="upload-form">
+                      <div>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onFileChosen($event)" data-testid="file" />
+                        <p class="muted small">JPEG, PNG or WebP, up to {{ maxImageMb }} MB.</p>
+                        <p class="problem small" *ngIf="fileProblem" data-testid="file-problem">{{ fileProblem }}</p>
+                      </div>
+                      <mat-form-field subscriptSizing="dynamic" class="narrow">
+                        <mat-label>What is it?</mat-label>
+                        <mat-select formControlName="kind" data-testid="kind">
+                          <mat-option value="Upload">A picture or photo</mat-option>
+                          <mat-option value="Screenshot">A screenshot of my app or site</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Name (optional)</mat-label>
+                        <input matInput formControlName="name" maxlength="200" />
+                      </mat-form-field>
+                      <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Words that describe it (optional)</mat-label>
+                        <input matInput formControlName="tags" maxlength="300" placeholder="reception, front desk" />
+                      </mat-form-field>
+                      <mat-checkbox formControlName="rights" data-testid="rights">I may use this picture, and anyone I can recognise in it has agreed.</mat-checkbox>
+                      <mat-checkbox formControlName="personal" *ngIf="needsPersonalDataCheck" data-testid="personal">This screenshot shows no patient or customer personal data.</mat-checkbox>
+                      <div class="actions">
+                        <button mat-flat-button color="primary" type="submit" [disabled]="!canUpload" data-testid="upload">{{ busy.upload ? 'Uploading…' : 'Add to my pictures' }}</button>
+                      </div>
+                    </form>
+                  </div>
                 </ng-container>
 
                 <ng-template #editing>

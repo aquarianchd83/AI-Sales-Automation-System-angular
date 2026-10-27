@@ -1,20 +1,25 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
 import {
+  AssetCandidates,
+  AssetKind,
   CLAIM_LABELS,
   ClaimStatus,
   ContentScene,
   ContentTopic,
   ContentTopicStatus,
+  MAX_IMAGE_MB,
   PLANNER_LANGUAGES,
   ProjectDetail,
   ProjectSummary,
   SCRIPT_LENGTHS,
   ScriptVersion,
   ScriptVersionSummary,
+  StockPhoto,
+  StudioAsset,
 } from '../../../core/models/content-planner.model';
 import { ContentPlannerService } from '../../../core/services/content-planner.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -31,7 +36,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/compo
   templateUrl: './studio-planner.component.html',
   styleUrls: ['./studio-planner.component.scss'],
 })
-export class StudioPlannerComponent implements OnInit {
+export class StudioPlannerComponent implements OnInit, OnDestroy {
   readonly languages = PLANNER_LANGUAGES;
   readonly lengths = SCRIPT_LENGTHS;
   readonly claimLabels = CLAIM_LABELS;
@@ -42,11 +47,20 @@ export class StudioPlannerComponent implements OnInit {
 
   selectedId: string | null = null;
   detail: ProjectDetail | null = null;
+  private shown: ScriptVersion | null = null;
+
   /** The script on show: the newest one unless the tenant opened an earlier version. */
-  version: ScriptVersion | null = null;
+  get version(): ScriptVersion | null {
+    return this.shown;
+  }
+
+  set version(value: ScriptVersion | null) {
+    this.shown = value;
+    this.loadThumbs((value?.scenes ?? []).map((s) => s.asset?.id));
+  }
   creating = false;
 
-  busy = { project: false, topics: false, script: false, scene: false, recheck: false };
+  busy = { project: false, topics: false, script: false, scene: false, recheck: false, pick: false, upload: false };
   editingSceneId: string | null = null;
 
   readonly newProject = new FormGroup({
@@ -65,6 +79,26 @@ export class StudioPlannerComponent implements OnInit {
     visualHint: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(500)] }),
   });
 
+  // ----- the picture picker (one scene at a time, opened in place) ---------------------------------------------------------------
+
+  readonly maxImageMb = MAX_IMAGE_MB;
+  pickerSceneId: string | null = null;
+  pickerTab: 'own' | 'stock' | 'upload' = 'own';
+  candidates: AssetCandidates | null = null;
+  /** Object URLs of pictures fetched through the API; revoked when the screen closes. */
+  thumbs: Record<string, string> = {};
+  private readonly thumbRequested = new Set<string>();
+  pickedFile: File | null = null;
+  fileProblem: string | null = null;
+  readonly stockQuery = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(120)] });
+  readonly uploadForm = new FormGroup({
+    kind: new FormControl<AssetKind>('Upload', { nonNullable: true }),
+    name: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(200)] }),
+    tags: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(300)] }),
+    rights: new FormControl(false, { nonNullable: true }),
+    personal: new FormControl(false, { nonNullable: true }),
+  });
+
   constructor(
     private readonly planner: ContentPlannerService,
     private readonly notify: NotificationService,
@@ -73,6 +107,11 @@ export class StudioPlannerComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  ngOnDestroy(): void {
+    Object.values(this.thumbs).forEach((url) => URL.revokeObjectURL(url));
+    this.thumbs = {};
   }
 
   // ----- reading -----------------------------------------------------------------------------------------------------------------
@@ -329,6 +368,182 @@ export class StudioPlannerComponent implements OnInit {
         },
         error: () => undefined,
       });
+  }
+
+  // ----- pictures ----------------------------------------------------------------------------------------------------------------
+
+  /** Fetches each picture once, through the API, and keeps it as an object URL. */
+  private loadThumbs(ids: (string | undefined)[]): void {
+    for (const id of ids) {
+      if (!id || this.thumbRequested.has(id)) {
+        continue;
+      }
+      this.thumbRequested.add(id);
+      this.planner.assetContent(id).subscribe({
+        next: (blob) => (this.thumbs = { ...this.thumbs, [id]: URL.createObjectURL(blob) }),
+        error: () => this.thumbRequested.delete(id),
+      });
+    }
+  }
+
+  get picking(): ContentScene | null {
+    return this.version?.scenes.find((s) => s.id === this.pickerSceneId) ?? null;
+  }
+
+  get needsPersonalDataCheck(): boolean {
+    return this.uploadForm.controls.kind.value === 'Screenshot';
+  }
+
+  get canUpload(): boolean {
+    return (
+      !!this.pickedFile &&
+      !this.fileProblem &&
+      this.uploadForm.valid &&
+      this.uploadForm.controls.rights.value &&
+      (!this.needsPersonalDataCheck || this.uploadForm.controls.personal.value) &&
+      !this.busy.upload
+    );
+  }
+
+  openPicker(scene: ContentScene): void {
+    this.editingSceneId = null;
+    this.pickerSceneId = scene.id;
+    this.pickerTab = 'own';
+    this.candidates = null;
+    this.stockQuery.reset('');
+    this.resetUpload();
+    this.fetchCandidates(false);
+  }
+
+  closePicker(): void {
+    this.pickerSceneId = null;
+    this.candidates = null;
+  }
+
+  setPickerTab(tab: 'own' | 'stock' | 'upload'): void {
+    this.pickerTab = tab;
+    if (tab === 'stock' && this.candidates && !this.candidates.stock.length && this.candidates.stockAvailable && !this.candidates.stockMessage) {
+      this.searchStock();
+    }
+  }
+
+  private fetchCandidates(includeStock: boolean, query: string | null = null): void {
+    const sceneId = this.pickerSceneId;
+    if (!sceneId) {
+      return;
+    }
+    this.busy = { ...this.busy, pick: true };
+    this.planner
+      .candidates(sceneId, includeStock, query)
+      .pipe(finalize(() => (this.busy = { ...this.busy, pick: false })))
+      .subscribe({
+        next: (c) => {
+          if (this.pickerSceneId !== sceneId) {
+            return;
+          }
+          this.candidates = c;
+          if (!this.stockQuery.value) {
+            this.stockQuery.setValue(c.query, { emitEvent: false });
+          }
+          this.loadThumbs(c.own.map((o) => o.asset.id));
+        },
+        error: () => undefined,
+      });
+  }
+
+  searchStock(): void {
+    this.fetchCandidates(true, this.stockQuery.value.trim() || null);
+  }
+
+  useOwn(asset: StudioAsset): void {
+    this.choose({ assetId: asset.id, stockProviderAssetId: null });
+  }
+
+  useStock(photo: StockPhoto): void {
+    this.choose({ assetId: null, stockProviderAssetId: photo.providerAssetId });
+  }
+
+  private choose(body: { assetId: string | null; stockProviderAssetId: string | null }): void {
+    const sceneId = this.pickerSceneId;
+    if (!sceneId || this.busy.pick) {
+      return;
+    }
+    this.busy = { ...this.busy, pick: true };
+    this.planner
+      .chooseAsset(sceneId, body)
+      .pipe(finalize(() => (this.busy = { ...this.busy, pick: false })))
+      .subscribe({
+        next: (summary) => {
+          if (this.version) {
+            const scenes = this.version.scenes.map((s) => (s.id === sceneId ? { ...s, asset: summary } : s));
+            this.version = { ...this.version, scenes, scenesWithoutPicture: scenes.filter((s) => !s.asset).length };
+          }
+          this.closePicker();
+          this.notify.success('Picture chosen.');
+        },
+        // ErrorInterceptor shows why (not a draft any more, the stock photo is gone, storage not set up).
+        error: () => undefined,
+      });
+  }
+
+  clearPicture(scene: ContentScene): void {
+    this.planner.clearAsset(scene.id).subscribe({
+      next: () => {
+        if (this.version) {
+          const scenes = this.version.scenes.map((s) => (s.id === scene.id ? { ...s, asset: null } : s));
+          this.version = { ...this.version, scenes, scenesWithoutPicture: scenes.filter((s) => !s.asset).length };
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  onFileChosen(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    this.pickedFile = file;
+    this.fileProblem = null;
+    if (!file) {
+      return;
+    }
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      this.fileProblem = 'Only JPEG, PNG and WebP pictures can be used.';
+    } else if (file.size > this.maxImageMb * 1024 * 1024) {
+      this.fileProblem = `The picture is larger than ${this.maxImageMb} MB.`;
+    }
+  }
+
+  upload(): void {
+    if (!this.canUpload || !this.pickedFile) {
+      return;
+    }
+    const value = this.uploadForm.getRawValue();
+    const form = new FormData();
+    form.append('file', this.pickedFile);
+    form.append('kind', value.kind);
+    form.append('name', value.name.trim());
+    form.append('tags', value.tags.trim());
+    form.append('rightsConfirmed', String(value.rights));
+    form.append('personalDataChecked', String(value.personal));
+    this.busy = { ...this.busy, upload: true };
+    this.planner
+      .uploadAsset(form)
+      .pipe(finalize(() => (this.busy = { ...this.busy, upload: false })))
+      .subscribe({
+        next: (asset) => {
+          this.notify.success('Picture added to your library.');
+          this.resetUpload();
+          this.pickerTab = 'own';
+          this.fetchCandidates(false, this.candidates?.query ?? null);
+          this.loadThumbs([asset.id]);
+        },
+        error: () => undefined,
+      });
+  }
+
+  private resetUpload(): void {
+    this.pickedFile = null;
+    this.fileProblem = null;
+    this.uploadForm.reset({ kind: 'Upload', name: '', tags: '', rights: false, personal: false });
   }
 
   deleteScene(scene: ContentScene): void {
