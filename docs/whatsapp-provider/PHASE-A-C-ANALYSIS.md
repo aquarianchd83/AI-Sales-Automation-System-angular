@@ -179,3 +179,28 @@ Rollback at each step: additive migrations, feature flag off, Meta remains defau
 ## 8. Not yet verified (so I don't overstate)
 - Wallet/ledger refund details, Hangfire retry/dead-letter configuration, exact audit-log schema, `ConversationService` window logic, the remaining consumers of `WhatsApp:Provider`.
 - Any bridge's API. No tests have been run in this phase.
+
+---
+
+## 9. Evolution API v2.3.7 — contract verified against a running server (2026-10-27)
+
+Method: pinned `evoapicloud/evolution-api:v2.3.7` (compose in the API repo, `deploy/evolution/`), called it directly. The server serves no Swagger, so everything below is observed behaviour. **Auth:** every call needs header `apikey: <global key>`; no key → 401.
+
+| Capability | Verified call | Observed |
+|---|---|---|
+| Create + start pairing | `POST /instance/create` `{instanceName, integration:"WHATSAPP-BAILEYS", qrcode:true}` | 200; `instance.{instanceId,status:"connecting"}`, `hash` (per-instance token), `qrcode.{base64 (data-URI PNG), code, pairingCode:null, count}` |
+| Re-fetch QR | `GET /instance/connect/{instance}` | 200; `{pairingCode, code, base64}` |
+| Status | `GET /instance/connectionState/{instance}` | `{instance:{instanceName,state:"connecting"}}` |
+| Detail | `GET /instance/fetchInstances?instanceName=` | `connectionStatus`, `ownerJid`, `profileName`, `number`, `disconnectionReasonCode`, `disconnectionAt` |
+| Webhook per instance | `POST /webhook/set/{instance}` `{webhook:{enabled,url,byEvents,base64,headers{},events[]}}` | 200; read back with `GET /webhook/find/{instance}`. **Custom `headers` are supported → we can send a per-channel secret header for authenticity.** |
+| Disconnect | `DELETE /instance/logout/{instance}` | `{status:"SUCCESS",...}` |
+| Remove | `DELETE /instance/delete/{instance}` | `{status:"SUCCESS",...}` |
+| Send text | `POST /message/sendText/{instance}` | Body is **flat** `{number, text}`; the nested `textMessage` form is **rejected** (400 `requires property "text"`). Response shape (message id) **NOT verified** — needs a connected session. |
+
+**Not verified yet (needs a phone to scan):** the `connecting → open` transition and its `CONNECTION_UPDATE` payload; `QRCODE_UPDATED` payload (QR rotates; `count` field suggests a limit); the sendText success response and where the message id is; `MESSAGES_UPSERT` (inbound), `MESSAGES_UPDATE` (delivery/read) and `SEND_MESSAGE` payloads; behaviour on unexpected disconnect.
+
+**Design consequences already clear**
+- Webhook authenticity = per-channel secret header we set via `webhook.headers`, plus a per-channel unguessable path segment. No HMAC is offered, so this is weaker than Meta's signature (R3/R4 stay as-is).
+- Instance name = `t-{tenantId-without-dashes}` (one instance per tenant; never reuse across tenants). The instance `hash`/token is stored encrypted and never logged.
+- The QR `base64` is temporary authentication material: returned to the UI, never persisted or logged.
+- Template sends on the bridge render the template locally and call sendText (D6).
