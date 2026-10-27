@@ -2,7 +2,7 @@
 
 Status as of 2026-10-27. Branch `feature/whatsapp-provider-abstraction` in both repos. Analysis and decisions: [PHASE-A-C-ANALYSIS.md](PHASE-A-C-ANALYSIS.md).
 
-**One-line status:** built, tested and connected live once; **not yet cleared for production.** Inbound, outbound and delivery receipts through the finished adapter have not been run live (the pilot needs a second phone), and the privacy/legal sign-off (R9) is open.
+**One-line status:** built, tested, connected live, and **one inbound message confirmed end to end**; **not yet cleared for production.** Outbound sends, delivery receipts and the disconnect pause have not been run live (the pilot needs a second phone), and the privacy/legal sign-off (R9) is open.
 
 ## 1. What was delivered
 
@@ -31,12 +31,14 @@ Migrations: `ScopeMessageIdByProvider`, `AddTenantWhatsAppChannels` (both additi
 | Bridge contract | Verified against a real Evolution v2.3.7 session with a real scan: create, QR, state, webhook set, text send, `connection.update` (`connecting`→`open`), `messages.upsert`, `messages.update` (`SERVER_ACK`/`DELIVERY_ACK`/`READ`), logout/delete behaviour |
 | Migrations on SQL Server | `ScopeMessageIdByProvider` and `AddTenantWhatsAppChannels` applied by the API's startup `MigrateAsync` on the local SQL Server; the channel table is in use by the live connect below |
 | Live: bridge settings, QR connect, status | **Done by the operator:** settings saved with the key check, QR shown in the tenant card, scanned, card turned **Connected** with the linked number |
+| Live: database | **Checked 2026-10-27 (read-only):** both migrations applied; `Messages.Provider` present; scoped unique index present and the old global index gone; one `TenantWhatsAppChannels` row, status Connected |
+| Live: inbound message | **One real inbound message** was stored with `Provider = QrBridge`, Delivered, with a provider message id (created after the QR connect) - so the real bridge -> authenticated webhook -> inbound processor -> database path ran at least once. Not established: who sent it, whether the AI replied, or any outbound/receipt behaviour |
 | Tenant isolation | Tested: a webhook's tenant comes only from the authenticated channel; another tenant's secret cannot open a channel; payload-claimed instance/tenant ignored; per-tenant instance names; pilot list keeps other tenants on Meta |
 | Duplicate protection | Tested: redelivered message recorded once; same id on two providers = two messages; status never moves backwards (observed out-of-order acks); unknown-outcome send never retried |
 | Meta remains usable | Existing 2,100+ tests (campaigns, consent, billing, webhooks) still pass unchanged; Meta is the default and what a non-pilot tenant uses |
 
 ### Not verified (do not assume)
-- **Live inbound / outbound / receipts through the finished adapter and webhook.** Needs a second phone. The earlier probe captured these payloads, and unit tests use those shapes, but the end-to-end path with the real adapter has not been exercised.
+- **Live outbound sends and delivery/read receipts through the finished adapter.** Needs a second phone. The earlier probe captured these payloads, and unit tests use those shapes, but the outbound path with the real adapter has not been exercised. **Inbound has now been seen live once** (see the table above); repeated inbound, the AI reply to it and the duplicate-delivery case are still only unit-tested.
 - Whether the live connect's "Connected" arrived via the webhook or the page's polling (the API in use then was not one whose log I could read). Either is a real bridge signal.
 - An **unexpected disconnect** event (`close`) — mapped by convention, never captured.
 - Media, groups, message history, reply/quote on the bridge — unsupported and untested.
@@ -83,6 +85,6 @@ Migrations: `ScopeMessageIdByProvider`, `AddTenantWhatsAppChannels` (both additi
 | R2 | Bridge breaks on a WhatsApp protocol change | Open by nature; health job + Meta fallback by explicit switch only |
 
 ## 8. Suggested next work
-1. Run the live inbound/outbound/receipt pilot (second phone) and capture an unexpected-disconnect event; update section 2.
+1. Run the live outbound/receipt pilot (second phone), confirm the AI reply to an inbound message, test Disconnect pausing sends, and capture an unexpected-disconnect event; update section 2.
 2. Resolve R9 (privacy review, retention, deletion check) before any wider use.
 3. If the bridge becomes more than a pilot: a real drain/rollback state machine, reconciliation of unknown outcomes against the bridge, tenant notifications on disconnect, media.
