@@ -307,6 +307,52 @@ export function connectionsRedirectUri(origin: string): string {
   return `${origin}/content-studio/connections`;
 }
 
+// ----- how published videos are doing ------------------------------------------------------------------------------------------
+
+export interface MetricPoint {
+  at: string;
+  views: number;
+  likes: number;
+  comments: number;
+}
+
+export interface PublicationPerformance {
+  id: string;
+  versionId: string;
+  title: string;
+  accountName: string;
+  privacy: Privacy;
+  url: string | null;
+  publishedAtUtc: string | null;
+  views: number;
+  likes: number;
+  comments: number;
+  /** When the platform was last asked; null if it has not been yet. */
+  refreshedAtUtc: string | null;
+  /** The platform no longer returns the video (deleted there, or made unavailable): the numbers are the last it gave. */
+  missingOnPlatform: boolean;
+  series: MetricPoint[];
+}
+
+export interface Funnel {
+  scriptsWritten: number;
+  scriptsApproved: number;
+  videosMade: number;
+  videosPublished: number;
+}
+
+export interface AnalyticsSummary {
+  published: number;
+  waitingOrSending: number;
+  failedLast30Days: number;
+  views: number;
+  likes: number;
+  comments: number;
+  lastUpdatedUtc: string | null;
+  last30Days: Funnel;
+  items: PublicationPerformance[];
+}
+
 // ----- review and approval --------------------------------------------------------------------------------------------------------
 
 export type ReviewAction = 'Submitted' | 'Withdrawn' | 'Approved' | 'Rejected' | 'Revised';

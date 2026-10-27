@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
+  AnalyticsSummary,
   AssetCandidates,
   AssetSummary,
   ConnectionsOverview,
@@ -11,6 +12,7 @@ import {
   ProjectDetail,
   ProjectSummary,
   Publication,
+  PublicationPerformance,
   PublishBody,
   RenderJob,
   ReviewState,
@@ -137,6 +139,17 @@ export class ContentPlannerService {
 
   retryPublication(id: string): Observable<Publication> {
     return this.http.post<Publication>(`${this.baseUrl}/publications/${id}/retry`, {});
+  }
+
+  // ----- how published videos are doing ---------------------------------------------------------------------------------------
+
+  analytics(): Observable<AnalyticsSummary> {
+    return this.http.get<AnalyticsSummary>(`${this.baseUrl}/analytics/summary`);
+  }
+
+  /** Asks the platform about one post now (the server allows this about every 15 minutes per post). */
+  refreshMetrics(publicationId: string): Observable<PublicationPerformance> {
+    return this.http.post<PublicationPerformance>(`${this.baseUrl}/publications/${publicationId}/metrics/refresh`, {});
   }
 
   // ----- review and approval ------------------------------------------------------------------------------------------

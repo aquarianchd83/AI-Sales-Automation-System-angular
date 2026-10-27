@@ -131,6 +131,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       label: 'Marketing',
       items: [
         { label: 'Social Ads', icon: 'public', route: '/social-ads', roles: TENANT_ADMIN_ONLY },
+        { label: 'Video Performance', icon: 'insights', route: '/content-studio/analytics', roles: STUDIO_CONTENT_ROLES, visible: () => this.canOpenStudio() },
         // Only an Admin connects the accounts videos are published to.
         {
           label: 'Publishing Accounts',
