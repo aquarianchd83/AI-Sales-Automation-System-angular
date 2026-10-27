@@ -229,6 +229,8 @@ export interface RenderJob {
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+  /** Made from exactly the words and pictures that were approved. */
+  isOfApprovedScript: boolean;
 }
 
 export const ASPECT_RATIOS: { value: string; label: string }[] = [
@@ -238,3 +240,42 @@ export const ASPECT_RATIOS: { value: string; label: string }[] = [
 ];
 
 export const ACTIVE_RENDER: RenderStatus[] = ['Queued', 'Preparing', 'Rendering'];
+
+// ----- review and approval --------------------------------------------------------------------------------------------------------
+
+export type ReviewAction = 'Submitted' | 'Withdrawn' | 'Approved' | 'Rejected' | 'Revised';
+
+export interface ReviewEvent {
+  id: string;
+  action: ReviewAction;
+  fromStatus: ContentVersionStatus | null;
+  toStatus: ContentVersionStatus;
+  actorEmail: string | null;
+  comment: string | null;
+  at: string;
+}
+
+export interface ReviewState {
+  versionId: string;
+  status: ContentVersionStatus;
+  submittedAt: string | null;
+  submittedByEmail: string | null;
+  reviewedAt: string | null;
+  reviewedByEmail: string | null;
+  /** The reason it was rejected, or the approver's note. */
+  reviewComment: string | null;
+  /** Whether the person looking may approve or reject (an Admin always; a Sales Manager only if the tenant's policy allows). */
+  canApprove: boolean;
+  approvalIsAdminOnly: boolean;
+  /** For an approved script: it still has exactly the words and pictures that were approved. */
+  integrityOk: boolean;
+  history: ReviewEvent[];
+}
+
+export const REVIEW_ACTION_LABELS: Record<ReviewAction, string> = {
+  Submitted: 'Sent for approval',
+  Withdrawn: 'Taken back',
+  Approved: 'Approved',
+  Rejected: 'Sent back',
+  Revised: 'New draft started',
+};

@@ -330,8 +330,86 @@
             </ol>
             <p class="muted small" *ngIf="!editable">This script is no longer a draft, so it cannot be edited here.</p>
 
-            <!-- 3. The video. -->
-            <h3 class="section">3. Video</h3>
+            <!-- 3. Review and approval. -->
+            <h3 class="section">3. Approval</h3>
+            <div class="review" data-testid="review" *ngIf="review as r">
+              <div class="review-head">
+                <span class="chip" [class.chip--chosen]="r.status === 'Approved'" [class.chip--fail]="r.status === 'Rejected'" data-testid="review-status">{{ r.status === 'InReview' ? 'Waiting for approval' : r.status === 'Draft' ? 'Draft - not sent yet' : r.status }}</span>
+                <span class="muted small" *ngIf="r.status === 'InReview' && r.submittedAt">Sent by {{ r.submittedByEmail || 'someone' }} on {{ r.submittedAt | zonedDate: 'medium' }}</span>
+                <span class="muted small" *ngIf="(r.status === 'Approved' || r.status === 'Rejected') && r.reviewedAt">{{ r.status === 'Approved' ? 'Approved' : 'Sent back' }} by {{ r.reviewedByEmail || 'someone' }} on {{ r.reviewedAt | zonedDate: 'medium' }}</span>
+              </div>
+
+              <p class="note note--warn" *ngIf="r.status === 'Approved' && !r.integrityOk" data-testid="integrity-warning">
+                <mat-icon>gpp_maybe</mat-icon>
+                <span>This script no longer matches what was approved - something was changed after the approval. Do not use it. Start a new draft from it and send that for approval.</span>
+              </p>
+              <p class="problem small" *ngIf="r.status === 'Rejected' && r.reviewComment" data-testid="review-comment">Reason: {{ r.reviewComment }}</p>
+              <p class="muted small" *ngIf="r.status === 'Approved' && r.reviewComment" data-testid="review-comment">Note: {{ r.reviewComment }}</p>
+
+              <!-- Draft: send it. -->
+              <ng-container *ngIf="r.status === 'Draft'">
+                <p class="muted small" *ngIf="cannotSubmitBecause as why" data-testid="cannot-submit">{{ why }}</p>
+                <mat-form-field subscriptSizing="dynamic" class="note-field">
+                  <mat-label>Note for the approver (optional)</mat-label>
+                  <input matInput [formControl]="reviewNote" maxlength="1000" data-testid="review-note" />
+                </mat-form-field>
+                <div class="actions">
+                  <button mat-flat-button color="primary" type="button" [disabled]="!!cannotSubmitBecause || busy.review" (click)="submitForApproval()" data-testid="submit">
+                    <mat-icon>send</mat-icon> Send for approval
+                  </button>
+                </div>
+              </ng-container>
+
+              <!-- Waiting: decide, or take it back. -->
+              <ng-container *ngIf="r.status === 'InReview'">
+                <p class="muted small" *ngIf="!r.canApprove" data-testid="cannot-approve">{{ r.approvalIsAdminOnly ? 'Only an Admin can approve content.' : 'You are not allowed to approve content.' }} You can take it back to change it.</p>
+                <ng-container *ngIf="r.canApprove && !rejecting">
+                  <mat-form-field subscriptSizing="dynamic" class="note-field">
+                    <mat-label>Note (optional)</mat-label>
+                    <input matInput [formControl]="reviewNote" maxlength="1000" data-testid="review-note" />
+                  </mat-form-field>
+                </ng-container>
+                <ng-container *ngIf="r.canApprove && rejecting">
+                  <mat-form-field subscriptSizing="dynamic" class="note-field">
+                    <mat-label>Why is it being sent back? (required)</mat-label>
+                    <textarea matInput [formControl]="reviewNote" rows="2" maxlength="1000" data-testid="reject-reason"></textarea>
+                  </mat-form-field>
+                </ng-container>
+                <div class="actions">
+                  <ng-container *ngIf="r.canApprove && !rejecting">
+                    <button mat-flat-button color="primary" type="button" [disabled]="busy.review" (click)="approve()" data-testid="approve"><mat-icon>check</mat-icon> Approve</button>
+                    <button mat-stroked-button color="warn" type="button" [disabled]="busy.review" (click)="startReject()" data-testid="reject-start"><mat-icon>reply</mat-icon> Send back…</button>
+                  </ng-container>
+                  <ng-container *ngIf="r.canApprove && rejecting">
+                    <button mat-flat-button color="warn" type="button" [disabled]="!canConfirmReject" (click)="reject()" data-testid="reject-confirm">Send back</button>
+                    <button mat-button type="button" (click)="rejecting = false">Cancel</button>
+                  </ng-container>
+                  <button mat-button type="button" [disabled]="busy.review" (click)="withdraw()" data-testid="withdraw">Take it back</button>
+                </div>
+              </ng-container>
+
+              <!-- Decided: it is frozen; changes go in a new draft. -->
+              <ng-container *ngIf="r.status === 'Approved' || r.status === 'Rejected'">
+                <p class="muted small">{{ r.status === 'Approved' ? 'This script is frozen exactly as it was approved.' : 'This script is kept as it was.' }} To change it, start a new draft - the original stays as it is.</p>
+                <div class="actions">
+                  <button mat-stroked-button type="button" [disabled]="busy.review" (click)="revise()" data-testid="revise"><mat-icon>edit_note</mat-icon> Start a new draft from this</button>
+                </div>
+              </ng-container>
+
+              <details class="rejected" *ngIf="r.history.length" data-testid="history">
+                <summary>History ({{ r.history.length }})</summary>
+                <ul class="trail">
+                  <li *ngFor="let e of r.history">
+                    <strong>{{ reviewLabels[e.action] }}</strong>
+                    <span class="muted small">{{ e.actorEmail || 'someone' }} · {{ e.at | zonedDate: 'medium' }}</span>
+                    <span class="small" *ngIf="e.comment">{{ e.comment }}</span>
+                  </li>
+                </ul>
+              </details>
+            </div>
+
+            <!-- 4. The video. -->
+            <h3 class="section">4. Video</h3>
             <p class="note note--warn" *ngIf="v.flagged && !v.isSimulated" data-testid="render-flagged">
               <mat-icon>report</mat-icon>
               <span>{{ v.flagged }} scene{{ v.flagged === 1 ? ' still says' : 's still say' }} something no verified fact backs. A video is a preview for you to watch - it is not approved or published.</span>
@@ -365,6 +443,7 @@
                   <span class="muted small">{{ r.aspectRatio }} · {{ r.createdAt | zonedDate: 'medium' }}</span>
                   <span class="chip chip--sim" *ngIf="r.isSimulated" data-testid="render-test">Test render - no video</span>
                   <span class="chip" *ngIf="r.isAiVoice && r.hasVideo" data-testid="render-ai-voice">AI voice</span>
+                  <span class="chip chip--chosen" *ngIf="r.isOfApprovedScript" data-testid="render-approved" matTooltip="Made from exactly the words and pictures that were approved.">Of the approved script</span>
                   <span class="grow"></span>
                   <button mat-button type="button" *ngIf="renderIsActive(r)" (click)="cancelRender(r)" data-testid="cancel-render">Cancel</button>
                   <button mat-stroked-button type="button" *ngIf="r.hasVideo && watching !== r.id" (click)="watch(r)" data-testid="watch"><mat-icon>play_circle</mat-icon> Watch</button>

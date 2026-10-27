@@ -10,6 +10,7 @@ import {
   ProjectDetail,
   ProjectSummary,
   RenderJob,
+  ReviewState,
   ScriptVersion,
   StudioAsset,
   UpdateSceneBody,
@@ -97,6 +98,33 @@ export class ContentPlannerService {
   /** Multipart: file, kind, name, tags and the two confirmations. */
   uploadAsset(form: FormData): Observable<StudioAsset> {
     return this.http.post<StudioAsset>(`${this.baseUrl}/assets`, form);
+  }
+
+  // ----- review and approval ------------------------------------------------------------------------------------------
+
+  review(versionId: string): Observable<ReviewState> {
+    return this.http.get<ReviewState>(`${this.baseUrl}/versions/${versionId}/review`);
+  }
+
+  submit(versionId: string, comment: string | null): Observable<ReviewState> {
+    return this.http.post<ReviewState>(`${this.baseUrl}/versions/${versionId}/submit`, { comment });
+  }
+
+  withdraw(versionId: string, comment: string | null): Observable<ReviewState> {
+    return this.http.post<ReviewState>(`${this.baseUrl}/versions/${versionId}/withdraw`, { comment });
+  }
+
+  approve(versionId: string, comment: string | null): Observable<ReviewState> {
+    return this.http.post<ReviewState>(`${this.baseUrl}/versions/${versionId}/approve`, { comment });
+  }
+
+  reject(versionId: string, reason: string): Observable<ReviewState> {
+    return this.http.post<ReviewState>(`${this.baseUrl}/versions/${versionId}/reject`, { reason });
+  }
+
+  /** Starts a new draft from an approved or rejected script; the original stays as it was. Returns the project with the new draft as its current script. */
+  revise(versionId: string): Observable<ProjectDetail> {
+    return this.http.post<ProjectDetail>(`${this.baseUrl}/versions/${versionId}/revise`, {});
   }
 
   // ----- videos ------------------------------------------------------------------------------------------------------------

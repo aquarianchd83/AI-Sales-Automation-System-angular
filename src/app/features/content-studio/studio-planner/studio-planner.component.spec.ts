@@ -12,6 +12,7 @@ import {
   ProjectDetail,
   ProjectSummary,
   RenderJob,
+  ReviewState,
   ScriptVersion,
   StockPhoto,
   StudioAsset,
@@ -50,7 +51,12 @@ const stockPhoto = (over: Partial<StockPhoto> = {}): StockPhoto => ({
 
 const renderJob = (over: Partial<RenderJob> = {}): RenderJob => ({
   id: 'r1', versionId: 'v1', versionNumber: 1, status: 'Queued', progress: 0, stage: 'Waiting for its turn', aspectRatio: '16:9', voiceGender: 'Female', renderer: 'Shotstack', isSimulated: false,
-  isAiVoice: true, hasVideo: false, videoBytes: 0, videoSeconds: 0, error: null, flaggedScenes: 0, createdAt: '2026-10-27T11:00:00Z', startedAt: null, finishedAt: null, ...over,
+  isAiVoice: true, hasVideo: false, videoBytes: 0, videoSeconds: 0, error: null, flaggedScenes: 0, createdAt: '2026-10-27T11:00:00Z', startedAt: null, finishedAt: null, isOfApprovedScript: false, ...over,
+});
+
+const reviewState = (over: Partial<ReviewState> = {}): ReviewState => ({
+  versionId: 'v1', status: 'Draft', submittedAt: null, submittedByEmail: null, reviewedAt: null, reviewedByEmail: null, reviewComment: null, canApprove: true, approvalIsAdminOnly: true,
+  integrityOk: true, history: [], ...over,
 });
 
 const candidates = (over: Partial<AssetCandidates> = {}): AssetCandidates => ({
@@ -82,8 +88,9 @@ describe('StudioPlannerComponent', () => {
   };
   const present = (testId: string) => root().querySelector(`[data-testid="${testId}"]`) !== null;
 
-  function render(projects: ProjectSummary[], first: ProjectDetail | null, jobs: RenderJob[] = []): StudioPlannerComponent {
-    api = jasmine.createSpyObj('ContentPlannerService', ['list', 'create', 'get', 'update', 'remove', 'generateTopics', 'updateTopic', 'generateScript', 'getVersion', 'recheck', 'updateScene', 'deleteScene', 'candidates', 'chooseAsset', 'clearAsset', 'uploadAsset', 'assetContent', 'startRender', 'renders', 'render', 'cancelRender', 'video']);
+  function render(projects: ProjectSummary[], first: ProjectDetail | null, jobs: RenderJob[] = [], review: ReviewState = reviewState()): StudioPlannerComponent {
+    api = jasmine.createSpyObj('ContentPlannerService', ['list', 'create', 'get', 'update', 'remove', 'generateTopics', 'updateTopic', 'generateScript', 'getVersion', 'recheck', 'updateScene', 'deleteScene', 'candidates', 'chooseAsset', 'clearAsset', 'uploadAsset', 'assetContent', 'startRender', 'renders', 'render', 'cancelRender', 'video', 'review', 'submit', 'withdraw', 'approve', 'reject', 'revise']);
+    api.review.and.returnValue(of(review));
     api.renders.and.returnValue(of(jobs));
     api.assetContent.and.returnValue(of(new Blob(['x'], { type: 'image/png' })));
     api.list.and.returnValue(of(projects));
@@ -541,5 +548,146 @@ describe('StudioPlannerComponent', () => {
 
     expect(api.renders).toHaveBeenCalledWith('v1');
     expect(c.renders).toEqual([]);
+  });
+
+  // ----- review and approval ---------------------------------------------------------------------------------------------------
+
+  const readyScript = () => version({ scenesWithoutPicture: 0, scenes: [scene({ asset: summaryAsset() }), scene({ id: 's2', order: 2, claimStatus: 'NoClaim', facts: [], asset: summaryAsset({ id: 'a2' }) })] });
+
+  it('shows a draft as not sent yet and says what stops it being sent', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: version() }));
+
+    expect(text('[data-testid="review-status"]')).toBe('Draft - not sent yet');
+    expect(text('[data-testid="cannot-submit"]')).toContain('have no picture yet');
+    expect(root().querySelector<HTMLButtonElement>('[data-testid="submit"]')!.disabled).toBeTrue();
+    fixture.destroy();
+    TestBed.resetTestingModule();
+
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...readyScript(), flagged: 1 } }));
+    expect(text('[data-testid="cannot-submit"]')).toContain('says something none of your verified facts back');
+  });
+
+  it('sends a ready draft for approval with a note, after which it can no longer be edited here', () => {
+    const c = render([summary({ status: 'Scripted' })], detail({ currentVersion: readyScript() }));
+    api.submit.and.returnValue(of(reviewState({ status: 'InReview', submittedAt: '2026-10-27T12:00:00Z', submittedByEmail: 'sales@clinic.example' })));
+    expect(present('cannot-submit')).toBeFalse();
+    expect(present('edit-scene')).toBeTrue();
+    c.reviewNote.setValue('  Please check the hours.  ');
+
+    click('submit');
+
+    expect(api.submit).toHaveBeenCalledWith('v1', 'Please check the hours.');
+    expect(text('[data-testid="review-status"]')).toBe('Waiting for approval');
+    expect(root().textContent).toContain('Sent by sales@clinic.example');
+    expect(c.version!.status).toBe('InReview');
+    expect(present('edit-scene')).toBeFalse(); // frozen while it is looked at
+    expect(c.detail!.versions[0]?.status ?? 'InReview').toBe('InReview');
+    expect(notify.success).toHaveBeenCalledWith('Sent for approval.');
+  });
+
+  it('lets someone who may approve approve with a note, and freezes the script', () => {
+    const c = render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...readyScript(), status: 'InReview' } }), [], reviewState({ status: 'InReview', canApprove: true }));
+    api.approve.and.returnValue(of(reviewState({ status: 'Approved', reviewedAt: '2026-10-27T13:00:00Z', reviewedByEmail: 'admin@clinic.example', reviewComment: 'Good.' })));
+    c.reviewNote.setValue('Good.');
+
+    click('approve');
+
+    expect(api.approve).toHaveBeenCalledWith('v1', 'Good.');
+    expect(text('[data-testid="review-status"]')).toBe('Approved');
+    expect(root().textContent).toContain('Approved by admin@clinic.example');
+    expect(text('[data-testid="review-comment"]')).toBe('Note: Good.');
+    expect(root().textContent).toContain('frozen exactly as it was approved');
+    expect(present('revise')).toBeTrue();
+    expect(present('approve')).toBeFalse();
+  });
+
+  it('sends a script back only with a reason', () => {
+    const c = render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...readyScript(), status: 'InReview' } }), [], reviewState({ status: 'InReview' }));
+    api.reject.and.returnValue(of(reviewState({ status: 'Rejected', reviewComment: 'Too long for Reels.' })));
+
+    click('reject-start');
+    expect(root().querySelector<HTMLButtonElement>('[data-testid="reject-confirm"]')!.disabled).toBeTrue(); // no reason yet
+    c.reviewNote.setValue('   ');
+    fixture.detectChanges();
+    expect(c.canConfirmReject).toBeFalse();
+    c.reviewNote.setValue('  Too long for Reels.  ');
+    fixture.detectChanges();
+
+    click('reject-confirm');
+
+    expect(api.reject).toHaveBeenCalledWith('v1', 'Too long for Reels.');
+    expect(text('[data-testid="review-status"]')).toBe('Rejected');
+    expect(text('[data-testid="review-comment"]')).toBe('Reason: Too long for Reels.');
+    expect(c.rejecting).toBeFalse();
+  });
+
+  it('offers no approving to someone who may not, says why, and still lets the sender take it back', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...readyScript(), status: 'InReview' } }), [], reviewState({ status: 'InReview', canApprove: false, approvalIsAdminOnly: true }));
+    api.withdraw.and.returnValue(of(reviewState({ status: 'Draft' })));
+
+    expect(text('[data-testid="cannot-approve"]')).toContain('Only an Admin can approve content.');
+    expect(present('approve')).toBeFalse();
+    expect(present('reject-start')).toBeFalse();
+
+    click('withdraw');
+
+    expect(api.withdraw).toHaveBeenCalledWith('v1', null);
+    expect(text('[data-testid="review-status"]')).toBe('Draft - not sent yet');
+    expect(present('edit-scene')).toBeTrue(); // editable again
+  });
+
+  it('warns loudly when an approved script no longer matches what was approved', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...readyScript(), status: 'Approved' } }), [], reviewState({ status: 'Approved', integrityOk: false }));
+
+    expect(text('[data-testid="integrity-warning"]')).toContain('no longer matches what was approved');
+  });
+
+  it('starts a new draft from an approved script and shows it, leaving the approved one alone', () => {
+    const c = render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...readyScript(), status: 'Approved' } }), [], reviewState({ status: 'Approved' }));
+    const newer = { ...readyScript(), id: 'v2', number: 2 };
+    api.revise.and.returnValue(of(detail({ currentVersion: newer, versions: [{ id: 'v2', number: 2, topicTitle: 'T', status: 'Draft', isSimulated: false, sceneCount: 2, totalSeconds: 16, createdAt: '' }, { id: 'v1', number: 1, topicTitle: 'T', status: 'Approved', isSimulated: false, sceneCount: 2, totalSeconds: 16, createdAt: '' }] })));
+    api.review.and.returnValue(of(reviewState({ versionId: 'v2', status: 'Draft' })));
+
+    click('revise');
+
+    expect(api.revise).toHaveBeenCalledWith('v1');
+    expect(c.version!.number).toBe(2);
+    expect(text('[data-testid="review-status"]')).toBe('Draft - not sent yet');
+    expect(notify.success).toHaveBeenCalledWith('New draft (version 2) started. The earlier script is unchanged.');
+  });
+
+  it('lists the history of the script in plain words', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: readyScript() }), [], reviewState({
+      history: [
+        { id: 'e1', action: 'Submitted', fromStatus: 'Draft', toStatus: 'InReview', actorEmail: 'sales@clinic.example', comment: 'Please check.', at: '2026-10-27T12:00:00Z' },
+        { id: 'e2', action: 'Rejected', fromStatus: 'InReview', toStatus: 'Rejected', actorEmail: 'admin@clinic.example', comment: 'Shorten it.', at: '2026-10-27T13:00:00Z' },
+      ],
+    }));
+
+    const history = text('[data-testid="history"]');
+    expect(history).toContain('History (2)');
+    expect(history).toContain('Sent for approval');
+    expect(history).toContain('Sent back');
+    expect(history).toContain('Shorten it.');
+  });
+
+  it('marks a video made from exactly the approved script', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...readyScript(), status: 'Approved' } }), [renderJob({ status: 'Succeeded', hasVideo: true, isOfApprovedScript: true })], reviewState({ status: 'Approved' }));
+
+    expect(text('[data-testid="render-approved"]')).toBe('Of the approved script');
+  });
+
+  it('asks for the review of the version on show, and again when another version is opened', () => {
+    render([summary({ status: 'Scripted' })], detail({
+      versions: [{ id: 'v2', number: 2, topicTitle: 'T', status: 'Draft', isSimulated: false, sceneCount: 2, totalSeconds: 16, createdAt: '' }, { id: 'v1', number: 1, topicTitle: 'T', status: 'Draft', isSimulated: false, sceneCount: 2, totalSeconds: 16, createdAt: '' }],
+      currentVersion: { ...readyScript(), id: 'v2', number: 2 },
+    }));
+    expect(api.review).toHaveBeenCalledWith('v2');
+    api.getVersion.and.returnValue(of({ ...readyScript(), id: 'v1', number: 1 }));
+
+    root().querySelector<HTMLElement>('[data-version="v1"]')!.click();
+    fixture.detectChanges();
+
+    expect(api.review).toHaveBeenCalledWith('v1');
   });
 });

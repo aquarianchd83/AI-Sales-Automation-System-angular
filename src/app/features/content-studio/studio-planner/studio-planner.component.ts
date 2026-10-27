@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { Subscription, timer } from 'rxjs';
+import { Observable, Subscription, timer } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
@@ -17,8 +17,10 @@ import {
   MAX_IMAGE_MB,
   PLANNER_LANGUAGES,
   ProjectDetail,
-  RenderJob,
   ProjectSummary,
+  RenderJob,
+  REVIEW_ACTION_LABELS,
+  ReviewState,
   SCRIPT_LENGTHS,
   ScriptVersion,
   ScriptVersionSummary,
@@ -67,13 +69,24 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
     if (changed) {
       this.watching = null;
       this.releaseVideo();
+      this.rejecting = false;
+      this.reviewNote.reset('');
+      this.loadReview();
       this.loadRenders();
     }
     this.loadThumbs((value?.scenes ?? []).map((s) => s.asset?.id));
   }
   creating = false;
 
-  busy = { project: false, topics: false, script: false, scene: false, recheck: false, pick: false, upload: false, render: false };
+  busy = { project: false, topics: false, script: false, scene: false, recheck: false, pick: false, upload: false, render: false, review: false };
+
+  // ----- review and approval -----------------------------------------------------------------------------------------------------
+
+  readonly reviewLabels = REVIEW_ACTION_LABELS;
+  review: ReviewState | null = null;
+  rejecting = false;
+  /** The sender's or approver's note; for a rejection it is the reason, and it is required. */
+  readonly reviewNote = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(1000)] });
 
   // ----- the video ---------------------------------------------------------------------------------------------------------------
 
@@ -393,6 +406,124 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
           this.version = v;
           this.editingSceneId = null;
           this.notify.success('Scene saved and checked against your facts.');
+        },
+        error: () => undefined,
+      });
+  }
+
+  // ----- review and approval -------------------------------------------------------------------------------------------------------
+
+  /** Why this draft cannot be sent for approval yet, or null when it can. */
+  get cannotSubmitBecause(): string | null {
+    const v = this.version;
+    if (!v || v.status !== 'Draft') {
+      return null;
+    }
+    if (v.isSimulated) {
+      return 'This script came from the platform\'s test mode, so it says nothing real about your business and cannot be sent for approval.';
+    }
+    if (v.scenesWithoutPicture > 0) {
+      return `${v.scenesWithoutPicture} of ${v.scenes.length} scenes have no picture yet. Choose a picture for every scene first.`;
+    }
+    if (v.flagged > 0) {
+      return `${v.flagged} scene${v.flagged === 1 ? ' says' : 's say'} something none of your verified facts back. Reword ${v.flagged === 1 ? 'it' : 'them'}, or verify the fact, first.`;
+    }
+    return null;
+  }
+
+  private loadReview(): void {
+    const id = this.shown?.id;
+    this.review = null;
+    if (!id) {
+      return;
+    }
+    this.planner.review(id).subscribe({
+      next: (r) => {
+        if (this.shown?.id === id) {
+          this.review = r;
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  /** The decision came back: show the new state, and keep the script and the list of versions in step with it. */
+  private reviewed(state: ReviewState, message: string): void {
+    this.review = state;
+    this.rejecting = false;
+    this.reviewNote.reset('');
+    if (this.version && this.version.id === state.versionId) {
+      this.version = { ...this.version, status: state.status };
+    }
+    if (this.detail) {
+      this.detail = { ...this.detail, versions: this.detail.versions.map((v) => (v.id === state.versionId ? { ...v, status: state.status } : v)) };
+    }
+    this.notify.success(message);
+  }
+
+  private reviewCall(call: (id: string, note: string | null) => Observable<ReviewState>, message: string): void {
+    const v = this.version;
+    if (!v || this.busy.review) {
+      return;
+    }
+    this.busy = { ...this.busy, review: true };
+    call(v.id, this.reviewNote.value.trim() || null)
+      .pipe(finalize(() => (this.busy = { ...this.busy, review: false })))
+      .subscribe({
+        next: (state) => this.reviewed(state, message),
+        // ErrorInterceptor shows why (a scene has no picture, a claim lost its fact, only an Admin can approve).
+        error: () => undefined,
+      });
+  }
+
+  submitForApproval(): void {
+    if (!this.cannotSubmitBecause) {
+      this.reviewCall((id, note) => this.planner.submit(id, note), 'Sent for approval.');
+    }
+  }
+
+  withdraw(): void {
+    this.reviewCall((id, note) => this.planner.withdraw(id, note), 'Taken back. You can change it again.');
+  }
+
+  approve(): void {
+    this.reviewCall((id, note) => this.planner.approve(id, note), 'Approved. What was approved is now frozen.');
+  }
+
+  startReject(): void {
+    this.rejecting = true;
+    this.reviewNote.reset('');
+  }
+
+  get canConfirmReject(): boolean {
+    return this.reviewNote.value.trim().length > 0 && this.reviewNote.valid && !this.busy.review;
+  }
+
+  reject(): void {
+    const v = this.version;
+    if (!v || !this.canConfirmReject) {
+      return;
+    }
+    this.busy = { ...this.busy, review: true };
+    this.planner
+      .reject(v.id, this.reviewNote.value.trim())
+      .pipe(finalize(() => (this.busy = { ...this.busy, review: false })))
+      .subscribe({ next: (state) => this.reviewed(state, 'Sent back with your reason.'), error: () => undefined });
+  }
+
+  revise(): void {
+    const v = this.version;
+    if (!v || this.busy.review) {
+      return;
+    }
+    this.busy = { ...this.busy, review: true };
+    this.planner
+      .revise(v.id)
+      .pipe(finalize(() => (this.busy = { ...this.busy, review: false })))
+      .subscribe({
+        next: (d) => {
+          this.show(d);
+          this.notify.success(`New draft (version ${d.currentVersion?.number}) started. The earlier script is unchanged.`);
         },
         error: () => undefined,
       });
