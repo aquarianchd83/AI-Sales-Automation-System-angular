@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, discardPeriodicTasks, fakeAsync, tick } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -11,6 +11,7 @@ import {
   ContentTopic,
   ProjectDetail,
   ProjectSummary,
+  RenderJob,
   ScriptVersion,
   StockPhoto,
   StudioAsset,
@@ -18,7 +19,7 @@ import {
 import { ContentPlannerService } from '../../../core/services/content-planner.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { SharedModule } from '../../../shared/shared.module';
-import { StudioPlannerComponent } from './studio-planner.component';
+import { RENDER_POLL_MS, StudioPlannerComponent } from './studio-planner.component';
 
 const summary = (over: Partial<ProjectSummary> = {}): ProjectSummary => ({
   id: 'p1', title: 'Cataract awareness', goal: 'Get more bookings', language: 'English', status: 'Draft', topicCount: 0, versionCount: 0, chosenTopic: null, createdAt: '2026-10-27T10:00:00Z', updatedAt: null, ...over,
@@ -45,6 +46,11 @@ const studioAsset = (over: Partial<StudioAsset> = {}): StudioAsset => ({
 const stockPhoto = (over: Partial<StockPhoto> = {}): StockPhoto => ({
   providerAssetId: '1001', provider: 'Pexels', previewUrl: 'https://images.pexels.com/photos/1001/m.jpg', pageUrl: 'https://www.pexels.com/photo/1001/', photographer: 'Jane Doe', width: 1880, height: 1253,
   description: 'A clinic reception', licenseName: 'Pexels License', licenseUrl: 'https://www.pexels.com/license/', attribution: 'Photo by Jane Doe on Pexels', ...over,
+});
+
+const renderJob = (over: Partial<RenderJob> = {}): RenderJob => ({
+  id: 'r1', versionId: 'v1', versionNumber: 1, status: 'Queued', progress: 0, stage: 'Waiting for its turn', aspectRatio: '16:9', voiceGender: 'Female', renderer: 'Shotstack', isSimulated: false,
+  isAiVoice: true, hasVideo: false, videoBytes: 0, videoSeconds: 0, error: null, flaggedScenes: 0, createdAt: '2026-10-27T11:00:00Z', startedAt: null, finishedAt: null, ...over,
 });
 
 const candidates = (over: Partial<AssetCandidates> = {}): AssetCandidates => ({
@@ -76,8 +82,9 @@ describe('StudioPlannerComponent', () => {
   };
   const present = (testId: string) => root().querySelector(`[data-testid="${testId}"]`) !== null;
 
-  function render(projects: ProjectSummary[], first: ProjectDetail | null): StudioPlannerComponent {
-    api = jasmine.createSpyObj('ContentPlannerService', ['list', 'create', 'get', 'update', 'remove', 'generateTopics', 'updateTopic', 'generateScript', 'getVersion', 'recheck', 'updateScene', 'deleteScene', 'candidates', 'chooseAsset', 'clearAsset', 'uploadAsset', 'assetContent']);
+  function render(projects: ProjectSummary[], first: ProjectDetail | null, jobs: RenderJob[] = []): StudioPlannerComponent {
+    api = jasmine.createSpyObj('ContentPlannerService', ['list', 'create', 'get', 'update', 'remove', 'generateTopics', 'updateTopic', 'generateScript', 'getVersion', 'recheck', 'updateScene', 'deleteScene', 'candidates', 'chooseAsset', 'clearAsset', 'uploadAsset', 'assetContent', 'startRender', 'renders', 'render', 'cancelRender', 'video']);
+    api.renders.and.returnValue(of(jobs));
     api.assetContent.and.returnValue(of(new Blob(['x'], { type: 'image/png' })));
     api.list.and.returnValue(of(projects));
     if (first) {
@@ -427,5 +434,112 @@ describe('StudioPlannerComponent', () => {
     fixture.detectChanges();
     expect(present('choose-picture')).toBeFalse();
     expect(present('change-picture')).toBeFalse();
+  });
+
+  // ----- the video -----------------------------------------------------------------------------------------------------------
+
+  const ready = () => version({ scenesWithoutPicture: 0, scenes: [scene({ asset: summaryAsset() }), scene({ id: 's2', order: 2, claimStatus: 'NoClaim', facts: [], asset: summaryAsset({ id: 'a2' }) })] });
+
+  it('will not offer a video until every scene has a picture, and says how many are missing', () => {
+    const c = render([summary({ status: 'Scripted' })], detail({ currentVersion: version() }));
+
+    expect(text('[data-testid="cannot-render"]')).toBe('2 of 2 scenes have no picture yet. Choose a picture for every scene first.');
+    expect(root().querySelector<HTMLButtonElement>('[data-testid="make-video"]')!.disabled).toBeTrue();
+    c.makeVideo();
+    expect(api.startRender).not.toHaveBeenCalled();
+  });
+
+  it('will not make a video of a script from the platform\'s test mode', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...ready(), isSimulated: true } }));
+
+    expect(text('[data-testid="cannot-render"]')).toContain('test mode');
+    expect(present('render-form')).toBeFalse();
+  });
+
+  it('starts a video with the chosen shape and voice, shows it queued, and warns that a flagged script is only a preview', () => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: { ...ready(), flagged: 1 } }));
+    api.startRender.and.returnValue(of(renderJob()));
+    expect(text('[data-testid="render-flagged"]')).toContain('it is not approved or published');
+    fixture.componentInstance.videoOptions.patchValue({ aspect: '9:16', voice: 'Male' });
+
+    click('make-video');
+
+    expect(api.startRender).toHaveBeenCalledWith('v1', '9:16', 'Male');
+    expect(text('[data-testid="render-status"]')).toBe('Queued');
+    expect(text('[data-testid="render-stage"]')).toBe('Waiting for its turn');
+    expect(present('render-progress')).toBeTrue();
+    expect(root().querySelector<HTMLButtonElement>('[data-testid="make-video"]')!.disabled).toBeTrue(); // one at a time
+    expect(text('[data-testid="cannot-render"]')).toContain('already being made');
+    discardPeriodicTasks;
+  });
+
+  it('follows a running video until it is ready, tells the tenant, and plays it from the API with the AI-voice disclosure', fakeAsync(() => {
+    const c = render([summary({ status: 'Scripted' })], detail({ currentVersion: ready() }), [renderJob({ status: 'Rendering', progress: 50, stage: 'Making the video' })]);
+    expect(text('[data-testid="render-status"]')).toBe('Rendering');
+    api.render.and.returnValue(of(renderJob({ status: 'Succeeded', progress: 100, stage: 'Your video is ready', hasVideo: true, videoBytes: 5, videoSeconds: 14 })));
+    api.video.and.returnValue(of(new Blob(['mp4'], { type: 'video/mp4' })));
+
+    tick(RENDER_POLL_MS);
+    fixture.detectChanges();
+
+    expect(api.render).toHaveBeenCalledWith('r1');
+    expect(notify.success).toHaveBeenCalledWith('Your video is ready.');
+    expect(text('[data-testid="render-status"]')).toBe('Succeeded');
+    expect(text('[data-testid="render-ai-voice"]')).toBe('AI voice');
+    expect(present('render-progress')).toBeFalse();
+
+    click('watch');
+    expect(api.video).toHaveBeenCalledWith('r1');
+    expect(present('player')).toBeTrue();
+    expect(c.videoUrl).toMatch(/^blob:/);
+    click('close-video');
+    expect(present('player')).toBeFalse();
+    expect(c.videoUrl).toBeNull();
+
+    tick(RENDER_POLL_MS * 3); // nothing is running any more: no more asking
+    expect(api.render).toHaveBeenCalledTimes(1);
+    discardPeriodicTasks();
+  }));
+
+  it('shows why a video failed in the tenant\'s words, and that a test render made no video', fakeAsync(() => {
+    const jobs = [
+      renderJob({ id: 'r2', status: 'Succeeded', isSimulated: true, isAiVoice: false, stage: 'Test render finished - the platform is in test mode, so no video was made' }),
+      renderJob({ status: 'Failed', error: 'The voice service rejected the platform\'s key. Nothing was charged - try again.', stage: 'Could not make the video' }),
+    ];
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: ready() }), jobs);
+
+    expect(text('[data-render="r1"] [data-testid="render-error"]')).toContain('Nothing was charged');
+    expect(text('[data-render="r2"] [data-testid="render-test"]')).toBe('Test render - no video');
+    expect(root().querySelector('[data-render="r2"] [data-testid="watch"]')).toBeNull(); // no video is pretended
+    expect(root().querySelector('[data-render="r2"] [data-testid="render-ai-voice"]')).toBeNull();
+    expect(root().querySelector<HTMLButtonElement>('[data-testid="make-video"]')!.disabled).toBeFalse();
+    discardPeriodicTasks();
+  }));
+
+  it('cancels a running video', fakeAsync(() => {
+    render([summary({ status: 'Scripted' })], detail({ currentVersion: ready() }), [renderJob({ status: 'Rendering', progress: 50 })]);
+    api.cancelRender.and.returnValue(of(renderJob({ status: 'Cancelled', stage: 'Cancelled by you' })));
+
+    click('cancel-render');
+
+    expect(api.cancelRender).toHaveBeenCalledWith('r1');
+    expect(text('[data-testid="render-status"]')).toBe('Cancelled');
+    expect(notify.success).toHaveBeenCalledWith('Video cancelled.');
+    discardPeriodicTasks();
+  }));
+
+  it('loads the videos of the version that is on show, and again when another version is opened', () => {
+    const c = render([summary({ status: 'Scripted' })], detail({
+      versions: [{ id: 'v2', number: 2, topicTitle: 'T', status: 'Draft', isSimulated: false, sceneCount: 2, totalSeconds: 16, createdAt: '' }, { id: 'v1', number: 1, topicTitle: 'T', status: 'Draft', isSimulated: false, sceneCount: 2, totalSeconds: 16, createdAt: '' }],
+      currentVersion: { ...ready(), id: 'v2', number: 2 },
+    }));
+    expect(api.renders).toHaveBeenCalledWith('v2');
+    api.getVersion.and.returnValue(of({ ...ready(), id: 'v1', number: 1 }));
+
+    root().querySelector<HTMLElement>('[data-version="v1"]')!.click();
+    fixture.detectChanges();
+
+    expect(api.renders).toHaveBeenCalledWith('v1');
+    expect(c.renders).toEqual([]);
   });
 });

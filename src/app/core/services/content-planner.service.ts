@@ -9,6 +9,7 @@ import {
   CreateProjectBody,
   ProjectDetail,
   ProjectSummary,
+  RenderJob,
   ScriptVersion,
   StudioAsset,
   UpdateSceneBody,
@@ -96,6 +97,30 @@ export class ContentPlannerService {
   /** Multipart: file, kind, name, tags and the two confirmations. */
   uploadAsset(form: FormData): Observable<StudioAsset> {
     return this.http.post<StudioAsset>(`${this.baseUrl}/assets`, form);
+  }
+
+  // ----- videos ------------------------------------------------------------------------------------------------------------
+
+  /** Starts making a video of a script version. The server charges first and returns the charge if it fails. */
+  startRender(versionId: string, aspectRatio: string, voiceGender: string): Observable<RenderJob> {
+    return this.http.post<RenderJob>(`${this.baseUrl}/versions/${versionId}/render`, { aspectRatio, voiceGender });
+  }
+
+  renders(versionId: string): Observable<RenderJob[]> {
+    return this.http.get<RenderJob[]>(`${this.baseUrl}/versions/${versionId}/renders`);
+  }
+
+  render(jobId: string): Observable<RenderJob> {
+    return this.http.get<RenderJob>(`${this.baseUrl}/render-jobs/${jobId}`);
+  }
+
+  cancelRender(jobId: string): Observable<RenderJob> {
+    return this.http.post<RenderJob>(`${this.baseUrl}/render-jobs/${jobId}/cancel`, {});
+  }
+
+  /** The finished video, through the API (never a storage link); played from an object URL. */
+  video(jobId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/render-jobs/${jobId}/video`, { responseType: 'blob' });
   }
 
   /** The picture itself, through the API (never a storage link); shown from an object URL. */

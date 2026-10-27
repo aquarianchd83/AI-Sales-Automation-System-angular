@@ -198,3 +198,43 @@ export interface AssetCandidates {
 }
 
 export const MAX_IMAGE_MB = 10;
+
+// ----- videos ----------------------------------------------------------------------------------------------------------------------
+
+export type RenderStatus = 'Queued' | 'Preparing' | 'Rendering' | 'Succeeded' | 'Failed' | 'Cancelled';
+
+export interface RenderJob {
+  id: string;
+  versionId: string;
+  versionNumber: number;
+  status: RenderStatus;
+  /** 0-100. */
+  progress: number;
+  /** What is happening now, in a sentence. */
+  stage: string | null;
+  aspectRatio: string;
+  voiceGender: string;
+  /** "Shotstack", or "Simulator" when the platform is in test mode. */
+  renderer: string;
+  /** Made in the platform's test mode: no video exists. */
+  isSimulated: boolean;
+  /** The narration was spoken by a synthetic voice. */
+  isAiVoice: boolean;
+  hasVideo: boolean;
+  videoBytes: number;
+  videoSeconds: number;
+  error: string | null;
+  /** Scenes with a claim no verified fact backs when the video was started. */
+  flaggedScenes: number;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export const ASPECT_RATIOS: { value: string; label: string }[] = [
+  { value: '16:9', label: 'Wide (16:9) - YouTube' },
+  { value: '9:16', label: 'Tall (9:16) - Reels and Shorts' },
+  { value: '1:1', label: 'Square (1:1)' },
+];
+
+export const ACTIVE_RENDER: RenderStatus[] = ['Queued', 'Preparing', 'Rendering'];

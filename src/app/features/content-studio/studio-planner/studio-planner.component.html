@@ -329,6 +329,53 @@
               </li>
             </ol>
             <p class="muted small" *ngIf="!editable">This script is no longer a draft, so it cannot be edited here.</p>
+
+            <!-- 3. The video. -->
+            <h3 class="section">3. Video</h3>
+            <p class="note note--warn" *ngIf="v.flagged && !v.isSimulated" data-testid="render-flagged">
+              <mat-icon>report</mat-icon>
+              <span>{{ v.flagged }} scene{{ v.flagged === 1 ? ' still says' : 's still say' }} something no verified fact backs. A video is a preview for you to watch - it is not approved or published.</span>
+            </p>
+            <p class="muted small" *ngIf="cannotRenderBecause as why" data-testid="cannot-render">{{ why }}</p>
+            <form class="script-form" [formGroup]="videoOptions" (ngSubmit)="makeVideo()" *ngIf="!v.isSimulated" data-testid="render-form">
+              <mat-form-field class="narrow" subscriptSizing="dynamic">
+                <mat-label>Shape</mat-label>
+                <mat-select formControlName="aspect" data-testid="aspect">
+                  <mat-option *ngFor="let a of aspects" [value]="a.value">{{ a.label }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field class="narrow" subscriptSizing="dynamic">
+                <mat-label>Voice</mat-label>
+                <mat-select formControlName="voice" data-testid="voice">
+                  <mat-option value="Female">Woman's voice</mat-option>
+                  <mat-option value="Male">Man's voice</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <button mat-flat-button color="primary" type="submit" [disabled]="!!cannotRenderBecause || busy.render" data-testid="make-video">
+                <mat-icon>{{ busy.render ? 'hourglass_empty' : 'movie' }}</mat-icon> {{ busy.render ? 'Starting…' : 'Make the video' }}
+              </button>
+              <app-credit-cost [scenarios]="[4, 3]"></app-credit-cost>
+            </form>
+            <p class="muted small">The narration is read by a synthetic voice, and the video says so.</p>
+
+            <ul class="renders" *ngIf="renders.length" data-testid="renders">
+              <li class="render" *ngFor="let r of renders" [attr.data-render]="r.id">
+                <div class="render-head">
+                  <span class="chip" [class.chip--chosen]="r.status === 'Succeeded'" [class.chip--fail]="r.status === 'Failed'" data-testid="render-status">{{ r.status }}</span>
+                  <span class="muted small">{{ r.aspectRatio }} · {{ r.createdAt | zonedDate: 'medium' }}</span>
+                  <span class="chip chip--sim" *ngIf="r.isSimulated" data-testid="render-test">Test render - no video</span>
+                  <span class="chip" *ngIf="r.isAiVoice && r.hasVideo" data-testid="render-ai-voice">AI voice</span>
+                  <span class="grow"></span>
+                  <button mat-button type="button" *ngIf="renderIsActive(r)" (click)="cancelRender(r)" data-testid="cancel-render">Cancel</button>
+                  <button mat-stroked-button type="button" *ngIf="r.hasVideo && watching !== r.id" (click)="watch(r)" data-testid="watch"><mat-icon>play_circle</mat-icon> Watch</button>
+                  <button mat-button type="button" *ngIf="watching === r.id" (click)="closeVideo()" data-testid="close-video">Close</button>
+                </div>
+                <mat-progress-bar *ngIf="renderIsActive(r)" mode="determinate" [value]="r.progress" data-testid="render-progress"></mat-progress-bar>
+                <p class="muted small" *ngIf="r.stage" data-testid="render-stage">{{ r.stage }}</p>
+                <p class="problem small" *ngIf="r.error" data-testid="render-error">{{ r.error }}</p>
+                <video class="player" *ngIf="watching === r.id && videoUrl" [src]="videoUrl" controls preload="metadata" data-testid="player"></video>
+              </li>
+            </ul>
           </ng-container>
         </mat-card>
       </ng-container>

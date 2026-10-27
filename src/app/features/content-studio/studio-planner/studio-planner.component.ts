@@ -1,9 +1,12 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { Subscription, timer } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
+  ACTIVE_RENDER,
+  ASPECT_RATIOS,
   AssetCandidates,
   AssetKind,
   CLAIM_LABELS,
@@ -14,6 +17,7 @@ import {
   MAX_IMAGE_MB,
   PLANNER_LANGUAGES,
   ProjectDetail,
+  RenderJob,
   ProjectSummary,
   SCRIPT_LENGTHS,
   ScriptVersion,
@@ -24,6 +28,9 @@ import {
 import { ContentPlannerService } from '../../../core/services/content-planner.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+
+/** How often a running video is asked how it is going. */
+export const RENDER_POLL_MS = 4000;
 
 /**
  * Plans a video: pick a goal, let the AI suggest topics that rest on the facts the tenant has verified, choose one, and have it written scene
@@ -55,12 +62,31 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
   }
 
   set version(value: ScriptVersion | null) {
+    const changed = value?.id !== this.shown?.id;
     this.shown = value;
+    if (changed) {
+      this.watching = null;
+      this.releaseVideo();
+      this.loadRenders();
+    }
     this.loadThumbs((value?.scenes ?? []).map((s) => s.asset?.id));
   }
   creating = false;
 
-  busy = { project: false, topics: false, script: false, scene: false, recheck: false, pick: false, upload: false };
+  busy = { project: false, topics: false, script: false, scene: false, recheck: false, pick: false, upload: false, render: false };
+
+  // ----- the video ---------------------------------------------------------------------------------------------------------------
+
+  readonly aspects = ASPECT_RATIOS;
+  readonly videoOptions = new FormGroup({
+    aspect: new FormControl('16:9', { nonNullable: true }),
+    voice: new FormControl('Female', { nonNullable: true }),
+  });
+  renders: RenderJob[] = [];
+  /** The video being watched, and its object URL (fetched through the API, revoked when closed). */
+  watching: string | null = null;
+  videoUrl: string | null = null;
+  private poll: Subscription | null = null;
   editingSceneId: string | null = null;
 
   readonly newProject = new FormGroup({
@@ -110,6 +136,8 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.poll?.unsubscribe();
+    this.releaseVideo();
     Object.values(this.thumbs).forEach((url) => URL.revokeObjectURL(url));
     this.thumbs = {};
   }
@@ -368,6 +396,136 @@ export class StudioPlannerComponent implements OnInit, OnDestroy {
         },
         error: () => undefined,
       });
+  }
+
+  // ----- the video -----------------------------------------------------------------------------------------------------------------
+
+  get activeRender(): RenderJob | null {
+    return this.renders.find((r) => ACTIVE_RENDER.includes(r.status)) ?? null;
+  }
+
+  /** Why a video cannot be started now, or null when it can. */
+  get cannotRenderBecause(): string | null {
+    const v = this.version;
+    if (!v) {
+      return null;
+    }
+    if (v.isSimulated) {
+      return 'This script came from the platform\'s test mode, so it says nothing real about your business and cannot be made into a video.';
+    }
+    if (v.scenesWithoutPicture > 0) {
+      return `${v.scenesWithoutPicture} of ${v.scenes.length} scenes have no picture yet. Choose a picture for every scene first.`;
+    }
+    return this.activeRender ? 'A video is already being made. Wait for it, or cancel it.' : null;
+  }
+
+  private loadRenders(): void {
+    const id = this.shown?.id;
+    this.poll?.unsubscribe();
+    this.renders = [];
+    if (!id) {
+      return;
+    }
+    this.planner.renders(id).subscribe({
+      next: (jobs) => {
+        if (this.shown?.id === id) {
+          this.renders = jobs;
+          this.pollWhileActive();
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  /** While a video is being made, asks how it is going every few seconds - and stops when nothing is running. */
+  private pollWhileActive(): void {
+    this.poll?.unsubscribe();
+    if (!this.activeRender) {
+      return;
+    }
+    this.poll = timer(RENDER_POLL_MS).subscribe(() => {
+      const active = this.renders.filter((r) => ACTIVE_RENDER.includes(r.status));
+      let pending = active.length;
+      for (const job of active) {
+        this.planner.render(job.id).subscribe({
+          next: (fresh) => this.replaceRender(fresh),
+          error: () => undefined,
+          complete: () => {
+            if (--pending === 0) {
+              this.pollWhileActive();
+            }
+          },
+        });
+      }
+    });
+  }
+
+  private replaceRender(fresh: RenderJob): void {
+    const wasActive = this.renders.find((r) => r.id === fresh.id && ACTIVE_RENDER.includes(r.status));
+    this.renders = this.renders.map((r) => (r.id === fresh.id ? fresh : r));
+    if (wasActive && !ACTIVE_RENDER.includes(fresh.status)) {
+      this.notify.success(fresh.status === 'Succeeded' ? (fresh.hasVideo ? 'Your video is ready.' : 'Test render finished - no video was made.') : fresh.status === 'Failed' ? 'The video could not be made. Nothing was charged.' : 'Video cancelled.');
+    }
+  }
+
+  makeVideo(): void {
+    const v = this.version;
+    if (!v || this.cannotRenderBecause || this.busy.render) {
+      return;
+    }
+    this.busy = { ...this.busy, render: true };
+    const { aspect, voice } = this.videoOptions.getRawValue();
+    this.planner
+      .startRender(v.id, aspect, voice)
+      .pipe(finalize(() => (this.busy = { ...this.busy, render: false })))
+      .subscribe({
+        next: (job) => {
+          this.renders = [job, ...this.renders];
+          this.notify.success('Making your video. This takes a few minutes.');
+          this.pollWhileActive();
+        },
+        // ErrorInterceptor shows why (a video is already running, quota used up, the platform is not set up for videos).
+        error: () => undefined,
+      });
+  }
+
+  cancelRender(job: RenderJob): void {
+    this.planner.cancelRender(job.id).subscribe({
+      next: (fresh) => {
+        this.replaceRender(fresh);
+        this.pollWhileActive();
+      },
+      error: () => undefined,
+    });
+  }
+
+  watch(job: RenderJob): void {
+    this.releaseVideo();
+    this.watching = job.id;
+    this.planner.video(job.id).subscribe({
+      next: (blob) => {
+        if (this.watching === job.id) {
+          this.videoUrl = URL.createObjectURL(blob);
+        }
+      },
+      error: () => (this.watching = null),
+    });
+  }
+
+  closeVideo(): void {
+    this.watching = null;
+    this.releaseVideo();
+  }
+
+  private releaseVideo(): void {
+    if (this.videoUrl) {
+      URL.revokeObjectURL(this.videoUrl);
+      this.videoUrl = null;
+    }
+  }
+
+  renderIsActive(job: RenderJob): boolean {
+    return ACTIVE_RENDER.includes(job.status);
   }
 
   // ----- pictures ----------------------------------------------------------------------------------------------------------------
