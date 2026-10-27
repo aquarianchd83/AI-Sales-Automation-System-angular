@@ -1,3 +1,4 @@
+import { Component, Input } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -45,6 +46,12 @@ const payment = (id: string, kind: string, localAmount: number): Payment => ({
   currencyCode: 'INR', currencySymbol: '₹', localAmount, provider: 'Simulated', paidAtUtc: '2026-09-15T00:00:00Z', kind,
 });
 
+/** The QR connection card has its own spec and its own polling; here it is only a placeholder so the page template resolves. */
+@Component({ selector: 'app-platform-tenant-qr-channel', template: '' })
+class QrChannelStubComponent {
+  @Input() tenantId = '';
+}
+
 describe('PlatformTenantDetailComponent billing cards', () => {
   function setup(payments: Payment[] = []) {
     const refunds = {
@@ -57,7 +64,7 @@ describe('PlatformTenantDetailComponent billing cards', () => {
     const tenant = { ...TENANT };
 
     TestBed.configureTestingModule({
-      declarations: [PlatformTenantDetailComponent],
+      declarations: [PlatformTenantDetailComponent, QrChannelStubComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => TENANT_ID } } } },

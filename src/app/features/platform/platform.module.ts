@@ -47,6 +47,7 @@ import { PlatformMessageTemplatesComponent } from './platform-message-templates/
 import { PlatformTemplateEditDialogComponent } from './platform-template-edit-dialog/platform-template-edit-dialog.component';
 import { PlatformTemplateTestDialogComponent } from './platform-template-test-dialog/platform-template-test-dialog.component';
 import { PlatformWhatsAppProviderComponent } from './platform-whatsapp-provider/platform-whatsapp-provider.component';
+import { PlatformTenantQrChannelComponent } from './platform-tenant-qr-channel/platform-tenant-qr-channel.component';
 import { PlatformWhatsAppSettingsComponent } from './platform-whatsapp-settings/platform-whatsapp-settings.component';
 
 const routes: Routes = [
@@ -131,6 +132,7 @@ const routes: Routes = [
     PlatformProductSourcesComponent,
     PlatformWhatsAppSettingsComponent,
     PlatformWhatsAppProviderComponent,
+    PlatformTenantQrChannelComponent,
     PlatformMessageTemplatesComponent,
     PlatformTemplateEditDialogComponent,
     PlatformTemplateTestDialogComponent,

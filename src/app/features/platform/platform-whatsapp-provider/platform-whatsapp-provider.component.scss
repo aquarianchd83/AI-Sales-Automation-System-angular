@@ -22,6 +22,21 @@
     font-size: 12px;
   }
 
+  & + & {
+    margin-top: 16px;
+  }
+
+  &__field {
+    display: block;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  &__error {
+    color: #b3261e;
+    margin: 4px 0 12px;
+  }
+
   &__actions {
     display: flex;
     justify-content: flex-end;
