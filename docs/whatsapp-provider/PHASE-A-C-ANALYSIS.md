@@ -204,3 +204,20 @@ Method: pinned `evoapicloud/evolution-api:v2.3.7` (compose in the API repo, `dep
 - Instance name = `t-{tenantId-without-dashes}` (one instance per tenant; never reuse across tenants). The instance `hash`/token is stored encrypted and never logged.
 - The QR `base64` is temporary authentication material: returned to the UI, never persisted or logged.
 - Template sends on the bridge render the template locally and call sendText (D6).
+
+### 9.1 Connected-session payloads captured (2026-10-27, real scan, v2.3.7)
+
+Webhook envelope (all events): `{event, instance, data, date_time, sender, destination, server_url, apikey}`. **`apikey` is the per-instance token — a secret in every payload: never log a raw payload.** Event names arrive lowercase-dotted (`qrcode.updated`, `connection.update`, `messages.upsert`, `messages.update`, `send.message`) although subscribed as `QRCODE_UPDATED` etc. Custom `webhook.headers` arrive as real HTTP headers (verified).
+
+| Event | Verified shape / rule |
+|---|---|
+| `qrcode.updated` | `data.qrcode.{code, base64, pairingCode}`; fires about every 45 s while unscanned |
+| `connection.update` | `data.{instance, state, statusReason}`; `state:"connecting"` (repeats while QR rotates), then `state:"open"` plus `wuid` (linked number) and `profilePictureUrl`. **`open` is the only authenticated signal.** `close`/disconnect payload NOT yet captured |
+| Send response | `POST /message/sendText` → `key.{remoteJid,fromMe:true,id}`, `status:"PENDING"`. `key.id` is the provider message id. Accepted ≠ delivered |
+| `send.message` | Echo of the send, same `key.id` |
+| `messages.update` | `data.{keyId, status, remoteJid, fromMe, messageId}`. `keyId` = our provider id. Statuses seen: `SERVER_ACK`, `DELIVERY_ACK`, `READ`. **Out of order observed** (`DELIVERY_ACK` before `SERVER_ACK`) → status must only move forward. `remoteJid` here is a hidden `@lid` id → **match by `keyId`, never by recipient**. `fromMe:false` updates are read-state of *inbound* messages and must be ignored |
+| `messages.upsert` (inbound) | `fromMe:false`, `data.key.{remoteJid, remoteJidAlt, id}`, `pushName` (contact name), `messageType:"conversation"`, text in `message.conversation`. When `addressingMode:"lid"`, take the phone from `remoteJidAlt` if `remoteJid` ends `@lid` |
+| `messages.upsert` (own/echo) | `fromMe:true` (message typed on the linked phone) and group messages (`remoteJid` ends `@g.us`) also arrive → **drop both**; also set instance `groupsIgnore:true` |
+
+Adapter rules that follow: ignore `fromMe:true` upserts, group JIDs and `fromMe:false` status updates; dedupe by `(QrBridge, instance, key.id)`; map `SERVER_ACK→Sent`, `DELIVERY_ACK→Delivered`, `READ→Read`; treat unknown message types as recorded-but-no-text, like the Meta path.
+Still unverified: `connection.update` on unexpected disconnect / logout, media messages, `READ` for text sent as API (observed READ for both), behaviour after server restart.
