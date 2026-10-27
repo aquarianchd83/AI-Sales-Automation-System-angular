@@ -1,0 +1,242 @@
+<div class="page">
+  <app-page-header
+    title="Content planner"
+    subtitle="Plan a video: the AI suggests topics and writes the script from the facts you have verified - and shows you which scenes still have no fact behind them."
+  >
+    <a mat-stroked-button routerLink="/content-studio/facts">
+      <mat-icon>fact_check</mat-icon>
+      Business facts
+    </a>
+    <button mat-flat-button color="primary" type="button" (click)="startNew()" data-testid="new">
+      <mat-icon>add</mat-icon>
+      New project
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="panel" *ngIf="loadFailed">
+    <p>Your projects could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <div class="console" *ngIf="!loading && !loadFailed">
+    <nav class="list" aria-label="Projects">
+      <button
+        type="button"
+        class="item"
+        *ngFor="let p of projects"
+        [class.item--active]="p.id === selectedId"
+        [attr.data-project]="p.id"
+        (click)="select(p.id)"
+      >
+        <span class="item-main">
+          <span class="item-text">{{ p.title }}</span>
+          <span class="muted small">{{ p.chosenTopic || (p.topicCount ? p.topicCount + ' topic ideas' : 'No topics yet') }}</span>
+        </span>
+        <span class="chip chip--scripted" *ngIf="p.status === 'Scripted'">Scripted</span>
+      </button>
+      <div class="muted small empty-list" *ngIf="!projects.length" data-testid="no-projects">
+        No projects yet. Start one with "New project".
+      </div>
+    </nav>
+
+    <section class="detail" aria-live="polite">
+      <!-- A new project. -->
+      <mat-card class="panel" *ngIf="creating" data-testid="create">
+        <header class="panel-head">
+          <div>
+            <div class="eyebrow">New project</div>
+            <h2>What do you want to make?</h2>
+          </div>
+        </header>
+        <form class="form" [formGroup]="newProject" (ngSubmit)="createProject()">
+          <mat-form-field>
+            <mat-label>Title</mat-label>
+            <input matInput formControlName="title" maxlength="200" placeholder="For example: Cataract awareness" data-testid="title" />
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>What should this content achieve?</mat-label>
+            <textarea matInput formControlName="goal" rows="3" maxlength="1000" placeholder="For example: Get more bookings for cataract surgery" data-testid="goal"></textarea>
+          </mat-form-field>
+          <mat-form-field class="narrow">
+            <mat-label>Language of the narration</mat-label>
+            <mat-select formControlName="language">
+              <mat-option *ngFor="let l of languages" [value]="l">{{ l }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <div class="actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="newProject.invalid || busy.project" data-testid="create-submit">Create project</button>
+          </div>
+        </form>
+      </mat-card>
+
+      <!-- A project. -->
+      <ng-container *ngIf="!creating && detail as d">
+        <mat-card class="panel" [attr.data-detail]="d.id">
+          <header class="panel-head">
+            <div>
+              <div class="eyebrow">{{ d.language }}</div>
+              <h2>{{ d.title }}</h2>
+              <p class="muted goal">{{ d.goal }}</p>
+            </div>
+            <button mat-button color="warn" type="button" (click)="removeProject()" data-testid="delete-project"><mat-icon>delete</mat-icon> Delete</button>
+          </header>
+
+          <div class="note note--warn" *ngIf="!hasFacts" data-testid="no-facts">
+            <mat-icon>fact_check</mat-icon>
+            <span>
+              There are no verified facts to write from yet. Answer the business questions and verify the facts under
+              <a routerLink="/content-studio/facts">Business facts</a> - the writer only uses what you have confirmed.
+            </span>
+          </div>
+          <p class="muted small" *ngIf="hasFacts" data-testid="fact-count">Writing from {{ d.usableFacts }} verified fact{{ d.usableFacts === 1 ? '' : 's' }}.</p>
+
+          <!-- 1. Topics. -->
+          <h3 class="section">1. Topic ideas</h3>
+          <div class="actions">
+            <button mat-stroked-button type="button" [disabled]="!canSuggest" (click)="suggestTopics()" data-testid="suggest">
+              <mat-icon>{{ busy.topics ? 'hourglass_empty' : 'lightbulb' }}</mat-icon>
+              {{ busy.topics ? 'Thinking…' : d.topics.length ? 'Suggest more ideas' : 'Suggest topic ideas' }}
+            </button>
+            <app-credit-cost [scenarios]="[3]"></app-credit-cost>
+          </div>
+
+          <p class="muted small" *ngIf="!d.topics.length" data-testid="no-topics">No ideas yet.</p>
+          <ul class="topics" *ngIf="liveTopics.length">
+            <li *ngFor="let t of liveTopics" class="topic" [class.topic--chosen]="t.status === 'Chosen'" [attr.data-topic]="t.id">
+              <div class="topic-main">
+                <strong>{{ t.title }}</strong>
+                <span class="chip chip--chosen" *ngIf="t.status === 'Chosen'">Chosen</span>
+                <span class="chip chip--sim" *ngIf="t.isSimulated" matTooltip="Predefined text from the platform's test mode. It was not written from your facts.">Test data</span>
+                <p class="muted small" *ngIf="t.rationale">{{ t.rationale }}</p>
+                <p class="muted small" *ngIf="!t.isSimulated">Rests on {{ t.factCount }} verified fact{{ t.factCount === 1 ? '' : 's' }}.</p>
+              </div>
+              <div class="topic-actions">
+                <button mat-stroked-button type="button" *ngIf="t.status !== 'Chosen'" (click)="setTopic(t, 'Chosen')" data-testid="choose">Choose</button>
+                <button mat-button type="button" (click)="setTopic(t, 'Rejected')" data-testid="reject">Not for me</button>
+              </div>
+            </li>
+          </ul>
+          <details class="rejected" *ngIf="rejectedTopics.length">
+            <summary>{{ rejectedTopics.length }} set aside</summary>
+            <ul class="topics">
+              <li *ngFor="let t of rejectedTopics" class="topic">
+                <div class="topic-main">{{ t.title }}</div>
+                <button mat-button type="button" (click)="setTopic(t, 'Suggested')">Bring back</button>
+              </li>
+            </ul>
+          </details>
+
+          <!-- 2. The script. -->
+          <h3 class="section">2. Script</h3>
+          <p class="muted small" *ngIf="!chosenTopic" data-testid="choose-first">Choose a topic above, then ask for the script.</p>
+          <form class="script-form" *ngIf="chosenTopic" (ngSubmit)="writeScript()">
+            <mat-form-field class="narrow" subscriptSizing="dynamic">
+              <mat-label>Length</mat-label>
+              <mat-select [formControl]="length" data-testid="length">
+                <mat-option *ngFor="let l of lengths" [value]="l.seconds">{{ l.label }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="grow" subscriptSizing="dynamic">
+              <mat-label>Anything to keep in mind (optional)</mat-label>
+              <input matInput [formControl]="notes" maxlength="1000" placeholder="For example: friendly tone, mention the free check-up" data-testid="notes" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" type="submit" [disabled]="!canWrite" data-testid="write">
+              <mat-icon>{{ busy.script ? 'hourglass_empty' : 'edit_note' }}</mat-icon>
+              {{ busy.script ? 'Writing…' : d.versions.length ? 'Write a new version' : 'Write the script' }}
+            </button>
+            <app-credit-cost [scenarios]="[3]"></app-credit-cost>
+          </form>
+
+          <ng-container *ngIf="version as v">
+            <div class="versions" *ngIf="d.versions.length > 1" role="tablist" aria-label="Versions">
+              <button type="button" class="filter" *ngFor="let s of d.versions" [class.filter--on]="s.id === v.id" [attr.data-version]="s.id" (click)="openVersion(s)">
+                Version {{ s.number }}
+              </button>
+            </div>
+
+            <div class="version-head" data-testid="version">
+              <strong>Version {{ v.number }}</strong>
+              <span class="chip">Draft - not approved</span>
+              <span class="chip chip--sim" *ngIf="v.isSimulated" data-testid="sim" matTooltip="Predefined text from the platform's test mode. It says nothing about your business.">Test data</span>
+              <span class="muted small">{{ v.scenes.length }} scenes · {{ v.totalSeconds }} s · {{ v.topicTitle }}</span>
+              <span class="grow"></span>
+              <button mat-stroked-button type="button" [disabled]="busy.recheck" (click)="recheck()" data-testid="recheck">
+                <mat-icon>rule</mat-icon> Check against my facts
+              </button>
+            </div>
+
+            <div class="note note--warn" *ngIf="v.flagged" data-testid="flagged">
+              <mat-icon>report</mat-icon>
+              <span>{{ v.flagged }} scene{{ v.flagged === 1 ? ' says' : 's say' }} something none of your verified facts back. Reword {{ v.flagged === 1 ? 'it' : 'them' }}, or verify the fact under
+                <a routerLink="/content-studio/facts">Business facts</a>.</span>
+            </div>
+            <div class="note" *ngIf="!v.flagged && !v.isSimulated" data-testid="all-backed">
+              <mat-icon>verified</mat-icon>
+              <span>Every scene is backed by a verified fact, or states nothing that needs one.</span>
+            </div>
+
+            <ol class="scenes">
+              <li class="scene" *ngFor="let s of v.scenes" [attr.data-scene]="s.id" [class.scene--flag]="needsFact(s)">
+                <ng-container *ngIf="editingSceneId !== s.id; else editing">
+                  <div class="scene-head">
+                    <strong>Scene {{ s.order }}</strong>
+                    <span class="muted small">{{ s.durationSeconds }} s</span>
+                    <span [class]="claimClass(s.claimStatus)" data-testid="claim">{{ claimLabels[s.claimStatus] }}</span>
+                    <span class="chip" *ngIf="s.editedByTenant">Edited by you</span>
+                    <span class="grow"></span>
+                    <ng-container *ngIf="editable">
+                      <button mat-button type="button" (click)="editScene(s)" data-testid="edit-scene"><mat-icon>edit</mat-icon> Edit</button>
+                      <button mat-button color="warn" type="button" (click)="deleteScene(s)" data-testid="delete-scene"><mat-icon>delete</mat-icon></button>
+                    </ng-container>
+                  </div>
+                  <p class="narration">{{ s.narration }}</p>
+                  <p class="muted small" *ngIf="s.onScreenText">On screen: {{ s.onScreenText }}</p>
+                  <p class="muted small" *ngIf="s.visualHint">Picture: {{ s.visualHint }}</p>
+                  <p class="muted small claim-note" *ngIf="s.claimNote && needsFact(s)" data-testid="claim-note">{{ s.claimNote }}</p>
+                  <ul class="facts" *ngIf="s.facts.length">
+                    <li *ngFor="let f of s.facts"><mat-icon>check_circle</mat-icon> {{ f.statement }}</li>
+                  </ul>
+                </ng-container>
+
+                <ng-template #editing>
+                  <form class="form" [formGroup]="sceneForm" (ngSubmit)="saveScene()">
+                    <strong>Scene {{ s.order }}</strong>
+                    <mat-form-field subscriptSizing="dynamic">
+                      <mat-label>What is said</mat-label>
+                      <textarea matInput formControlName="narration" rows="3" maxlength="2000" data-testid="narration"></textarea>
+                    </mat-form-field>
+                    <div class="row">
+                      <mat-form-field subscriptSizing="dynamic" class="grow">
+                        <mat-label>On-screen text</mat-label>
+                        <input matInput formControlName="onScreenText" maxlength="300" />
+                      </mat-form-field>
+                      <mat-form-field subscriptSizing="dynamic" class="seconds">
+                        <mat-label>Seconds</mat-label>
+                        <input matInput type="number" formControlName="durationSeconds" min="2" max="30" />
+                      </mat-form-field>
+                    </div>
+                    <mat-form-field subscriptSizing="dynamic">
+                      <mat-label>What the picture shows</mat-label>
+                      <input matInput formControlName="visualHint" maxlength="500" />
+                    </mat-form-field>
+                    <div class="actions">
+                      <button mat-flat-button color="primary" type="submit" [disabled]="sceneForm.invalid || busy.scene" data-testid="save-scene">Save scene</button>
+                      <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
+                    </div>
+                  </form>
+                </ng-template>
+              </li>
+            </ol>
+            <p class="muted small" *ngIf="!editable">This script is no longer a draft, so it cannot be edited here.</p>
+          </ng-container>
+        </mat-card>
+      </ng-container>
+
+      <mat-card class="panel" *ngIf="!creating && !detail && !projects.length" data-testid="empty">
+        <p class="muted">Start a project to plan your first video.</p>
+      </mat-card>
+    </section>
+  </div>
+</div>
