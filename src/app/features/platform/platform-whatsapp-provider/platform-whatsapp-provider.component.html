@@ -1,0 +1,83 @@
+<div class="page provider-page">
+  <app-page-header
+    title="WhatsApp provider"
+    subtitle="Choose which WhatsApp integration the platform offers tenants."
+  ></app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="loadFailed" class="provider-card provider-card--empty">
+    <mat-icon>cloud_off</mat-icon>
+    <p>The WhatsApp provider setting could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <mat-card *ngIf="current && !loading" class="provider-card">
+    <p class="provider-card__current">
+      Active provider: <strong>{{ activeName }}</strong>
+    </p>
+
+    <mat-radio-group class="provider-card__options" [(ngModel)]="selected" [disabled]="saving" aria-label="WhatsApp provider">
+      <mat-radio-button *ngFor="let p of current.providers" [value]="p.id" [disabled]="!p.available" class="provider-card__option">
+        {{ p.name }}
+        <span class="muted provider-card__reason" *ngIf="!p.available">{{ p.unavailableReason }}</span>
+      </mat-radio-button>
+    </mat-radio-group>
+
+    <p class="muted">
+      Changing the provider is recorded in the audit log. Existing messages, conversations and wallet balances are not touched. When the
+      QR bridge is active, a tenant whose QR connection is not connected has its sending paused - it never falls back to Meta.
+    </p>
+
+    <div class="provider-card__actions">
+      <button mat-button type="button" [disabled]="saving || pristine" (click)="discard()">Discard</button>
+      <button mat-flat-button color="primary" type="button" [disabled]="saving || pristine" (click)="save()">
+        {{ saving ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  </mat-card>
+
+  <mat-card class="provider-card" *ngIf="bridge" data-testid="bridge-settings">
+    <h3>QR bridge connection</h3>
+    <p class="muted">
+      The self-hosted bridge (Evolution API) that links each tenant's WhatsApp number. Saving checks that the bridge answers with this key;
+      if it does not, nothing is changed.
+    </p>
+
+    <form [formGroup]="bridgeForm" (ngSubmit)="saveBridge()" novalidate>
+      <mat-form-field appearance="outline" class="provider-card__field">
+        <mat-label>Bridge address</mat-label>
+        <input matInput formControlName="baseUrl" placeholder="https://bridge.example.com" autocomplete="off" />
+        <mat-error>Enter an http or https address.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="provider-card__field">
+        <mat-label>Bridge API key</mat-label>
+        <input matInput type="password" formControlName="apiKey" autocomplete="new-password" />
+        <mat-hint>{{ bridge.hasApiKey ? 'Stored (' + bridge.apiKeyHint + '). Leave blank to keep it.' : 'Not set yet.' }}</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="provider-card__field">
+        <mat-label>This API's public address</mat-label>
+        <input matInput formControlName="webhookBaseUrl" placeholder="https://api.example.com" autocomplete="off" />
+        <mat-hint>The bridge calls back here with messages and connection changes.</mat-hint>
+        <mat-error>Enter an http or https address.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="provider-card__field">
+        <mat-label>Pilot tenants (optional)</mat-label>
+        <textarea matInput rows="3" formControlName="pilotTenantIds" placeholder="One tenant id per line"></textarea>
+        <mat-hint>While set, only these tenants use the bridge when it is active; everyone else stays on Meta. Empty: all tenants.</mat-hint>
+      </mat-form-field>
+      <p class="provider-card__error" *ngIf="pilotIds === null" data-testid="pilot-invalid">Each pilot tenant must be a valid id.</p>
+
+      <p class="provider-card__error" *ngIf="bridgeError" data-testid="bridge-error">{{ bridgeError }}</p>
+
+      <div class="provider-card__actions">
+        <button mat-flat-button color="primary" type="submit" [disabled]="savingBridge || bridgeInvalid">
+          {{ savingBridge ? 'Checking the bridge…' : 'Save bridge settings' }}
+        </button>
+      </div>
+    </form>
+  </mat-card>
+</div>

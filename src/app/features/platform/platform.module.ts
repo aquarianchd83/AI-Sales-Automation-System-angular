@@ -46,6 +46,8 @@ import { PlatformMediaComponent } from './platform-media/platform-media.componen
 import { PlatformMessageTemplatesComponent } from './platform-message-templates/platform-message-templates.component';
 import { PlatformTemplateEditDialogComponent } from './platform-template-edit-dialog/platform-template-edit-dialog.component';
 import { PlatformTemplateTestDialogComponent } from './platform-template-test-dialog/platform-template-test-dialog.component';
+import { PlatformWhatsAppProviderComponent } from './platform-whatsapp-provider/platform-whatsapp-provider.component';
+import { PlatformTenantQrChannelComponent } from './platform-tenant-qr-channel/platform-tenant-qr-channel.component';
 import { PlatformWhatsAppSettingsComponent } from './platform-whatsapp-settings/platform-whatsapp-settings.component';
 
 const routes: Routes = [
@@ -80,6 +82,7 @@ const routes: Routes = [
       { path: 'integration-settings', component: PlatformIntegrationSettingsComponent },
       // The platform's own WhatsApp: the number, a template per notice, and the images they show.
       { path: 'whatsapp-settings', component: PlatformWhatsAppSettingsComponent },
+      { path: 'whatsapp-provider', component: PlatformWhatsAppProviderComponent },
       { path: 'notice-templates', component: PlatformMessageTemplatesComponent },
       { path: 'notice-media', component: PlatformMediaComponent },
       // Razorpay test page - its own lazy module, deliberately separate from billing.
@@ -128,6 +131,8 @@ const routes: Routes = [
     PlatformAiPolicyComponent,
     PlatformProductSourcesComponent,
     PlatformWhatsAppSettingsComponent,
+    PlatformWhatsAppProviderComponent,
+    PlatformTenantQrChannelComponent,
     PlatformMessageTemplatesComponent,
     PlatformTemplateEditDialogComponent,
     PlatformTemplateTestDialogComponent,
