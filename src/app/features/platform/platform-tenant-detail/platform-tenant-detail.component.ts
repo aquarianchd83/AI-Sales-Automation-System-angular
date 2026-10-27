@@ -91,7 +91,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   loadingPayments = true;
   togglingRefunds = false;
 
-  private tenantId!: string;
+  tenantId!: string;
 
   constructor(
     private readonly route: ActivatedRoute,
