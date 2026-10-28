@@ -3,14 +3,14 @@
     <span class="section-icon tone-green"><mat-icon>qr_code_2</mat-icon></span>
     <div>
       <h3>WhatsApp QR connection</h3>
-      <p>Link this tenant's own WhatsApp number by scanning a code, instead of the Meta Cloud API.</p>
+      <p>{{ ownConnection ? 'Link your WhatsApp number by scanning a code.' : "Link this tenant's own WhatsApp number by scanning a code, instead of the Meta Cloud API." }}</p>
     </div>
   </div>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
   <p class="muted" *ngIf="loadFailed">
-    The QR connection could not be loaded. Check the bridge settings on the WhatsApp Provider page.
+    The QR connection could not be loaded.{{ ownConnection ? ' Please try again, or contact your platform administrator.' : ' Check the bridge settings on the WhatsApp Provider page.' }}
     <button mat-button type="button" (click)="refresh(true)">Try again</button>
   </p>
 
@@ -33,7 +33,7 @@
     <div class="qr" *ngIf="qr">
       <img [src]="qr" alt="WhatsApp pairing QR code" width="240" height="240" />
       <ol class="muted">
-        <li>On the phone with this tenant's WhatsApp number, open WhatsApp.</li>
+        <li>On the phone with {{ ownConnection ? 'your' : "this tenant's" }} WhatsApp number, open WhatsApp.</li>
         <li>Go to <strong>Linked devices</strong> → <strong>Link a device</strong>.</li>
         <li>Scan this code. It refreshes on its own every few seconds.</li>
       </ol>
@@ -62,7 +62,7 @@
       </ng-container>
     </div>
     <p class="muted hint">
-      While the QR provider is active, sending for this tenant is paused unless it shows Connected. It never falls back to Meta.
+      While the QR provider is active, sending {{ ownConnection ? 'for your account' : 'for this tenant' }} is paused unless it shows Connected. It never falls back to Meta.
     </p>
   </ng-container>
 </mat-card>

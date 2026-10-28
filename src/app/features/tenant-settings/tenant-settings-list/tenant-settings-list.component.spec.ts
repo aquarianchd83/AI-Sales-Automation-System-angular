@@ -6,6 +6,7 @@ import { NEVER, of, throwError } from 'rxjs';
 import { TenantCharges, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
+import { TenantWhatsAppBridgeService } from '../../../core/services/tenant-whatsapp-bridge.service';
 import { MetaSignupService } from '../../../core/services/meta-signup.service';
 import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import { SharedModule } from '../../../shared/shared.module';
@@ -34,6 +35,7 @@ const charges: TenantCharges = {
 describe('TenantSettingsListComponent', () => {
   let fixture: ComponentFixture<TenantSettingsListComponent>;
   let service: jasmine.SpyObj<TenantSettingsService>;
+  let bridge: jasmine.SpyObj<TenantWhatsAppBridgeService>;
 
   const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
 
@@ -49,6 +51,11 @@ describe('TenantSettingsListComponent', () => {
     service.getWhatsAppConfig.and.returnValue(of(null));
     service.getUsage.and.returnValue(of({ messagesSentThisMonth: 120, maxMessagesPerMonth: 1000 }));
     service.getCharges.and.returnValue(of(charges));
+    bridge = jasmine.createSpyObj('TenantWhatsAppBridgeService', ['getProvider', 'getStatus', 'connect', 'disconnect', 'remove']);
+    bridge.getProvider.and.returnValue(of({ override: null, effective: 'Meta', platformDefault: 'Meta' }));
+    bridge.getStatus.and.returnValue(
+      of({ status: 'NotConnected', connectedPhone: null, lastError: null, statusUpdatedAtUtc: null, qrBase64: null, qrRefreshSeconds: null, confirmed: true })
+    );
 
     TestBed.configureTestingModule({
       declarations: [TenantSettingsListComponent],
@@ -63,7 +70,40 @@ describe('TenantSettingsListComponent', () => {
           }),
         },
         { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error']) },
+        { provide: TenantWhatsAppBridgeService, useValue: bridge },
       ],
+    });
+  });
+
+  describe('connection type chosen by the platform admin', () => {
+    const provider = (effective: string) => of({ override: null, effective, platformDefault: effective });
+
+    it('shows the Meta setup, and no QR card, when the tenant uses the Cloud API', () => {
+      bridge.getProvider.and.returnValue(provider('Meta'));
+      create();
+
+      expect(fixture.nativeElement.querySelector('app-meta-connect-card')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('app-whatsapp-qr-channel')).toBeNull();
+      expect(text()).toContain('Connection mode');
+    });
+
+    it('shows the QR connection instead of the Meta setup when the tenant uses the QR code', () => {
+      bridge.getProvider.and.returnValue(provider('QrBridge'));
+      create();
+
+      expect(fixture.nativeElement.querySelector('app-whatsapp-qr-channel')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('app-meta-connect-card')).toBeNull();
+      expect(text()).not.toContain('Connection mode');
+      expect(text()).toContain('Connect with QR code');
+      // Usage and charges are not part of the choice.
+      expect(text()).toContain('Usage this month');
+    });
+
+    it('falls back to the Meta setup when the choice cannot be read', () => {
+      bridge.getProvider.and.returnValue(throwError(() => new Error('boom')));
+      create();
+
+      expect(fixture.nativeElement.querySelector('app-meta-connect-card')).not.toBeNull();
     });
   });
 

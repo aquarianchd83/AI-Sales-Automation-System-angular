@@ -53,3 +53,10 @@ export interface WhatsAppChannelStatus {
   /** False when a disconnect was requested but the bridge still reports the session open. */
   confirmed: boolean;
 }
+
+/** One tenant's provider: its own choice (null: follows the platform default), what it really uses, and the platform default. */
+export interface TenantWhatsAppProvider {
+  override: string | null;
+  effective: string;
+  platformDefault: string;
+}

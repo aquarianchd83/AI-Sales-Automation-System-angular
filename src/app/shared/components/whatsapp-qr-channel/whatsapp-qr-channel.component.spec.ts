@@ -6,7 +6,7 @@ import { WhatsAppChannelStatus } from '../../../core/models/platform-whatsapp-pr
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformWhatsAppBridgeService } from '../../../core/services/platform-whatsapp-bridge.service';
 import { SharedModule } from '../../../shared/shared.module';
-import { PlatformTenantQrChannelComponent } from './platform-tenant-qr-channel.component';
+import { WhatsAppQrChannelComponent } from './whatsapp-qr-channel.component';
 
 const channel = (over: Partial<WhatsAppChannelStatus> = {}): WhatsAppChannelStatus => ({
   status: 'NotConnected',
@@ -21,12 +21,12 @@ const channel = (over: Partial<WhatsAppChannelStatus> = {}): WhatsAppChannelStat
 
 const QR = 'data:image/png;base64,QR1';
 
-describe('PlatformTenantQrChannelComponent', () => {
+describe('WhatsAppQrChannelComponent', () => {
   let bridge: jasmine.SpyObj<PlatformWhatsAppBridgeService>;
   let notify: jasmine.SpyObj<NotificationService>;
 
   function create() {
-    const fixture = TestBed.createComponent(PlatformTenantQrChannelComponent);
+    const fixture = TestBed.createComponent(WhatsAppQrChannelComponent);
     fixture.componentInstance.tenantId = 't1';
     fixture.detectChanges();
     return fixture;
@@ -39,7 +39,6 @@ describe('PlatformTenantQrChannelComponent', () => {
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
     bridge.getStatus.and.returnValue(of(channel()));
     TestBed.configureTestingModule({
-      declarations: [PlatformTenantQrChannelComponent],
       imports: [SharedModule, NoopAnimationsModule],
       providers: [
         { provide: PlatformWhatsAppBridgeService, useValue: bridge },

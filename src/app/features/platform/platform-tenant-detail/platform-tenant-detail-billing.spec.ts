@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { of } from 'rxjs';
+import { NEVER, of } from 'rxjs';
 
 import { Payment, QuotaBalance, QuotaGrantOrigin, QuotaType } from '../../../core/models/billing.model';
 import { TenantStatus } from '../../../core/models/platform.model';
@@ -14,6 +14,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
 import { PlatformJobService } from '../../../core/services/platform-job.service';
 import { PlatformRefundService } from '../../../core/services/platform-refund.service';
+import { PlatformWhatsAppBridgeService } from '../../../core/services/platform-whatsapp-bridge.service';
 import { PlatformTenantConfigService } from '../../../core/services/platform-tenant-config.service';
 import { PlatformTenantService } from '../../../core/services/platform-tenant.service';
 import { TimeZoneService } from '../../../core/services/timezone.service';
@@ -46,9 +47,8 @@ const payment = (id: string, kind: string, localAmount: number): Payment => ({
   currencyCode: 'INR', currencySymbol: '₹', localAmount, provider: 'Simulated', paidAtUtc: '2026-09-15T00:00:00Z', kind,
 });
 
-/** The QR connection card has its own spec and its own polling; here it is only a placeholder so the page template resolves. */
-@Component({ selector: 'app-platform-tenant-qr-channel', template: '' })
-class QrChannelStubComponent {
+@Component({ selector: 'app-platform-tenant-provider', template: '' })
+class TenantProviderStubComponent {
   @Input() tenantId = '';
 }
 
@@ -64,7 +64,7 @@ describe('PlatformTenantDetailComponent billing cards', () => {
     const tenant = { ...TENANT };
 
     TestBed.configureTestingModule({
-      declarations: [PlatformTenantDetailComponent, QrChannelStubComponent],
+      declarations: [PlatformTenantDetailComponent, TenantProviderStubComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => TENANT_ID } } } },
@@ -75,6 +75,8 @@ describe('PlatformTenantDetailComponent billing cards', () => {
         { provide: TimeZoneService, useValue: { getTimezones: () => of([]) } },
         { provide: BillingService, useValue: { getRegions: () => of([]) } },
         { provide: ImpersonationSessionService, useValue: {} },
+        // The QR connection card has its own spec; here its status never answers, so it stays idle.
+        { provide: PlatformWhatsAppBridgeService, useValue: { getStatus: () => NEVER } },
         { provide: PlatformRefundService, useValue: refunds },
         { provide: MatDialog, useValue: dialog },
         { provide: NotificationService, useValue: notify },
