@@ -31,6 +31,7 @@ import { PlatformShellComponent } from './platform-shell/platform-shell.componen
 import { PlatformTicketsComponent } from './platform-tickets/platform-tickets.component';
 import { PlatformStudioQuestionnairesComponent } from './platform-studio-questionnaires/platform-studio-questionnaires.component';
 import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
+import { PlatformTenantProviderComponent } from './platform-tenant-provider/platform-tenant-provider.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
 import { PlatformTenantFormDialogComponent } from './platform-tenant-form-dialog/platform-tenant-form-dialog.component';
 import { PlatformTenantListComponent } from './platform-tenant-list/platform-tenant-list.component';
@@ -47,7 +48,6 @@ import { PlatformMessageTemplatesComponent } from './platform-message-templates/
 import { PlatformTemplateEditDialogComponent } from './platform-template-edit-dialog/platform-template-edit-dialog.component';
 import { PlatformTemplateTestDialogComponent } from './platform-template-test-dialog/platform-template-test-dialog.component';
 import { PlatformWhatsAppProviderComponent } from './platform-whatsapp-provider/platform-whatsapp-provider.component';
-import { PlatformTenantQrChannelComponent } from './platform-tenant-qr-channel/platform-tenant-qr-channel.component';
 import { PlatformWhatsAppSettingsComponent } from './platform-whatsapp-settings/platform-whatsapp-settings.component';
 
 const routes: Routes = [
@@ -104,6 +104,7 @@ const routes: Routes = [
     PlatformDashboardComponent,
     PlatformTenantListComponent,
     PlatformTenantDetailComponent,
+    PlatformTenantProviderComponent,
     PlatformTenantFormDialogComponent,
     PlatformTenantWhatsAppConfigDialogComponent,
     PlatformTenantConfigOverridesDialogComponent,
@@ -132,7 +133,6 @@ const routes: Routes = [
     PlatformProductSourcesComponent,
     PlatformWhatsAppSettingsComponent,
     PlatformWhatsAppProviderComponent,
-    PlatformTenantQrChannelComponent,
     PlatformMessageTemplatesComponent,
     PlatformTemplateEditDialogComponent,
     PlatformTemplateTestDialogComponent,

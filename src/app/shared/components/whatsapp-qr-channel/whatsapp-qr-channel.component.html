@@ -3,14 +3,14 @@
     <span class="section-icon tone-green"><mat-icon>qr_code_2</mat-icon></span>
     <div>
       <h3>WhatsApp QR connection</h3>
-      <p>Link this tenant's own WhatsApp number by scanning a code, instead of the Meta Cloud API.</p>
+      <p>{{ ownConnection ? 'Link your WhatsApp number by scanning a code.' : "Link this tenant's own WhatsApp number by scanning a code, instead of the Meta Cloud API." }}</p>
     </div>
   </div>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
   <p class="muted" *ngIf="loadFailed">
-    The QR connection could not be loaded. Check the bridge settings on the WhatsApp Provider page.
+    The QR connection could not be loaded.{{ ownConnection ? ' Please try again, or contact your platform administrator.' : ' Check the bridge settings on the WhatsApp Provider page.' }}
     <button mat-button type="button" (click)="refresh(true)">Try again</button>
   </p>
 
@@ -33,13 +33,17 @@
     <div class="qr" *ngIf="qr">
       <img [src]="qr" alt="WhatsApp pairing QR code" width="240" height="240" />
       <ol class="muted">
-        <li>On the phone with this tenant's WhatsApp number, open WhatsApp.</li>
+        <li>On the phone with {{ ownConnection ? 'your' : "this tenant's" }} WhatsApp number, open WhatsApp.</li>
         <li>Go to <strong>Linked devices</strong> → <strong>Link a device</strong>.</li>
         <li>Scan this code. It refreshes on its own every few seconds.</li>
       </ol>
       <p class="muted">This card turns Connected only when the bridge confirms the link, not when the code is shown or scanned.</p>
     </div>
 
+    <p class="warn" *ngIf="unverified" data-testid="qr-unverified">
+      We can't reach the WhatsApp bridge, so we can't confirm this connection right now. Messages are paused until it is reachable
+      again. This page keeps checking.
+    </p>
     <p class="warn" *ngIf="channel.lastError" data-testid="qr-error">{{ channel.lastError }}</p>
     <p class="warn" *ngIf="channel.confirmed === false" data-testid="qr-unconfirmed">
       The bridge still reports this session as open. Remove the linked device on the phone (WhatsApp → Linked devices), then try again.
@@ -47,8 +51,11 @@
     <p class="warn" *ngIf="error" data-testid="qr-request-error">{{ error }}</p>
 
     <div class="card-actions">
-      <button mat-flat-button color="primary" type="button" *ngIf="!connected" [disabled]="!canConnect" (click)="connect()">
+      <button mat-flat-button color="primary" type="button" *ngIf="!connected && !unverified" [disabled]="!canConnect" (click)="connect()">
         {{ pairing ? 'New QR code' : 'Connect with QR code' }}
+      </button>
+      <button mat-stroked-button type="button" *ngIf="unverified" [disabled]="busy" (click)="refresh(false)" data-testid="qr-check-again">
+        Check again
       </button>
       <button mat-stroked-button type="button" *ngIf="connected || channel.status === 'Reconnecting'" [disabled]="busy" (click)="disconnect()">
         Disconnect
@@ -62,7 +69,7 @@
       </ng-container>
     </div>
     <p class="muted hint">
-      While the QR provider is active, sending for this tenant is paused unless it shows Connected. It never falls back to Meta.
+      While the QR provider is active, sending {{ ownConnection ? 'for your account' : 'for this tenant' }} is paused unless it shows Connected. It never falls back to Meta.
     </p>
   </ng-container>
 </mat-card>

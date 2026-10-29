@@ -8,7 +8,10 @@
   <mat-progress-bar mode="indeterminate" *ngIf="loadingWhatsApp"></mat-progress-bar>
 
   <!-- How WhatsApp is connected: exactly one of the two, kept on the tenant's connection. Not part of onboarding's WhatsApp step, which is Connect with Meta only. -->
-  <mat-card class="detail-card mode-card" *ngIf="!embedded && !loadingWhatsApp">
+  <!-- QR code: chosen for this tenant by the Platform Admin (globally or per tenant). Replaces the Meta setup below; nothing else on the page changes. -->
+  <app-whatsapp-qr-channel *ngIf="usesQr" data-testid="qr-connection"></app-whatsapp-qr-channel>
+
+  <mat-card class="detail-card mode-card" *ngIf="!embedded && !loadingWhatsApp && !usesQr">
     <div class="mode-head">
       <div>
         <h3>Connection mode</h3>
@@ -38,12 +41,12 @@
 
   <!-- Automatic: Connect with Meta - the tenant's whole WhatsApp job here and in onboarding's WhatsApp step. Meta's window asks for the number.
        The side not chosen is hidden, not destroyed, so switching back costs no extra calls and loses nothing typed. -->
-  <mat-card class="detail-card meta-card" [class.mode-hidden]="mode !== 'Automatic' && !embedded" *ngIf="!loadingWhatsApp">
+  <mat-card class="detail-card meta-card" [class.mode-hidden]="mode !== 'Automatic' && !embedded" *ngIf="!loadingWhatsApp && !usesQr">
     <app-meta-connect-card [config]="whatsAppConfig" (changed)="whatsAppConfig = $event"></app-meta-connect-card>
   </mat-card>
 
   <ng-container *ngIf="!embedded">
-  <mat-expansion-panel class="manual-panel" [class.mode-hidden]="mode !== 'Manual'" [expanded]="mode === 'Manual'" *ngIf="!loadingWhatsApp">
+  <mat-expansion-panel class="manual-panel" [class.mode-hidden]="mode !== 'Manual'" [expanded]="mode === 'Manual'" *ngIf="!loadingWhatsApp && !usesQr">
     <mat-expansion-panel-header>
       <mat-panel-title><mat-icon>tune</mat-icon> Enter details manually</mat-panel-title>
       <mat-panel-description>Your WhatsApp Business details, typed in</mat-panel-description>
