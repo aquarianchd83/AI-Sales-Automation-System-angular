@@ -54,7 +54,7 @@ describe('TenantSettingsListComponent', () => {
     bridge = jasmine.createSpyObj('TenantWhatsAppBridgeService', ['getProvider', 'getStatus', 'connect', 'disconnect', 'remove']);
     bridge.getProvider.and.returnValue(of({ override: null, effective: 'Meta', platformDefault: 'Meta' }));
     bridge.getStatus.and.returnValue(
-      of({ status: 'NotConnected', connectedPhone: null, lastError: null, statusUpdatedAtUtc: null, qrBase64: null, qrRefreshSeconds: null, confirmed: true })
+      of({ status: 'NotConnected', connectedPhone: null, lastError: null, statusUpdatedAtUtc: null, qrBase64: null, qrRefreshSeconds: null, confirmed: true, bridgeReachable: true })
     );
 
     TestBed.configureTestingModule({

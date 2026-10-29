@@ -85,7 +85,7 @@ export class WhatsAppQrChannelComponent implements OnInit, OnDestroy {
     interval(3000)
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        if (this.pairing || this.channel?.status === 'Reconnecting') {
+        if (this.pairing || this.channel?.status === 'Reconnecting' || this.unverified) {
           this.refresh(false);
         }
       });
@@ -105,6 +105,9 @@ export class WhatsAppQrChannelComponent implements OnInit, OnDestroy {
   }
 
   get label(): string {
+    if (this.unverified) {
+      return "Can't verify right now";
+    }
     return this.channel ? LABELS[this.channel.status] ?? this.channel.status : '';
   }
 
@@ -112,8 +115,14 @@ export class WhatsAppQrChannelComponent implements OnInit, OnDestroy {
     return !!this.channel && PAIRING.includes(this.channel.status);
   }
 
+  /** The bridge could not be asked, so whatever status is on screen is only the last one stored, not proof of anything. */
+  get unverified(): boolean {
+    return !!this.channel && this.channel.bridgeReachable === false;
+  }
+
+  /** Connected only when the bridge itself said so just now. */
   get connected(): boolean {
-    return this.channel?.status === 'Connected';
+    return this.channel?.status === 'Connected' && !this.unverified;
   }
 
   get canConnect(): boolean {
@@ -130,6 +139,9 @@ export class WhatsAppQrChannelComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (status) => {
           this.loadFailed = false;
+          if (status.bridgeReachable !== false) {
+            this.error = null;
+          }
           this.apply(status, false);
         },
         error: (err) => {

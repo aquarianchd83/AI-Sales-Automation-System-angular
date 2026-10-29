@@ -16,6 +16,7 @@ const channel = (over: Partial<WhatsAppChannelStatus> = {}): WhatsAppChannelStat
   qrBase64: null,
   qrRefreshSeconds: null,
   confirmed: true,
+  bridgeReachable: true,
   ...over,
 });
 
@@ -139,6 +140,38 @@ describe('WhatsAppQrChannelComponent', () => {
 
     expect(bridge.remove).toHaveBeenCalledWith('t1');
     expect(notify.success).toHaveBeenCalled();
+    discardPeriodicTasks();
+  }));
+
+  it('does not claim Connected when the bridge cannot be reached, and recovers on its own', fakeAsync(() => {
+    bridge.getStatus.and.returnValues(
+      of(channel({ status: 'Connected', connectedPhone: '919800000009', bridgeReachable: false, lastError: 'The bridge could not be reached.' })),
+      of(channel({ status: 'Connected', connectedPhone: '919800000009' }))
+    );
+    const fixture = create();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="qr-status"]').textContent).toContain("Can't verify right now");
+    expect(fixture.componentInstance.connected).toBeFalse();
+    expect(fixture.nativeElement.querySelector('[data-testid="qr-unverified"]')).not.toBeNull();
+    expect(text(fixture)).not.toContain('Connect with QR code');
+
+    tick(3000);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="qr-status"]').textContent).toContain('Connected');
+    expect(fixture.nativeElement.querySelector('[data-testid="qr-unverified"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="qr-error"]')).toBeNull();
+    discardPeriodicTasks();
+  }));
+
+  it('clears an old request error once the bridge answers a status read', fakeAsync(() => {
+    const fixture = create();
+    fixture.componentInstance.error = 'The bridge could not be reached.';
+
+    fixture.componentInstance.refresh(false);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.error).toBeNull();
     discardPeriodicTasks();
   }));
 });

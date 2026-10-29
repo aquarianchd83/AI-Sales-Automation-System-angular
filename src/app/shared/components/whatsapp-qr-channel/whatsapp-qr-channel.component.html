@@ -40,6 +40,10 @@
       <p class="muted">This card turns Connected only when the bridge confirms the link, not when the code is shown or scanned.</p>
     </div>
 
+    <p class="warn" *ngIf="unverified" data-testid="qr-unverified">
+      We can't reach the WhatsApp bridge, so we can't confirm this connection right now. Messages are paused until it is reachable
+      again. This page keeps checking.
+    </p>
     <p class="warn" *ngIf="channel.lastError" data-testid="qr-error">{{ channel.lastError }}</p>
     <p class="warn" *ngIf="channel.confirmed === false" data-testid="qr-unconfirmed">
       The bridge still reports this session as open. Remove the linked device on the phone (WhatsApp → Linked devices), then try again.
@@ -47,8 +51,11 @@
     <p class="warn" *ngIf="error" data-testid="qr-request-error">{{ error }}</p>
 
     <div class="card-actions">
-      <button mat-flat-button color="primary" type="button" *ngIf="!connected" [disabled]="!canConnect" (click)="connect()">
+      <button mat-flat-button color="primary" type="button" *ngIf="!connected && !unverified" [disabled]="!canConnect" (click)="connect()">
         {{ pairing ? 'New QR code' : 'Connect with QR code' }}
+      </button>
+      <button mat-stroked-button type="button" *ngIf="unverified" [disabled]="busy" (click)="refresh(false)" data-testid="qr-check-again">
+        Check again
       </button>
       <button mat-stroked-button type="button" *ngIf="connected || channel.status === 'Reconnecting'" [disabled]="busy" (click)="disconnect()">
         Disconnect
