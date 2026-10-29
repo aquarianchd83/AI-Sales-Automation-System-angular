@@ -26,6 +26,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { PlatformTenantService } from '../../../core/services/platform-tenant.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PlatformTenantFormDialogComponent } from '../platform-tenant-form-dialog/platform-tenant-form-dialog.component';
+import { PlatformTenantPurgeDialogComponent } from '../platform-tenant-purge-dialog/platform-tenant-purge-dialog.component';
 
 @Component({
   selector: 'app-platform-tenant-list',
@@ -155,14 +156,29 @@ export class PlatformTenantListComponent implements OnInit, OnDestroy {
   delete(tenant: PlatformTenantListItem): void {
     this.confirmAndRun(
       {
-        title: 'Delete this tenant?',
-        message: `${tenant.name} will be locked out permanently. This never deletes their underlying data — it's a terminal status a PlatformSuperAdmin can still reverse from here if needed.`,
-        confirmLabel: 'Delete',
+        title: 'Lock this tenant out?',
+        message: `${tenant.name} will be locked out. Their data is kept, and you can reactivate them from here. To remove the tenant and all its data for good, use Delete permanently.`,
+        confirmLabel: 'Lock out',
         destructive: true,
       },
       () => this.tenants.delete(tenant.id),
-      'Tenant deleted.'
+      'Tenant locked out.'
     );
+  }
+
+  deletePermanently(tenant: PlatformTenantListItem): void {
+    this.dialog
+      .open(PlatformTenantPurgeDialogComponent, {
+        width: '480px',
+        data: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+      })
+      .afterClosed()
+      .subscribe((purged) => {
+        if (purged) {
+          this.notify.success(`${tenant.name} and all its data were deleted.`);
+          this.reload$.next();
+        }
+      });
   }
 
   impersonate(tenant: PlatformTenantListItem): void {

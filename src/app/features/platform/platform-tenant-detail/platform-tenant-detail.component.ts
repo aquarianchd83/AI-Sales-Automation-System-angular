@@ -39,6 +39,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/compo
 import { PlatformQuotaAdjustDialogComponent } from '../platform-quota-adjust-dialog/platform-quota-adjust-dialog.component';
 import { PlatformRefundReviewDialogComponent } from '../platform-refund-review-dialog/platform-refund-review-dialog.component';
 import { PlatformTenantConfigOverridesDialogComponent } from '../platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
+import { PlatformTenantPurgeDialogComponent } from '../platform-tenant-purge-dialog/platform-tenant-purge-dialog.component';
 import { PlatformTenantWhatsAppConfigDialogComponent } from '../platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
 
 @Component({
@@ -218,14 +219,30 @@ export class PlatformTenantDetailComponent implements OnInit {
   delete(): void {
     this.confirmAndRun(
       {
-        title: 'Delete this tenant?',
-        message: `${this.tenant?.name} will be locked out permanently. This never deletes their underlying data — it's a terminal status you can still reverse.`,
-        confirmLabel: 'Delete',
+        title: 'Lock this tenant out?',
+        message: `${this.tenant?.name} will be locked out. Their data is kept, and you can reactivate them. To remove the tenant and all its data for good, use Delete permanently.`,
+        confirmLabel: 'Lock out',
         destructive: true,
       },
       () => this.tenants.delete(this.tenantId),
-      'Tenant deleted.'
+      'Tenant locked out.'
     );
+  }
+
+  deletePermanently(): void {
+    if (!this.tenant) {
+      return;
+    }
+    const { id, name, slug } = this.tenant;
+    this.dialog
+      .open(PlatformTenantPurgeDialogComponent, { width: '480px', data: { id, name, slug } })
+      .afterClosed()
+      .subscribe((purged) => {
+        if (purged) {
+          this.notify.success(`${name} and all its data were deleted.`);
+          void this.router.navigate(['/platform/tenants']);
+        }
+      });
   }
 
   impersonate(): void {

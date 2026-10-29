@@ -267,7 +267,10 @@
             Reactivate
           </button>
           <button mat-stroked-button color="warn" type="button" *ngIf="tenant.status !== TenantStatus.Deleted" (click)="delete()">
-            Delete
+            Lock out
+          </button>
+          <button mat-stroked-button color="warn" type="button" (click)="deletePermanently()">
+            Delete permanently
           </button>
         </div>
       </mat-card>
