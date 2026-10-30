@@ -1,0 +1,531 @@
+<div class="page">
+  <app-page-header
+    title="Content planner"
+    subtitle="Plan a video: the AI suggests topics and writes the script from the facts you have verified - and shows you which scenes still have no fact behind them."
+  >
+    <a mat-stroked-button routerLink="/content-studio/facts">
+      <mat-icon>fact_check</mat-icon>
+      Business facts
+    </a>
+    <button mat-flat-button color="primary" type="button" (click)="startNew()" data-testid="new">
+      <mat-icon>add</mat-icon>
+      New project
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="panel" *ngIf="loadFailed">
+    <p>Your projects could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <div class="console" *ngIf="!loading && !loadFailed">
+    <nav class="list" aria-label="Projects">
+      <button
+        type="button"
+        class="item"
+        *ngFor="let p of projects"
+        [class.item--active]="p.id === selectedId"
+        [attr.data-project]="p.id"
+        (click)="select(p.id)"
+      >
+        <span class="item-main">
+          <span class="item-text">{{ p.title }}</span>
+          <span class="muted small">{{ p.chosenTopic || (p.topicCount ? p.topicCount + ' topic ideas' : 'No topics yet') }}</span>
+        </span>
+        <span class="chip chip--scripted" *ngIf="p.status === 'Scripted'">Scripted</span>
+      </button>
+      <div class="muted small empty-list" *ngIf="!projects.length" data-testid="no-projects">
+        No projects yet. Start one with "New project".
+      </div>
+    </nav>
+
+    <section class="detail" aria-live="polite">
+      <!-- A new project. -->
+      <mat-card class="panel" *ngIf="creating" data-testid="create">
+        <header class="panel-head">
+          <div>
+            <div class="eyebrow">New project</div>
+            <h2>What do you want to make?</h2>
+          </div>
+        </header>
+        <form class="form" [formGroup]="newProject" (ngSubmit)="createProject()">
+          <mat-form-field>
+            <mat-label>Title</mat-label>
+            <input matInput formControlName="title" maxlength="200" placeholder="For example: Cataract awareness" data-testid="title" />
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>What should this content achieve?</mat-label>
+            <textarea matInput formControlName="goal" rows="3" maxlength="1000" placeholder="For example: Get more bookings for cataract surgery" data-testid="goal"></textarea>
+          </mat-form-field>
+          <mat-form-field class="narrow">
+            <mat-label>Language of the narration</mat-label>
+            <mat-select formControlName="language">
+              <mat-option *ngFor="let l of languages" [value]="l">{{ l }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <div class="actions">
+            <button mat-flat-button color="primary" type="submit" [disabled]="newProject.invalid || busy.project" data-testid="create-submit">Create project</button>
+          </div>
+        </form>
+      </mat-card>
+
+      <!-- A project. -->
+      <ng-container *ngIf="!creating && detail as d">
+        <mat-card class="panel" [attr.data-detail]="d.id">
+          <header class="panel-head">
+            <div>
+              <div class="eyebrow">{{ d.language }}</div>
+              <h2>{{ d.title }}</h2>
+              <p class="muted goal">{{ d.goal }}</p>
+            </div>
+            <button mat-button color="warn" type="button" (click)="removeProject()" data-testid="delete-project"><mat-icon>delete</mat-icon> Delete</button>
+          </header>
+
+          <div class="note note--warn" *ngIf="!hasFacts" data-testid="no-facts">
+            <mat-icon>fact_check</mat-icon>
+            <span>
+              There are no verified facts to write from yet. Answer the business questions and verify the facts under
+              <a routerLink="/content-studio/facts">Business facts</a> - the writer only uses what you have confirmed.
+            </span>
+          </div>
+          <p class="muted small" *ngIf="hasFacts" data-testid="fact-count">Writing from {{ d.usableFacts }} verified fact{{ d.usableFacts === 1 ? '' : 's' }}.</p>
+
+          <!-- 1. Topics. -->
+          <h3 class="section">1. Topic ideas</h3>
+          <div class="actions">
+            <button mat-stroked-button type="button" [disabled]="!canSuggest" (click)="suggestTopics()" data-testid="suggest">
+              <mat-icon>{{ busy.topics ? 'hourglass_empty' : 'lightbulb' }}</mat-icon>
+              {{ busy.topics ? 'Thinking…' : d.topics.length ? 'Suggest more ideas' : 'Suggest topic ideas' }}
+            </button>
+            <app-credit-cost [scenarios]="[3]"></app-credit-cost>
+          </div>
+
+          <p class="muted small" *ngIf="!d.topics.length" data-testid="no-topics">No ideas yet.</p>
+          <ul class="topics" *ngIf="liveTopics.length">
+            <li *ngFor="let t of liveTopics" class="topic" [class.topic--chosen]="t.status === 'Chosen'" [attr.data-topic]="t.id">
+              <div class="topic-main">
+                <strong>{{ t.title }}</strong>
+                <span class="chip chip--chosen" *ngIf="t.status === 'Chosen'">Chosen</span>
+                <span class="chip chip--sim" *ngIf="t.isSimulated" matTooltip="Predefined text from the platform's test mode. It was not written from your facts.">Test data</span>
+                <p class="muted small" *ngIf="t.rationale">{{ t.rationale }}</p>
+                <p class="muted small" *ngIf="!t.isSimulated">Rests on {{ t.factCount }} verified fact{{ t.factCount === 1 ? '' : 's' }}.</p>
+              </div>
+              <div class="topic-actions">
+                <button mat-stroked-button type="button" *ngIf="t.status !== 'Chosen'" (click)="setTopic(t, 'Chosen')" data-testid="choose">Choose</button>
+                <button mat-button type="button" (click)="setTopic(t, 'Rejected')" data-testid="reject">Not for me</button>
+              </div>
+            </li>
+          </ul>
+          <details class="rejected" *ngIf="rejectedTopics.length">
+            <summary>{{ rejectedTopics.length }} set aside</summary>
+            <ul class="topics">
+              <li *ngFor="let t of rejectedTopics" class="topic">
+                <div class="topic-main">{{ t.title }}</div>
+                <button mat-button type="button" (click)="setTopic(t, 'Suggested')">Bring back</button>
+              </li>
+            </ul>
+          </details>
+
+          <!-- 2. The script. -->
+          <h3 class="section">2. Script</h3>
+          <p class="muted small" *ngIf="!chosenTopic" data-testid="choose-first">Choose a topic above, then ask for the script.</p>
+          <form class="script-form" *ngIf="chosenTopic" (ngSubmit)="writeScript()">
+            <mat-form-field class="narrow" subscriptSizing="dynamic">
+              <mat-label>Length</mat-label>
+              <mat-select [formControl]="length" data-testid="length">
+                <mat-option *ngFor="let l of lengths" [value]="l.seconds">{{ l.label }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="grow" subscriptSizing="dynamic">
+              <mat-label>Anything to keep in mind (optional)</mat-label>
+              <input matInput [formControl]="notes" maxlength="1000" placeholder="For example: friendly tone, mention the free check-up" data-testid="notes" />
+            </mat-form-field>
+            <button mat-flat-button color="primary" type="submit" [disabled]="!canWrite" data-testid="write">
+              <mat-icon>{{ busy.script ? 'hourglass_empty' : 'edit_note' }}</mat-icon>
+              {{ busy.script ? 'Writing…' : d.versions.length ? 'Write a new version' : 'Write the script' }}
+            </button>
+            <app-credit-cost [scenarios]="[3]"></app-credit-cost>
+          </form>
+
+          <ng-container *ngIf="version as v">
+            <div class="versions" *ngIf="d.versions.length > 1" role="tablist" aria-label="Versions">
+              <button type="button" class="filter" *ngFor="let s of d.versions" [class.filter--on]="s.id === v.id" [attr.data-version]="s.id" (click)="openVersion(s)">
+                Version {{ s.number }}
+              </button>
+            </div>
+
+            <div class="version-head" data-testid="version">
+              <strong>Version {{ v.number }}</strong>
+              <span class="chip">Draft - not approved</span>
+              <span class="chip chip--sim" *ngIf="v.isSimulated" data-testid="sim" matTooltip="Predefined text from the platform's test mode. It says nothing about your business.">Test data</span>
+              <span class="muted small">{{ v.scenes.length }} scenes · {{ v.totalSeconds }} s · {{ v.topicTitle }}</span>
+              <span class="grow"></span>
+              <button mat-stroked-button type="button" [disabled]="busy.recheck" (click)="recheck()" data-testid="recheck">
+                <mat-icon>rule</mat-icon> Check against my facts
+              </button>
+            </div>
+
+            <div class="note note--warn" *ngIf="v.flagged" data-testid="flagged">
+              <mat-icon>report</mat-icon>
+              <span>{{ v.flagged }} scene{{ v.flagged === 1 ? ' says' : 's say' }} something none of your verified facts back. Reword {{ v.flagged === 1 ? 'it' : 'them' }}, or verify the fact under
+                <a routerLink="/content-studio/facts">Business facts</a>.</span>
+            </div>
+            <p class="muted small" *ngIf="v.scenesWithoutPicture && editable" data-testid="no-pictures">{{ v.scenesWithoutPicture }} of {{ v.scenes.length }} scenes have no picture yet.</p>
+            <div class="note" *ngIf="!v.flagged && !v.isSimulated" data-testid="all-backed">
+              <mat-icon>verified</mat-icon>
+              <span>Every scene is backed by a verified fact, or states nothing that needs one.</span>
+            </div>
+
+            <ol class="scenes">
+              <li class="scene" *ngFor="let s of v.scenes" [attr.data-scene]="s.id" [class.scene--flag]="needsFact(s)">
+                <ng-container *ngIf="editingSceneId !== s.id; else editing">
+                  <div class="scene-head">
+                    <strong>Scene {{ s.order }}</strong>
+                    <span class="muted small">{{ s.durationSeconds }} s</span>
+                    <span [class]="claimClass(s.claimStatus)" data-testid="claim">{{ claimLabels[s.claimStatus] }}</span>
+                    <span class="chip" *ngIf="s.editedByTenant">Edited by you</span>
+                    <span class="grow"></span>
+                    <ng-container *ngIf="editable">
+                      <button mat-button type="button" (click)="editScene(s)" data-testid="edit-scene"><mat-icon>edit</mat-icon> Edit</button>
+                      <button mat-button color="warn" type="button" (click)="deleteScene(s)" data-testid="delete-scene"><mat-icon>delete</mat-icon></button>
+                    </ng-container>
+                  </div>
+                  <p class="narration">{{ s.narration }}</p>
+                  <p class="muted small" *ngIf="s.onScreenText">On screen: {{ s.onScreenText }}</p>
+                  <p class="muted small" *ngIf="s.visualHint">Picture: {{ s.visualHint }}</p>
+                  <p class="muted small claim-note" *ngIf="s.claimNote && needsFact(s)" data-testid="claim-note">{{ s.claimNote }}</p>
+                  <ul class="facts" *ngIf="s.facts.length">
+                    <li *ngFor="let f of s.facts"><mat-icon>check_circle</mat-icon> {{ f.statement }}</li>
+                  </ul>
+
+                  <!-- The picture for this scene. -->
+                  <div class="picture" data-testid="picture">
+                    <ng-container *ngIf="s.asset as a; else noPicture">
+                      <img class="thumb" *ngIf="thumbs[a.id]" [src]="thumbs[a.id]" [alt]="a.name" />
+                      <div class="thumb thumb--wait" *ngIf="!thumbs[a.id]"><mat-icon>image</mat-icon></div>
+                      <div class="picture-info">
+                        <div>
+                          <span class="chip" [class.chip--stock]="a.kind === 'Stock'" data-testid="picture-kind">{{ a.kindLabel }}</span>
+                          <strong>{{ a.name }}</strong>
+                        </div>
+                        <span class="muted small" data-testid="picture-license">{{ a.licenseName }}<ng-container *ngIf="a.attribution"> · {{ a.attribution }}</ng-container></span>
+                        <div *ngIf="editable">
+                          <button mat-button type="button" (click)="openPicker(s)" data-testid="change-picture">Change</button>
+                          <button mat-button type="button" (click)="clearPicture(s)" data-testid="clear-picture">Remove</button>
+                        </div>
+                      </div>
+                    </ng-container>
+                    <ng-template #noPicture>
+                      <span class="muted small">No picture yet.</span>
+                      <button mat-stroked-button type="button" *ngIf="editable" (click)="openPicker(s)" data-testid="choose-picture"><mat-icon>add_photo_alternate</mat-icon> Choose a picture</button>
+                    </ng-template>
+                  </div>
+
+                  <div class="picker" *ngIf="pickerSceneId === s.id" data-testid="picker">
+                    <div class="versions" role="tablist" aria-label="Where to find a picture">
+                      <button type="button" class="filter" [class.filter--on]="pickerTab === 'own'" (click)="setPickerTab('own')" data-testid="tab-own">Your pictures</button>
+                      <button type="button" class="filter" [class.filter--on]="pickerTab === 'stock'" (click)="setPickerTab('stock')" data-testid="tab-stock">Stock photos</button>
+                      <button type="button" class="filter" [class.filter--on]="pickerTab === 'upload'" (click)="setPickerTab('upload')" data-testid="tab-upload">Upload</button>
+                      <span class="grow"></span>
+                      <button mat-button type="button" (click)="closePicker()" data-testid="close-picker">Close</button>
+                    </div>
+                    <mat-progress-bar mode="indeterminate" *ngIf="busy.pick"></mat-progress-bar>
+
+                    <ng-container *ngIf="pickerTab === 'own' && candidates as c">
+                      <p class="muted small" *ngIf="!c.own.length" data-testid="no-own">You have not added any pictures yet. Upload one, or look at the stock photos.</p>
+                      <div class="grid">
+                        <figure class="card" *ngFor="let o of c.own" [attr.data-own]="o.asset.id">
+                          <img *ngIf="thumbs[o.asset.id]" [src]="thumbs[o.asset.id]" [alt]="o.asset.name" />
+                          <figcaption>
+                            <span class="chip" [class.chip--stock]="o.asset.kind === 'Stock'">{{ o.asset.kindLabel }}</span>
+                            <strong>{{ o.asset.name }}</strong>
+                            <span class="muted small">{{ o.score > 0 ? o.reason : 'Not matched to this scene' }}</span>
+                            <button mat-stroked-button type="button" [disabled]="busy.pick" (click)="useOwn(o.asset)" data-testid="use-own">Use this</button>
+                          </figcaption>
+                        </figure>
+                      </div>
+                    </ng-container>
+
+                    <ng-container *ngIf="pickerTab === 'stock' && candidates as c">
+                      <form class="stock-search" (ngSubmit)="searchStock()">
+                        <mat-form-field subscriptSizing="dynamic" class="grow">
+                          <mat-label>What should the picture show?</mat-label>
+                          <input matInput [formControl]="stockQuery" maxlength="120" data-testid="stock-query" />
+                        </mat-form-field>
+                        <button mat-stroked-button type="submit" [disabled]="busy.pick || !c.stockAvailable" data-testid="stock-search"><mat-icon>search</mat-icon> Search</button>
+                      </form>
+                      <p class="muted small" *ngIf="c.stockMessage" data-testid="stock-message">{{ c.stockMessage }}</p>
+                      <div class="grid">
+                        <figure class="card" *ngFor="let p of c.stock" [attr.data-stock]="p.providerAssetId">
+                          <img [src]="p.previewUrl" [alt]="p.description || 'Stock photo'" loading="lazy" />
+                          <figcaption>
+                            <span class="chip chip--stock">Stock photo ({{ p.provider }})</span>
+                            <span class="muted small">{{ p.attribution }} · {{ p.licenseName }}</span>
+                            <button mat-stroked-button type="button" [disabled]="busy.pick" (click)="useStock(p)" data-testid="use-stock">Use this</button>
+                          </figcaption>
+                        </figure>
+                      </div>
+                    </ng-container>
+
+                    <form class="form upload" *ngIf="pickerTab === 'upload'" [formGroup]="uploadForm" (ngSubmit)="upload()" data-testid="upload-form">
+                      <div>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" (change)="onFileChosen($event)" data-testid="file" />
+                        <p class="muted small">JPEG, PNG or WebP, up to {{ maxImageMb }} MB.</p>
+                        <p class="problem small" *ngIf="fileProblem" data-testid="file-problem">{{ fileProblem }}</p>
+                      </div>
+                      <mat-form-field subscriptSizing="dynamic" class="narrow">
+                        <mat-label>What is it?</mat-label>
+                        <mat-select formControlName="kind" data-testid="kind">
+                          <mat-option value="Upload">A picture or photo</mat-option>
+                          <mat-option value="Screenshot">A screenshot of my app or site</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Name (optional)</mat-label>
+                        <input matInput formControlName="name" maxlength="200" />
+                      </mat-form-field>
+                      <mat-form-field subscriptSizing="dynamic">
+                        <mat-label>Words that describe it (optional)</mat-label>
+                        <input matInput formControlName="tags" maxlength="300" placeholder="reception, front desk" />
+                      </mat-form-field>
+                      <mat-checkbox formControlName="rights" data-testid="rights">I may use this picture, and anyone I can recognise in it has agreed.</mat-checkbox>
+                      <mat-checkbox formControlName="personal" *ngIf="needsPersonalDataCheck" data-testid="personal">This screenshot shows no patient or customer personal data.</mat-checkbox>
+                      <div class="actions">
+                        <button mat-flat-button color="primary" type="submit" [disabled]="!canUpload" data-testid="upload">{{ busy.upload ? 'Uploading…' : 'Add to my pictures' }}</button>
+                      </div>
+                    </form>
+                  </div>
+                </ng-container>
+
+                <ng-template #editing>
+                  <form class="form" [formGroup]="sceneForm" (ngSubmit)="saveScene()">
+                    <strong>Scene {{ s.order }}</strong>
+                    <mat-form-field subscriptSizing="dynamic">
+                      <mat-label>What is said</mat-label>
+                      <textarea matInput formControlName="narration" rows="3" maxlength="2000" data-testid="narration"></textarea>
+                    </mat-form-field>
+                    <div class="row">
+                      <mat-form-field subscriptSizing="dynamic" class="grow">
+                        <mat-label>On-screen text</mat-label>
+                        <input matInput formControlName="onScreenText" maxlength="300" />
+                      </mat-form-field>
+                      <mat-form-field subscriptSizing="dynamic" class="seconds">
+                        <mat-label>Seconds</mat-label>
+                        <input matInput type="number" formControlName="durationSeconds" min="2" max="30" />
+                      </mat-form-field>
+                    </div>
+                    <mat-form-field subscriptSizing="dynamic">
+                      <mat-label>What the picture shows</mat-label>
+                      <input matInput formControlName="visualHint" maxlength="500" />
+                    </mat-form-field>
+                    <div class="actions">
+                      <button mat-flat-button color="primary" type="submit" [disabled]="sceneForm.invalid || busy.scene" data-testid="save-scene">Save scene</button>
+                      <button mat-button type="button" (click)="cancelEdit()">Cancel</button>
+                    </div>
+                  </form>
+                </ng-template>
+              </li>
+            </ol>
+            <p class="muted small" *ngIf="!editable">This script is no longer a draft, so it cannot be edited here.</p>
+
+            <!-- 3. Review and approval. -->
+            <h3 class="section">3. Approval</h3>
+            <div class="review" data-testid="review" *ngIf="review as r">
+              <div class="review-head">
+                <span class="chip" [class.chip--chosen]="r.status === 'Approved'" [class.chip--fail]="r.status === 'Rejected'" data-testid="review-status">{{ r.status === 'InReview' ? 'Waiting for approval' : r.status === 'Draft' ? 'Draft - not sent yet' : r.status }}</span>
+                <span class="muted small" *ngIf="r.status === 'InReview' && r.submittedAt">Sent by {{ r.submittedByEmail || 'someone' }} on {{ r.submittedAt | zonedDate: 'medium' }}</span>
+                <span class="muted small" *ngIf="(r.status === 'Approved' || r.status === 'Rejected') && r.reviewedAt">{{ r.status === 'Approved' ? 'Approved' : 'Sent back' }} by {{ r.reviewedByEmail || 'someone' }} on {{ r.reviewedAt | zonedDate: 'medium' }}</span>
+              </div>
+
+              <p class="note note--warn" *ngIf="r.status === 'Approved' && !r.integrityOk" data-testid="integrity-warning">
+                <mat-icon>gpp_maybe</mat-icon>
+                <span>This script no longer matches what was approved - something was changed after the approval. Do not use it. Start a new draft from it and send that for approval.</span>
+              </p>
+              <p class="problem small" *ngIf="r.status === 'Rejected' && r.reviewComment" data-testid="review-comment">Reason: {{ r.reviewComment }}</p>
+              <p class="muted small" *ngIf="r.status === 'Approved' && r.reviewComment" data-testid="review-comment">Note: {{ r.reviewComment }}</p>
+
+              <!-- Draft: send it. -->
+              <ng-container *ngIf="r.status === 'Draft'">
+                <p class="muted small" *ngIf="cannotSubmitBecause as why" data-testid="cannot-submit">{{ why }}</p>
+                <mat-form-field subscriptSizing="dynamic" class="note-field">
+                  <mat-label>Note for the approver (optional)</mat-label>
+                  <input matInput [formControl]="reviewNote" maxlength="1000" data-testid="review-note" />
+                </mat-form-field>
+                <div class="actions">
+                  <button mat-flat-button color="primary" type="button" [disabled]="!!cannotSubmitBecause || busy.review" (click)="submitForApproval()" data-testid="submit">
+                    <mat-icon>send</mat-icon> Send for approval
+                  </button>
+                </div>
+              </ng-container>
+
+              <!-- Waiting: decide, or take it back. -->
+              <ng-container *ngIf="r.status === 'InReview'">
+                <p class="muted small" *ngIf="!r.canApprove" data-testid="cannot-approve">{{ r.approvalIsAdminOnly ? 'Only an Admin can approve content.' : 'You are not allowed to approve content.' }} You can take it back to change it.</p>
+                <ng-container *ngIf="r.canApprove && !rejecting">
+                  <mat-form-field subscriptSizing="dynamic" class="note-field">
+                    <mat-label>Note (optional)</mat-label>
+                    <input matInput [formControl]="reviewNote" maxlength="1000" data-testid="review-note" />
+                  </mat-form-field>
+                </ng-container>
+                <ng-container *ngIf="r.canApprove && rejecting">
+                  <mat-form-field subscriptSizing="dynamic" class="note-field">
+                    <mat-label>Why is it being sent back? (required)</mat-label>
+                    <textarea matInput [formControl]="reviewNote" rows="2" maxlength="1000" data-testid="reject-reason"></textarea>
+                  </mat-form-field>
+                </ng-container>
+                <div class="actions">
+                  <ng-container *ngIf="r.canApprove && !rejecting">
+                    <button mat-flat-button color="primary" type="button" [disabled]="busy.review" (click)="approve()" data-testid="approve"><mat-icon>check</mat-icon> Approve</button>
+                    <button mat-stroked-button color="warn" type="button" [disabled]="busy.review" (click)="startReject()" data-testid="reject-start"><mat-icon>reply</mat-icon> Send back…</button>
+                  </ng-container>
+                  <ng-container *ngIf="r.canApprove && rejecting">
+                    <button mat-flat-button color="warn" type="button" [disabled]="!canConfirmReject" (click)="reject()" data-testid="reject-confirm">Send back</button>
+                    <button mat-button type="button" (click)="rejecting = false">Cancel</button>
+                  </ng-container>
+                  <button mat-button type="button" [disabled]="busy.review" (click)="withdraw()" data-testid="withdraw">Take it back</button>
+                </div>
+              </ng-container>
+
+              <!-- Decided: it is frozen; changes go in a new draft. -->
+              <ng-container *ngIf="r.status === 'Approved' || r.status === 'Rejected'">
+                <p class="muted small">{{ r.status === 'Approved' ? 'This script is frozen exactly as it was approved.' : 'This script is kept as it was.' }} To change it, start a new draft - the original stays as it is.</p>
+                <div class="actions">
+                  <button mat-stroked-button type="button" [disabled]="busy.review" (click)="revise()" data-testid="revise"><mat-icon>edit_note</mat-icon> Start a new draft from this</button>
+                </div>
+              </ng-container>
+
+              <details class="rejected" *ngIf="r.history.length" data-testid="history">
+                <summary>History ({{ r.history.length }})</summary>
+                <ul class="trail">
+                  <li *ngFor="let e of r.history">
+                    <strong>{{ reviewLabels[e.action] }}</strong>
+                    <span class="muted small">{{ e.actorEmail || 'someone' }} · {{ e.at | zonedDate: 'medium' }}</span>
+                    <span class="small" *ngIf="e.comment">{{ e.comment }}</span>
+                  </li>
+                </ul>
+              </details>
+            </div>
+
+            <!-- 4. The video. -->
+            <h3 class="section">4. Video</h3>
+            <p class="note note--warn" *ngIf="v.flagged && !v.isSimulated" data-testid="render-flagged">
+              <mat-icon>report</mat-icon>
+              <span>{{ v.flagged }} scene{{ v.flagged === 1 ? ' still says' : 's still say' }} something no verified fact backs. A video is a preview for you to watch - it is not approved or published.</span>
+            </p>
+            <p class="muted small" *ngIf="cannotRenderBecause as why" data-testid="cannot-render">{{ why }}</p>
+            <form class="script-form" [formGroup]="videoOptions" (ngSubmit)="makeVideo()" *ngIf="!v.isSimulated" data-testid="render-form">
+              <mat-form-field class="narrow" subscriptSizing="dynamic">
+                <mat-label>Shape</mat-label>
+                <mat-select formControlName="aspect" data-testid="aspect">
+                  <mat-option *ngFor="let a of aspects" [value]="a.value">{{ a.label }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field class="narrow" subscriptSizing="dynamic">
+                <mat-label>Voice</mat-label>
+                <mat-select formControlName="voice" data-testid="voice">
+                  <mat-option value="Female">Woman's voice</mat-option>
+                  <mat-option value="Male">Man's voice</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <button mat-flat-button color="primary" type="submit" [disabled]="!!cannotRenderBecause || busy.render" data-testid="make-video">
+                <mat-icon>{{ busy.render ? 'hourglass_empty' : 'movie' }}</mat-icon> {{ busy.render ? 'Starting…' : 'Make the video' }}
+              </button>
+              <app-credit-cost [scenarios]="[4, 3]"></app-credit-cost>
+            </form>
+            <p class="muted small">The narration is read by a synthetic voice, and the video says so.</p>
+
+            <ul class="renders" *ngIf="renders.length" data-testid="renders-list">
+              <li class="render" *ngFor="let r of renders" [attr.data-render]="r.id">
+                <div class="render-head">
+                  <span class="chip" [class.chip--chosen]="r.status === 'Succeeded'" [class.chip--fail]="r.status === 'Failed'" data-testid="render-status">{{ r.status }}</span>
+                  <span class="muted small">{{ r.aspectRatio }} · {{ r.createdAt | zonedDate: 'medium' }}</span>
+                  <span class="chip chip--sim" *ngIf="r.isSimulated" data-testid="render-test">Test render - no video</span>
+                  <span class="chip" *ngIf="r.isAiVoice && r.hasVideo" data-testid="render-ai-voice">AI voice</span>
+                  <span class="chip chip--chosen" *ngIf="r.isOfApprovedScript" data-testid="render-approved" matTooltip="Made from exactly the words and pictures that were approved.">Of the approved script</span>
+                  <span class="grow"></span>
+                  <button mat-button type="button" *ngIf="renderIsActive(r)" (click)="cancelRender(r)" data-testid="cancel-render">Cancel</button>
+                  <button mat-stroked-button type="button" *ngIf="r.hasVideo && watching !== r.id" (click)="watch(r)" data-testid="watch"><mat-icon>play_circle</mat-icon> Watch</button>
+                  <button mat-button type="button" *ngIf="watching === r.id" (click)="closeVideo()" data-testid="close-video">Close</button>
+                </div>
+                <mat-progress-bar *ngIf="renderIsActive(r)" mode="determinate" [value]="r.progress" data-testid="render-progress"></mat-progress-bar>
+                <p class="muted small" *ngIf="r.stage" data-testid="render-stage">{{ r.stage }}</p>
+                <p class="problem small" *ngIf="r.error" data-testid="render-error">{{ r.error }}</p>
+                <video class="player" *ngIf="watching === r.id && videoUrl" [src]="videoUrl" controls preload="metadata" data-testid="player"></video>
+              </li>
+            </ul>
+
+            <!-- 5. Publishing (Admin only, once approved). -->
+            <ng-container *ngIf="showPublishing">
+              <h3 class="section">5. Publish</h3>
+              <div data-testid="publishing">
+                <p class="muted small" *ngIf="cannotPublishBecause as why" data-testid="cannot-publish">{{ why }} <a routerLink="/content-studio/connections" *ngIf="!connectedAccounts.length">Publishing accounts</a></p>
+                <form class="form" [formGroup]="publishForm" (ngSubmit)="publish()" *ngIf="!cannotPublishBecause" data-testid="publish-form">
+                  <mat-form-field subscriptSizing="dynamic" class="narrow">
+                    <mat-label>Publish to</mat-label>
+                    <mat-select formControlName="connectionId" data-testid="account">
+                      <mat-option *ngFor="let c of connectedAccounts" [value]="c.id">YouTube - {{ c.accountName }}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Title</mat-label>
+                    <input matInput formControlName="title" maxlength="100" data-testid="publish-title" />
+                  </mat-form-field>
+                  <mat-form-field subscriptSizing="dynamic">
+                    <mat-label>Description (optional)</mat-label>
+                    <textarea matInput formControlName="description" rows="2" maxlength="4800"></textarea>
+                  </mat-form-field>
+                  <mat-form-field subscriptSizing="dynamic" class="narrow">
+                    <mat-label>Who can watch</mat-label>
+                    <mat-select formControlName="privacy" data-testid="privacy">
+                      <mat-option *ngFor="let p of privacies" [value]="p.value">{{ p.label }}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                  <div class="row">
+                    <mat-form-field subscriptSizing="dynamic" class="narrow">
+                      <mat-label>When</mat-label>
+                      <mat-select formControlName="when" data-testid="when">
+                        <mat-option value="now">As soon as possible</mat-option>
+                        <mat-option value="later">At a set time</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field subscriptSizing="dynamic" *ngIf="publishForm.controls.when.value === 'later'">
+                      <mat-label>Date and time</mat-label>
+                      <input matInput type="datetime-local" formControlName="at" data-testid="at" />
+                    </mat-form-field>
+                  </div>
+                  <p class="muted small">The video is marked as using a synthetic voice, and the credit lines of any stock photos are added to the description.</p>
+                  <div class="actions">
+                    <button mat-flat-button color="primary" type="submit" [disabled]="!canPublish" data-testid="publish">
+                      <mat-icon>{{ busy.publish ? 'hourglass_empty' : 'publish' }}</mat-icon> {{ busy.publish ? 'Publishing…' : 'Publish to YouTube' }}
+                    </button>
+                  </div>
+                </form>
+
+                <ul class="renders" *ngIf="publications.length" data-testid="publications">
+                  <li class="render" *ngFor="let p of publications" [attr.data-publication]="p.id">
+                    <div class="render-head">
+                      <span class="chip" [class.chip--chosen]="p.status === 'Published'" [class.chip--fail]="p.status === 'Failed'" data-testid="publication-status">{{ p.status === 'Uploading' ? 'Sending' : p.status }}</span>
+                      <strong>{{ p.title }}</strong>
+                      <span class="muted small">{{ p.accountName }} · {{ p.privacy }}<ng-container *ngIf="p.scheduledAtUtc && p.status === 'Scheduled'"> · at {{ p.scheduledAtUtc | zonedDate: 'medium' }}</ng-container></span>
+                      <span class="grow"></span>
+                      <a mat-stroked-button [href]="p.url" target="_blank" rel="noopener noreferrer" *ngIf="p.url" data-testid="publication-link"><mat-icon>open_in_new</mat-icon> Open on YouTube</a>
+                      <button mat-button type="button" *ngIf="p.status === 'Scheduled'" (click)="cancelPublication(p)" data-testid="cancel-publication">Cancel</button>
+                      <button mat-stroked-button type="button" *ngIf="p.status === 'Failed' && !p.url" (click)="retryPublication(p)" data-testid="retry-publication">Try again</button>
+                    </div>
+                    <p class="problem small" *ngIf="p.lastError" data-testid="publication-error">{{ p.lastError }}</p>
+                  </li>
+                </ul>
+              </div>
+            </ng-container>
+          </ng-container>
+        </mat-card>
+      </ng-container>
+
+      <mat-card class="panel" *ngIf="!creating && !detail && !projects.length" data-testid="empty">
+        <p class="muted">Start a project to plan your first video.</p>
+      </mat-card>
+    </section>
+  </div>
+</div>
