@@ -195,6 +195,16 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
     expect(link?.textContent).toContain('Buy credits');
   });
 
+  it('shows the real reason, and not "out of credits", when a monthly limit stopped the run', () => {
+    const reason = 'Lead discovery has used its monthly limit of 25 credits. Your wallet still has 813 credits.';
+    service.getExecution.and.returnValue(of(detail({ quotaExhausted: false, quotaStopReason: reason, customersDiscovered: 0 })));
+    create();
+
+    expect(text()).toContain(reason);
+    expect(text()).not.toContain('Lead-candidate quota ran out partway through');
+    expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/billing/wallet"]')?.textContent).toContain('Open wallet');
+  });
+
   it('has no buy-credits link when the quota was not exhausted', () => {
     service.getExecution.and.returnValue(of(detail({ quotaExhausted: false })));
     create();

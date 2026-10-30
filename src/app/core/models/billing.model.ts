@@ -183,6 +183,20 @@ export enum QuotaEntryType {
   RefundRelease = 9,
 }
 
+/** The short value shown in the Credits column of a tenant's credit history: what happened to the credits. */
+export const QUOTA_ENTRY_ACTION_LABELS: Record<QuotaEntryType, string> = {
+  [QuotaEntryType.Allocation]: 'Plan credit',
+  [QuotaEntryType.Purchase]: 'Purchased',
+  [QuotaEntryType.Consumption]: 'Used',
+  [QuotaEntryType.ConsumptionReversal]: 'Returned',
+  [QuotaEntryType.AdjustmentCredit]: 'Added (adjustment)',
+  [QuotaEntryType.AdjustmentDebit]: 'Removed (adjustment)',
+  [QuotaEntryType.Expiry]: 'Expired',
+  [QuotaEntryType.RefundClawback]: 'Refunded',
+  [QuotaEntryType.RefundHold]: 'Refund held',
+  [QuotaEntryType.RefundRelease]: 'Hold released',
+};
+
 export const QUOTA_ENTRY_LABELS: Record<QuotaEntryType, string> = {
   [QuotaEntryType.Allocation]: 'Renew Plan allocation',
   [QuotaEntryType.Purchase]: 'Credits purchased',
@@ -233,11 +247,25 @@ export interface QuotaLedgerEntry {
   occurredAtUtc: string;
 }
 
+/** The whole credit history at a glance (GET /platform/tenants/{id}/quota/ledger/summary). Units on ByEntryType are signed; UnitsUsed is positive. */
+export interface QuotaLedgerSummary {
+  totalEntries: number;
+  byEntryType: { entryType: QuotaEntryType; count: number; units: number }[];
+  byFeature: { feature: PlatformFeature; count: number; unitsUsed: number }[];
+  /** One point per calendar day (UTC), oldest first; date is yyyy-MM-dd. */
+  daily: { date: string; purchased: number; used: number }[];
+}
+
 export interface QuotaLedgerQuery {
   page?: number;
   pageSize?: number;
   quotaType?: QuotaType;
   feature?: PlatformFeature;
+  /** Only movements of this kind (e.g. Purchase, Consumption). */
+  entryType?: QuotaEntryType;
+  /** First and last day to include, as yyyy-MM-dd (UTC days). */
+  from?: string;
+  to?: string;
 }
 
 /** Where the credit an AI request spent came from. A trial allowance is never purchased credit. */

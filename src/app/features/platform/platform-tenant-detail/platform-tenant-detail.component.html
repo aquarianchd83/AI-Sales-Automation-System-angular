@@ -1,5 +1,9 @@
 <div class="page">
   <app-page-header [title]="tenant?.name || 'Tenant'" [subtitle]="tenant?.slug || ''">
+    <button *ngIf="tenant" mat-stroked-button type="button" (click)="showJobs()">
+      <mat-icon>schedule</mat-icon>
+      Jobs
+    </button>
     <a
       *ngIf="tenant"
       mat-stroked-button
@@ -76,140 +80,218 @@
         </div>
       </mat-card>
 
-      <mat-card class="section">
-        <div class="section-head">
-          <span class="section-icon tone-blue"><mat-icon>credit_card</mat-icon></span>
-          <div>
-            <h3>Billing</h3>
-            <p>Plan and subscription.</p>
-          </div>
-        </div>
-        <dl class="facts facts--wide">
-          <dt>Plan</dt>
-          <dd>{{ tenant.planName || '—' }}</dd>
-          <dt>Subscription status</dt>
-          <dd>{{ tenant.subscriptionStatus !== null ? subscriptionStatusLabels[tenant.subscriptionStatus] : '—' }}</dd>
-          <dt>Current period ends</dt>
-          <dd>{{ tenant.currentPeriodEndUtc ? (tenant.currentPeriodEndUtc | zonedDate: 'medium') : '—' }}</dd>
-        </dl>
-        <div class="override">
-          <div class="inline-override">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inline-select">
-              <mat-label>Override plan</mat-label>
-              <mat-select [formControl]="planControl">
-                <mat-option *ngFor="let plan of plans" [value]="plan.id">{{ plan.name }}</mat-option>
-              </mat-select>
-            </mat-form-field>
-            <button mat-flat-button color="primary" type="button" [disabled]="!planControl.value || savingPlan" (click)="savePlanOverride()">
-              Apply
-            </button>
-          </div>
-          <p class="muted hint">Sets the plan directly — e.g. a negotiated deal or a support fix.</p>
-        </div>
-      </mat-card>
+      <mat-accordion class="payments-panel">
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <span class="section-icon tone-blue"><mat-icon>credit_card</mat-icon></span>
+              Billing
+            </mat-panel-title>
+            <mat-panel-description>{{ tenant.planName || 'No plan' }} · Plan and subscription.</mat-panel-description>
+          </mat-expansion-panel-header>
 
-      <mat-card class="section">
-        <div class="section-head">
-          <span class="section-icon tone-violet"><mat-icon>data_usage</mat-icon></span>
-          <div>
-            <h3>Prepaid quota</h3>
-            <p>Units left right now, and where they came from.</p>
+          <dl class="facts facts--wide">
+            <dt>Plan</dt>
+            <dd>{{ tenant.planName || '—' }}</dd>
+            <dt>Subscription status</dt>
+            <dd>{{ tenant.subscriptionStatus !== null ? subscriptionStatusLabels[tenant.subscriptionStatus] : '—' }}</dd>
+            <dt>Current period ends</dt>
+            <dd>{{ tenant.currentPeriodEndUtc ? (tenant.currentPeriodEndUtc | zonedDate: 'medium') : '—' }}</dd>
+          </dl>
+          <div class="override">
+            <div class="inline-override">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inline-select">
+                <mat-label>Override plan</mat-label>
+                <mat-select [formControl]="planControl">
+                  <mat-option *ngFor="let plan of plans" [value]="plan.id">{{ plan.name }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <button mat-flat-button color="primary" type="button" [disabled]="!planControl.value || savingPlan" (click)="savePlanOverride()">
+                Apply
+              </button>
+            </div>
+            <p class="muted hint">Sets the plan directly — e.g. a negotiated deal or a support fix.</p>
           </div>
-        </div>
-        <p class="muted" *ngIf="loadingQuota">Loading…</p>
-        <dl class="facts" *ngIf="!loadingQuota">
-          <ng-container *ngFor="let q of quota">
-            <dt>{{ quotaLabels[q.quotaType] }}</dt>
-            <dd>
-              <strong>{{ formatUnits(q.balance) }}</strong>
-              <div class="muted hint-line" *ngFor="let g of q.grants">
-                {{ originLabels[g.origin] }} · {{ formatUnits(g.unitsRemaining) }} until {{ g.expiresAtUtc | zonedDate: 'mediumDate' }}
-              </div>
-            </dd>
-          </ng-container>
-        </dl>
-        <div class="card-actions">
-          <button mat-stroked-button color="primary" type="button" (click)="adjustQuota()">Adjust quota</button>
-        </div>
-        <p class="muted hint">Every adjustment needs a reason and is visible to the tenant in their history.</p>
-      </mat-card>
+        </mat-expansion-panel>
+      </mat-accordion>
 
-      <mat-card class="section">
-        <div class="section-head">
-          <span class="section-icon tone-green"><mat-icon>payments</mat-icon></span>
-          <div>
-            <h3>Payments &amp; refunds</h3>
-            <p>Charges and refunds for this tenant.</p>
-          </div>
-        </div>
-        <mat-slide-toggle
-          [checked]="tenant.refundRequestsEnabled"
-          [disabled]="togglingRefunds"
-          (change)="setRefundRequests($event.checked)"
-        >
-          Let this tenant request refunds
-        </mat-slide-toggle>
-        <p class="muted hint">
-          When on, the tenant sees "Request refund" on its Billing page; you still approve every one in
-          <a routerLink="/platform/refunds">Refund Requests</a>. When off, the option is hidden and the server refuses it.
-        </p>
+      <mat-accordion class="payments-panel">
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <span class="section-icon tone-violet"><mat-icon>data_usage</mat-icon></span>
+              Prepaid quota
+            </mat-panel-title>
+            <mat-panel-description>Units left right now, and where they came from.</mat-panel-description>
+          </mat-expansion-panel-header>
 
-        <p class="muted" *ngIf="loadingPayments">Loading…</p>
-        <div class="payment-line" *ngFor="let payment of payments">
-          <span class="muted">{{ payment.paidAtUtc | zonedDate: 'mediumDate' }}</span>
-          <span class="payment-line-name">{{ payment.planName }}</span>
-          <span [class.refund-amount]="payment.kind === 'Refund'">{{ formatPayment(payment) }}</span>
-          <button mat-button type="button" *ngIf="canRefund(payment)" (click)="refundPayment(payment)">Refund</button>
-        </div>
-        <p class="muted" *ngIf="!loadingPayments && !payments.length">No payments yet.</p>
-      </mat-card>
-
-      <mat-card class="section">
-        <div class="section-head">
-          <span class="section-icon tone-amber"><mat-icon>schedule</mat-icon></span>
-          <div>
-            <h3>Background jobs</h3>
-            <p>Each job runs on this tenant's own schedule.</p>
-          </div>
-        </div>
-        <p class="muted" *ngIf="loadingJobs">Loading…</p>
-        <ng-container *ngIf="tenantJobs && !loadingJobs">
-          <dl class="facts">
-            <ng-container *ngFor="let job of tenantJobs.jobs">
-              <dt>{{ job.displayName }}</dt>
+          <p class="muted" *ngIf="loadingQuota">Loading…</p>
+          <dl class="facts" *ngIf="!loadingQuota">
+            <ng-container *ngFor="let q of quota">
+              <dt>{{ quotaLabels[q.quotaType] }}</dt>
               <dd>
-                <code class="cron">{{ job.cronExpression }}</code>
-                <span class="job-state" [class.job-state-off]="!job.isEnabled || !job.isRegistered">
-                  {{ job.isEnabled ? (job.isRegistered ? 'running' : 'not running') : 'paused' }}
-                </span>
-                <span class="muted job-last" *ngIf="job.lastRunAtUtc">
-                  · last {{ outcomeLabel(job.lastRunOutcome) | lowercase }}
-                  {{ job.lastRunAtUtc | zonedDate: 'short' }}
-                </span>
-                <span
-                  class="job-failures"
-                  *ngIf="job.consecutiveFailureCount"
-                  [matTooltip]="job.lastRunSummary || ''"
-                >
-                  · {{ job.consecutiveFailureCount }} consecutive failure(s)
-                </span>
+                <strong class="quota-balance">{{ formatUnits(q.balance) }}</strong>
               </dd>
             </ng-container>
           </dl>
           <div class="card-actions">
-            <a mat-stroked-button color="primary" [routerLink]="['/platform/jobs']" [queryParams]="{ tenantId: tenantJobs.tenantId }">
-              Manage
-            </a>
+            <button mat-stroked-button color="primary" type="button" (click)="adjustQuota()">Adjust quota</button>
           </div>
-          <p class="muted hint" *ngIf="!tenantJobs.runsBackgroundJobs">
-            This tenant is {{ statusLabels[tenantJobs.tenantStatus] }}, so none of its jobs are
-            registered — the schedules below are kept and restored if it is reactivated.
+          <p class="muted hint">Every adjustment needs a reason and is visible to the tenant in their history.</p>
+
+          <h4 class="ledger-title">Credit history</h4>
+          <div class="ledger-range">
+            <mat-form-field subscriptSizing="dynamic">
+              <mat-label>From</mat-label>
+              <input matInput [matDatepicker]="fromPicker" [formControl]="fromControl" [max]="toControl.value" />
+              <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+              <mat-datepicker #fromPicker></mat-datepicker>
+            </mat-form-field>
+            <mat-form-field subscriptSizing="dynamic">
+              <mat-label>To</mat-label>
+              <input matInput [matDatepicker]="toPicker" [formControl]="toControl" [min]="fromControl.value" />
+              <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+              <mat-datepicker #toPicker></mat-datepicker>
+            </mat-form-field>
+            <button mat-flat-button color="primary" type="button" [disabled]="!rangeChanged" (click)="onRangeChange()">
+              <mat-icon>filter_alt</mat-icon>
+              Filter
+            </button>
+            <button mat-button type="button" *ngIf="hasRange || appliedRange !== '|'" (click)="clearRange()">Clear dates</button>
+          </div>
+          <p class="muted" *ngIf="loadingSummary && !summary">Loading…</p>
+          <div class="ledger-tiles" *ngIf="summary">
+            <button
+              type="button"
+              class="ledger-tile"
+              *ngFor="let tile of ledgerTiles"
+              [class.ledger-tile--on]="ledgerFilter === tile.key"
+              [attr.aria-pressed]="ledgerFilter === tile.key"
+              (click)="onLedgerFilter(tile.key)"
+            >
+              <span class="ledger-tile-label">{{ tile.label }}</span>
+              <strong>{{ tile.value }}</strong>
+              <span class="muted">{{ tile.detail }}</span>
+            </button>
+          </div>
+
+          <div class="ledger-chart" *ngIf="summary">
+            <div class="ledger-chart-head">
+              <span>{{ chartPeriod }} · <strong>{{ chartTitle }}</strong></span>
+              <span class="ledger-legend"><i class="dot dot--in"></i> Purchased <i class="dot dot--out"></i> Used</span>
+            </div>
+            <p class="muted" *ngIf="!chartHasData && !loadingChart">No {{ chartTitle === 'All activity' ? 'credits bought or used' : chartTitle.toLowerCase() + ' activity' }} in the last 30 days.</p>
+            <svg
+              *ngIf="chartHasData"
+              [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label="Credits purchased and used per day over the last 30 days"
+            >
+              <line x1="0" [attr.x2]="chartWidth" [attr.y1]="chartHeight" [attr.y2]="chartHeight" class="chart-axis" />
+              <rect
+                *ngFor="let bar of chartBars"
+                [attr.x]="bar.x"
+                [attr.y]="bar.y"
+                [attr.width]="bar.w"
+                [attr.height]="bar.h"
+                [attr.class]="'chart-bar chart-bar--' + bar.kind"
+              >
+                <title>{{ bar.tip }}</title>
+              </rect>
+            </svg>
+            <div class="ledger-chart-foot muted" *ngIf="chartHasData">
+              <span>{{ chartDaily[0]?.date }}</span>
+              <span>Peak day: {{ formatUnits(chartPeak) }}</span>
+              <span>{{ chartDaily[chartDaily.length - 1]?.date }}</span>
+            </div>
+          </div>
+
+          <button mat-button type="button" class="ledger-toggle" (click)="showEntries = !showEntries">
+            <mat-icon>{{ showEntries ? 'expand_less' : 'expand_more' }}</mat-icon>
+            {{ showEntries ? 'Hide entries' : 'Show entries' }}
+          </button>
+          <ng-container *ngIf="showEntries">
+          <p class="muted" *ngIf="loadingLedger">Loading…</p>
+          <div class="table-scroll" *ngIf="ledger.length">
+            <table mat-table [dataSource]="ledger" class="ledger-table">
+              <ng-container matColumnDef="processingDate">
+                <th mat-header-cell *matHeaderCellDef>Processing date</th>
+                <td mat-cell *matCellDef="let entry">{{ entry.occurredAtUtc | zonedDate: 'medium' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="credits">
+                <th mat-header-cell *matHeaderCellDef>Credits</th>
+                <td mat-cell *matCellDef="let entry">
+                  <span class="status-chip" [class.status-chip--opted-in]="ledgerTone(entry) === 'in'" [class.status-chip--inactive]="ledgerTone(entry) === 'out'">
+                    {{ ledgerAction(entry) }}
+                  </span>
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="unit">
+                <th mat-header-cell *matHeaderCellDef>Unit</th>
+                <td mat-cell *matCellDef="let entry">
+                  <span class="ledger-amount" [class.ledger-amount--in]="entry.unitsDelta >= 0" [class.ledger-amount--out]="entry.unitsDelta < 0">{{ entry.unitsDelta >= 0 ? "+" : "-" }}{{ formatUnits(entry.unitsDelta < 0 ? -entry.unitsDelta : entry.unitsDelta) }}</span>
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="activity">
+                <th mat-header-cell *matHeaderCellDef>Activity</th>
+                <td mat-cell *matCellDef="let entry">{{ ledgerActivity(entry) }}</td>
+              </ng-container>
+              <ng-container matColumnDef="balance">
+                <th mat-header-cell *matHeaderCellDef>Balance after</th>
+                <td mat-cell *matCellDef="let entry">{{ formatUnits(entry.balanceAfter) }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="ledgerColumns"></tr>
+              <tr mat-row *matRowDef="let entry; columns: ledgerColumns"></tr>
+            </table>
+          </div>
+          <p class="muted" *ngIf="!loadingLedger && !ledger.length">No credit movements yet.</p>
+          <mat-paginator
+            *ngIf="ledgerTotal > ledgerPageSize"
+            [length]="ledgerTotal"
+            [pageSize]="ledgerPageSize"
+            [pageIndex]="ledgerPage - 1"
+            [hidePageSize]="true"
+            (page)="onLedgerPage($event)"
+          ></mat-paginator>
+          </ng-container>
+        </mat-expansion-panel>
+      </mat-accordion>
+
+      <mat-accordion class="payments-panel">
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <span class="section-icon tone-green"><mat-icon>payments</mat-icon></span>
+              Payments &amp; refunds
+            </mat-panel-title>
+            <mat-panel-description>
+              {{ loadingPayments ? 'Loading…' : payments.length + (payments.length === 1 ? ' entry' : ' entries') }}
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <mat-slide-toggle
+            [checked]="tenant.refundRequestsEnabled"
+            [disabled]="togglingRefunds"
+            (change)="setRefundRequests($event.checked)"
+          >
+            Let this tenant request refunds
+          </mat-slide-toggle>
+          <p class="muted hint">
+            When on, the tenant sees "Request refund" on its Billing page; you still approve every one in
+            <a routerLink="/platform/refunds">Refund Requests</a>. When off, the option is hidden and the server refuses it.
           </p>
-          <p class="muted hint" *ngIf="tenantJobs.runsBackgroundJobs">
-            Only a PlatformSuperAdmin can change, pause or run them.
-          </p>
-        </ng-container>
-      </mat-card>
+
+          <p class="muted" *ngIf="loadingPayments">Loading…</p>
+          <div class="payment-line" *ngFor="let payment of payments">
+            <span class="muted">{{ payment.paidAtUtc | zonedDate: 'mediumDate' }}</span>
+            <span class="payment-line-name">{{ payment.planName }}</span>
+            <span [class.refund-amount]="payment.kind === 'Refund'">{{ formatPayment(payment) }}</span>
+            <button mat-button type="button" *ngIf="canRefund(payment)" (click)="refundPayment(payment)">Refund</button>
+          </div>
+          <p class="muted" *ngIf="!loadingPayments && !payments.length">No payments yet.</p>
+        </mat-expansion-panel>
+      </mat-accordion>
 
       <mat-card class="section">
         <div class="section-head">
@@ -267,7 +349,10 @@
             Reactivate
           </button>
           <button mat-stroked-button color="warn" type="button" *ngIf="tenant.status !== TenantStatus.Deleted" (click)="delete()">
-            Delete
+            Lock out
+          </button>
+          <button mat-stroked-button color="warn" type="button" (click)="deletePermanently()">
+            Delete permanently
           </button>
         </div>
       </mat-card>
@@ -293,7 +378,9 @@
         </dl>
       </mat-card>
 
-      <mat-card class="section">
+      <app-platform-tenant-provider [tenantId]="tenantId" (effectiveChange)="onProviderChange($event)"></app-platform-tenant-provider>
+
+      <mat-card class="section" *ngIf="providerLoaded && whatsAppProvider !== 'QrBridge'">
         <div class="section-head">
           <span class="section-icon tone-green"><mat-icon>chat</mat-icon></span>
           <div>
@@ -335,24 +422,7 @@
         <p class="muted hint">The tenant's Admin can set and verify this too.</p>
       </mat-card>
 
-      <app-platform-tenant-provider [tenantId]="tenantId"></app-platform-tenant-provider>
-
-      <app-whatsapp-qr-channel [tenantId]="tenantId"></app-whatsapp-qr-channel>
-
-      <mat-card class="section">
-        <div class="section-head">
-          <span class="section-icon tone-violet"><mat-icon>smart_toy</mat-icon></span>
-          <div>
-            <h3>AI provider</h3>
-            <p>Platform-wide, not per tenant.</p>
-          </div>
-        </div>
-        <p class="muted hint">
-          Every tenant runs on the one AI provider, model and key set on the
-          <a routerLink="/settings/ai-providers">AI Providers</a> screen (AiProviders). A trial uses its free allowance; a paid
-          tenant spends purchased AI credits.
-        </p>
-      </mat-card>
+      <app-whatsapp-qr-channel *ngIf="providerLoaded && whatsAppProvider === 'QrBridge'" [tenantId]="tenantId"></app-whatsapp-qr-channel>
     </aside>
   </div>
 </div>

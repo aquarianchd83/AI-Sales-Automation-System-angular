@@ -33,6 +33,8 @@ import { PlatformStudioQuestionnairesComponent } from './platform-studio-questio
 import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
 import { PlatformTenantProviderComponent } from './platform-tenant-provider/platform-tenant-provider.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
+import { PlatformTenantJobsDialogComponent } from './platform-tenant-jobs-dialog/platform-tenant-jobs-dialog.component';
+import { PlatformTenantPurgeDialogComponent } from './platform-tenant-purge-dialog/platform-tenant-purge-dialog.component';
 import { PlatformTenantFormDialogComponent } from './platform-tenant-form-dialog/platform-tenant-form-dialog.component';
 import { PlatformTenantListComponent } from './platform-tenant-list/platform-tenant-list.component';
 import { PlatformTenantWhatsAppConfigDialogComponent } from './platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
@@ -106,6 +108,8 @@ const routes: Routes = [
     PlatformTenantDetailComponent,
     PlatformTenantProviderComponent,
     PlatformTenantFormDialogComponent,
+    PlatformTenantJobsDialogComponent,
+    PlatformTenantPurgeDialogComponent,
     PlatformTenantWhatsAppConfigDialogComponent,
     PlatformTenantConfigOverridesDialogComponent,
     PlatformStudioQuestionnairesComponent,

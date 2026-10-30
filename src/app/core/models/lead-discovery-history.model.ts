@@ -29,6 +29,8 @@ export interface LeadDiscoveryExecutionSummary {
   /** The tenant's lead-candidate quota ran out mid-run, so discovery stopped before reaching the
    * profile's batch size — fewer customers than requested is expected here, not a failure. */
   quotaExhausted: boolean;
+  /** Why the run stopped, or never started, for want of allowance: out of credits, a used-up monthly limit, or a plan without the feature. */
+  quotaStopReason?: string | null;
   customersDiscovered: number;
   customersCreated: number;
   customersDuplicate: number;

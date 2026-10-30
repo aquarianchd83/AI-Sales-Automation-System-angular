@@ -258,4 +258,14 @@ describe('KnowledgeSourcesComponent', () => {
 
     expect(root().textContent).toContain('could not be loaded');
   });
+
+  it('refuses to add a website address that fails validation', () => {
+    const component = render(overview([]));
+
+    component.website.setValue('x'.repeat(2001));
+    component.addWebsite();
+
+    expect(component.website.invalid).toBeTrue();
+    expect(api.addWebsite).not.toHaveBeenCalled();
+  });
 });

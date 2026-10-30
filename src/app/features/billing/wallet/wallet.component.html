@@ -52,6 +52,7 @@
           <span>{{ originLabels[g.origin] }}</span>
           <span class="muted" *ngIf="g.origin === 1">until {{ g.expiresAtUtc | zonedDate: 'mediumDate' }}</span>
           <span class="muted" *ngIf="g.origin !== 1">never expires</span>
+          <span class="muted" *ngIf="g.unitsRemaining < g.unitsGranted">of {{ formatUnits(g.unitsGranted) }}</span>
           <strong>{{ formatUnits(g.unitsRemaining) }}</strong>
         </li>
       </ul>

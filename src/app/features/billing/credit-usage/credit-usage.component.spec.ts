@@ -3,29 +3,15 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
-import { QuotaType } from '../../../core/models/billing.model';
-import { CreditScenario, TenantCreditUsage } from '../../../core/models/credit-payer.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { CreditUsageComponent } from './credit-usage.component';
 
-const row = (overrides: Partial<TenantCreditUsage> = {}): TenantCreditUsage => ({
-  id: 'u1',
-  scenario: CreditScenario.CustomerChatReply,
-  scenarioTitle: 'Customer chat reply',
-  quotaType: QuotaType.AiConversations,
-  units: 1,
-  coveredByPlatform: false,
-  refunded: false,
-  description: 'ConversationReply',
-  occurredAtUtc: '2026-10-21T04:30:00Z',
-  ...overrides,
-});
-
 describe('CreditUsageComponent', () => {
-  function render(rows: TenantCreditUsage[]): { element: HTMLElement; billing: jasmine.SpyObj<BillingService> } {
-    const billing = jasmine.createSpyObj<BillingService>('BillingService', ['getCreditUsage']);
-    billing.getCreditUsage.and.returnValue(of({ items: rows, totalCount: rows.length, page: 1, pageSize: 25, totalPages: 1 }));
+  function render(): { element: HTMLElement; billing: jasmine.SpyObj<BillingService> } {
+    const billing = jasmine.createSpyObj<BillingService>('BillingService', ['getLedger', 'getLedgerSummary']);
+    billing.getLedger.and.returnValue(of({ items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0 }));
+    billing.getLedgerSummary.and.returnValue(of({ totalEntries: 0, byEntryType: [], byFeature: [], daily: [] }));
 
     TestBed.configureTestingModule({
       declarations: [CreditUsageComponent],
@@ -37,33 +23,20 @@ describe('CreditUsageComponent', () => {
     return { element: fixture.nativeElement as HTMLElement, billing };
   }
 
-  it('says which actions the platform covered and which came out of the workspace balance', () => {
-    const { element } = render([row({ coveredByPlatform: true }), row({ id: 'u2', scenarioTitle: 'WhatsApp template send', quotaType: QuotaType.WhatsAppMessages })]);
+  it('shows this workspace\'s own credit history - tiles, graph and the date filter', () => {
+    const { element, billing } = render();
 
-    expect(element.textContent).toContain('Covered by the platform');
-    expect(element.textContent).toContain('Your balance');
-    expect(element.textContent).toContain('WhatsApp template send');
+    expect(element.querySelector('app-credit-history')).toBeTruthy();
+    expect(element.textContent).toContain('Filter');
+    expect(billing.getLedger).toHaveBeenCalled();
+    expect(billing.getLedgerSummary.calls.mostRecent().args[0]).toBe(30);
   });
 
-  it('marks an action whose credits were returned', () => {
-    const { element } = render([row({ refunded: true })]);
+  it('no longer has the separate spend list (the "Show" filter and the When / What / Paid by table)', () => {
+    const { element } = render();
 
-    expect(element.textContent).toContain('Returned');
-  });
-
-  it('asks only for what the platform covered when filtered, including the false case', () => {
-    const { billing } = render([]);
-    const fixture = TestBed.createComponent(CreditUsageComponent);
-    fixture.detectChanges();
-
-    fixture.componentInstance.onFilter(false);
-
-    expect(billing.getCreditUsage).toHaveBeenCalledWith(jasmine.objectContaining({ coveredByPlatform: false, page: 1 }));
-  });
-
-  it('shows an empty state when nothing has used credits yet', () => {
-    const { element } = render([]);
-
-    expect(element.textContent).toContain('No credit usage yet.');
+    expect(element.querySelector('table[mat-table] th')?.textContent).not.toContain('When');
+    expect(element.textContent).not.toContain('Paid by');
+    expect(element.textContent).not.toContain('Covered by the platform');
   });
 });

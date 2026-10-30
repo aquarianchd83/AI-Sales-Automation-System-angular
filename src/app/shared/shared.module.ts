@@ -21,6 +21,7 @@ import { WhatsAppQrChannelComponent } from './components/whatsapp-qr-channel/wha
 import { MetaConnectCardComponent } from './components/meta-connect-card/meta-connect-card.component';
 import { QuestionnaireFormComponent } from './components/questionnaire-form/questionnaire-form.component';
 import { PlatformWalletTopUpDialogComponent } from './components/platform-wallet-top-up-dialog/platform-wallet-top-up-dialog.component';
+import { CreditHistoryComponent } from './components/credit-history/credit-history.component';
 import { WhatsAppConnectionFormComponent } from './components/whatsapp-connection-form/whatsapp-connection-form.component';
 
 const DECLARATIONS = [
@@ -42,6 +43,7 @@ const DECLARATIONS = [
   WhatsAppQrChannelComponent,
   QuestionnaireFormComponent,
   PlatformWalletTopUpDialogComponent,
+  CreditHistoryComponent,
 ];
 
 /** Re-exported building blocks for feature modules. Holds no providers. */

@@ -158,7 +158,8 @@ export class LeadDetailComponent implements OnInit, OnDestroy {
   }
 
   saveAttributes(): void {
-    if (!this.lead || this.saving) {
+    if (!this.lead || this.saving || this.attributesForm.invalid) {
+      this.attributesForm.markAllAsTouched();
       return;
     }
     const raw = this.attributesForm.getRawValue();

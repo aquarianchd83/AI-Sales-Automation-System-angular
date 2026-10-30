@@ -128,4 +128,16 @@ describe('PlatformTenantFormDialogComponent', () => {
     expect(tenants.create).not.toHaveBeenCalled();
     expect(component.detailsExpanded).toBeTrue();
   });
+
+  it('refuses a password that is long enough but missing an uppercase letter, number or symbol', () => {
+    fillRequired();
+
+    for (const weak of ['password', 'Password1', 'password1!', 'PASSWORD1!']) {
+      component.form.patchValue({ adminPassword: weak });
+      component.save();
+    }
+
+    expect(component.form.controls.adminPassword.hasError('policy')).toBeTrue();
+    expect(tenants.create).not.toHaveBeenCalled();
+  });
 });

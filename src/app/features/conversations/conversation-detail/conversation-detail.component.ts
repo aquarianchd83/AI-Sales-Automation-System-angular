@@ -244,7 +244,8 @@ export class ConversationDetailComponent implements OnInit, OnDestroy {
   }
 
   send(): void {
-    if (!this.conversation || this.sending) {
+    if (!this.conversation || this.sending || this.composeForm.invalid) {
+      this.composeForm.markAllAsTouched();
       return;
     }
     const raw = this.composeForm.getRawValue();
