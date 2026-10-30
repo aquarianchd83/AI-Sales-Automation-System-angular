@@ -55,6 +55,13 @@
         <a mat-stroked-button color="primary" routerLink="/billing/wallet" class="buy-credits-link">Buy credits</a>
       </span>
     </p>
+    <p class="field-message--warn" *ngIf="!d.execution.quotaExhausted && d.execution.quotaStopReason" role="note" data-testid="stop-reason">
+      <mat-icon>warning_amber</mat-icon>
+      <span>
+        {{ d.execution.quotaStopReason }}
+        <a mat-stroked-button color="primary" routerLink="/billing/wallet" class="buy-credits-link">Open wallet</a>
+      </span>
+    </p>
     <p class="muted" *ngIf="d.execution.nextRetryInfo">{{ d.execution.nextRetryInfo }}</p>
 
     <div class="stat-grid">
@@ -242,7 +249,7 @@
             </table>
           </div>
           <p class="muted empty-tab" *ngIf="!d.customers.length">
-            {{ d.execution.quotaExhausted ? 'The quota ran out before any customers were discovered.' : 'No customers were discovered in this execution.' }}
+            {{ d.execution.quotaExhausted ? 'The quota ran out before any customers were discovered.' : d.execution.quotaStopReason ? 'It stopped before any customers were discovered: ' + d.execution.quotaStopReason : 'No customers were discovered in this execution.' }}
           </p>
         </mat-tab>
 
