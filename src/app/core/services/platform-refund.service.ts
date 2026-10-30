@@ -8,6 +8,7 @@ import {
   QuotaBalance,
   QuotaLedgerEntry,
   QuotaLedgerQuery,
+  QuotaLedgerSummary,
   QuotaType,
   RefundRequest,
   RefundStatus,
@@ -77,6 +78,23 @@ export class PlatformRefundService {
       params: {
         ...toPagedParams(query),
         ...(query.quotaType != null ? { QuotaType: String(query.quotaType) } : {}),
+        ...(query.feature ? { Feature: query.feature } : {}),
+        ...(query.entryType != null ? { EntryType: String(query.entryType) } : {}),
+        ...(query.from ? { From: query.from } : {}),
+        ...(query.to ? { To: query.to } : {}),
+      },
+    });
+  }
+
+  /** Totals are always for the whole history; `feature` / `entryType` narrow only the daily series. */
+  getTenantLedgerSummary(tenantId: string, days = 30, filter: { feature?: string; entryType?: number; from?: string; to?: string } = {}): Observable<QuotaLedgerSummary> {
+    return this.http.get<QuotaLedgerSummary>(`${this.baseUrl}/tenants/${tenantId}/quota/ledger/summary`, {
+      params: {
+        days: String(days),
+        ...(filter.feature ? { feature: filter.feature } : {}),
+        ...(filter.entryType != null ? { entryType: String(filter.entryType) } : {}),
+        ...(filter.from ? { from: filter.from } : {}),
+        ...(filter.to ? { to: filter.to } : {}),
       },
     });
   }

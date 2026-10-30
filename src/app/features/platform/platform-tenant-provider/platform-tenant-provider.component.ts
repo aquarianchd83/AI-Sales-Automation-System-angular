@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
 
@@ -20,6 +20,9 @@ export const FOLLOW_PLATFORM = 'default';
 })
 export class PlatformTenantProviderComponent implements OnInit {
   @Input() tenantId = '';
+
+  /** The provider this tenant is actually on (its own choice, else the platform's), or null when it could not be loaded. Emitted on load and after every save. */
+  @Output() readonly effectiveChange = new EventEmitter<string | null>();
 
   readonly FOLLOW_PLATFORM = FOLLOW_PLATFORM;
   current: TenantWhatsAppProvider | null = null;
@@ -48,7 +51,13 @@ export class PlatformTenantProviderComponent implements OnInit {
     this.providers
       .getForTenant(this.tenantId)
       .pipe(finalize(() => (this.loading = false)))
-      .subscribe({ next: (p) => this.apply(p), error: () => (this.loadFailed = true) });
+      .subscribe({
+        next: (p) => this.apply(p),
+        error: () => {
+          this.loadFailed = true;
+          this.effectiveChange.emit(null);
+        },
+      });
   }
 
   save(): void {
@@ -80,5 +89,6 @@ export class PlatformTenantProviderComponent implements OnInit {
   private apply(p: TenantWhatsAppProvider): void {
     this.current = p;
     this.selected = p.override ?? FOLLOW_PLATFORM;
+    this.effectiveChange.emit(p.effective ?? null);
   }
 }

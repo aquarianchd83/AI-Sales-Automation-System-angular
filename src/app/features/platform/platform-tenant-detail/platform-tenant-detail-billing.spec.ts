@@ -56,6 +56,32 @@ describe('PlatformTenantDetailComponent billing cards', () => {
   function setup(payments: Payment[] = []) {
     const refunds = {
       getTenantQuota: jasmine.createSpy('getTenantQuota').and.returnValue(of(QUOTA)),
+      getTenantLedger: jasmine.createSpy('getTenantLedger').and.returnValue(
+        of({
+          items: [
+            { id: 'l1', entryType: 1, unitsDelta: 500, balanceAfter: 500, occurredAtUtc: '2026-10-23T10:00:00Z' },
+            { id: 'l2', entryType: 2, unitsDelta: -12, balanceAfter: 488, occurredAtUtc: '2026-10-24T10:00:00Z' },
+          ],
+          totalCount: 2,
+          page: 1,
+          pageSize: 10,
+        })
+      ),
+      getTenantLedgerSummary: jasmine.createSpy('getTenantLedgerSummary').and.callFake((_id: string, _days: number, filter: { entryType?: number } = {}) =>
+        of({
+          totalEntries: 3,
+          byEntryType: [
+            { entryType: 1, count: 1, units: 500 },
+            { entryType: 2, count: 2, units: -62 },
+          ],
+          byFeature: [{ feature: 'LeadDiscovery', count: 2, unitsUsed: 62 }],
+          daily: [
+            { date: '2026-10-22', purchased: 0, used: 0 },
+            { date: '2026-10-23', purchased: 500, used: 0 },
+            { date: '2026-10-24', purchased: 0, used: filter.entryType === 1 ? 0 : 62 },
+          ],
+        })
+      ),
       getTenantPayments: jasmine.createSpy('getTenantPayments').and.returnValue(of(payments)),
       setRefundRequestsEnabled: jasmine.createSpy('setRefundRequestsEnabled').and.returnValue(of(void 0)),
     };
@@ -86,7 +112,7 @@ describe('PlatformTenantDetailComponent billing cards', () => {
     const fixture = TestBed.createComponent(PlatformTenantDetailComponent);
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
-    const card = (title: string) => Array.from(root.querySelectorAll('mat-card')).find((c) => c.querySelector('h3')?.textContent?.includes(title)) as HTMLElement;
+    const card = (title: string) => Array.from(root.querySelectorAll('mat-card, mat-expansion-panel')).find((c) => (c.querySelector('h3, mat-panel-title')?.textContent ?? '').includes(title)) as HTMLElement;
     return { fixture, root, refunds, dialog, notify, tenant, card };
   }
 
@@ -101,8 +127,8 @@ describe('PlatformTenantDetailComponent billing cards', () => {
     expect(quota).toContain('AI conversations');
     expect(quota).toContain('20');
     expect(quota).toContain('Lead candidates');
-    expect(quota).toContain('Adjustment · 10 until');
-    expect(quota).toContain('Adjustment · 3 until');
+    // The per-grant breakdown was removed: it showed units left, which never matched the history entries.
+    expect(quota).not.toContain(' until ');
   });
 
   it('opens the adjustment dialog for this tenant and reloads the balances after a change', () => {
@@ -151,5 +177,148 @@ describe('PlatformTenantDetailComponent billing cards', () => {
     const { card } = setup([]);
 
     expect(text(card('Payments'))).toContain('No payments yet.');
+  });
+
+  it('shows what each movement was and the balance after it, and can filter by feature', () => {
+    const { fixture, refunds, card } = setup([]);
+    fixture.componentInstance.showEntries = true;
+    fixture.detectChanges();
+
+    expect(text(card('Prepaid quota'))).toContain('Balance after');
+    expect(text(card('Prepaid quota'))).toContain('488');
+
+    fixture.componentInstance.onLedgerFilter('LeadDiscovery');
+
+    expect(refunds.getTenantLedger.calls.mostRecent().args[1].feature).toBe('LeadDiscovery');
+  });
+
+  it('can show only the purchased credits', () => {
+    const { fixture, refunds } = setup([]);
+
+    fixture.componentInstance.onLedgerFilter('Purchased');
+
+    const query = refunds.getTenantLedger.calls.mostRecent().args[1];
+    expect(query.entryType).toBe(1);
+    expect(query.feature).toBeUndefined();
+  });
+
+  it('lists the credit history as date, what happened to the credits (Purchased, Used...), and units', () => {
+    const { fixture, card } = setup([]);
+    fixture.componentInstance.showEntries = true;
+    fixture.detectChanges();
+
+    const rows = Array.from(card('Prepaid quota').querySelectorAll('tr.mat-mdc-row')).map((r) => text(r as HTMLElement));
+
+    expect(rows.length).toBe(2);
+    expect(rows[0]).toContain('Purchased');
+    expect(rows[0]).toContain('+500');
+    expect(rows[1]).toContain('Used');
+    expect(rows[1]).toContain('-12');
+  });
+
+  it('shows a stat tile for every value the history can be narrowed to, totalled over the whole history', () => {
+    const { card } = setup([]);
+
+    const tiles = Array.from(card('Prepaid quota').querySelectorAll('.ledger-tile')).map((t) => text(t as HTMLElement));
+
+    expect(tiles.length).toBe(8);
+    expect(tiles[0]).toContain('All activity');
+    expect(tiles[0]).toContain('3');
+    expect(tiles[1]).toContain('Purchased');
+    expect(tiles[1]).toContain('500');
+    expect(tiles[2]).toContain('Used');
+    expect(tiles[2]).toContain('62');
+    expect(tiles.find((t) => t.includes('Lead discovery'))).toContain('62');
+  });
+
+  it('narrows the entries when a tile is clicked, and draws the daily graph', () => {
+    const { fixture, refunds, card } = setup([]);
+    const panel = card('Prepaid quota');
+
+    (panel.querySelectorAll('.ledger-tile')[1] as HTMLButtonElement).click();
+
+    expect(refunds.getTenantLedger.calls.mostRecent().args[1].entryType).toBe(1);
+    const calls = refunds.getTenantLedgerSummary.calls.allArgs();
+    expect(calls[calls.length - 1][2].entryType).toBe(1);
+    fixture.detectChanges();
+
+    // Only the purchase is left on the graph; the day that used credits no longer draws a bar.
+    expect(panel.querySelectorAll('svg rect.chart-bar').length).toBe(1);
+    expect(panel.querySelector('.ledger-chart-head')?.textContent).toContain('Purchased');
+    // The tiles keep the whole-history totals.
+    expect(panel.querySelectorAll('.ledger-tile').length).toBe(8);
+  });
+
+  it('prefixes each amount in the history with a green + when credits came in and a red - when they went out', () => {
+    const { fixture, card } = setup([]);
+    fixture.componentInstance.showEntries = true;
+    fixture.detectChanges();
+
+    const amounts = Array.from(card('Prepaid quota').querySelectorAll('.ledger-amount')) as HTMLElement[];
+
+    expect(amounts[0].textContent?.trim()).toBe('+500');
+    expect(amounts[0].classList).toContain('ledger-amount--in');
+    expect(amounts[1].textContent?.trim()).toBe('-12');
+    expect(amounts[1].classList).toContain('ledger-amount--out');
+  });
+
+  it('opens the background jobs in a dialog from the Jobs button, and no longer has a jobs panel on the page', () => {
+    const { fixture, dialog } = setup();
+    const root = fixture.nativeElement as HTMLElement;
+
+    const jobsButton = Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim().endsWith('Jobs')) as HTMLButtonElement;
+    jobsButton.click();
+
+    expect(dialog.open).toHaveBeenCalled();
+    const [component, config] = dialog.open.calls.mostRecent().args;
+    expect(component.name).toBe('PlatformTenantJobsDialogComponent');
+    expect(config.data.tenantId).toBe(TENANT_ID);
+    expect(root.querySelector('#background-jobs')).toBeNull();
+  });
+
+  it('keeps the Billing panel (plan, subscription and the plan override) in a collapsed accordion', () => {
+    const { card } = setup();
+    const billing = card('Billing');
+
+    expect(billing.tagName.toLowerCase()).toBe('mat-expansion-panel');
+    expect(billing.classList).not.toContain('mat-expanded');
+    expect(text(billing)).toContain('Override plan');
+  });
+
+  it('limits the entries, the tiles and the graph to the chosen dates, and clears them again', () => {
+    const { fixture, refunds } = setup([]);
+    const component = fixture.componentInstance;
+
+    const callsBefore = refunds.getTenantLedger.calls.count();
+    component.fromControl.setValue(new Date(2026, 9, 1));
+    component.toControl.setValue(new Date(2026, 9, 24));
+    fixture.detectChanges();
+
+    // Picking dates alone changes nothing; the Filter button applies them.
+    expect(refunds.getTenantLedger.calls.count()).toBe(callsBefore);
+    const filterButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Filter')
+    ) as HTMLButtonElement;
+    expect(filterButton.disabled).toBeFalse();
+    filterButton.click();
+    fixture.detectChanges();
+
+    expect(refunds.getTenantLedger.calls.mostRecent().args[1]).toEqual(jasmine.objectContaining({ from: '2026-10-01', to: '2026-10-24', page: 1 }));
+    expect(refunds.getTenantLedgerSummary.calls.mostRecent().args[2]).toEqual(jasmine.objectContaining({ from: '2026-10-01', to: '2026-10-24' }));
+    expect(component.chartPeriod).toBe('2026-10-01 to 2026-10-24');
+
+    component.clearRange();
+
+    expect(refunds.getTenantLedger.calls.mostRecent().args[1].from).toBeUndefined();
+    expect(component.chartPeriod).toBe('Last 30 days');
+  });
+
+  it('shows the wallet balance in a larger type than the rest of the panel', () => {
+    const { card } = setup();
+
+    const balance = card('Prepaid quota').querySelector('.quota-balance') as HTMLElement;
+
+    expect(balance).toBeTruthy();
+    expect(parseFloat(getComputedStyle(balance).fontSize)).toBeGreaterThanOrEqual(24);
   });
 });

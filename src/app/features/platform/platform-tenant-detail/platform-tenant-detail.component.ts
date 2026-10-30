@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { PageEvent } from '@angular/material/paginator';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
@@ -8,11 +9,8 @@ import { finalize } from 'rxjs/operators';
 import {
   PlatformPlan,
   PlatformTenantDetail,
-  PlatformTenantJobs,
   SUBSCRIPTION_STATUS_LABELS,
-  TENANT_JOB_RUN_OUTCOME_LABELS,
   TENANT_STATUS_LABELS,
-  TenantJobRunOutcome,
   TenantStatus,
 } from '../../../core/models/platform.model';
 import {
@@ -20,17 +18,21 @@ import {
   QUOTA_TYPE_LABELS,
   QUOTA_GRANT_ORIGIN_LABELS,
   QuotaBalance,
+  QUOTA_ENTRY_ACTION_LABELS,
+  QuotaEntryType,
+  QuotaLedgerEntry,
+  QuotaLedgerSummary,
   RegionOption,
   TimeZoneOption,
   formatCharge,
   formatUnits,
 } from '../../../core/models/billing.model';
+import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature } from '../../../core/models/wallet.model';
 import { TenantSettingCategory, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { ImpersonationSessionService } from '../../../core/services/impersonation-session.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
-import { PlatformJobService } from '../../../core/services/platform-job.service';
 import { PlatformTenantConfigService } from '../../../core/services/platform-tenant-config.service';
 import { PlatformRefundService } from '../../../core/services/platform-refund.service';
 import { PlatformTenantService } from '../../../core/services/platform-tenant.service';
@@ -39,6 +41,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/compo
 import { PlatformQuotaAdjustDialogComponent } from '../platform-quota-adjust-dialog/platform-quota-adjust-dialog.component';
 import { PlatformRefundReviewDialogComponent } from '../platform-refund-review-dialog/platform-refund-review-dialog.component';
 import { PlatformTenantConfigOverridesDialogComponent } from '../platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
+import { PlatformTenantJobsDialogComponent } from '../platform-tenant-jobs-dialog/platform-tenant-jobs-dialog.component';
 import { PlatformTenantPurgeDialogComponent } from '../platform-tenant-purge-dialog/platform-tenant-purge-dialog.component';
 import { PlatformTenantWhatsAppConfigDialogComponent } from '../platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
 
@@ -69,6 +72,9 @@ export class PlatformTenantDetailComponent implements OnInit {
   savingCountry = false;
 
   whatsAppConfig: TenantWhatsAppConfig | null = null;
+  /** Which WhatsApp connection this tenant is on ('QrBridge' or the Meta Cloud API), reported by the connection-type panel. Decides which setup panel shows. */
+  whatsAppProvider: string | null = null;
+  providerLoaded = false;
   loadingConfig = true;
 
   configOverrides: TenantSettingCategory[] = [];
@@ -77,8 +83,6 @@ export class PlatformTenantDetailComponent implements OnInit {
   /** Read-only summary of this tenant's background jobs. Scheduling, pausing and running them lives
    * on the Background Jobs screen (deep-linked below with this tenant pre-selected) rather than being
    * duplicated here - one place owns those actions and their audit entries. */
-  tenantJobs: PlatformTenantJobs | null = null;
-  loadingJobs = true;
 
   readonly quotaLabels = QUOTA_TYPE_LABELS;
   readonly originLabels = QUOTA_GRANT_ORIGIN_LABELS;
@@ -88,6 +92,26 @@ export class PlatformTenantDetailComponent implements OnInit {
    * quota query never holds up the rest of the page. */
   quota: QuotaBalance[] = [];
   loadingQuota = true;
+  readonly ledgerColumns = ['processingDate', 'credits', 'unit', 'activity', 'balance'];
+  readonly ledgerFeatures = PLATFORM_FEATURES;
+  readonly featureLabels = PLATFORM_FEATURE_LABELS;
+  ledgerFilter: PlatformFeature | 'Purchased' | 'Used' | '' = '';
+  /** The credit history can be limited to a range of days; it narrows the entries, the tiles and the graph alike. */
+  readonly fromControl = new FormControl<Date | null>(null);
+  readonly toControl = new FormControl<Date | null>(null);
+  summary: QuotaLedgerSummary | null = null;
+  loadingSummary = true;
+  /** The graph's own series: it follows the selected tile, while the tiles keep the whole-history totals. */
+  chartDaily: QuotaLedgerSummary['daily'] = [];
+  loadingChart = false;
+  showEntries = false;
+  readonly chartWidth = 640;
+  readonly chartHeight = 150;
+  readonly ledgerPageSize = 10;
+  ledger: QuotaLedgerEntry[] = [];
+  ledgerTotal = 0;
+  ledgerPage = 1;
+  loadingLedger = true;
   payments: Payment[] = [];
   loadingPayments = true;
   togglingRefunds = false;
@@ -99,7 +123,6 @@ export class PlatformTenantDetailComponent implements OnInit {
     private readonly router: Router,
     private readonly tenants: PlatformTenantService,
     private readonly billing: PlatformBillingService,
-    private readonly jobService: PlatformJobService,
     private readonly config: PlatformTenantConfigService,
     private readonly timeZoneService: TimeZoneService,
     private readonly billingService: BillingService,
@@ -120,7 +143,6 @@ export class PlatformTenantDetailComponent implements OnInit {
     this.timeZoneService.getTimezones().subscribe({ next: (timezones) => (this.timezones = timezones) });
     this.load();
     this.loadConfig();
-    this.loadJobs();
     this.loadConfigOverrides();
     this.loadQuota();
     this.loadPayments();
@@ -227,6 +249,11 @@ export class PlatformTenantDetailComponent implements OnInit {
       () => this.tenants.delete(this.tenantId),
       'Tenant locked out.'
     );
+  }
+
+  onProviderChange(effective: string | null): void {
+    this.whatsAppProvider = effective;
+    this.providerLoaded = true;
   }
 
   deletePermanently(): void {
@@ -387,8 +414,214 @@ export class PlatformTenantDetailComponent implements OnInit {
     });
   }
 
+  /** Opens this tenant's background jobs in a dialog, so the operator stays on the page. */
+  showJobs(): void {
+    if (!this.tenant) {
+      return;
+    }
+    this.dialog.open(PlatformTenantJobsDialogComponent, {
+      ...PlatformTenantJobsDialogComponent.config,
+      data: { tenantId: this.tenantId, tenantName: this.tenant.name },
+    });
+  }
+
+  /** What happened to the credits, in a word: Purchased, Used, Plan credit, Expired, Refunded... */
+  ledgerAction(entry: QuotaLedgerEntry): string {
+    return QUOTA_ENTRY_ACTION_LABELS[entry.entryType];
+  }
+
+  /** Units that came in read green, units that went out read red, and a hold or release (which nets out) stays neutral. */
+  ledgerTone(entry: QuotaLedgerEntry): 'in' | 'out' | 'neutral' {
+    if (entry.entryType === QuotaEntryType.RefundHold || entry.entryType === QuotaEntryType.RefundRelease) {
+      return 'neutral';
+    }
+    return entry.unitsDelta >= 0 ? 'in' : 'out';
+  }
+
+  /** One tile per value the history can be narrowed to: what it adds up to over the whole history. */
+  get ledgerTiles(): { key: PlatformFeature | 'Purchased' | 'Used' | ''; label: string; value: string; detail: string }[] {
+    const s = this.summary;
+    if (!s) {
+      return [];
+    }
+    const type = (t: QuotaEntryType) => s.byEntryType.find((e) => e.entryType === t);
+    const used = -((type(QuotaEntryType.Consumption)?.units ?? 0) + (type(QuotaEntryType.ConsumptionReversal)?.units ?? 0));
+    const purchased = type(QuotaEntryType.Purchase);
+    const entries = (n: number) => (n === 1 ? '1 entry' : n + ' entries');
+    return [
+      { key: '', label: 'All activity', value: String(s.totalEntries), detail: s.totalEntries === 1 ? 'movement' : 'movements' },
+      { key: 'Purchased', label: 'Purchased', value: formatUnits(purchased?.units ?? 0), detail: entries(purchased?.count ?? 0) },
+      { key: 'Used', label: 'Used', value: formatUnits(used), detail: entries(type(QuotaEntryType.Consumption)?.count ?? 0) },
+      ...PLATFORM_FEATURES.map((f) => {
+        const row = s.byFeature.find((x) => x.feature === f);
+        return { key: f, label: this.featureLabels[f], value: formatUnits(row?.unitsUsed ?? 0), detail: entries(row?.count ?? 0) };
+      }),
+    ];
+  }
+
+  /** The daily series as SVG bars: credits bought (green) and used (red) per day, scaled to the busiest day. */
+  get chartBars(): { x: number; y: number; w: number; h: number; kind: 'in' | 'out'; tip: string }[] {
+    const days = this.chartDaily;
+    const max = Math.max(1, ...days.flatMap((d) => [d.purchased, d.used]));
+    const slot = this.chartWidth / Math.max(1, days.length);
+    const w = Math.max(2, slot / 2 - 1);
+    const bars: { x: number; y: number; w: number; h: number; kind: 'in' | 'out'; tip: string }[] = [];
+    days.forEach((d, i) => {
+      const add = (value: number, kind: 'in' | 'out', offset: number, label: string) => {
+        if (value <= 0) {
+          return;
+        }
+        const h = Math.max(1, (value / max) * (this.chartHeight - 4));
+        bars.push({ x: i * slot + offset, y: this.chartHeight - h, w, h, kind, tip: d.date + ': ' + formatUnits(value) + ' ' + label });
+      };
+      add(d.purchased, 'in', 0, 'purchased');
+      add(d.used, 'out', w + 1, 'used');
+    });
+    return bars;
+  }
+
+  get chartPeak(): number {
+    return Math.max(0, ...this.chartDaily.flatMap((d) => [d.purchased, d.used]));
+  }
+
+  get chartHasData(): boolean {
+    return this.chartPeak > 0;
+  }
+
+  /** The range the entries, tiles and graph are currently showing ("from|to"); the pickers only change it when Filter is pressed. */
+  appliedRange = '|';
+
+  /** True once the pickers hold something other than what is applied, so Filter has something to do. */
+  get rangeChanged(): boolean {
+    const { from, to } = this.range();
+    return (from ?? '') + '|' + (to ?? '') !== this.appliedRange;
+  }
+
+  get hasRange(): boolean {
+    return !!(this.fromControl.value || this.toControl.value);
+  }
+
+  /** What period the graph covers, in words. */
+  get chartPeriod(): string {
+    const [from, to] = this.appliedRange.split('|');
+    if (!from && !to) {
+      return 'Last 30 days';
+    }
+    return (from || 'the start') + ' to ' + (to || 'today');
+  }
+
+  onRangeChange(): void {
+    const { from, to } = this.range();
+    this.appliedRange = (from ?? '') + '|' + (to ?? '');
+    this.ledgerPage = 1;
+    this.loadLedger();
+    this.loadSummary();
+  }
+
+  clearRange(): void {
+    this.fromControl.setValue(null);
+    this.toControl.setValue(null);
+    this.appliedRange = '|';
+    this.ledgerPage = 1;
+    this.loadLedger();
+    this.loadSummary();
+  }
+
+  private appliedFilter(): { from?: string; to?: string } {
+    const [from, to] = this.appliedRange.split('|');
+    return { from: from || undefined, to: to || undefined };
+  }
+
+  /** The chosen days as yyyy-MM-dd, read from the picked calendar dates (not shifted by the time zone). */
+  private range(): { from?: string; to?: string } {
+    const day = (d: Date | null) =>
+      d ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') : undefined;
+    return { from: day(this.fromControl.value), to: day(this.toControl.value) };
+  }
+
+  onLedgerFilter(filter: PlatformFeature | 'Purchased' | 'Used' | ''): void {
+    this.ledgerFilter = filter;
+    this.ledgerPage = 1;
+    this.loadLedger();
+    this.loadChart();
+  }
+
+  /** What the movement was: its kind, the feature it was for when it has one, and the note. */
+  ledgerActivity(entry: QuotaLedgerEntry): string {
+    const parts: string[] = [];
+    if (entry.feature) {
+      parts.push(this.featureLabels[entry.feature]);
+    }
+    if (entry.note) {
+      parts.push(entry.note);
+    }
+    return parts.length ? parts.join(' · ') : '—';
+  }
+
+  onLedgerPage(event: PageEvent): void {
+    this.ledgerPage = event.pageIndex + 1;
+    this.loadLedger();
+  }
+
+  /** What the graph is showing, in words: "All activity", "Purchased", "Lead discovery"... */
+  get chartTitle(): string {
+    if (this.ledgerFilter === '') {
+      return 'All activity';
+    }
+    return this.ledgerFilter === 'Purchased' || this.ledgerFilter === 'Used' ? this.ledgerFilter : this.featureLabels[this.ledgerFilter];
+  }
+
+  private loadChart(): void {
+    const filter = this.ledgerFilter;
+    this.loadingChart = true;
+    this.refundService
+      .getTenantLedgerSummary(this.tenantId, 30, {
+        feature: filter && filter !== 'Purchased' && filter !== 'Used' ? filter : undefined,
+        entryType: filter === 'Purchased' ? QuotaEntryType.Purchase : filter === 'Used' ? QuotaEntryType.Consumption : undefined,
+        ...this.appliedFilter(),
+      })
+      .pipe(finalize(() => (this.loadingChart = false)))
+      .subscribe({ next: (result) => (this.chartDaily = result.daily) });
+  }
+
+  private loadSummary(): void {
+    this.loadingSummary = true;
+    this.refundService
+      .getTenantLedgerSummary(this.tenantId, 30, this.appliedFilter())
+      .pipe(finalize(() => (this.loadingSummary = false)))
+      .subscribe({
+        next: (summary) => {
+          this.summary = summary;
+          this.chartDaily = this.ledgerFilter ? this.chartDaily : summary.daily;
+          if (this.ledgerFilter) {
+            this.loadChart();
+          }
+        },
+      });
+  }
+
+  private loadLedger(): void {
+    this.loadingLedger = true;
+    this.refundService
+      .getTenantLedger(this.tenantId, { page: this.ledgerPage, pageSize: this.ledgerPageSize, feature: this.ledgerFilter && this.ledgerFilter !== 'Purchased' && this.ledgerFilter !== 'Used' ? this.ledgerFilter : undefined,
+        entryType:
+          this.ledgerFilter === 'Purchased' ? QuotaEntryType.Purchase : this.ledgerFilter === 'Used' ? QuotaEntryType.Consumption : undefined,
+        ...this.appliedFilter(),
+      })
+      .pipe(finalize(() => (this.loadingLedger = false)))
+      .subscribe({
+        next: (result) => {
+          this.ledger = result.items;
+          this.ledgerTotal = result.totalCount;
+        },
+      });
+  }
+
   private loadQuota(): void {
     this.loadingQuota = true;
+    this.ledgerPage = 1;
+    this.loadLedger();
+    this.loadSummary();
     this.refundService
       .getTenantQuota(this.tenantId)
       .pipe(finalize(() => (this.loadingQuota = false)))
@@ -412,21 +645,6 @@ export class PlatformTenantDetailComponent implements OnInit {
       },
       error: () => (this.loadingConfig = false),
     });
-  }
-
-  /** See PlatformJobsComponent.outcomeLabel - same nullable-index reason. */
-  outcomeLabel(outcome: TenantJobRunOutcome | null): string {
-    return outcome == null ? '' : TENANT_JOB_RUN_OUTCOME_LABELS[outcome];
-  }
-
-  private loadJobs(): void {
-    this.loadingJobs = true;
-    this.jobService
-      .getForTenant(this.tenantId)
-      .pipe(finalize(() => (this.loadingJobs = false)))
-      .subscribe({
-        next: (jobs) => (this.tenantJobs = jobs),
-      });
   }
 
   private loadConfigOverrides(): void {
