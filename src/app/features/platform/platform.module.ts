@@ -13,6 +13,9 @@ import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-l
 import { PlatformBillingComponent } from './platform-billing/platform-billing.component';
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
 import { PlatformPaymentListComponent } from './platform-payment-list/platform-payment-list.component';
+import { PlatformRevenueComponent } from './platform-revenue/platform-revenue.component';
+import { PlatformTenantNotificationsComponent } from './platform-tenant-notifications/platform-tenant-notifications.component';
+import { PlatformTenantPaymentsComponent } from './platform-tenant-payments/platform-tenant-payments.component';
 import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dialog/platform-job-schedule-dialog.component';
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
 import { PlatformEmbeddingSettingsComponent } from './platform-embedding-settings/platform-embedding-settings.component';
@@ -71,6 +74,9 @@ const routes: Routes = [
       // What each service costs us, what tenants are charged for it, and the margin.
       { path: 'service-margins', component: PlatformServiceMarginsComponent },
       { path: 'wallet', component: PlatformWalletComponent },
+      { path: 'revenue', component: PlatformRevenueComponent },
+      // One tenant's payment history, opened from a tenant in the Revenue Report.
+      { path: 'revenue/tenants/:id', component: PlatformTenantPaymentsComponent },
       { path: 'payments', component: PlatformPaymentListComponent },
       { path: 'configuration', component: PlatformConfigurationComponent },
       // The same page, cut down to what the AI providers charge: WhatsApp message, lead discovery and AI conversation rates.
@@ -98,6 +104,8 @@ const routes: Routes = [
       { path: 'knowledge', component: PlatformKnowledgeComponent },
   { path: 'studio-questionnaires', component: PlatformStudioQuestionnairesComponent },
       { path: 'announcements', component: PlatformAnnouncementListComponent },
+      // What tenants were told, by mode (in-app, email, WhatsApp) and delivery status.
+      { path: 'tenant-notifications', component: PlatformTenantNotificationsComponent },
     ],
   },
 ];
@@ -127,6 +135,9 @@ const routes: Routes = [
     PlatformCreditWalletDialogComponent,
     PlatformCreditRedeemDialogComponent,
     PlatformPaymentListComponent,
+    PlatformRevenueComponent,
+    PlatformTenantPaymentsComponent,
+    PlatformTenantNotificationsComponent,
     PlatformConfigurationComponent,
     PlatformRefundListComponent,
     PlatformRefundReviewDialogComponent,

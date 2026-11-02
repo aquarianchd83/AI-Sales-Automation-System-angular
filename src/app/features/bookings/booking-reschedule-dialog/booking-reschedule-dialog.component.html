@@ -24,18 +24,45 @@
       </mat-form-field>
     </div>
 
+    <mat-form-field class="reason" subscriptSizing="dynamic">
+      <mat-label>Reason for rescheduling</mat-label>
+      <textarea matInput formControlName="reason" rows="2" maxlength="500" required data-testid="reason"></textarea>
+      <mat-hint align="end">{{ form.controls.reason.value.length }}/500</mat-hint>
+      <mat-error *ngIf="form.controls.reason.hasError('required') || form.controls.reason.hasError('blank')">Say why the booking is being rescheduled.</mat-error>
+    </mat-form-field>
+
     <p class="zone muted" data-testid="zone">Times are in your workspace's time zone{{ data.timezone ? ': ' + data.timezone : '' }}.</p>
     <p class="zone muted" *ngIf="incomplete" data-testid="incomplete">Pick both the date and the time, or neither.</p>
 
-    <mat-checkbox formControlName="writeMessage" *ngIf="hasConversation" data-testid="write-message">
-      Write the customer a message about it, ready for me to send
-    </mat-checkbox>
+    <ng-container *ngIf="canMessage; else noWay">
+      <h4 class="message-title">Message the customer</h4>
+      <p class="hint muted">
+        Tell them about the new time and add anything they need, such as a Zoom or Meet link. Clear the box to send nothing.
+      </p>
+
+      <mat-form-field class="reason" subscriptSizing="dynamic">
+        <mat-label>Message</mat-label>
+        <textarea matInput formControlName="message" rows="5" maxlength="1000" data-testid="message"></textarea>
+        <mat-hint align="end">{{ form.controls.message.value.length }}/1000</mat-hint>
+      </mat-form-field>
+
+      <div class="channels">
+        <mat-checkbox formControlName="sendEmail" data-testid="send-email">Email{{ data.booking.customerEmail ? ' (' + data.booking.customerEmail + ')' : '' }}</mat-checkbox>
+        <mat-checkbox formControlName="sendWhatsApp" data-testid="send-whatsapp">WhatsApp</mat-checkbox>
+      </div>
+      <p class="zone muted" *ngIf="!hasEmail" data-testid="no-email">No email address on file for this customer, so the message cannot go by email.</p>
+      <p class="zone muted" *ngIf="!hasConversation" data-testid="no-conversation">This booking has no WhatsApp conversation, so the message cannot go by WhatsApp.</p>
+      <p class="zone muted" *ngIf="needsChannel" data-testid="needs-channel">Tick email, WhatsApp or both to send the message, or clear it.</p>
+    </ng-container>
+    <ng-template #noWay>
+      <p class="zone muted" data-testid="cannot-message">There is no email address or WhatsApp conversation for this customer, so no message can be sent from here.</p>
+    </ng-template>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-button type="button" mat-dialog-close data-testid="cancel">Cancel</button>
-  <button mat-flat-button color="primary" type="button" [disabled]="saving || incomplete" (click)="save()" data-testid="reschedule">
-    {{ saving ? 'Saving…' : 'Reschedule' }}
+  <button mat-flat-button color="primary" type="button" [disabled]="cannotSave" (click)="save()" data-testid="reschedule">
+    {{ saving ? 'Saving…' : message ? 'Reschedule and send' : 'Reschedule' }}
   </button>
 </mat-dialog-actions>

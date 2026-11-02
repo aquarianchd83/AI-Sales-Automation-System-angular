@@ -3,11 +3,21 @@ import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { finalize } from 'rxjs/operators';
 
-import { BOOKING_STATUSES, Booking, BookingStatus, bookingStatusChipClass, rescheduleDraft, slotText } from '../../../core/models/booking.model';
+import {
+  BOOKING_STATUSES,
+  Booking,
+  BookingMessage,
+  BookingMessageResult,
+  BookingStatus,
+  bookingStatusChipClass,
+  messageOutcome,
+  slotText,
+} from '../../../core/models/booking.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { BookingService } from '../../../core/services/booking.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantProfileService } from '../../../core/services/tenant-profile.service';
+import { BookingMessageDialogComponent, BookingMessageDialogData } from '../booking-message-dialog/booking-message-dialog.component';
 import {
   BookingRescheduleDialogComponent,
   BookingRescheduleDialogData,
@@ -48,7 +58,7 @@ export class BookingListComponent implements OnInit {
   readonly saving = new Set<string>();
   /** The workspace's time zone, which new times are picked and shown in; null until known (times then show in the browser's). */
   timezone: string | null = null;
-  /** A message for the open conversation, written when a booking was rescheduled; the panel puts it in the box. */
+  /** A message ready in the open conversation's box. Nothing sets one now - rescheduling sends its message itself - but the panel still takes it. */
   draft: string | null = null;
 
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
@@ -129,11 +139,13 @@ export class BookingListComponent implements OnInit {
    */
   reschedule(booking: Booking): void {
     const ref = this.dialog.open<BookingRescheduleDialogComponent, BookingRescheduleDialogData, BookingRescheduleResult>(BookingRescheduleDialogComponent, {
-      width: '480px',
+      width: '520px',
+      maxWidth: '95vw',
       data: {
         booking,
         timezone: this.timezone,
-        save: (newSlotLocal) => this.bookings.setStatus(booking.id, 'Reschedule', newSlotLocal),
+        save: (newSlotLocal: string | null, reason: string, message: BookingMessage | null) =>
+          this.bookings.setStatus(booking.id, 'Reschedule', newSlotLocal, reason, message),
       },
     });
     ref.afterClosed().subscribe((result) => {
@@ -141,14 +153,36 @@ export class BookingListComponent implements OnInit {
         this.resetRows();
         return;
       }
-      const { booking: updated, writeMessage } = result;
-      this.notify.success(updated.newSlotUtc ? `${updated.kind} moved to ${slotText(updated.newSlotUtc, this.timezone)}.` : `${updated.kind} marked Reschedule.`);
+      const { booking: updated } = result;
+      const moved = updated.newSlotUtc ? `${updated.kind} moved to ${slotText(updated.newSlotUtc, this.timezone)}.` : `${updated.kind} marked Reschedule.`;
+      const outcome = messageOutcome(updated.messageResults);
+      // The booking is rescheduled either way; a message that did not go is said plainly, so the team knows to follow up another way.
+      this.tell(outcome.ok, outcome.text ? moved + ' ' + outcome.text : moved);
       this.applyUpdate(updated);
-      if (writeMessage && updated.conversationId) {
-        this.selected = this.page.items.find((b) => b.id === updated.id) ?? updated;
-        this.draft = rescheduleDraft(updated, updated.newSlotUtc, this.timezone);
+    });
+  }
+
+  /** Email and/or WhatsApp the customer something - a meeting link, joining details - without changing the booking. */
+  sendDetails(booking: Booking): void {
+    const ref = this.dialog.open<BookingMessageDialogComponent, BookingMessageDialogData, BookingMessageResult[]>(BookingMessageDialogComponent, {
+      width: '520px',
+      maxWidth: '95vw',
+      data: { booking, send: (message: BookingMessage) => this.bookings.message(booking.id, message) },
+    });
+    ref.afterClosed().subscribe((results) => {
+      const outcome = messageOutcome(results);
+      if (outcome.text) {
+        this.tell(outcome.ok, outcome.text);
       }
     });
+  }
+
+  private tell(ok: boolean, text: string): void {
+    if (ok) {
+      this.notify.success(text);
+    } else {
+      this.notify.error(text);
+    }
   }
 
   /** The new time in words, in the workspace's time zone. */

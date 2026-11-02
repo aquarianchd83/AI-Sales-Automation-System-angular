@@ -1,0 +1,110 @@
+<div class="page">
+  <mat-card class="filter-card">
+    <div class="range">
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>From</mat-label>
+        <input matInput [matDatepicker]="fromPicker" [formControl]="fromControl" [max]="toControl.value" />
+        <mat-datepicker-toggle matIconSuffix [for]="fromPicker"></mat-datepicker-toggle>
+        <mat-datepicker #fromPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>To</mat-label>
+        <input matInput [matDatepicker]="toPicker" [formControl]="toControl" [min]="fromControl.value" />
+        <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
+        <mat-datepicker #toPicker></mat-datepicker>
+      </mat-form-field>
+      <button mat-flat-button color="primary" type="button" (click)="apply()" data-testid="filter">
+        <mat-icon>filter_alt</mat-icon>
+        Apply
+      </button>
+      <button mat-button type="button" (click)="clear()" *ngIf="fromControl.value || toControl.value">Last 12 months</button>
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="report">
+        {{ report.fromUtc | zonedDate: 'dd MMM yyyy' }} to {{ report.toUtc | zonedDate: 'dd MMM yyyy' }}
+      </span>
+    </div>
+    <p class="muted note">
+      Revenue is money that actually moved: plan subscriptions and credit packs paid by tenants, less refunds, in rupees at the rate of the day
+      each payment was taken. Upcoming charges are not revenue until they are taken. Months are calendar months in UTC.
+    </p>
+  </mat-card>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+  <p class="error" *ngIf="failed">The revenue report could not be loaded. Try again.</p>
+
+  <ng-container *ngIf="report && !failed">
+    <p class="muted empty" *ngIf="!hasData">No payments in this period.</p>
+
+    <div class="tiles">
+      <mat-card class="tile" *ngFor="let tile of tiles">
+        <span class="tile-label">{{ tile.label }}</span>
+        <strong class="tile-value">{{ tile.value }}</strong>
+        <span class="muted">{{ tile.hint }}</span>
+        <span class="change" [class.change--good]="changeGood(tile)" [class.change--bad]="!changeGood(tile)">{{ changeText(tile) }}</span>
+      </mat-card>
+    </div>
+
+    <mat-card class="chart-card" *ngIf="bars.length">
+      <div class="card-head">
+        <h3>By month</h3>
+        <span class="legend"><i class="dot dot--sub"></i> Plan subscriptions <i class="dot dot--pack"></i> Credit packs</span>
+      </div>
+      <svg [attr.viewBox]="'0 0 ' + chartWidth + ' ' + (chartHeight + 22)" role="img" aria-label="Revenue per month, subscriptions and credit packs">
+        <line x1="0" [attr.x2]="chartWidth" [attr.y1]="chartHeight" [attr.y2]="chartHeight" class="axis" />
+        <g *ngFor="let bar of bars">
+          <title>{{ bar.title }}</title>
+          <rect class="bar bar--sub" [attr.x]="bar.x" [attr.y]="bar.subscriptionY" [attr.width]="bar.w" [attr.height]="bar.subscriptionH"></rect>
+          <rect class="bar bar--pack" [attr.x]="bar.x" [attr.y]="bar.packY" [attr.width]="bar.w" [attr.height]="bar.packH"></rect>
+          <text class="axis-label" [attr.x]="bar.x + bar.w / 2" [attr.y]="chartHeight + 15" text-anchor="middle">{{ bar.label }}</text>
+        </g>
+      </svg>
+      <p class="muted">Tallest month: {{ inr(maxMonth) }} before refunds.</p>
+    </mat-card>
+
+    <div class="split">
+      <mat-card>
+        <h3>By type</h3>
+        <table class="plain">
+          <tr *ngFor="let k of report.byKind">
+            <td>{{ kindLabel(k.kind) }}</td>
+            <td class="num muted">{{ k.count }}</td>
+            <td class="num">{{ k.kind === 'Refund' ? '-' : '' }}{{ inr(k.amount) }}</td>
+          </tr>
+        </table>
+      </mat-card>
+
+      <mat-card>
+        <h3>By country</h3>
+        <p class="muted" *ngIf="!report.countries.length">Nothing yet.</p>
+        <table class="plain" *ngIf="report.countries.length">
+          <tr *ngFor="let c of report.countries">
+            <td>{{ c.countryCode }} <span class="muted">{{ c.currencyCode }}</span></td>
+            <td class="num muted">{{ c.payments }}</td>
+            <td class="num">{{ inr(c.net) }}</td>
+          </tr>
+        </table>
+      </mat-card>
+    </div>
+
+    <mat-card>
+      <h3>Top tenants</h3>
+      <p class="muted" *ngIf="!report.topTenants.length">Nothing yet.</p>
+      <table class="plain" *ngIf="report.topTenants.length">
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th class="num">Payments</th>
+            <th>Last paid</th>
+            <th class="num">Net</th>
+          </tr>
+        </thead>
+        <tr *ngFor="let t of report.topTenants">
+          <td><a [routerLink]="['/platform/revenue/tenants', t.tenantId]" data-testid="tenant-link">{{ t.tenantName }}</a></td>
+          <td class="num">{{ t.payments }}</td>
+          <td>{{ t.lastPaidAtUtc ? (t.lastPaidAtUtc | zonedDate: 'dd MMM yyyy') : '-' }}</td>
+          <td class="num">{{ inr(t.net) }}</td>
+        </tr>
+      </table>
+    </mat-card>
+  </ng-container>
+</div>

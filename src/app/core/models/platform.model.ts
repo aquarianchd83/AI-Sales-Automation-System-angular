@@ -1269,3 +1269,96 @@ export const PLATFORM_TICKET_STATUS_LABELS: Record<PlatformTicketStatus, string>
   Resolved: 'Resolved',
 };
 
+
+// ---------------------------------------------------------------------------
+// Revenue report (GET /platform/revenue) - rupees, from payments only
+// ---------------------------------------------------------------------------
+
+/** RevenueFiguresDto. gross is what tenants paid (tax included); refunds is positive; netExTax is what the platform keeps. */
+export interface RevenueFigures {
+  gross: number;
+  refunds: number;
+  net: number;
+  tax: number;
+  netExTax: number;
+  payments: number;
+  refundCount: number;
+}
+
+export interface RevenueByKind {
+  kind: string;
+  amount: number;
+  count: number;
+}
+
+export interface RevenueMonth {
+  /** yyyy-MM */
+  month: string;
+  subscription: number;
+  creditPack: number;
+  refunds: number;
+  net: number;
+}
+
+export interface RevenueTenant {
+  tenantId: string;
+  tenantName: string;
+  net: number;
+  payments: number;
+  lastPaidAtUtc: string | null;
+}
+
+export interface RevenueCountry {
+  countryCode: string;
+  currencyCode: string;
+  net: number;
+  payments: number;
+}
+
+export interface PlatformRevenueReport {
+  fromUtc: string;
+  toUtc: string;
+  totals: RevenueFigures;
+  previous: RevenueFigures;
+  byKind: RevenueByKind[];
+  months: RevenueMonth[];
+  topTenants: RevenueTenant[];
+  countries: RevenueCountry[];
+}
+
+// ---------------------------------------------------------------------------
+// Notifications sent to tenants (GET /platform/tenant-notifications)
+// ---------------------------------------------------------------------------
+
+export type TenantNotificationChannel = 'InApp' | 'Email' | 'WhatsApp';
+export type TenantNotificationStatus = 'Pending' | 'Sent' | 'Failed' | 'Skipped';
+
+export const TENANT_NOTIFICATION_CHANNEL_LABELS: Record<string, string> = { InApp: 'In-app', Email: 'Email', WhatsApp: 'WhatsApp message' };
+
+export interface PlatformTenantNotificationQuery {
+  page: number;
+  pageSize: number;
+  search?: string;
+  channel?: TenantNotificationChannel;
+  status?: TenantNotificationStatus;
+  tenantId?: string;
+  /** A notification kind by name, e.g. NextStepBooked. */
+  kind?: string;
+}
+
+/** PlatformTenantNotificationDto - one channel of one notification, so a notification sent three ways is three rows. */
+export interface PlatformTenantNotification {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  kind: string;
+  title: string;
+  body: string;
+  channel: TenantNotificationChannel;
+  status: TenantNotificationStatus;
+  createdAtUtc: string;
+  /** Why the channel failed or was skipped; null when it went fine. */
+  deliveryNote: string | null;
+  /** When the tenant dismissed the in-app copy. */
+  acknowledgedAtUtc: string | null;
+}
