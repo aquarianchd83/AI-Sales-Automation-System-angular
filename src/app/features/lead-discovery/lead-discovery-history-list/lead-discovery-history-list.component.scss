@@ -95,3 +95,13 @@
 .clickable-row:hover {
   background: rgba(0, 0, 0, 0.03);
 }
+
+/* The reason is a whole sentence ("...used its monthly limit of 25 credits. Your wallet still has 813 credits."), so it gets its own line. */
+.quota-row {
+  flex-wrap: wrap;
+
+  .quota-reason {
+    flex-basis: 100%;
+    font-weight: 400;
+  }
+}

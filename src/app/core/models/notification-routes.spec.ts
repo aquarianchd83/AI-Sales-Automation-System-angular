@@ -22,6 +22,13 @@ describe('notification routes', () => {
     expect(tenantNotificationActionLabel(TenantNotificationKind.TemplateApproved)).toBeNull();
   });
 
+  it('sends a booking notice to the conversations, where the chat and the customer are', () => {
+    expect(tenantNotificationRoute(TenantNotificationKind.NextStepBooked)).toBe('/conversations');
+    expect(NOTIFICATION_KIND_LABELS[TenantNotificationKind.NextStepBooked]).toBe('Customer booked a demo or visit');
+    // Good news to act on, not something that has stopped.
+    expect(isUrgentNotification(TenantNotificationKind.NextStepBooked)).toBeFalse();
+  });
+
   it('sends an operator alert to the refund queue, the tenant, or the jobs', () => {
     expect(platformNotificationRoute({ kind: 'RefundRequested', tenantId: 't1' })).toBe('/platform/refunds');
     expect(platformNotificationRoute({ kind: 'RefundFailed', tenantId: 't1' })).toBe('/platform/refunds');

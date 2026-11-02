@@ -251,7 +251,7 @@ export class KnowledgeSourcesComponent implements OnInit, OnDestroy {
 
   addWebsite(): void {
     const url = this.website.value.trim();
-    if (!url || this.addingWebsite || !this.canAddWebsite) {
+    if (!url || this.website.invalid || this.addingWebsite || !this.canAddWebsite) {
       this.website.markAsTouched();
       return;
     }

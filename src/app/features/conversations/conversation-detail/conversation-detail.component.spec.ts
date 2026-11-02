@@ -88,4 +88,15 @@ describe('ConversationDetailComponent — the AI draft (Hybrid mode)', () => {
     expect(component.suggestedReply).toBeNull();
     expect(component.messages.length).toBe(1);
   });
+
+  it('does not send a message whose text fails validation', () => {
+    const component = create(null);
+    const send = spyOn(component['conversations'], 'sendMessage').and.callThrough();
+
+    component.composeForm.patchValue({ mode: 'text', text: 'x'.repeat(4001) });
+    component.send();
+
+    expect(component.composeForm.invalid).toBeTrue();
+    expect(send).not.toHaveBeenCalled();
+  });
 });

@@ -13,6 +13,8 @@ import {
   QuotaBalance,
   QuotaLedgerEntry,
   QuotaLedgerQuery,
+  QuotaLedgerSummary,
+  TestChatCall,
   RefundEligibility,
   RefundRequest,
   IndianState,
@@ -106,6 +108,33 @@ export class BillingService {
         // != null, not truthy: QuotaType.WhatsAppMessages is 0.
         ...(query.quotaType != null ? { QuotaType: String(query.quotaType) } : {}),
         ...(query.feature ? { Feature: query.feature } : {}),
+        ...(query.entryType != null ? { EntryType: String(query.entryType) } : {}),
+        ...(query.from ? { From: query.from } : {}),
+        ...(query.to ? { To: query.to } : {}),
+      },
+    });
+  }
+
+  /** The replies the AI gave in the tenant's Test chat, newest first. Free: listed apart from the ledger. */
+  getTestChat(query: QuotaLedgerQuery): Observable<PagedResult<TestChatCall>> {
+    return this.http.get<PagedResult<TestChatCall>>(`${this.baseUrl}/quota/test-chat`, {
+      params: {
+        ...toPagedParams(query),
+        ...(query.from ? { From: query.from } : {}),
+        ...(query.to ? { To: query.to } : {}),
+      },
+    });
+  }
+
+  /** The tenant's credit history at a glance: totals over the range, and a daily series for a graph. */
+  getLedgerSummary(days = 30, filter: { feature?: string; entryType?: number; from?: string; to?: string } = {}): Observable<QuotaLedgerSummary> {
+    return this.http.get<QuotaLedgerSummary>(`${this.baseUrl}/quota/ledger/summary`, {
+      params: {
+        days: String(days),
+        ...(filter.feature ? { feature: filter.feature } : {}),
+        ...(filter.entryType != null ? { entryType: String(filter.entryType) } : {}),
+        ...(filter.from ? { from: filter.from } : {}),
+        ...(filter.to ? { to: filter.to } : {}),
       },
     });
   }

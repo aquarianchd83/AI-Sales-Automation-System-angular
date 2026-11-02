@@ -13,12 +13,22 @@ import { ContentStudioService } from '../../core/services/content-studio.service
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotification } from '../../core/models/platform.model';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { PlatformTicketService } from '../../core/services/platform-ticket.service';
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
 import { ShellComponent } from './shell.component';
 
 describe('ShellComponent sidenav', () => {
+  /** The tickets the operator would see as Open; a test sets it before building the shell. */
+  let openTickets: unknown[] = [];
+  let ticketService: { getAll: jasmine.Spy };
+
+  beforeEach(() => {
+    openTickets = [];
+    ticketService = { getAll: jasmine.createSpy('getAll').and.callFake((status?: string) => of(status === 'Open' ? openTickets : [])) };
+  });
+
   function createFixture(
     roles: string[],
     platformAlerts: PlatformNotification[] = [],
@@ -45,6 +55,7 @@ describe('ShellComponent sidenav', () => {
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of(platformAlerts) } },
+        { provide: PlatformTicketService, useValue: ticketService },
         { provide: PlatformWalletService, useValue: { summary$: of({ balance: 0, topUpCount: 0, lastTopUpDate: null }), refresh: () => undefined } },
         { provide: NotificationHubService, useValue: { connect: () => undefined, disconnect: () => undefined, notificationReceived$: NEVER } },
       ],
@@ -76,12 +87,13 @@ describe('ShellComponent sidenav', () => {
       'inboxInbox',
       'support_agentHandoffs',
       'insightsLeads',
+      'event_availableDemos Scheduled',
       'inventory_2Packages',
       'perm_mediaMedia Library',
       'publicSocial Ads',
       'paymentsMembership',
       'data_usageUsage & Credits',
-      'price_checkCredit Costs',
+      'price_checkCredit Cap',
       'bar_chartReports',
       'monitoringAgent Performance',
       'settingsWhatsApp Settings',
@@ -118,7 +130,7 @@ describe('ShellComponent sidenav', () => {
 
     expect(labels(root)).toEqual(['Outreach', 'Engage', 'Extra']);
     expect(items(root)).not.toContain('settingsWhatsApp Settings');
-    expect(items(root).length).toBe(10);
+    expect(items(root).length).toBe(11);
   });
 
   it('sends an Admin straight to Lead Discovery History - the Discovered Leads page would 403 nobody, but History is Admin-only', () => {
@@ -143,13 +155,13 @@ describe('ShellComponent sidenav', () => {
       'dashboardDashboard',
       'businessTenants',
       'manage_accountsUsers',
-      'confirmation_numberTickets',
       'campaignAnnouncements',
       'menu_bookKnowledge Base', // platform knowledge: stays
       'quizStudio Questionnaires',
       'paymentsPackage',
       'data_usageUsage & Quotas',
       'account_balance_walletCredit Costs & Payers',
+      'trending_upService Margins',
       'receipt_longPayments',
       'assignment_returnRefund Requests',
       'chatPlatform WhatsApp',
@@ -157,7 +169,6 @@ describe('ShellComponent sidenav', () => {
       'descriptionNotice Templates',
       'perm_mediaNotice Media',
       'cloud_syncWhatsApp Connections',
-      'scheduleBackground Jobs',
       'tuneGeneral',
       'smart_toyAI Providers',
       'tuneTenant Settings',
@@ -172,6 +183,119 @@ describe('ShellComponent sidenav', () => {
       'personMy Profile',
       'lock_resetChange Password',
     ]);
+  });
+
+  it('puts Tickets in the top bar of the platform console, not in the sidebar, and leaves Background Jobs out of the sidebar', () => {
+    const root = render(['PlatformSuperAdmin']);
+
+    const link = root.querySelector('mat-toolbar [data-testid=tickets-link]') as HTMLAnchorElement;
+    expect(link).not.toBeNull();
+    expect(link.getAttribute('href')).toBe('/platform/tickets');
+    expect(link.getAttribute('aria-label')).toBe('Tickets');
+    expect(link.textContent).toContain('confirmation_number');
+
+    const sidebar = items(root).join('|');
+    expect(sidebar).not.toContain('Tickets');
+    expect(sidebar).not.toContain('Background Jobs');
+    expect(root.querySelector('mat-sidenav a[href="/platform/tickets"]')).toBeNull();
+    expect(root.querySelector('mat-sidenav a[href="/platform/jobs"]')).toBeNull();
+  });
+
+  describe('the Tickets button badge', () => {
+    const badge = (root: HTMLElement) => root.querySelector('[data-testid=tickets-count]');
+    const link = (root: HTMLElement) => root.querySelector('[data-testid=tickets-link]') as HTMLAnchorElement;
+
+    /** The count is read on the poll's first tick, like the alerts bell's, so the shell is built and that tick let through. */
+    const shellAfterFirstPoll = (roles: string[]) => {
+      const fixture = createFixture(roles);
+      tick(1);
+      fixture.detectChanges();
+      return fixture;
+    };
+
+    it('counts the open tickets on the icon, and says so to a screen reader and in the tooltip', fakeAsync(() => {
+      openTickets = [{ id: 't1' }, { id: 't2' }, { id: 't3' }];
+
+      const root = shellAfterFirstPoll(['PlatformSuperAdmin']).nativeElement as HTMLElement;
+
+      expect(badge(root)?.textContent?.trim()).toBe('3');
+      expect(link(root).getAttribute('aria-label')).toBe('Tickets, 3 open');
+      // Only the tickets nobody has picked up are counted: the badge asks for Open ones.
+      expect(ticketService.getAll).toHaveBeenCalledWith('Open');
+      discardPeriodicTasks();
+    }));
+
+    it('shows no badge when nothing is open', fakeAsync(() => {
+      const root = shellAfterFirstPoll(['PlatformSuperAdmin']).nativeElement as HTMLElement;
+
+      expect(badge(root)).toBeNull();
+      expect(link(root).getAttribute('aria-label')).toBe('Tickets');
+      discardPeriodicTasks();
+    }));
+
+    it('caps the badge at 9+ like the alerts bell', fakeAsync(() => {
+      openTickets = Array.from({ length: 14 }, (_, i) => ({ id: 't' + i }));
+
+      const root = shellAfterFirstPoll(['PlatformSuperAdmin']).nativeElement as HTMLElement;
+
+      expect(badge(root)?.textContent?.trim()).toBe('9+');
+      expect(link(root).getAttribute('aria-label')).toBe('Tickets, 14 open');
+      discardPeriodicTasks();
+    }));
+
+    it('is never asked for by a tenant, who has no tickets', fakeAsync(() => {
+      openTickets = [{ id: 't1' }];
+
+      const root = shellAfterFirstPoll(['Admin']).nativeElement as HTMLElement;
+
+      expect(badge(root)).toBeNull();
+      expect(ticketService.getAll).not.toHaveBeenCalled();
+      discardPeriodicTasks();
+    }));
+
+    it('is read again as the operator moves between pages and every minute, so a resolved ticket leaves the count', fakeAsync(() => {
+      openTickets = [{ id: 't1' }, { id: 't2' }];
+      const fixture = shellAfterFirstPoll(['PlatformSuperAdmin']);
+      expect(badge(fixture.nativeElement)?.textContent?.trim()).toBe('2');
+
+      // One is resolved on the Tickets page; the next poll (and any page change) sees it.
+      openTickets = [{ id: 't2' }];
+      tick(60 * 1000);
+      fixture.detectChanges();
+      expect(badge(fixture.nativeElement)?.textContent?.trim()).toBe('1');
+
+      openTickets = [];
+      (fixture.componentInstance as unknown as { refreshOpenTickets(): void }).refreshOpenTickets();
+      fixture.detectChanges();
+      expect(badge(fixture.nativeElement)).toBeNull();
+      discardPeriodicTasks();
+    }));
+  });
+
+  it('shows no Tickets button to a tenant, who has no platform console', () => {
+    const root = render(['Admin']);
+
+    expect(root.querySelector('[data-testid=tickets-link]')).toBeNull();
+  });
+
+  it('still names the Tickets and Background Jobs pages in the toolbar, though neither is in the sidebar', () => {
+    const fixture = createFixture(['PlatformSuperAdmin']);
+    const heading = (url: string) => {
+      // What the router's NavigationEnd hands the shell, without needing routes in a test module.
+      (fixture.componentInstance as unknown as { updateHeading(url: string): void }).updateHeading(url);
+      fixture.detectChanges();
+      return {
+        title: ((fixture.nativeElement as HTMLElement).querySelector('.toolbar-title')?.textContent ?? '').trim(),
+        category: ((fixture.nativeElement as HTMLElement).querySelector('.toolbar-category')?.textContent ?? '').trim(),
+      };
+    };
+
+    expect(heading('/platform/tickets')).toEqual({ title: 'Tickets', category: 'Support' });
+    expect(heading('/platform/tickets?status=open')).toEqual({ title: 'Tickets', category: 'Support' });
+    expect(heading('/platform/jobs')).toEqual({ title: 'Background Jobs', category: 'Infrastructure' });
+
+    // A page that is in the sidebar keeps its own name.
+    expect(heading('/platform/tenants/42')).toEqual({ title: 'Tenants', category: 'Tenants' });
   });
 
   describe('platform alerts bell', () => {

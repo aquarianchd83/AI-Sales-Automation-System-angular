@@ -1,0 +1,90 @@
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+
+  img {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    padding: 8px;
+    background: #fff;
+  }
+
+  ol {
+    margin: 0;
+    padding-left: 20px;
+    max-width: 420px;
+  }
+}
+
+.warn {
+  color: #b3261e;
+  margin: 8px 0;
+}
+
+.section {
+  padding: 16px 20px !important;
+  border-radius: 12px !important;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.54);
+  }
+}
+
+.section-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
+  margin: 0 0 12px;
+
+  dt {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.54);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 13px;
+    text-align: right;
+  }
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.hint {
+  font-size: 12px;
+  margin: 8px 0 0;
+}

@@ -13,6 +13,9 @@ import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-l
 import { PlatformBillingComponent } from './platform-billing/platform-billing.component';
 import { PlatformDashboardComponent } from './platform-dashboard/platform-dashboard.component';
 import { PlatformPaymentListComponent } from './platform-payment-list/platform-payment-list.component';
+import { PlatformRevenueComponent } from './platform-revenue/platform-revenue.component';
+import { PlatformTenantNotificationsComponent } from './platform-tenant-notifications/platform-tenant-notifications.component';
+import { PlatformTenantPaymentsComponent } from './platform-tenant-payments/platform-tenant-payments.component';
 import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dialog/platform-job-schedule-dialog.component';
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
 import { PlatformEmbeddingSettingsComponent } from './platform-embedding-settings/platform-embedding-settings.component';
@@ -31,12 +34,16 @@ import { PlatformShellComponent } from './platform-shell/platform-shell.componen
 import { PlatformTicketsComponent } from './platform-tickets/platform-tickets.component';
 import { PlatformStudioQuestionnairesComponent } from './platform-studio-questionnaires/platform-studio-questionnaires.component';
 import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
+import { PlatformTenantProviderComponent } from './platform-tenant-provider/platform-tenant-provider.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
+import { PlatformTenantJobsDialogComponent } from './platform-tenant-jobs-dialog/platform-tenant-jobs-dialog.component';
+import { PlatformTenantPurgeDialogComponent } from './platform-tenant-purge-dialog/platform-tenant-purge-dialog.component';
 import { PlatformTenantFormDialogComponent } from './platform-tenant-form-dialog/platform-tenant-form-dialog.component';
 import { PlatformTenantListComponent } from './platform-tenant-list/platform-tenant-list.component';
 import { PlatformTenantWhatsAppConfigDialogComponent } from './platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
 import { PlatformCreditPayersComponent } from './platform-credit-payers/platform-credit-payers.component';
 import { PlatformWalletComponent } from './platform-wallet/platform-wallet.component';
+import { PlatformServiceMarginsComponent } from './platform-service-margins/platform-service-margins.component';
 import { PlatformCreditRedeemDialogComponent } from './platform-credit-payers/platform-credit-redeem-dialog.component';
 import { PlatformCreditWalletDialogComponent } from './platform-credit-payers/platform-credit-wallet-dialog.component';
 import { PlatformUsageComponent } from './platform-usage/platform-usage.component';
@@ -47,7 +54,6 @@ import { PlatformMessageTemplatesComponent } from './platform-message-templates/
 import { PlatformTemplateEditDialogComponent } from './platform-template-edit-dialog/platform-template-edit-dialog.component';
 import { PlatformTemplateTestDialogComponent } from './platform-template-test-dialog/platform-template-test-dialog.component';
 import { PlatformWhatsAppProviderComponent } from './platform-whatsapp-provider/platform-whatsapp-provider.component';
-import { PlatformTenantQrChannelComponent } from './platform-tenant-qr-channel/platform-tenant-qr-channel.component';
 import { PlatformWhatsAppSettingsComponent } from './platform-whatsapp-settings/platform-whatsapp-settings.component';
 
 const routes: Routes = [
@@ -65,7 +71,12 @@ const routes: Routes = [
       { path: 'usage', component: PlatformUsageComponent },
       // Who pays for each credit-spending scenario - the tenant or the platform - and who paid for each spend.
       { path: 'credit-payers', component: PlatformCreditPayersComponent },
+      // What each service costs us, what tenants are charged for it, and the margin.
+      { path: 'service-margins', component: PlatformServiceMarginsComponent },
       { path: 'wallet', component: PlatformWalletComponent },
+      { path: 'revenue', component: PlatformRevenueComponent },
+      // One tenant's payment history, opened from a tenant in the Revenue Report.
+      { path: 'revenue/tenants/:id', component: PlatformTenantPaymentsComponent },
       { path: 'payments', component: PlatformPaymentListComponent },
       { path: 'configuration', component: PlatformConfigurationComponent },
       // The same page, cut down to what the AI providers charge: WhatsApp message, lead discovery and AI conversation rates.
@@ -93,6 +104,8 @@ const routes: Routes = [
       { path: 'knowledge', component: PlatformKnowledgeComponent },
   { path: 'studio-questionnaires', component: PlatformStudioQuestionnairesComponent },
       { path: 'announcements', component: PlatformAnnouncementListComponent },
+      // What tenants were told, by mode (in-app, email, WhatsApp) and delivery status.
+      { path: 'tenant-notifications', component: PlatformTenantNotificationsComponent },
     ],
   },
 ];
@@ -104,7 +117,10 @@ const routes: Routes = [
     PlatformDashboardComponent,
     PlatformTenantListComponent,
     PlatformTenantDetailComponent,
+    PlatformTenantProviderComponent,
     PlatformTenantFormDialogComponent,
+    PlatformTenantJobsDialogComponent,
+    PlatformTenantPurgeDialogComponent,
     PlatformTenantWhatsAppConfigDialogComponent,
     PlatformTenantConfigOverridesDialogComponent,
     PlatformStudioQuestionnairesComponent,
@@ -115,9 +131,13 @@ const routes: Routes = [
     PlatformUsageComponent,
     PlatformCreditPayersComponent,
     PlatformWalletComponent,
+    PlatformServiceMarginsComponent,
     PlatformCreditWalletDialogComponent,
     PlatformCreditRedeemDialogComponent,
     PlatformPaymentListComponent,
+    PlatformRevenueComponent,
+    PlatformTenantPaymentsComponent,
+    PlatformTenantNotificationsComponent,
     PlatformConfigurationComponent,
     PlatformRefundListComponent,
     PlatformRefundReviewDialogComponent,
@@ -132,7 +152,6 @@ const routes: Routes = [
     PlatformProductSourcesComponent,
     PlatformWhatsAppSettingsComponent,
     PlatformWhatsAppProviderComponent,
-    PlatformTenantQrChannelComponent,
     PlatformMessageTemplatesComponent,
     PlatformTemplateEditDialogComponent,
     PlatformTemplateTestDialogComponent,

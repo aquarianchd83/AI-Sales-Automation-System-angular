@@ -1,0 +1,69 @@
+<mat-card class="panel" data-testid="conversation-panel">
+  <div class="panel-head">
+    <div class="who">
+      <strong class="who-name">{{ conversation?.customerName || conversation?.customerPhoneNumberE164 || 'Conversation' }}</strong>
+      <span class="muted who-phone" *ngIf="conversation?.customerName">{{ conversation?.customerPhoneNumberE164 }}</span>
+    </div>
+    <span class="spacer"></span>
+    <a mat-icon-button *ngIf="conversationId" [routerLink]="['/conversations', conversationId]" matTooltip="Open the full conversation" aria-label="Open the full conversation" data-testid="open-full">
+      <mat-icon>open_in_new</mat-icon>
+    </a>
+    <button mat-icon-button type="button" (click)="closed.emit()" matTooltip="Close" aria-label="Close the conversation panel" data-testid="close-panel">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="context muted" *ngIf="context" data-testid="context">{{ context }}</div>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <p class="muted failed" *ngIf="failed" data-testid="panel-failed">
+    The conversation could not be loaded. <button mat-button type="button" (click)="load()">Try again</button>
+  </p>
+
+  <ng-container *ngIf="conversation">
+    <div class="transcript" data-testid="transcript">
+      <p class="muted" *ngIf="!messages.length">No messages yet.</p>
+      <div *ngFor="let m of messages" class="msg-row" [class.outbound]="m.direction === MessageDirection.Outbound">
+        <div class="msg-bubble" [class.outbound]="m.direction === MessageDirection.Outbound" [class.failed]="m.status === MessageStatus.Failed">
+          <div class="msg-meta muted" *ngIf="m.templateName">Template: {{ m.templateName }}</div>
+          <div class="msg-text">{{ m.text || '-' }}</div>
+          <div class="msg-footer muted">
+            {{ m.sentAt || m.createdAt | zonedDate: 'short' }}
+            <span *ngIf="m.direction === MessageDirection.Outbound"> · {{ m.status }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form [formGroup]="composeForm" (ngSubmit)="send()" class="compose" data-testid="compose">
+      <mat-button-toggle-group formControlName="mode" class="compose-mode">
+        <mat-button-toggle value="text" [disabled]="!canSendText">Message</mat-button-toggle>
+        <mat-button-toggle value="template">Template</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <p class="window-hint muted" *ngIf="canAct && !canSendText" data-testid="window-closed">
+        The customer has not written in the last 24 hours, so free text can't be sent right now. Use a template instead.
+      </p>
+      <p class="window-hint muted" *ngIf="!canAct" data-testid="closed-conversation">This conversation is closed.</p>
+
+      <mat-form-field class="full-width" subscriptSizing="dynamic" *ngIf="composeForm.controls.mode.value === 'text'">
+        <mat-label>Message</mat-label>
+        <textarea matInput formControlName="text" rows="3" maxlength="4000" data-testid="message-box"></textarea>
+      </mat-form-field>
+
+      <mat-form-field class="full-width" subscriptSizing="dynamic" *ngIf="composeForm.controls.mode.value === 'template'">
+        <mat-label>Template</mat-label>
+        <mat-select formControlName="messageTemplateId" [disabled]="!canAct" data-testid="template-select">
+          <mat-option *ngFor="let t of approvedTemplates" [value]="t.id">{{ t.name }}</mat-option>
+        </mat-select>
+        <mat-hint *ngIf="!approvedTemplates.length">No approved, active templates available.</mat-hint>
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="!canSubmit" data-testid="send">
+        <mat-icon>send</mat-icon>
+        {{ sending ? 'Sending…' : 'Send' }}
+      </button>
+    </form>
+  </ng-container>
+</mat-card>

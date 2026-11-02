@@ -11,6 +11,8 @@ import {
   PlatformTenantDetail,
   PlatformTenantListItem,
   PlatformTenantQuery,
+  TenantNotificationEmail,
+  UpdateTenantNotificationEmailRequest,
 } from '../models/platform.model';
 import {
   TenantProfile,
@@ -58,6 +60,11 @@ export class PlatformTenantService {
     return this.http.post<void>(`${this.baseUrl}/${id}/delete`, {});
   }
 
+  /** Irreversibly removes the tenant and everything it owns. The API refuses unless `confirmSlug` equals the tenant's slug. */
+  purge(id: string, confirmSlug: string): Observable<{ tablesAffected: number; rowsDeleted: number }> {
+    return this.http.post<{ tablesAffected: number; rowsDeleted: number }>(`${this.baseUrl}/${id}/purge`, { confirmSlug });
+  }
+
   /** Issues a short-lived (30 min), no-refresh-token access token for the tenant's own admin -
    * audited on the backend. The caller (PlatformTenantListComponent/PlatformTenantDetailComponent)
    * is responsible for opening it in a new tab via ImpersonationSessionService, never for loading
@@ -75,6 +82,12 @@ export class PlatformTenantService {
   updateTimezone(id: string, timezone: string): Observable<TenantProfile> {
     const request: UpdateTenantTimezoneRequest = { timezone };
     return this.http.put<TenantProfile>(`${this.baseUrl}/${id}/timezone`, request);
+  }
+
+  /** Sets or clears where this tenant's notices (quota, billing, bookings...) are emailed. Empty clears it: they go to the owner's address again. Audited. */
+  updateNotificationEmail(id: string, email: string | null): Observable<TenantNotificationEmail> {
+    const request: UpdateTenantNotificationEmailRequest = { email: email?.trim() || null };
+    return this.http.put<TenantNotificationEmail>(`${this.baseUrl}/${id}/notification-email`, request);
   }
 
   /** Support-facing override of one tenant's country (and therefore plan pricing currency) — same

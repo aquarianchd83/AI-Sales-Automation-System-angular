@@ -1,0 +1,105 @@
+.intro {
+  margin-bottom: 16px;
+  padding: 16px;
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+.service-title,
+.pack-name {
+  font-weight: 600;
+}
+
+.pack-head,
+.pack-cell {
+  text-align: right;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.service-cell,
+.cost-cell,
+.charge-cell,
+.margin-cell {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  vertical-align: top;
+}
+
+.service-cell {
+  min-width: 200px;
+}
+
+.basis {
+  max-width: 280px;
+  margin-top: 4px;
+}
+
+.amount {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.credits-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.credits-field {
+  width: 90px;
+}
+
+.margin-percent {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2e7d32;
+}
+
+.loss {
+  color: #c62828;
+}
+
+.chip-warn {
+  color: #b26a00;
+  margin-top: 4px;
+  max-width: 240px;
+}
+
+.notes {
+  margin: 12px 16px 0;
+  padding-left: 18px;
+}
+
+.footnote {
+  margin: 12px 16px 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px;
+  position: sticky;
+  bottom: 0;
+  background: var(--mdc-elevated-card-container-color, #fff);
+
+  &.pending {
+    border-top: 2px solid #b26a00;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.unsaved {
+  margin-right: auto;
+  color: #b26a00;
+  font-size: 13px;
+}

@@ -105,11 +105,20 @@
             <button
               mat-icon-button
               type="button"
-              matTooltip="Delete"
+              matTooltip="Lock out (keeps data)"
               *ngIf="tenant.status !== TenantStatus.Deleted"
               (click)="delete(tenant)"
             >
-              <mat-icon>delete</mat-icon>
+              <mat-icon>lock</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              type="button"
+              color="warn"
+              matTooltip="Delete permanently (tenant, users, config, jobs and data)"
+              (click)="deletePermanently(tenant)"
+            >
+              <mat-icon>delete_forever</mat-icon>
             </button>
           </td>
         </ng-container>

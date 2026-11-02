@@ -77,11 +77,12 @@
                 <span *ngIf="row.customersFailed" class="warn-text"> · {{ row.customersFailed }} failed</span>
                 <div
                   class="warn-text sub quota-row"
-                  *ngIf="row.quotaExhausted"
-                  matTooltip="Your credits (or this month's limit for lead discovery) ran out partway through, so fewer customers were created than the batch size asked for. Buy credits or raise the limit."
+                  *ngIf="row.quotaExhausted || row.quotaStopReason"
+                  [matTooltip]="row.quotaStopReason || 'Your credits ran out partway through, so fewer customers were created than the batch size asked for. Buy credits or raise the limit.'"
                 >
-                  <span>Out of credits — stopped early</span>
-                  <a routerLink="/billing/wallet" (click)="$event.stopPropagation()">Buy credits</a>
+                  <span>{{ row.quotaExhausted ? 'Out of credits — stopped early' : 'Stopped — not out of credits' }}</span>
+                  <span class="quota-reason" *ngIf="row.quotaStopReason">{{ row.quotaStopReason }}</span>
+                  <a routerLink="/billing/wallet" (click)="$event.stopPropagation()">{{ row.quotaExhausted ? 'Buy credits' : 'Open wallet' }}</a>
                 </div>
               </td>
             </ng-container>

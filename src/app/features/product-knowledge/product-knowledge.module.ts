@@ -2,6 +2,8 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { SharedModule } from '../../shared/shared.module';
+import { CustomerQuestionDialogComponent } from './customer-questions/customer-question-dialog.component';
+import { CustomerQuestionsComponent } from './customer-questions/customer-questions.component';
 import { KnowledgeSourcesComponent } from './knowledge-sources/knowledge-sources.component';
 import { ProductAnswersComponent } from './product-answers/product-answers.component';
 import { ProductTestChatComponent } from './product-test-chat/product-test-chat.component';
@@ -13,11 +15,19 @@ const routes: Routes = [
   { path: 'sources', component: KnowledgeSourcesComponent },
   { path: 'answers', component: ProductAnswersComponent },
   { path: 'versions', component: PublishedKnowledgeComponent },
+  { path: 'questions', component: CustomerQuestionsComponent },
   { path: 'test-chat', component: ProductTestChatComponent },
 ];
 
 @NgModule({
-  declarations: [KnowledgeSourcesComponent, ProductAnswersComponent, PublishedKnowledgeComponent, ProductTestChatComponent],
+  declarations: [
+    KnowledgeSourcesComponent,
+    ProductAnswersComponent,
+    PublishedKnowledgeComponent,
+    ProductTestChatComponent,
+    CustomerQuestionsComponent,
+    CustomerQuestionDialogComponent,
+  ],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })
 export class ProductKnowledgeModule {}

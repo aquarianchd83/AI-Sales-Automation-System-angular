@@ -1,0 +1,145 @@
+<div class="page">
+  <app-page-header
+    title="Demos scheduled"
+    subtitle="What customers agreed with your AI assistant: a demo, a visit or an appointment. Be ready for each one - the AI confirms the time the customer chose, and your team does the rest. Mark each Done once it happens, or Reschedule when the time has to change."
+  ></app-page-header>
+
+  <div class="layout" [class.layout--with-panel]="selected" data-testid="layout">
+    <mat-card class="table-card">
+      <div class="filters">
+        <mat-button-toggle-group [value]="statusFilter" (change)="setStatusFilter($event.value)" aria-label="Show bookings by status" data-testid="status-filter">
+          <mat-button-toggle *ngFor="let f of statusFilters" [value]="f.value">{{ f.label }}</mat-button-toggle>
+        </mat-button-toggle-group>
+        <mat-slide-toggle color="primary" [checked]="includeTests" (change)="setIncludeTests($event.checked)" data-testid="include-tests">
+          Include test chat bookings
+        </mat-slide-toggle>
+        <span class="spacer"></span>
+        <span class="muted" *ngIf="!loading" data-testid="count">{{ page.totalCount }} booking{{ page.totalCount === 1 ? '' : 's' }}</span>
+      </div>
+
+      <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+      <p class="muted failed" *ngIf="failed" data-testid="failed">
+        The bookings could not be loaded. <button mat-button type="button" (click)="load()">Try again</button>
+      </p>
+
+      <div class="table-scroll">
+        <table mat-table [dataSource]="page.items" data-testid="bookings-table">
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Booked</th>
+            <td mat-cell *matCellDef="let b">{{ b.createdAtUtc | zonedDate: 'medium' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="customer">
+            <th mat-header-cell *matHeaderCellDef>Customer</th>
+            <td mat-cell *matCellDef="let b">
+              <ng-container *ngIf="b.isTest; else real">
+                <span class="status-chip" data-testid="test-chip">Test chat</span>
+              </ng-container>
+              <ng-template #real>
+                <span class="primary-cell">{{ b.customerName || b.customerPhone || 'Customer' }}</span>
+                <div class="muted phone-cell" *ngIf="b.customerName && b.customerPhone">{{ b.customerPhone }}</div>
+              </ng-template>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="kind">
+            <th mat-header-cell *matHeaderCellDef>Type</th>
+            <td mat-cell *matCellDef="let b"><span class="status-chip status-chip--opted-in">{{ b.kind }}</span></td>
+          </ng-container>
+
+          <ng-container matColumnDef="summary">
+            <th mat-header-cell *matHeaderCellDef>What was agreed</th>
+            <td mat-cell *matCellDef="let b" class="summary-cell">
+              {{ b.summary }}
+              <div class="new-slot" *ngIf="b.status === 'Reschedule'" data-testid="new-slot">
+                <ng-container *ngIf="b.newSlotUtc; else noSlot"><strong>New time:</strong> {{ slotText(b) }}</ng-container>
+                <ng-template #noSlot><span class="muted">New time not picked yet</span></ng-template>
+              </div>
+              <div class="new-slot" *ngIf="b.customerEmail" data-testid="customer-email">
+                <strong>Email:</strong> {{ b.customerEmail }}
+                <span *ngIf="b.confirmationStatus === 'Sent'" class="muted">- confirmation emailed</span>
+                <span *ngIf="b.confirmationStatus && b.confirmationStatus !== 'Sent'" class="muted">- confirmation NOT sent{{ b.confirmationNote ? ' (' + b.confirmationNote + ')' : '' }}</span>
+              </div>
+              <div class="new-slot" *ngIf="b.status === 'Reschedule' && b.rescheduleReason" data-testid="reschedule-reason">
+                <strong>Reason:</strong> {{ b.rescheduleReason }}
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let b">
+              <mat-form-field class="status-field" subscriptSizing="dynamic">
+                <mat-select
+                  [value]="b.status"
+                  [disabled]="saving.has(b.id)"
+                  (selectionChange)="changeStatus(b, $event.value)"
+                  [attr.aria-label]="'Status of the ' + b.kind.toLowerCase() + ' for ' + (b.customerName || b.customerPhone || 'the customer')"
+                  data-testid="status-select"
+                >
+                  <mat-option *ngFor="let s of statuses" [value]="s">{{ s }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <button mat-button type="button" class="change-time" *ngIf="b.status === 'Reschedule'" [disabled]="saving.has(b.id)" (click)="reschedule(b)" data-testid="change-time">
+                {{ b.newSlotUtc ? 'Change time' : 'Pick a time' }}
+              </button>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef aria-label="Conversation"></th>
+            <td mat-cell *matCellDef="let b" class="actions-cell">
+              <button
+                mat-stroked-button
+                type="button"
+                *ngIf="b.conversationId || b.customerEmail"
+                (click)="sendDetails(b)"
+                matTooltip="Email or WhatsApp the customer a meeting link or any other detail"
+                data-testid="send-details"
+              >
+                <mat-icon>forward_to_inbox</mat-icon>
+                Send details
+              </button>
+              <ng-container *ngIf="b.conversationId">
+                <button mat-stroked-button type="button" (click)="openConversation(b)" [class.active]="selected?.id === b.id" data-testid="message-button">
+                  <mat-icon>chat</mat-icon>
+                  Message
+                </button>
+                <a mat-icon-button [routerLink]="['/conversations', b.conversationId]" matTooltip="Open the conversation" aria-label="Open the conversation" data-testid="conversation-link">
+                  <mat-icon>open_in_new</mat-icon>
+                </a>
+              </ng-container>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" [class.row-selected]="selected?.id === row.id"></tr>
+        </table>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && !failed && !page.items.length" data-testid="empty">
+        <mat-icon class="empty-icon">event_available</mat-icon>
+        <p *ngIf="!statusFilter">No demos scheduled yet. When a customer agrees one with your AI assistant, it appears here and you are told straight away.</p>
+        <p *ngIf="statusFilter">No {{ statusFilter }} bookings.</p>
+      </div>
+
+      <mat-paginator
+        [length]="page.totalCount"
+        [pageSize]="page.pageSize"
+        [pageIndex]="page.page - 1"
+        [pageSizeOptions]="pageSizeOptions"
+        showFirstLastButtons
+        (page)="onPage($event)"
+      ></mat-paginator>
+    </mat-card>
+
+    <app-booking-conversation-panel
+      *ngIf="selected?.conversationId as conversationId"
+      [conversationId]="conversationId"
+      [context]="panelContext(selected!)"
+      [draft]="draft"
+      (closed)="closePanel()"
+    ></app-booking-conversation-panel>
+  </div>
+</div>

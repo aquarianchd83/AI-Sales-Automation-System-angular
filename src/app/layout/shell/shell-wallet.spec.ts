@@ -13,6 +13,7 @@ import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { OnboardingService } from '../../core/services/onboarding.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { PlatformTicketService } from '../../core/services/platform-ticket.service';
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
@@ -41,6 +42,7 @@ describe('ShellComponent wallet balance', () => {
         { provide: ContentStudioService, useValue: { getStatus: () => of({ enabled: false }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]), getEntitlements: () => of(null) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of([]) } },
+        { provide: PlatformTicketService, useValue: { getAll: () => of([]) } },
         { provide: PlatformWalletService, useValue: { summary$: of({ balance: platformBalance, topUpCount: 1, lastTopUpDate: '2026-10-23' }), refresh: () => undefined } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: NotificationHubService, useValue: { connect: () => undefined, disconnect: () => undefined, notificationReceived$: NEVER } },
@@ -65,7 +67,7 @@ describe('ShellComponent wallet balance', () => {
     fixture.detectChanges();
 
     const items = Array.from(document.querySelectorAll('.mat-mdc-menu-panel a')).map((e) => ({ label: text(e), href: e.getAttribute('href') }));
-    expect(items.map((i) => i.label)).toEqual(['historySpend credit history', 'data_usageUsage & credits', 'price_checkCredit costs']);
+    expect(items.map((i) => i.label)).toEqual(['historySpend credit history', 'data_usageUsage & credits', 'price_checkCredit cap']);
     expect(items[0].href).toBe('/billing/credit-usage');
     expect(items[2].href).toBe('/billing/credit-costs');
   });

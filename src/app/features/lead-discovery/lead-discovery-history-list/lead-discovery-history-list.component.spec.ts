@@ -209,6 +209,18 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it('says a used-up monthly limit is a limit, not missing credits, and points to the wallet instead of buying credits', () => {
+    const reason = 'Lead discovery has used its monthly limit of 25 credits. Your wallet still has 813 credits.';
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ quotaExhausted: false, quotaStopReason: reason })] }]);
+
+    const row = text();
+
+    expect(row).toContain(reason);
+    expect(row).toContain('Open wallet');
+    expect(row).not.toContain('Out of credits');
+    expect(row).not.toContain('Buy credits');
+  });
+
   it('hides the row-level buy-credits link when the quota was not exhausted', () => {
     create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ quotaExhausted: false })] }]);
 

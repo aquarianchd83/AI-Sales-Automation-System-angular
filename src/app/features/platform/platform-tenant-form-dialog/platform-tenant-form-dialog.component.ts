@@ -1,6 +1,6 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormControl, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormControl, ValidationErrors, Validators } from '@angular/forms';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { MatDialogRef } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
@@ -21,6 +21,15 @@ import { PlatformTenantService } from '../../../core/services/platform-tenant.se
 import { TimeZoneService } from '../../../core/services/timezone.service';
 
 const L = TENANT_PROFILE_LIMITS;
+
+/** Mirrors the API's PasswordPolicy (ASP.NET Identity rules) so a weak password is caught here, not after a failed save. */
+function passwordPolicy(control: AbstractControl): ValidationErrors | null {
+  const v: string = control.value ?? '';
+  if (!v) {
+    return null;
+  }
+  return /[A-Z]/.test(v) && /[a-z]/.test(v) && /[0-9]/.test(v) && /[^A-Za-z0-9]/.test(v) ? null : { policy: true };
+}
 
 /** The optional controls that live in the collapsible Business details section. */
 const DETAIL_CONTROLS = [
@@ -93,7 +102,7 @@ export class PlatformTenantFormDialogComponent implements OnInit {
     slug: ['', [Validators.pattern('^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$')]],
     adminFullName: ['', [Validators.required, Validators.maxLength(200)]],
     adminEmail: ['', [Validators.required, Validators.email]],
-    adminPassword: ['', [Validators.required, Validators.minLength(8)]],
+    adminPassword: ['', [Validators.required, Validators.minLength(8), passwordPolicy]],
     countryCode: [''],
     stateCode: [''],
     timezone: [''],

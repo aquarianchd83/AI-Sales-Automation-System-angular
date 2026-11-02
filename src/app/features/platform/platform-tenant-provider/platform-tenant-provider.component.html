@@ -1,0 +1,33 @@
+<mat-card class="section">
+  <div class="section-head">
+    <span class="section-icon"><mat-icon>swap_horiz</mat-icon></span>
+    <div>
+      <h3>WhatsApp connection type</h3>
+      <p>Decides what this tenant sees on its WhatsApp Settings page.</p>
+    </div>
+  </div>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+  <p class="muted" *ngIf="loadFailed">
+    The setting could not be loaded. <button mat-button type="button" (click)="load()">Try again</button>
+  </p>
+
+  <ng-container *ngIf="current && !loadFailed">
+    <mat-radio-group class="choices" [(ngModel)]="selected" [disabled]="saving" aria-label="WhatsApp connection type">
+      <mat-radio-button [value]="FOLLOW_PLATFORM" data-testid="provider-default">
+        Follow the platform setting <span class="muted">(currently {{ nameOf(current.platformDefault) }})</span>
+      </mat-radio-button>
+      <mat-radio-button value="Meta" data-testid="provider-meta">Meta Cloud API for this tenant</mat-radio-button>
+      <mat-radio-button value="QrBridge" data-testid="provider-qr">QR code for this tenant</mat-radio-button>
+    </mat-radio-group>
+
+    <p class="muted hint">
+      In use now: <strong data-testid="provider-effective">{{ nameOf(current.effective) }}</strong>.
+    </p>
+
+    <div class="card-actions">
+      <button mat-flat-button color="primary" type="button" [disabled]="pristine || saving" (click)="save()">Save</button>
+      <button mat-button type="button" [disabled]="pristine || saving" (click)="discard()">Discard</button>
+    </div>
+  </ng-container>
+</mat-card>

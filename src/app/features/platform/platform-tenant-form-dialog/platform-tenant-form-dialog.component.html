@@ -55,9 +55,12 @@
       >
         <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
       </button>
-      <mat-hint>Share it securely; the new admin changes it from their own account.</mat-hint>
+      <mat-hint>8+ characters with upper and lower case, a number and a symbol. Share it securely; the admin can change it later.</mat-hint>
       <mat-error *ngIf="form.controls.adminPassword.hasError('required')">
         A password is required.
+      </mat-error>
+      <mat-error *ngIf="form.controls.adminPassword.hasError('policy') && !form.controls.adminPassword.hasError('minlength')">
+        Include an uppercase letter, a lowercase letter, a number and a symbol.
       </mat-error>
       <mat-error *ngIf="form.controls.adminPassword.hasError('minlength')">
         Use at least 8 characters.

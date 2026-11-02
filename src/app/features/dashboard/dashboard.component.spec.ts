@@ -8,6 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { PlatformFeature } from '../../core/models/wallet.model';
 import { BillingService } from '../../core/services/billing.service';
+import { BookingService } from '../../core/services/booking.service';
 import { CampaignService } from '../../core/services/campaign.service';
 import { ConversationService } from '../../core/services/conversation.service';
 import { CustomerService } from '../../core/services/customer.service';
@@ -75,6 +76,7 @@ interface Setup {
 describe('DashboardComponent', () => {
   let fixture: ComponentFixture<DashboardComponent>;
   let tenantSettings: jasmine.SpyObj<TenantSettingsService>;
+  let bookings: { getPaged: jasmine.Spy };
 
   function create({ admin = true, fail = false, empty = false }: Setup = {}): string {
     const err = () => throwError(() => new Error('boom'));
@@ -106,6 +108,7 @@ describe('DashboardComponent', () => {
     };
     const campaignService = { getPaged: () => pick(page(empty ? [] : campaigns)) };
     const templates = { getPaged: () => pick(page([], 0)) };
+    bookings = { getPaged: jasmine.createSpy('getPaged').and.callFake(() => pick(page([], empty ? 0 : 5))) };
     const publishedKnowledge = { get: () => pick(of({ versions: empty ? [] : [{ id: 'v1' }] })) };
     tenantSettings = jasmine.createSpyObj('TenantSettingsService', ['getUsage', 'getWhatsAppConfig']);
     tenantSettings.getUsage.and.returnValue(
@@ -129,6 +132,7 @@ describe('DashboardComponent', () => {
         { provide: LeadService, useValue: leads },
         { provide: CampaignService, useValue: campaignService },
         { provide: MessageTemplateService, useValue: templates },
+        { provide: BookingService, useValue: bookings },
         { provide: PublishedKnowledgeService, useValue: publishedKnowledge },
         { provide: TenantSettingsService, useValue: tenantSettings },
         { provide: BillingService, useValue: billing },
@@ -139,6 +143,19 @@ describe('DashboardComponent', () => {
     fixture.detectChanges();
     return (fixture.nativeElement as HTMLElement).textContent ?? '';
   }
+
+  it('shows a Demos scheduled tile with the number of bookings, which opens the list of them', () => {
+    create();
+
+    const tile = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a.kpi')).find((k) => (k.textContent ?? '').includes('Demos scheduled')) as HTMLAnchorElement;
+
+    expect(tile).toBeDefined();
+    expect((tile.textContent ?? '').replace(/\s+/g, ' ')).toContain('5');
+    expect(tile.getAttribute('href')).toBe('/bookings');
+    // One row is enough: the count is the page's totalCount, and tests are not counted.
+    // Only what is not Done yet is counted.
+    expect(bookings.getPaged).toHaveBeenCalledWith({ page: 1, pageSize: 1 }, { outstanding: true });
+  });
 
   it('greets the user and renders every widget with data', () => {
     const text = create();

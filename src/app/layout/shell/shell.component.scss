@@ -469,6 +469,15 @@ button.wallet-chip {
   position: relative;
 }
 
+/* The Tickets button in the platform console's top bar: marked while the Tickets page is open, like a sidebar entry would be. */
+.tickets-link {
+  position: relative; /* the badge (.bell-count) sits on its corner, as on the bell */
+}
+
+.tickets-link--active {
+  color: var(--mat-sys-primary, #00796b);
+}
+
 .bell-count {
   position: absolute;
   top: 4px;

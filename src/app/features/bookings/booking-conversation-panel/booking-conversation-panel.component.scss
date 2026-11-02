@@ -1,0 +1,111 @@
+.panel {
+  padding: 16px;
+  position: sticky;
+  top: 16px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.who-name {
+  font-size: 15px;
+}
+
+.who-phone {
+  font-size: 12px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.context {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(25, 118, 210, 0.08);
+  font-size: 12px;
+}
+
+.transcript {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msg-row {
+  display: flex;
+
+  &.outbound {
+    justify-content: flex-end;
+  }
+}
+
+.msg-bubble {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #f5f5f5;
+
+  &.outbound {
+    background: #e0f2f1;
+  }
+
+  &.failed {
+    background: #fdecea;
+  }
+}
+
+.msg-meta {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.msg-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+}
+
+.msg-footer {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.compose {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compose-mode {
+  align-self: flex-start;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.window-hint {
+  margin: 0;
+  font-size: 12px;
+}
+
+.failed {
+  margin: 8px 0;
+}

@@ -13,6 +13,7 @@ import {
 } from '../../../core/models/tenant-settings.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantSettingsService } from '../../../core/services/tenant-settings.service';
+import { TenantWhatsAppBridgeService } from '../../../core/services/tenant-whatsapp-bridge.service';
 import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 
 /**
@@ -67,8 +68,20 @@ export class TenantSettingsListComponent implements OnInit {
   savingMode = false;
   @ViewChild('modeGroup') private modeGroup?: MatButtonToggleGroup;
 
+  /**
+   * How this tenant connects WhatsApp, decided by the Platform Admin (globally, or for this tenant): 'QrBridge' shows the QR-code
+   * connection, anything else the Meta Cloud API setup. Until the answer arrives (or if it cannot be read) the Meta setup is
+   * shown, as before this choice existed.
+   */
+  provider = 'Meta';
+
+  get usesQr(): boolean {
+    return this.provider === 'QrBridge';
+  }
+
   constructor(
     private readonly tenantSettings: TenantSettingsService,
+    private readonly bridge: TenantWhatsAppBridgeService,
     private readonly notify: NotificationService,
     @Optional() @Inject(EMBEDDED_IN_ONBOARDING) embedded: boolean | null
   ) {
@@ -108,6 +121,11 @@ export class TenantSettingsListComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.bridge.getProvider().subscribe({
+      next: (p) => (this.provider = p.effective),
+      error: () => (this.provider = 'Meta'),
+    });
+
     // Both here and inside onboarding's WhatsApp step: "Connect with Meta" needs to know what is already connected.
     this.tenantSettings.getWhatsAppConfig().subscribe({
       next: (config) => {
