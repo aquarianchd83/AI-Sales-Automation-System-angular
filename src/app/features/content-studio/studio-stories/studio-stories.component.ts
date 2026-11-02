@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { Subject, forkJoin, interval } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
 
@@ -13,8 +14,10 @@ import {
   StoryCharacter,
   StoryClipScene,
   StoryCostEstimate,
+  StoryJobStatus,
   StoryProject,
   StoryProjectStatus,
+  StoryRender,
   StorySceneStatus,
   StoryScriptVersion,
 } from '../../../core/models/story-studio.model';
@@ -38,6 +41,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   readonly statusLabels = STORY_PROJECT_STATUS_LABELS;
   readonly statusEnum = StoryProjectStatus;
   readonly sceneStatus = StorySceneStatus;
+  readonly jobStatus = StoryJobStatus;
   readonly sceneStatusLabels = STORY_SCENE_STATUS_LABELS;
   readonly languages = ['Hinglish', 'Hindi', 'English'];
 
@@ -51,6 +55,10 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   dirty = false;
   estimate: StoryCostEstimate | null = null;
   scenes: StoryClipScene[] = [];
+  renders: StoryRender[] = [];
+  previewUrl: string | null = null;
+  previewSafeUrl: SafeUrl | null = null;
+  previewTitle = '';
   confirmCost = false;
   flagging: string | null = null;
   flagReason = '';
@@ -89,6 +97,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     private readonly studio: StoryStudioService,
     private readonly notifications: NotificationService,
     private readonly fb: FormBuilder,
+    private readonly sanitizer: DomSanitizer,
   ) {}
 
   ngOnInit(): void {
@@ -98,6 +107,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPolling$.next();
+    this.clearPreview();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -224,6 +234,8 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.dirty = false;
     this.estimate = null;
     this.scenes = [];
+    this.renders = [];
+    this.clearPreview();
     this.confirmCost = false;
     this.stopPolling$.next();
     if (project.status !== StoryProjectStatus.Draft) {
@@ -332,6 +344,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       this.scenes = scenes;
       this.refreshProjectStatus();
       this.pollWhileWorking();
+      this.loadRenders();
     });
   }
 
@@ -352,10 +365,77 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
 
   private pollWhileWorking(): void {
     this.stopPolling$.next();
-    if (!this.scenes.some((s) => s.status === StorySceneStatus.Queued || s.status === StorySceneStatus.Processing)) {
+    const clipsWorking = this.scenes.some((s) => s.status === StorySceneStatus.Queued || s.status === StorySceneStatus.Processing);
+    const renderWorking = this.renders.some((r) => r.status === StoryJobStatus.Queued || r.status === StoryJobStatus.Processing);
+    if (!clipsWorking && !renderWorking) {
       return;
     }
-    interval(5000).pipe(takeUntil(this.stopPolling$), takeUntil(this.destroy$)).subscribe(() => this.loadScenes());
+    interval(5000)
+      .pipe(takeUntil(this.stopPolling$), takeUntil(this.destroy$))
+      .subscribe(() => (clipsWorking ? this.loadScenes() : this.loadRenders()));
+  }
+
+  get latestRender(): StoryRender | null {
+    return this.renders[0] ?? null;
+  }
+
+  private loadRenders(): void {
+    if (!this.selected) {
+      return;
+    }
+    const id = this.selected.id;
+    this.studio.listRenders(id).pipe(takeUntil(this.destroy$)).subscribe((renders) => {
+      if (this.selected?.id !== id) {
+        return;
+      }
+      this.renders = renders;
+      this.pollWhileWorking();
+    });
+  }
+
+  putTogether(): void {
+    if (!this.selected || this.busy) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .startRender(this.selected.id)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe((render) => {
+        this.renders = [render, ...this.renders];
+        this.pollWhileWorking();
+      });
+  }
+
+  /** Plays a clip or the finished video in place, from a temporary address that only this browser tab can use. */
+  preview(source: 'video' | 'clip', id: string, title: string): void {
+    const request = source === 'video' ? this.studio.downloadVideo(id) : this.studio.downloadClip(id);
+    request.pipe(takeUntil(this.destroy$)).subscribe((blob) => {
+      this.clearPreview();
+      this.previewUrl = URL.createObjectURL(blob);
+      // An address this tab just made for a file it downloaded itself, so it is safe to trust.
+      this.previewSafeUrl = this.sanitizer.bypassSecurityTrustUrl(this.previewUrl);
+      this.previewTitle = title;
+    });
+  }
+
+  download(render: StoryRender): void {
+    this.studio.downloadVideo(render.id).pipe(takeUntil(this.destroy$)).subscribe((blob) => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${this.selected?.title ?? 'story'}.mp4`;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  clearPreview(): void {
+    if (this.previewUrl) {
+      URL.revokeObjectURL(this.previewUrl);
+    }
+    this.previewUrl = null;
+    this.previewSafeUrl = null;
   }
 
   makeClips(): void {

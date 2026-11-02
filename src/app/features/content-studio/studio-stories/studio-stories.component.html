@@ -214,6 +214,10 @@
             <p class="muted small prompt">{{ s.videoPrompt }}</p>
             <p class="warn small" *ngIf="s.error">{{ s.error }}</p>
             <p class="warn small" *ngIf="s.flagReason">Flagged: {{ s.flagReason }}</p>
+            <button mat-button *ngIf="s.actualMilliseconds" (click)="preview('clip', s.id, 'Scene ' + s.index)" [attr.data-play]="s.index">
+              <mat-icon>play_circle</mat-icon>
+              Watch this clip
+            </button>
 
             <div class="actions" *ngIf="p.videoProvider === 2 && s.status !== sceneStatus.Pending && s.status !== sceneStatus.Queued && s.status !== sceneStatus.Processing">
               <input #clipFile type="file" accept="video/mp4,video/quicktime,video/webm" hidden (change)="uploadClip(s, clipFile)" />
@@ -258,9 +262,48 @@
           <p class="muted small" *ngIf="p.videoProvider === 2 && anyToStart">
             Copy each scene's prompt into Google Flow, generate a vertical clip, and upload it here.
           </p>
-          <p class="muted small" *ngIf="p.status === statusEnum.InReview" data-testid="in-review">
-            Every scene has a clip. Putting them together with voice and subtitles comes next and is not built yet.
+        </mat-card>
+
+        <!-- Every scene has a clip: put the story together, check it, take it. -->
+        <mat-card class="section-card" *ngIf="p.status === statusEnum.InReview || renders.length" data-testid="video">
+          <h3>The video</h3>
+          <p class="muted small">
+            The scenes are joined in order into one vertical video, with the dialogue as subtitles. The voices come from the clips themselves.
           </p>
+          <div class="actions">
+            <button mat-flat-button color="primary" (click)="putTogether()" data-testid="put-together"
+              [disabled]="busy || p.status !== statusEnum.InReview || latestRender?.status === jobStatus.Queued || latestRender?.status === jobStatus.Processing">
+              <mat-icon>movie_filter</mat-icon>
+              {{ latestRender ? 'Put it together again' : 'Put the video together' }}
+            </button>
+          </div>
+
+          <div class="scene" *ngIf="latestRender as r" data-testid="render">
+            <div class="scene-head">
+              <strong>Latest attempt</strong>
+              <span class="badge" [class.ok]="r.status === jobStatus.Completed" [class.bad]="r.status === jobStatus.Failed">
+                {{ r.status === jobStatus.Completed ? 'Ready' : r.status === jobStatus.Failed ? 'Failed' : 'Being put together' }}
+              </span>
+              <span class="muted small" *ngIf="r.durationSeconds">{{ r.durationSeconds | number: '1.0-1' }} seconds</span>
+            </div>
+            <p class="warn small" *ngIf="r.error">{{ r.error }}</p>
+            <div class="actions" *ngIf="r.hasVideo">
+              <button mat-stroked-button (click)="preview('video', r.id, 'Final video')" data-testid="play-final">
+                <mat-icon>play_arrow</mat-icon>
+                Watch it here
+              </button>
+              <button mat-stroked-button (click)="download(r)" data-testid="download-final">
+                <mat-icon>download</mat-icon>
+                Download MP4
+              </button>
+            </div>
+          </div>
+
+          <div class="preview" *ngIf="previewUrl" data-testid="preview">
+            <strong>{{ previewTitle }}</strong>
+            <video [src]="previewSafeUrl" controls playsinline></video>
+            <button mat-button (click)="clearPreview()">Close</button>
+          </div>
         </mat-card>
       </ng-container>
 

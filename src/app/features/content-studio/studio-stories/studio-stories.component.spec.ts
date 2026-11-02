@@ -10,6 +10,8 @@ import {
   StoryCharacterOrigin,
   StoryCharacterVisibility,
   StoryClipScene,
+  StoryJobStatus,
+  StoryRender,
   StorySceneStatus,
   StoryProject,
   StoryProjectStatus,
@@ -108,11 +110,12 @@ describe('StudioStoriesComponent', () => {
   function render(projects: StoryProject[] = [project()]): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
     ]);
     api.listProjects.and.returnValue(of(projects));
     api.listCharacters.and.returnValue(of([character('c1', 'Guru Ji'), character('c2', 'Sunita', { approvedReferenceId: 'r1' })]));
     api.listScenes.and.returnValue(of([]));
+    api.listRenders.and.returnValue(of([]));
     api.getCostEstimate.and.returnValue(of({ isKnown: false, clipUsd: 0, clipSeconds: 8, clips: 4, provider: 'Simulator', note: 'Free test clips.' }));
 
     TestBed.configureTestingModule({
@@ -179,8 +182,8 @@ describe('StudioStoriesComponent', () => {
   it('approves the script in place and says so', () => {
     render([project({ currentScriptVersionId: 'v1' })]);
     api.getScript.and.returnValue(of(script(false)));
-    api.approveScript.and.returnValue(of([]));
-    api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Pending)]));
+    api.approveScript.and.returnValue(of([]));
+    api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Pending)]));
     // After approving, the server reports the story as approved; the page reads it again.
     click('[data-project="p1"]');
 
@@ -260,6 +263,54 @@ describe('StudioStoriesComponent', () => {
       fixture.componentInstance.submitFlag(fixture.componentInstance.scenes[0]);
 
       expect(api.flagScene).toHaveBeenCalledWith("s1", "Lips do not match");
+    });
+  });
+
+  describe("video", () => {
+    const renderOf = (status: StoryJobStatus, over: Partial<StoryRender> = {}): StoryRender => ({
+      id: "r1", status, error: null, problems: [], durationSeconds: null, hasVideo: false, createdAt: "2026-11-02T09:00:00Z", ...over,
+    });
+    const inReview = () => project({ status: StoryProjectStatus.InReview, currentScriptVersionId: "v1" });
+
+    function open(renders: StoryRender[]): void {
+      render([inReview()]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Completed, { actualMilliseconds: 8000 })]));
+      api.listRenders.and.returnValue(of(renders));
+      click("[data-project=\"p1\"]");
+    }
+
+    it("offers to put the video together once every scene has a clip, and starts it", () => {
+      open([]);
+      api.startRender.and.returnValue(of(renderOf(StoryJobStatus.Queued)));
+
+      expect(text(root().querySelector("[data-testid=\"put-together\"]"))).toContain("Put the video together");
+      click("[data-testid=\"put-together\"]");
+
+      expect(api.startRender).toHaveBeenCalledWith("p1");
+      expect(text(root().querySelector("[data-testid=\"render\"]"))).toContain("Being put together");
+    });
+
+    it("does not let a second render start while one is running", () => {
+      open([renderOf(StoryJobStatus.Processing)]);
+
+      expect((root().querySelector("[data-testid=\"put-together\"]") as HTMLButtonElement).disabled).toBeTrue();
+    });
+
+    it("shows a finished video with watch and download, and a failure with its reason", () => {
+      open([renderOf(StoryJobStatus.Completed, { hasVideo: true, durationSeconds: 32 })]);
+
+      expect(text(root().querySelector("[data-testid=\"render\"]"))).toContain("Ready");
+      expect(text(root().querySelector("[data-testid=\"render\"]"))).toContain("32 seconds");
+      expect(root().querySelector("[data-testid=\"play-final\"]")).not.toBeNull();
+      expect(root().querySelector("[data-testid=\"download-final\"]")).not.toBeNull();
+    });
+
+    it("explains why a render failed", () => {
+      open([renderOf(StoryJobStatus.Failed, { error: "A scene has no finished clip." })]);
+
+      expect(text(root().querySelector("[data-testid=\"render\"]"))).toContain("A scene has no finished clip.");
+      expect(root().querySelector("[data-testid=\"play-final\"]")).toBeNull();
     });
   });
 });

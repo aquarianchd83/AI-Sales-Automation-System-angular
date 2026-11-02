@@ -180,3 +180,18 @@
 .prompt {
   margin: 4px 0;
 }
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.preview video {
+  max-height: 520px;
+  max-width: 100%;
+  border-radius: 8px;
+  background: #000;
+}

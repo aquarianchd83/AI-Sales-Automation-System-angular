@@ -198,6 +198,25 @@ export interface StoryClipScene {
   costUsd: number;
 }
 
+export enum StoryJobStatus {
+  Queued = 0,
+  Processing = 1,
+  Completed = 2,
+  Failed = 3,
+  Cancelled = 4,
+}
+
+/** One attempt at putting the clips together with subtitles. */
+export interface StoryRender {
+  id: string;
+  status: StoryJobStatus;
+  error: string | null;
+  problems: string[];
+  durationSeconds: number | null;
+  hasVideo: boolean;
+  createdAt: string;
+}
+
 export interface StoryScene {
   id: string;
   index: number;

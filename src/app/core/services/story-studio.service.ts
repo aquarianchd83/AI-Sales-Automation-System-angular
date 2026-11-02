@@ -13,6 +13,7 @@ import {
   StoryProject,
   StoryClipScene,
   StoryReference,
+  StoryRender,
   StoryScene,
   StoryScriptVersion,
 } from '../models/story-studio.model';
@@ -103,6 +104,24 @@ export class StoryStudioService {
 
   flagScene(sceneId: string, reason: string): Observable<StoryClipScene> {
     return this.http.post<StoryClipScene>(`${this.baseUrl}/scenes/${sceneId}/flag`, { reason });
+  }
+
+  listRenders(projectId: string): Observable<StoryRender[]> {
+    return this.http.get<StoryRender[]>(`${this.baseUrl}/projects/${projectId}/renders`);
+  }
+
+  /** Puts the clips together with subtitles. Runs in the background; poll listRenders. */
+  startRender(projectId: string): Observable<StoryRender> {
+    return this.http.post<StoryRender>(`${this.baseUrl}/projects/${projectId}/renders`, {});
+  }
+
+  /** The finished video as a file (the request carries the sign-in, so it cannot be a plain link). */
+  downloadVideo(renderId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/renders/${renderId}/video`, { responseType: 'blob' });
+  }
+
+  downloadClip(sceneId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/scenes/${sceneId}/clip`, { responseType: 'blob' });
   }
 
   approveScript(projectId: string): Observable<StoryScene[]> {
