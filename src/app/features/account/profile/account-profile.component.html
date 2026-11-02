@@ -22,6 +22,13 @@
         <mat-error *ngIf="form.controls.email.hasError('email')">Enter a valid email address.</mat-error>
       </mat-form-field>
 
+      <mat-form-field class="full-width" *ngIf="isProductOwner">
+        <mat-label>Email for platform alerts</mat-label>
+        <input matInput type="email" formControlName="notificationEmail" autocomplete="off" placeholder="Empty: your sign-in email" data-testid="notification-email" />
+        <mat-hint>Where platform alerts are emailed (a background job failing, setup needed). Leave empty to use your sign-in email. Signing in is not affected.</mat-hint>
+        <mat-error *ngIf="form.controls.notificationEmail.hasError('email')">Enter a valid email address.</mat-error>
+      </mat-form-field>
+
       <mat-form-field class="full-width">
         <mat-label>{{ isProductOwner ? 'WhatsApp number for urgent alerts' : 'Phone number' }}</mat-label>
         <input matInput type="tel" formControlName="phoneNumber" autocomplete="tel" placeholder="+91 98765 43210" data-testid="phone" />

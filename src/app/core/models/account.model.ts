@@ -19,6 +19,8 @@ export interface UserProfile {
   emailConfirmed?: boolean;
   /** True once the number on the profile has been proven with a texted code. Only a verified phone can receive a reset code. */
   phoneNumberConfirmed?: boolean;
+  /** Where this account's alerts are emailed instead of the sign-in address; null means the sign-in email. */
+  notificationEmail?: string | null;
 }
 
 /**
@@ -34,4 +36,6 @@ export interface UpdateUserProfileRequest {
   phoneNumber: string | null;
   timezone: string;
   countryCode: string | null;
+  /** Where alerts are emailed. Empty or null sends them to the sign-in email. Never changes how the user signs in. */
+  notificationEmail?: string | null;
 }

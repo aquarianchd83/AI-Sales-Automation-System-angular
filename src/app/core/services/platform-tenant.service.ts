@@ -11,6 +11,8 @@ import {
   PlatformTenantDetail,
   PlatformTenantListItem,
   PlatformTenantQuery,
+  TenantNotificationEmail,
+  UpdateTenantNotificationEmailRequest,
 } from '../models/platform.model';
 import {
   TenantProfile,
@@ -80,6 +82,12 @@ export class PlatformTenantService {
   updateTimezone(id: string, timezone: string): Observable<TenantProfile> {
     const request: UpdateTenantTimezoneRequest = { timezone };
     return this.http.put<TenantProfile>(`${this.baseUrl}/${id}/timezone`, request);
+  }
+
+  /** Sets or clears where this tenant's notices (quota, billing, bookings...) are emailed. Empty clears it: they go to the owner's address again. Audited. */
+  updateNotificationEmail(id: string, email: string | null): Observable<TenantNotificationEmail> {
+    const request: UpdateTenantNotificationEmailRequest = { email: email?.trim() || null };
+    return this.http.put<TenantNotificationEmail>(`${this.baseUrl}/${id}/notification-email`, request);
   }
 
   /** Support-facing override of one tenant's country (and therefore plan pricing currency) — same

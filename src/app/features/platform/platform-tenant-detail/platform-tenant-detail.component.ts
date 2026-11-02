@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormControl } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -60,6 +60,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   readonly timezoneControl = new FormControl<string | null>(null);
   readonly countryControl = new FormControl<string | null>(null);
   readonly stateControl = new FormControl<string>('', { nonNullable: true });
+  readonly notificationEmailControl = new FormControl<string>('', { nonNullable: true, validators: [Validators.email, Validators.maxLength(256)] });
 
   tenant: PlatformTenantDetail | null = null;
   plans: PlatformPlan[] = [];
@@ -70,6 +71,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   savingPlan = false;
   savingTimezone = false;
   savingCountry = false;
+  savingNotificationEmail = false;
 
   whatsAppConfig: TenantWhatsAppConfig | null = null;
   /** Which WhatsApp connection this tenant is on ('QrBridge' or the Meta Cloud API), reported by the connection-type panel. Decides which setup panel shows. */
@@ -322,6 +324,27 @@ export class PlatformTenantDetailComponent implements OnInit {
       });
   }
 
+  /** Where this tenant's notices are emailed now: the address set here, otherwise the owner's. */
+  get effectiveNotificationEmail(): string | null {
+    return this.tenant?.billingAlertEmail || this.tenant?.ownerEmail || null;
+  }
+
+  /** Saves the address, or clears it when the box is empty so notices go to the owner again. */
+  saveNotificationEmail(): void {
+    if (this.notificationEmailControl.invalid || this.savingNotificationEmail) {
+      this.notificationEmailControl.markAsTouched();
+      return;
+    }
+    this.savingNotificationEmail = true;
+    this.tenants
+      .updateNotificationEmail(this.tenantId, this.notificationEmailControl.value)
+      .pipe(finalize(() => (this.savingNotificationEmail = false)))
+      .subscribe((result) => {
+        this.notify.success(result.billingAlertEmail ? 'Notices now go to ' + result.billingAlertEmail + '.' : "Notices now go to the owner's address.");
+        this.load();
+      });
+  }
+
   saveCountryOverride(): void {
     const countryCode = this.countryControl.value;
     if (!countryCode || this.savingCountry) {
@@ -403,6 +426,8 @@ export class PlatformTenantDetailComponent implements OnInit {
       next: (tenant) => {
         this.tenant = tenant;
         this.stateControl.setValue(tenant.stateCode ?? '');
+        this.notificationEmailControl.setValue(tenant.billingAlertEmail ?? '');
+        this.notificationEmailControl.markAsPristine();
         // The countries switched on, plus this tenant's own if it has since been switched off.
         this.billingService.getRegions(tenant.countryCode).subscribe({ next: (regions) => (this.regions = regions) });
         this.loading = false;
