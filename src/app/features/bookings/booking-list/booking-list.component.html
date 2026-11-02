@@ -56,6 +56,14 @@
                 <ng-container *ngIf="b.newSlotUtc; else noSlot"><strong>New time:</strong> {{ slotText(b) }}</ng-container>
                 <ng-template #noSlot><span class="muted">New time not picked yet</span></ng-template>
               </div>
+              <div class="new-slot" *ngIf="b.customerEmail" data-testid="customer-email">
+                <strong>Email:</strong> {{ b.customerEmail }}
+                <span *ngIf="b.confirmationStatus === 'Sent'" class="muted">- confirmation emailed</span>
+                <span *ngIf="b.confirmationStatus && b.confirmationStatus !== 'Sent'" class="muted">- confirmation NOT sent{{ b.confirmationNote ? ' (' + b.confirmationNote + ')' : '' }}</span>
+              </div>
+              <div class="new-slot" *ngIf="b.status === 'Reschedule' && b.rescheduleReason" data-testid="reschedule-reason">
+                <strong>Reason:</strong> {{ b.rescheduleReason }}
+              </div>
             </td>
           </ng-container>
 
@@ -82,6 +90,17 @@
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef aria-label="Conversation"></th>
             <td mat-cell *matCellDef="let b" class="actions-cell">
+              <button
+                mat-stroked-button
+                type="button"
+                *ngIf="b.conversationId || b.customerEmail"
+                (click)="sendDetails(b)"
+                matTooltip="Email or WhatsApp the customer a meeting link or any other detail"
+                data-testid="send-details"
+              >
+                <mat-icon>forward_to_inbox</mat-icon>
+                Send details
+              </button>
               <ng-container *ngIf="b.conversationId">
                 <button mat-stroked-button type="button" (click)="openConversation(b)" [class.active]="selected?.id === b.id" data-testid="message-button">
                   <mat-icon>chat</mat-icon>

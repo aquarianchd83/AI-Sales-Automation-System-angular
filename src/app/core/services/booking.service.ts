@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Booking, BookingFilter, BookingStatus } from '../models/booking.model';
+import { Booking, BookingFilter, BookingMessage, BookingMessageResult, BookingStatus } from '../models/booking.model';
 import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.model';
 
 /** The demos, visits and appointments customers agreed with the AI. The dashboard tile reads totalCount of a one-row page. */
@@ -25,8 +25,22 @@ export class BookingService {
     });
   }
 
-  /** Pending, Done or Reschedule. With Reschedule, `newSlotLocal` is the new time as the tenant's clock reads it ("2026-11-04T11:00"); the API reads it in the tenant's zone. */
-  setStatus(id: string, status: BookingStatus, newSlotLocal?: string | null): Observable<Booking> {
-    return this.http.put<Booking>(`${this.baseUrl}/${id}/status`, { status, ...(newSlotLocal ? { newSlotLocal } : {}) });
+  /** Pending, Done or Reschedule. With Reschedule, `newSlotLocal` is the new time as the tenant's clock reads it ("2026-11-04T11:00"); the API reads it in the tenant's zone. Reschedule also needs a `reason`. */
+  setStatus(id: string, status: BookingStatus, newSlotLocal?: string | null, reason?: string | null, message?: BookingMessage | null): Observable<Booking> {
+    return this.http.put<Booking>(`${this.baseUrl}/${id}/status`, {
+      status,
+      ...(newSlotLocal ? { newSlotLocal } : {}),
+      ...(reason ? { reason } : {}),
+      ...(message ? { message: message.text, sendEmail: message.sendEmail, sendWhatsApp: message.sendWhatsApp } : {}),
+    });
+  }
+
+  /** Sends the customer of a booking a message - a meeting link, joining details, anything - by email, WhatsApp or both. Answers with how each channel went. */
+  message(id: string, message: BookingMessage): Observable<BookingMessageResult[]> {
+    return this.http.post<BookingMessageResult[]>(`${this.baseUrl}/${id}/message`, {
+      message: message.text,
+      sendEmail: message.sendEmail,
+      sendWhatsApp: message.sendWhatsApp,
+    });
   }
 }

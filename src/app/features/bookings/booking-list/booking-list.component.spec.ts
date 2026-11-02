@@ -4,7 +4,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
-import { Booking, BookingStatus } from '../../../core/models/booking.model';
+import { Booking, BookingMessage, BookingStatus } from '../../../core/models/booking.model';
 import { BookingService } from '../../../core/services/booking.service';
 import { ConversationService } from '../../../core/services/conversation.service';
 import { MessageTemplateService } from '../../../core/services/message-template.service';
@@ -35,6 +35,7 @@ describe('BookingListComponent', () => {
 
   function render(items: Booking[] | 'fail' = [booking()]) {
     const api = {
+      message: jasmine.createSpy('message').and.returnValue(of([{ channel: 'Email', status: 'Sent' }])),
       getPaged: jasmine.createSpy('getPaged').and.callFake(() => (items === 'fail' ? throwError(() => new Error('down')) : of(pageOf(items)))),
       setStatus: jasmine.createSpy('setStatus').and.callFake((id: string, status: BookingStatus) =>
         of({ ...(items === 'fail' ? booking() : items.find((b) => b.id === id)!), status })
@@ -230,16 +231,16 @@ describe('BookingListComponent', () => {
   // ----- rescheduling: picking a new slot -------------------------------------------------------------------------------------------------
 
   /** Stands in for the dialog: closes with what the test says, after running the save the dialog would run. */
-  function stubDialog(result: 'cancel' | { slot: string | null; writeMessage: boolean }) {
+  function stubDialog(result: 'cancel' | { slot: string | null; message?: BookingMessage | null }) {
     const dialog = TestBed.inject(MatDialog);
-    return spyOn(dialog, 'open').and.callFake(((_: unknown, config: { data: { save: (s: string | null) => any } }) => ({
+    return spyOn(dialog, 'open').and.callFake(((_: unknown, config: { data: { save: (s: string | null, reason: string, message: BookingMessage | null) => any } }) => ({
       afterClosed: () => {
         if (result === 'cancel') {
           return of(undefined);
         }
         let saved: unknown;
-        config.data.save(result.slot).subscribe((b: unknown) => (saved = b));
-        return of({ booking: saved, writeMessage: result.writeMessage });
+        config.data.save(result.slot, 'Customer asked', result.message ?? null).subscribe((b: unknown) => (saved = b));
+        return of({ booking: saved });
       },
     })) as any);
   }
@@ -270,12 +271,12 @@ describe('BookingListComponent', () => {
     api.setStatus.and.callFake((id: string, status: BookingStatus, slot?: string | null) =>
       of(booking({ id, status, newSlotUtc: slot ? '2099-11-04T05:30:00Z' : null }))
     );
-    stubDialog({ slot: '2099-11-04T11:00', writeMessage: false });
+    stubDialog({ slot: '2099-11-04T11:00' });
 
     fixture.componentInstance.changeStatus(fixture.componentInstance.page.items[0], 'Reschedule');
     await settle(fixture);
 
-    expect(api.setStatus).toHaveBeenCalledWith('b1', 'Reschedule', '2099-11-04T11:00');
+    expect(api.setStatus).toHaveBeenCalledWith('b1', 'Reschedule', '2099-11-04T11:00', 'Customer asked', null);
     expect(text(root.querySelector('[data-testid=new-slot]'))).toContain('New time:');
     expect(text(root.querySelector('[data-testid=new-slot]'))).toContain('11:00');
     expect(text(root.querySelector('[data-testid=change-time]'))).toBe('Change time');
@@ -286,28 +287,72 @@ describe('BookingListComponent', () => {
   it('can reschedule without a time, and offers to pick one later', async () => {
     const { fixture, api, root, notify } = render();
     api.setStatus.and.callFake((id: string, status: BookingStatus) => of(booking({ id, status })));
-    stubDialog({ slot: null, writeMessage: false });
+    stubDialog({ slot: null });
 
     fixture.componentInstance.changeStatus(fixture.componentInstance.page.items[0], 'Reschedule');
     await settle(fixture);
 
-    expect(api.setStatus).toHaveBeenCalledWith('b1', 'Reschedule', null);
+    expect(api.setStatus).toHaveBeenCalledWith('b1', 'Reschedule', null, 'Customer asked', null);
     expect(text(root.querySelector('[data-testid=new-slot]'))).toContain('New time not picked yet');
     expect(text(root.querySelector('[data-testid=change-time]'))).toBe('Pick a time');
     expect(notify.success).toHaveBeenCalledWith('Demo marked Reschedule.');
   });
 
-  it('opens the conversation with a message proposing the new time when the team asked for one', async () => {
-    const { fixture, api, root } = render();
-    api.setStatus.and.callFake((id: string, status: BookingStatus) => of(booking({ id, status, newSlotUtc: '2099-11-04T05:30:00Z' })));
-    stubDialog({ slot: '2099-11-04T11:00', writeMessage: true });
+  it('sends the message with the reschedule and says how it went', async () => {
+    const { fixture, api, notify } = render();
+    const message: BookingMessage = { text: 'Moved to 11:00. Zoom: https://zoom.example/abc', sendEmail: true, sendWhatsApp: true };
+    api.setStatus.and.callFake((id: string, status: BookingStatus) =>
+      of(booking({ id, status, newSlotUtc: '2099-11-04T05:30:00Z', messageResults: [{ channel: 'Email', status: 'Sent' }, { channel: 'WhatsApp', status: 'Sent' }] }))
+    );
+    stubDialog({ slot: '2099-11-04T11:00', message });
 
     fixture.componentInstance.changeStatus(fixture.componentInstance.page.items[0], 'Reschedule');
     await settle(fixture);
 
-    const box = root.querySelector('[data-testid=message-box]') as HTMLTextAreaElement;
-    expect(box.value).toContain('Hi Asha, we need to move your demo.');
-    expect(box.value).toContain('11:00');
+    expect(api.setStatus).toHaveBeenCalledWith('b1', 'Reschedule', '2099-11-04T11:00', 'Customer asked', message);
+    expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('Message sent by email and WhatsApp.'));
+  });
+
+  it('is plain when a message did not go: the booking is moved, and the team is told what to follow up', async () => {
+    const { fixture, api, notify } = render();
+    api.setStatus.and.callFake((id: string, status: BookingStatus) =>
+      of(booking({ id, status, messageResults: [{ channel: 'WhatsApp', status: 'Failed', note: 'the 24-hour window is closed' }] }))
+    );
+    stubDialog({ slot: null, message: { text: 'Hello', sendEmail: false, sendWhatsApp: true } });
+
+    fixture.componentInstance.changeStatus(fixture.componentInstance.page.items[0], 'Reschedule');
+    await settle(fixture);
+
+    expect(notify.success).not.toHaveBeenCalled();
+    expect(notify.error).toHaveBeenCalledWith('Demo marked Reschedule. WhatsApp not sent (the 24-hour window is closed).');
+    expect(fixture.componentInstance.page.items[0].status).toBe('Reschedule');
+  });
+
+  it('sends details to the customer from the list without changing the booking', async () => {
+    const { fixture, api, notify, root } = render([booking({ customerEmail: 'asha@example.com' })]);
+    const message: BookingMessage = { text: 'Join: https://zoom.example/abc', sendEmail: true, sendWhatsApp: false };
+    const open = spyOn(TestBed.inject(MatDialog), 'open').and.callFake(((_: unknown, config: { data: { send: (m: BookingMessage) => any } }) => ({
+      afterClosed: () => {
+        let results: unknown;
+        config.data.send(message).subscribe((r: unknown) => (results = r));
+        return of(results);
+      },
+    })) as any);
+    await settle(fixture);
+
+    (root.querySelector('[data-testid=send-details]') as HTMLButtonElement).click();
+
+    expect(open).toHaveBeenCalled();
+    expect(api.message).toHaveBeenCalledWith('b1', message);
+    expect(api.setStatus).not.toHaveBeenCalled();
+    expect(notify.success).toHaveBeenCalledWith('Message sent by email.');
+  });
+
+  it('offers to send details only when there is a way to reach the customer', async () => {
+    const { fixture, root } = render([booking({ id: 'a' }), booking({ id: 'b', conversationId: null, customerEmail: null })]);
+    await settle(fixture);
+
+    expect(root.querySelectorAll('[data-testid=send-details]').length).toBe(1);
   });
 
   it('does not offer to change the time of a booking that is not marked Reschedule', async () => {

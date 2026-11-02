@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>Send details to the customer</h2>
+
+<mat-dialog-content>
+  <p class="intro">
+    {{ data.booking.customerName || data.booking.customerPhone || 'The customer' }} - {{ data.booking.kind }}: {{ data.booking.summary }}
+  </p>
+
+  <form [formGroup]="form" (ngSubmit)="send()">
+    <mat-form-field class="message" subscriptSizing="dynamic">
+      <mat-label>Message</mat-label>
+      <textarea
+        matInput
+        formControlName="text"
+        rows="5"
+        maxlength="1000"
+        placeholder="e.g. Your demo is on Zoom: https://zoom.us/j/..."
+        data-testid="message"
+      ></textarea>
+      <mat-hint align="end">{{ form.controls.text.value.length }}/1000</mat-hint>
+      <mat-error *ngIf="form.controls.text.hasError('required') || form.controls.text.hasError('blank')">Write the message to send.</mat-error>
+    </mat-form-field>
+
+    <div class="channels">
+      <mat-checkbox formControlName="sendEmail" data-testid="send-email">Email{{ data.booking.customerEmail ? ' (' + data.booking.customerEmail + ')' : '' }}</mat-checkbox>
+      <mat-checkbox formControlName="sendWhatsApp" data-testid="send-whatsapp">WhatsApp</mat-checkbox>
+    </div>
+    <p class="note muted" *ngIf="!hasEmail" data-testid="no-email">No email address on file for this customer, so it cannot go by email.</p>
+    <p class="note muted" *ngIf="!hasConversation" data-testid="no-conversation">This booking has no WhatsApp conversation, so it cannot go by WhatsApp.</p>
+    <p class="note muted" *ngIf="hasConversation">
+      WhatsApp text only goes while the customer's 24-hour window is open; if it is closed you will be told, and can send an approved template from the conversation.
+    </p>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close data-testid="cancel">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="cannotSend" (click)="send()" data-testid="send">
+    {{ sending ? 'Sending…' : 'Send' }}
+  </button>
+</mat-dialog-actions>

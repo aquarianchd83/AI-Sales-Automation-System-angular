@@ -1,0 +1,117 @@
+<div class="page">
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Tenant, title or message" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+      <mat-form-field class="filter-select filter-kind" subscriptSizing="dynamic">
+        <mat-label>Type</mat-label>
+        <mat-select [formControl]="kindControl" data-testid="kind-filter">
+          <mat-option value="">All types</mat-option>
+          <mat-option *ngFor="let k of kinds" [value]="k.value">{{ k.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field class="filter-select" subscriptSizing="dynamic">
+        <mat-label>Mode</mat-label>
+        <mat-select [formControl]="channelControl" data-testid="channel-filter">
+          <mat-option value="">All</mat-option>
+          <mat-option value="InApp">In-app</mat-option>
+          <mat-option value="Email">Email</mat-option>
+          <mat-option value="WhatsApp">WhatsApp message</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field class="filter-select" subscriptSizing="dynamic">
+        <mat-label>Status</mat-label>
+        <mat-select [formControl]="statusControl" data-testid="status-filter">
+          <mat-option value="">All</mat-option>
+          <mat-option value="Pending">Pending</mat-option>
+          <mat-option value="Sent">Sent</mat-option>
+          <mat-option value="Failed">Failed</mat-option>
+          <mat-option value="Skipped">Skipped</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">{{ page.totalCount }} row{{ page.totalCount === 1 ? '' : 's' }}</span>
+    </div>
+
+    <p class="muted note">
+      Every notice sent to a tenant, one row per mode: the in-app alert, the email and the WhatsApp message. <strong>Pending</strong> has not been sent yet,
+      <strong>Failed</strong> was tried and did not go (the reason is under it), and <strong>Skipped</strong> did not apply - no address on file, or the tenant
+      turned that mode off. Newest first.
+    </p>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="page.items">
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created</th>
+          <td mat-cell *matCellDef="let row">{{ row.createdAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tenant">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let row">
+            <a [routerLink]="['/platform/tenants', row.tenantId]">{{ row.tenantName }}</a>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="notification">
+          <th mat-header-cell *matHeaderCellDef>Notification</th>
+          <td mat-cell *matCellDef="let row" class="notification-cell">
+            <strong>{{ row.title }}</strong>
+            <div class="muted kind">{{ kindLabel(row.kind) }}</div>
+            <div class="body">{{ row.body }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="channel">
+          <th mat-header-cell *matHeaderCellDef>Mode</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="channel" data-testid="channel">
+              <mat-icon>{{ channelIcon(row.channel) }}</mat-icon>
+              {{ channelLabel(row.channel) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span
+              class="status-chip"
+              data-testid="status"
+              [class.status-chip--opted-in]="row.status === 'Sent'"
+              [class.status-chip--scheduled]="row.status === 'Pending'"
+              [class.status-chip--opted-out]="row.status === 'Failed'"
+              [class.status-chip--inactive]="row.status === 'Skipped'"
+            >
+              {{ row.status }}
+            </span>
+            <div class="muted note-line" *ngIf="row.deliveryNote">{{ row.deliveryNote }}</div>
+            <div class="muted note-line" *ngIf="readNote(row) as read">{{ read }}</div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">notifications_off</mat-icon>
+      <p>No notifications match.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+</div>

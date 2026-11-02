@@ -3,19 +3,19 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 
-import { Booking, rescheduleDraft, slotLocal, slotText } from '../../../core/models/booking.model';
+import { Booking, messageOutcome, rescheduleMessage, slotLabelLocal, slotLocal, slotText } from '../../../core/models/booking.model';
 import { SharedModule } from '../../../shared/shared.module';
 import { BookingRescheduleDialogComponent } from './booking-reschedule-dialog.component';
 
 const booking = (over: Partial<Booking> = {}): Booking => ({
   id: 'b1', createdAtUtc: '2026-10-31T06:03:42Z', kind: 'Demo', summary: 'Demo on Mon 2 Nov at 4:00 PM IST', customerName: 'Asha Verma',
-  customerPhone: '+919000000001', conversationId: 'c1', isTest: false, status: 'Pending', newSlotUtc: null, ...over,
+  customerPhone: '+919000000001', conversationId: 'c1', isTest: false, status: 'Pending', newSlotUtc: null, customerEmail: 'asha@example.com', ...over,
 });
 
 describe('BookingRescheduleDialogComponent', () => {
   const text = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-  function render(over: { booking?: Booking; save?: jasmine.Spy } = {}) {
+  function render(over: { booking?: Booking; save?: jasmine.Spy; reason?: string } = {}) {
     const close = jasmine.createSpy('close');
     const save = over.save ?? jasmine.createSpy('save').and.callFake(() => of(booking({ status: 'Reschedule' })));
     TestBed.configureTestingModule({
@@ -27,6 +27,7 @@ describe('BookingRescheduleDialogComponent', () => {
       ],
     });
     const fixture = TestBed.createComponent(BookingRescheduleDialogComponent);
+    fixture.componentInstance.form.patchValue({ reason: over.reason ?? 'Customer asked to move it' });
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
     const button = () => root.querySelector('[data-testid=reschedule]') as HTMLButtonElement;
@@ -47,8 +48,8 @@ describe('BookingRescheduleDialogComponent', () => {
     button().click();
     fixture.detectChanges();
 
-    expect(save).toHaveBeenCalledWith(null);
-    expect(close).toHaveBeenCalledWith({ booking: jasmine.objectContaining({ status: 'Reschedule' }), writeMessage: true });
+    expect(save).toHaveBeenCalledWith(null, 'Customer asked to move it', jasmine.objectContaining({ sendEmail: true, sendWhatsApp: true }));
+    expect(close).toHaveBeenCalledWith({ booking: jasmine.objectContaining({ status: 'Reschedule' }) });
   });
 
   it('sends the picked day and time as the tenant\'s clock reads them', () => {
@@ -58,7 +59,29 @@ describe('BookingRescheduleDialogComponent', () => {
     fixture.detectChanges();
     button().click();
 
-    expect(save).toHaveBeenCalledWith('2099-11-04T11:00');
+    expect(save).toHaveBeenCalledWith('2099-11-04T11:00', 'Customer asked to move it', jasmine.anything());
+  });
+
+  it('will not save without a reason, and a reason of spaces is not one', () => {
+    const { fixture, root, button, save, c } = render({ reason: '' });
+
+    expect(button().disabled).toBeTrue();
+    c.save();
+    fixture.detectChanges();
+    expect(save).not.toHaveBeenCalled();
+    expect(text(root)).toContain('Say why the booking is being rescheduled.');
+
+    c.form.patchValue({ reason: '   ' });
+    fixture.detectChanges();
+    expect(button().disabled).toBeTrue();
+  });
+
+  it('sends the reason trimmed', () => {
+    const { button, save } = render({ reason: '  Customer is travelling  ' });
+
+    button().click();
+
+    expect(save).toHaveBeenCalledWith(null, 'Customer is travelling', jasmine.anything());
   });
 
   it('will not save half a time', () => {
@@ -73,17 +96,82 @@ describe('BookingRescheduleDialogComponent', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('only offers the customer message when the booking has a conversation, and passes the choice on', () => {
-    const none = render({ booking: booking({ conversationId: null }) });
-    expect(none.root.querySelector('[data-testid=write-message]')).toBeNull();
-    none.button().click();
-    expect(none.close).toHaveBeenCalledWith(jasmine.objectContaining({ writeMessage: false }));
+  it('offers a message to the customer, ready to read, and sends it with the reschedule', () => {
+    const { fixture, button, save, c, root } = render();
+
+    c.form.patchValue({ date: new Date(2099, 10, 4), time: '11:00' });
+    fixture.detectChanges();
+
+    const box = root.querySelector('[data-testid=message]') as HTMLTextAreaElement;
+    expect(box.value).toContain('Hi Asha, your demo has been moved to');
+    expect(box.value).toContain('11:00 am (Asia/Kolkata)');
+
+    // The team adds the meeting link, which is theirs and is sent as written.
+    c.form.controls.message.setValue(box.value + ' Join: https://zoom.example/abc');
+    c.form.controls.message.markAsDirty();
+    button().click();
+
+    expect(save).toHaveBeenCalledWith('2099-11-04T11:00', 'Customer asked to move it', {
+      text: jasmine.stringContaining('Join: https://zoom.example/abc') as unknown as string,
+      sendEmail: true,
+      sendWhatsApp: true,
+    });
+  });
+
+  it('keeps what the team wrote when the time is changed afterwards', () => {
+    const { fixture, c } = render();
+
+    c.form.controls.message.setValue('My own words');
+    c.form.controls.message.markAsDirty();
+    c.form.patchValue({ date: new Date(2099, 10, 4), time: '11:00' });
+    fixture.detectChanges();
+
+    expect(c.form.controls.message.value).toBe('My own words');
+  });
+
+  it('sends by the channels chosen, and nothing when the box is cleared', () => {
+    const emailOnly = render();
+    emailOnly.c.form.patchValue({ sendWhatsApp: false });
+    emailOnly.button().click();
+    expect(emailOnly.save).toHaveBeenCalledWith(null, 'Customer asked to move it', jasmine.objectContaining({ sendEmail: true, sendWhatsApp: false }));
     TestBed.resetTestingModule();
 
-    const some = render();
-    some.c.form.patchValue({ writeMessage: false });
-    some.button().click();
-    expect(some.close).toHaveBeenCalledWith(jasmine.objectContaining({ writeMessage: false }));
+    const cleared = render();
+    cleared.c.form.patchValue({ message: '   ' });
+    cleared.button().click();
+    expect(cleared.save).toHaveBeenCalledWith(null, 'Customer asked to move it', null);
+  });
+
+  it('will not save a message with no channel ticked', () => {
+    const { fixture, root, button, save, c } = render();
+
+    c.form.patchValue({ sendEmail: false, sendWhatsApp: false });
+    fixture.detectChanges();
+
+    expect(button().disabled).toBeTrue();
+    expect(root.querySelector('[data-testid=needs-channel]')).not.toBeNull();
+    c.save();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('switches off a channel that has nowhere to go, and says why', () => {
+    const noEmail = render({ booking: booking({ customerEmail: null }) });
+    expect(noEmail.c.form.controls.sendEmail.disabled).toBeTrue();
+    expect(noEmail.root.querySelector('[data-testid=no-email]')).not.toBeNull();
+    noEmail.button().click();
+    expect(noEmail.save).toHaveBeenCalledWith(null, 'Customer asked to move it', jasmine.objectContaining({ sendEmail: false, sendWhatsApp: true }));
+    TestBed.resetTestingModule();
+
+    const testChat = render({ booking: booking({ conversationId: null }) });
+    expect(testChat.c.form.controls.sendWhatsApp.disabled).toBeTrue();
+    expect(testChat.root.querySelector('[data-testid=no-conversation]')).not.toBeNull();
+    TestBed.resetTestingModule();
+
+    const nowhere = render({ booking: booking({ conversationId: null, customerEmail: null }) });
+    expect(nowhere.root.querySelector('[data-testid=message]')).toBeNull();
+    expect(nowhere.root.querySelector('[data-testid=cannot-message]')).not.toBeNull();
+    nowhere.button().click();
+    expect(nowhere.save).toHaveBeenCalledWith(null, 'Customer asked to move it', null);
   });
 
   it('stays open when the save is refused, so another time can be picked', () => {
@@ -108,10 +196,27 @@ describe('booking slot helpers', () => {
     expect(t).toContain('4 Nov');
   });
 
-  it('drafts a message proposing the time, or asking for one', () => {
+  it('words the reschedule message with the time, or asks for one', () => {
     const b = { customerName: 'Asha Verma', kind: 'Demo' };
-    expect(rescheduleDraft(b, '2099-11-04T05:30:00Z', 'Asia/Kolkata')).toContain('Hi Asha, we need to move your demo. Could we do');
-    expect(rescheduleDraft(b, null, null)).toBe('Hi Asha, we need to move your demo. What day and time would suit you?');
-    expect(rescheduleDraft({ customerName: null, kind: 'Site visit' }, null, null)).toBe('Hi, we need to move your site visit. What day and time would suit you?');
+    expect(rescheduleMessage(b, 'Wed, 4 Nov at 11:00 am')).toContain('Hi Asha, your demo has been moved to Wed, 4 Nov at 11:00 am.');
+    expect(rescheduleMessage(b, 'x')).toContain('We will share the joining details here.');
+    expect(rescheduleMessage(b, null)).toBe('Hi Asha, we need to move your demo. What day and time would suit you?');
+    expect(rescheduleMessage({ customerName: null, kind: 'Site visit' }, null)).toBe('Hi, we need to move your site visit. What day and time would suit you?');
+  });
+
+  it('writes the picked time as the tenant\'s own clock', () => {
+    expect(slotLabelLocal(new Date(2099, 10, 4), '11:00', 'Asia/Kolkata')).toContain('4 Nov');
+    expect(slotLabelLocal(new Date(2099, 10, 4), '11:00', 'Asia/Kolkata')).toContain('at 11:00 am (Asia/Kolkata)');
+    expect(slotLabelLocal(new Date(2099, 10, 4), '00:05', null)).toContain('at 12:05 am');
+    expect(slotLabelLocal(new Date(2099, 10, 4), '15:30', null)).toContain('at 3:30 pm');
+  });
+
+  it('says in words what a message did, and what it did not', () => {
+    expect(messageOutcome(null)).toEqual({ text: '', ok: true });
+    expect(messageOutcome([{ channel: 'Email', status: 'Sent' }, { channel: 'WhatsApp', status: 'Sent' }])).toEqual({ text: 'Message sent by email and WhatsApp.', ok: true });
+    const mixed = messageOutcome([{ channel: 'Email', status: 'Sent' }, { channel: 'WhatsApp', status: 'Failed', note: 'the 24-hour window is closed' }]);
+    expect(mixed.ok).toBeFalse();
+    expect(mixed.text).toBe('Message sent by email. WhatsApp not sent (the 24-hour window is closed).');
+    expect(messageOutcome([{ channel: 'Email', status: 'Skipped', note: 'no SMTP host configured' }]).text).toBe('email not sent (no SMTP host configured).');
   });
 });

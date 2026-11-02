@@ -1,0 +1,115 @@
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 20px;
+  }
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.total {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+.total--main {
+  border-left: 4px solid #3f51b5;
+}
+
+.total-value {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.reminders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.reminder {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  mat-icon {
+    opacity: 0.7;
+  }
+}
+
+.reminder--attention {
+  border-left: 4px solid #3f51b5;
+}
+
+.reminder-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.reminder-headline {
+  font-size: 16px;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-kind {
+  min-width: 180px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.note {
+  padding: 0 16px 8px;
+  margin: 0;
+}
+
+/* A row's money is in that tenant's own currency, so each figure names which one. */
+.currency-note {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+/* A subscription not charged yet reads lighter than money that actually moved. */
+.upcoming-row td {
+  opacity: 0.85;
+  background: rgba(63, 81, 181, 0.04);
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}
