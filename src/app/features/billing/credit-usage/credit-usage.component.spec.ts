@@ -4,11 +4,12 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
 import { BillingService } from '../../../core/services/billing.service';
+import { TenantProfileService } from '../../../core/services/tenant-profile.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { CreditUsageComponent } from './credit-usage.component';
 
 describe('CreditUsageComponent', () => {
-  function render(): { element: HTMLElement; billing: jasmine.SpyObj<BillingService> } {
+  function render(): { element: HTMLElement; billing: jasmine.SpyObj<BillingService>; component: CreditUsageComponent } {
     const billing = jasmine.createSpyObj<BillingService>('BillingService', ['getLedger', 'getLedgerSummary']);
     billing.getLedger.and.returnValue(of({ items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0 }));
     billing.getLedgerSummary.and.returnValue(of({ totalEntries: 0, byEntryType: [], byFeature: [], daily: [] }));
@@ -16,11 +17,14 @@ describe('CreditUsageComponent', () => {
     TestBed.configureTestingModule({
       declarations: [CreditUsageComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
-      providers: [{ provide: BillingService, useValue: billing }],
+      providers: [
+        { provide: BillingService, useValue: billing },
+        { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
+      ],
     });
     const fixture = TestBed.createComponent(CreditUsageComponent);
     fixture.detectChanges();
-    return { element: fixture.nativeElement as HTMLElement, billing };
+    return { element: fixture.nativeElement as HTMLElement, billing, component: fixture.componentInstance };
   }
 
   it('shows this workspace\'s own credit history - tiles, graph and the date filter', () => {
@@ -30,6 +34,12 @@ describe('CreditUsageComponent', () => {
     expect(element.textContent).toContain('Filter');
     expect(billing.getLedger).toHaveBeenCalled();
     expect(billing.getLedgerSummary.calls.mostRecent().args[0]).toBe(30);
+  });
+
+  it('shows times in the workspace\'s own time zone', () => {
+    const { component } = render();
+
+    expect(component.timezone).toBe('Asia/Kolkata');
   });
 
   it('no longer has the separate spend list (the "Show" filter and the When / What / Paid by table)', () => {

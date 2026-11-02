@@ -10,15 +10,18 @@ import {
   QuotaLedgerEntry,
   QuotaLedgerQuery,
   QuotaLedgerSummary,
+  TestChatCall,
   formatUnits,
 } from '../../../core/models/billing.model';
 import { PagedResult } from '../../../core/models/paged-result.model';
 import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature } from '../../../core/models/wallet.model';
 
-export type CreditHistoryFilter = PlatformFeature | 'Purchased' | 'Used' | '';
+export type CreditHistoryFilter = PlatformFeature | 'Purchased' | 'Used' | 'TestChat' | '';
 
 /** What a screen supplies so the same history can show one tenant's credits to a platform admin or the tenant its own. */
 export type CreditHistoryLedgerSource = (query: QuotaLedgerQuery) => Observable<PagedResult<QuotaLedgerEntry>>;
+/** The replies the AI gave in Test chat: free, so apart from the ledger. A screen that cannot list them leaves this out and the tile is not shown. */
+export type CreditHistoryTestChatSource = (query: QuotaLedgerQuery) => Observable<PagedResult<TestChatCall>>;
 export type CreditHistorySummarySource = (
   days: number,
   filter: { feature?: string; entryType?: number; from?: string; to?: string }
@@ -37,7 +40,11 @@ export type CreditHistorySummarySource = (
 export class CreditHistoryComponent implements OnInit {
   @Input() fetchLedger!: CreditHistoryLedgerSource;
   @Input() fetchSummary!: CreditHistorySummarySource;
+  /** Lists Test chat replies (free). Without it there is no Test chat tile. */
+  @Input() fetchTestChat: CreditHistoryTestChatSource | null = null;
   @Input() heading = 'Credit history';
+  /** The IANA zone the times are shown in - the workspace's own, so a time and the day it falls on agree with the day filter. Null: the viewer's. */
+  @Input() timezone: string | null = null;
 
   readonly formatUnits = formatUnits;
   readonly featureLabels = PLATFORM_FEATURE_LABELS;
@@ -56,6 +63,9 @@ export class CreditHistoryComponent implements OnInit {
   summary: QuotaLedgerSummary | null = null;
   chartDaily: QuotaLedgerSummary['daily'] = [];
   ledger: QuotaLedgerEntry[] = [];
+  /** The Test chat replies shown while the Test chat tile is chosen. */
+  testChat: TestChatCall[] = [];
+  readonly testChatColumns = ['processingDate', 'credits', 'unit', 'activity', 'balance'];
   ledgerTotal = 0;
   page = 1;
   loadingSummary = true;
@@ -65,12 +75,6 @@ export class CreditHistoryComponent implements OnInit {
 
   ngOnInit(): void {
     this.reload();
-  }
-
-  /** True once the pickers hold something other than what is applied, so Filter has something to do. */
-  get rangeChanged(): boolean {
-    const { from, to } = this.pickedRange();
-    return (from ?? '') + '|' + (to ?? '') !== this.appliedRange;
   }
 
   get hasRange(): boolean {
@@ -88,7 +92,14 @@ export class CreditHistoryComponent implements OnInit {
     if (this.filter === '') {
       return 'All activity';
     }
+    if (this.filter === 'TestChat') {
+      return 'Test chat';
+    }
     return this.filter === 'Purchased' || this.filter === 'Used' ? this.filter : this.featureLabels[this.filter];
+  }
+
+  get testChatSelected(): boolean {
+    return this.filter === 'TestChat';
   }
 
   /** One tile per value the history can be narrowed to: what it adds up to over the range. */
@@ -109,6 +120,10 @@ export class CreditHistoryComponent implements OnInit {
         const row = s.byFeature.find((x) => x.feature === f);
         return { key: f as CreditHistoryFilter, label: this.featureLabels[f], value: formatUnits(row?.unitsUsed ?? 0), detail: entries(row?.count ?? 0) };
       }),
+      // Test chat takes no credits, so its tile says Free and counts replies; it is not one of the movements above.
+      ...(this.fetchTestChat
+        ? [{ key: 'TestChat' as CreditHistoryFilter, label: 'Test chat', value: 'Free', detail: (s.testChatReplies ?? 0) === 1 ? '1 reply' : (s.testChatReplies ?? 0) + ' replies' }]
+        : []),
     ];
   }
 
@@ -154,13 +169,15 @@ export class CreditHistoryComponent implements OnInit {
     return entry.unitsDelta >= 0 ? 'in' : 'out';
   }
 
-  /** The feature the entry was for and its note, or a dash. */
+  /** The feature the entry was for and its note, or a dash. An AI reply says what the customer wrote instead of the bare "ConversationReply". */
   activity(entry: QuotaLedgerEntry): string {
     const parts: string[] = [];
     if (entry.feature) {
       parts.push(this.featureLabels[entry.feature]);
     }
-    if (entry.note) {
+    if (entry.customerText) {
+      parts.push('Customer: “' + entry.customerText + '”');
+    } else if (entry.note) {
       parts.push(entry.note);
     }
     return parts.length ? parts.join(' · ') : '—';
@@ -216,13 +233,29 @@ export class CreditHistoryComponent implements OnInit {
   private kind(): { feature?: PlatformFeature; entryType?: QuotaEntryType } {
     const f = this.filter;
     return {
-      feature: f && f !== 'Purchased' && f !== 'Used' ? f : undefined,
+      feature: f && f !== 'Purchased' && f !== 'Used' && f !== 'TestChat' ? f : undefined,
       entryType: f === 'Purchased' ? QuotaEntryType.Purchase : f === 'Used' ? QuotaEntryType.Consumption : undefined,
     };
   }
 
   private loadLedger(): void {
     this.loadingLedger = true;
+
+    // Test chat is not a ledger: its own list, over the same days.
+    if (this.filter === 'TestChat' && this.fetchTestChat) {
+      this.fetchTestChat({ page: this.page, pageSize: this.pageSize, ...this.appliedFilter() })
+        .pipe(finalize(() => (this.loadingLedger = false)))
+        .subscribe({
+          next: (result) => {
+            this.ledger = [];
+            this.testChat = result.items;
+            this.ledgerTotal = result.totalCount;
+          },
+        });
+      return;
+    }
+
+    this.testChat = [];
     this.fetchLedger({ page: this.page, pageSize: this.pageSize, ...this.kind(), ...this.appliedFilter() })
       .pipe(finalize(() => (this.loadingLedger = false)))
       .subscribe({
@@ -234,6 +267,11 @@ export class CreditHistoryComponent implements OnInit {
   }
 
   private loadChart(): void {
+    // Nothing to chart: Test chat uses no credits.
+    if (this.filter === 'TestChat') {
+      this.chartDaily = [];
+      return;
+    }
     this.loadingChart = true;
     this.fetchSummary(30, { ...this.kind(), ...this.appliedFilter() })
       .pipe(finalize(() => (this.loadingChart = false)))

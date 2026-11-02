@@ -1,80 +1,14 @@
 <div class="page">
   <mat-card class="intro">
     <p>
-      Every action costs credits from the one wallet. Set below <strong>what each action costs</strong> - this is the number every feature shows tenants ("Uses 2 credits per reply") - and
-      who pays: the <strong>tenant's own balance</strong> or the <strong>platform wallet</strong>.
-      Pick who pays for each scenario below. You can switch at any time; it applies to what happens next, and past activity keeps the
+      Every action costs credits from the one wallet. Choose below who pays for each: the <strong>tenant's own balance</strong> or the <strong>platform wallet</strong>.
+      What each action costs in credits is set on <a routerLink="/platform/service-margins">Service Margins</a>, beside what it costs us and the margin it leaves. You can switch at any time; it applies to what happens next, and past activity keeps the
       account it was charged to. If the platform wallet cannot cover an action, the tenant is charged instead so the customer is never left
       waiting - and you can give those credits back from the Activity tab.
     </p>
   </mat-card>
 
   <mat-tab-group animationDuration="0ms">
-    <!-- ───────────── Prices ───────────── -->
-    <mat-tab label="Prices">
-      <mat-card class="table-card">
-        <p class="muted prices-hint">
-          The credit price of every action. Tenants see exactly these numbers on their <strong>Credit costs</strong> page and beside each feature. A new price
-          applies to what happens next; past spends keep the price they were charged. Set 0 to make an action free.
-        </p>
-        <mat-progress-bar mode="indeterminate" *ngIf="scenariosLoading"></mat-progress-bar>
-
-        <div class="table-scroll">
-          <table mat-table [dataSource]="scenarios" data-testid="prices-table">
-            <ng-container matColumnDef="scenario">
-              <th mat-header-cell *matHeaderCellDef>Action</th>
-              <td mat-cell *matCellDef="let s" class="scenario-cell">
-                <div class="scenario-title">{{ s.title }}</div>
-                <div class="muted small">{{ s.area }}</div>
-                <div class="muted small description">{{ s.description }}</div>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="units">
-              <th mat-header-cell *matHeaderCellDef>Credits per unit</th>
-              <td mat-cell *matCellDef="let s">
-                <div class="units-edit">
-                  <mat-form-field class="units-field" subscriptSizing="dynamic">
-                    <input
-                      matInput
-                      type="number"
-                      min="0"
-                      step="any"
-                      [value]="draftUnits(s) ?? ''"
-                      (input)="setDraftUnits(s, $any($event.target).value)"
-                      (keydown.enter)="unitsChanged(s) && unitsValid(s) && saveUnits(s)"
-                      [attr.aria-label]="'Credits per ' + s.unitLabel + ' for ' + s.title"
-                    />
-                  </mat-form-field>
-                  <span class="muted small">per {{ s.unitLabel }}</span>
-                  <button
-                    mat-stroked-button
-                    type="button"
-                    [disabled]="!unitsChanged(s) || !unitsValid(s) || savingScenario.has(s.scenario)"
-                    (click)="saveUnits(s)"
-                  >
-                    Save
-                  </button>
-                </div>
-                <div class="muted small" *ngIf="isFree(s)">Free - nobody is charged.</div>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="updated">
-              <th mat-header-cell *matHeaderCellDef>Last changed</th>
-              <td mat-cell *matCellDef="let s">
-                <span *ngIf="s.changedAtUtc; else defaultPrice">{{ s.changedAtUtc | zonedDate: 'medium' }}</span>
-                <ng-template #defaultPrice><span class="muted">Default</span></ng-template>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="priceColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: priceColumns"></tr>
-          </table>
-        </div>
-      </mat-card>
-    </mat-tab>
-
     <!-- ───────────── Scenarios ───────────── -->
     <mat-tab label="Who pays">
       <mat-card class="table-card">

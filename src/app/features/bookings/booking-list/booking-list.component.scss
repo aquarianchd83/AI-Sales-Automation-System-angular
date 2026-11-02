@@ -1,0 +1,75 @@
+/* The list on its own, or - with a conversation open - the list on the left and the conversation on the right. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+
+  &--with-panel {
+    grid-template-columns: minmax(0, 1fr) 400px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .layout--with-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.primary-cell {
+  font-weight: 500;
+}
+
+.phone-cell {
+  font-size: 12px;
+}
+
+.summary-cell {
+  min-width: 220px;
+  max-width: 420px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.status-field {
+  width: 130px;
+}
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+
+  button {
+    margin-right: 4px;
+  }
+
+  .active {
+    background: rgba(25, 118, 210, 0.08);
+  }
+}
+
+.row-selected {
+  background: rgba(25, 118, 210, 0.05);
+}
+
+.failed {
+  padding: 0 16px;
+}
+
+.new-slot {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.change-time {
+  display: block;
+  margin-top: 2px;
+}

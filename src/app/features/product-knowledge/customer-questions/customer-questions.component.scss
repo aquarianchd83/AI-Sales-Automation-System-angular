@@ -1,0 +1,74 @@
+.next-step-card {
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.card-title {
+  margin: 0 0 4px;
+}
+
+.next-step-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.next-step-goal {
+  flex: 0 1 320px;
+}
+
+.next-step-detail {
+  flex: 1 1 320px;
+}
+
+.notice {
+  padding: 12px 16px;
+  background: #fff8e1;
+  font-size: 13px;
+}
+
+.q-name {
+  font-weight: 500;
+}
+
+.q-text,
+.q-choices {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.required-chip {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #eceff1;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.is-off {
+  opacity: 0.5;
+}
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.empty-state {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.5;
+}
+
+.key-field {
+  margin-top: 12px;
+}

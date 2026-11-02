@@ -1,9 +1,9 @@
 <div class="page">
   <app-page-header
     title="Test chat"
-    subtitle="Talk to your AI the way a customer would. It answers only from your live published knowledge, so this is what customers would be told. Nothing here is sent, saved or charged."
+    subtitle="Talk to your AI the way a customer would. It answers only from your live published knowledge, so this is what customers would be told. No customer is messaged and nothing is charged. If the AI confirms a demo or visit, you get the same booking notice a real customer would trigger, marked as a test."
   >
-    <app-credit-cost [scenarios]="[5, 6]"></app-credit-cost>
+    <app-credit-cost [free]="true"></app-credit-cost>
   </app-page-header>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -53,7 +53,13 @@
           <div class="meta">
             <span class="time muted small">{{ m.at | zonedDate: 'time' }}</span>
             <span class="chip" [class.chip--ask]="m.reply?.outcome === 'Clarifying'" data-testid="outcome">
-              {{ m.reply?.outcome === 'Clarifying' ? 'Asked a question - nothing published covers this' : 'From your published knowledge' }}
+              {{
+                m.reply?.outcome === 'Clarifying'
+                  ? 'Asked a question - nothing published covers this'
+                  : m.reply?.sources?.length
+                    ? 'From your published knowledge'
+                    : 'No published answer needed'
+              }}
             </span>
             <button type="button" class="why-link" (click)="toggleWhy(m)" data-testid="why-toggle">{{ m.showWhy ? 'Hide' : 'Why this answer' }}</button>
           </div>

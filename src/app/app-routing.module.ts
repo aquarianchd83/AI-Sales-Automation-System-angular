@@ -88,6 +88,14 @@ const routes: Routes = [
           import('./features/leads/leads.module').then((m) => m.LeadsModule),
       },
       {
+        // What customers agreed with the AI: demos, visits, appointments. Open to every tenant user, like the inbox it comes from.
+        path: 'bookings',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ROLES },
+        loadChildren: () =>
+          import('./features/bookings/bookings.module').then((m) => m.BookingsModule),
+      },
+      {
         // Discovered leads are open to every tenant user; the module's own `profile` child route is
         // gated to tenant admins.
         path: 'lead-discovery',

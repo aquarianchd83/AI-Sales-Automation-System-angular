@@ -1,0 +1,83 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit question' : 'New question' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <mat-form-field class="full-width">
+      <mat-label>What you want to know</mat-label>
+      <input
+        matInput
+        formControlName="displayName"
+        [maxlength]="limits.displayName"
+        placeholder="Software they use today"
+        (input)="onNameInput()"
+      />
+      <mat-error *ngIf="form.controls.displayName.hasError('required')">A name is required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Question the AI asks</mat-label>
+      <textarea
+        matInput
+        rows="2"
+        formControlName="question"
+        [maxlength]="limits.question"
+        placeholder="Are you using any other software for this right now?"
+      ></textarea>
+      <mat-hint>The AI rephrases it to fit the conversation and asks it once, when it suits.</mat-hint>
+      <mat-error *ngIf="form.controls.question.hasError('required')">The question is required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>What counts as an answer (optional)</mat-label>
+      <textarea
+        matInput
+        rows="2"
+        formControlName="description"
+        [maxlength]="limits.description"
+        placeholder="Name of the tool, e.g. Zoho, Tally, Excel, or 'none'"
+      ></textarea>
+      <mat-hint>Helps the AI recognise the answer when the customer volunteers it earlier.</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Answer type</mat-label>
+      <mat-select formControlName="dataType">
+        <mat-option *ngFor="let t of dataTypes" [value]="t.value">{{ t.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field class="full-width" *ngIf="showChoices">
+      <mat-label>Choices</mat-label>
+      <textarea matInput rows="4" formControlName="choices" placeholder="One per line"></textarea>
+      <mat-hint>One per line. The customer's answer is matched to one of these.</mat-hint>
+      <mat-error *ngIf="form.hasError('choicesRequired')">Add at least one choice.</mat-error>
+      <mat-error *ngIf="form.hasError('tooManyChoices')">Use at most {{ limits.maxAllowedValues }} choices.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Importance (0–100)</mat-label>
+      <input matInput type="number" min="0" max="100" formControlName="priority" />
+      <mat-hint>Higher is asked sooner. Questions marked required always come first.</mat-hint>
+      <mat-error *ngIf="form.controls.priority.invalid">Enter a number from 0 to 100.</mat-error>
+    </mat-form-field>
+
+    <mat-checkbox formControlName="isRequired">Must be answered before the lead counts as qualified</mat-checkbox>
+
+    <mat-form-field class="full-width key-field">
+      <mat-label>Internal key</mat-label>
+      <input matInput formControlName="fieldKey" [maxlength]="limits.fieldKey" (input)="onKeyInput()" />
+      <mat-hint>{{ isEdit ? 'Fixed after saving — answers are stored against it.' : 'Lowercase letters, numbers and underscores. Cannot be changed later.' }}</mat-hint>
+      <mat-error *ngIf="form.controls.fieldKey.hasError('required')">A key is required.</mat-error>
+      <mat-error *ngIf="form.controls.fieldKey.hasError('pattern')">
+        Start with a letter; use only lowercase letters, numbers and underscores.
+      </mat-error>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add question' }}
+  </button>
+</mat-dialog-actions>

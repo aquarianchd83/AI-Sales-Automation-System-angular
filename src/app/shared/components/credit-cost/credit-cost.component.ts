@@ -45,10 +45,16 @@ export class CreditCostComponent {
   @Input() scenarios: CreditScenario[] = [];
   /** Words before the cost; "Uses" by default. */
   @Input() prefix = 'Uses';
+  /** For a screen that uses the AI but takes no credits (Test chat): says so, instead of naming a price. */
+  @Input() free = false;
 
   constructor(private readonly entitlements: EntitlementsStore) {}
 
   get text(): string {
+    if (this.free) {
+      return 'Free - uses no credits, but each reply is recorded in the credit history with 0 credits';
+    }
+
     const wanted = this.scenario !== null ? [this.scenario, ...this.scenarios] : this.scenarios;
     const costs = wanted.map((s) => this.entitlements.costOf(s)).filter((c): c is CreditCostItem => c !== null);
     if (!costs.length) {

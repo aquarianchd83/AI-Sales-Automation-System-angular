@@ -98,6 +98,138 @@ describe('CreditHistoryComponent', () => {
     expect(component.chartPeriod).toBe('Last 30 days');
   });
 
+  describe('Test chat', () => {
+    let fetchTestChat: jasmine.Spy;
+
+    beforeEach(() => {
+      fetchTestChat = jasmine.createSpy('fetchTestChat').and.callFake((q: QuotaLedgerQuery) =>
+        of({
+          items: [
+            { id: 't2', occurredAtUtc: '2026-10-30T13:21:30Z', model: 'OpenAI:gpt-5-nano', text: 'tell me something about it' },
+            { id: 't1', occurredAtUtc: '2026-10-30T13:20:20Z', model: 'OpenAI:gpt-5-nano' },
+          ],
+          totalCount: 2,
+          page: q.page ?? 1,
+          pageSize: 10,
+        })
+      );
+      // Rebuilt with a source for Test chat, and a summary that counts its replies.
+      fetchSummary.and.callFake(() =>
+        of({ totalEntries: 3, byEntryType: [], byFeature: [], daily: [{ date: '2026-10-30', purchased: 0, used: 0 }], testChatReplies: 2 })
+      );
+      component.fetchTestChat = fetchTestChat;
+      component.ngOnInit();
+      fixture.detectChanges();
+    });
+
+    const testChatTile = () => Array.from(root().querySelectorAll('.ledger-tile')).find((t) => text(t).includes('Test chat')) as HTMLButtonElement;
+
+    it('adds a Free tile that counts the replies, apart from the credit movements', () => {
+      expect(text(testChatTile())).toContain('Free');
+      expect(text(testChatTile())).toContain('2 replies');
+      expect(text(root().querySelectorAll('.ledger-tile')[0])).toContain('3');
+    });
+
+    it('lists the replies as zero-credit rows that leave the balance unchanged, in place of the ledger', () => {
+      component.showEntries = true;
+      testChatTile().click();
+      fixture.detectChanges();
+
+      const rows = Array.from(root().querySelectorAll('[data-testid=testchat-table] tr.mat-mdc-row')).map((r) => text(r));
+      expect(rows.length).toBe(2);
+      expect(rows[0]).toContain('Free');
+      expect(rows[0]).toContain('AI conversations · Test chat: “tell me something about it”');
+      expect(rows[0]).toContain('Unchanged');
+      // A test made before the words were kept still reads sensibly.
+      expect(rows[1]).toContain('AI conversations · Test chat reply');
+      // Only the Test chat table is shown, not the ledger's.
+      expect(root().querySelectorAll('table.ledger-table').length).toBe(1);
+      expect(root().querySelector('[data-testid=testchat-table] table.ledger-table')).not.toBeNull();
+      // The ledger was not asked for these, and none of them is a credit entry.
+      expect(fetchTestChat).toHaveBeenCalled();
+      expect(fetchLedger.calls.mostRecent().args[0].feature).toBeUndefined();
+    });
+
+    it('has nothing to chart, and says why', () => {
+      testChatTile().click();
+      fixture.detectChanges();
+
+      expect(root().querySelectorAll('svg rect.chart-bar').length).toBe(0);
+      expect(text(root().querySelector('[data-testid=testchat-note]')!)).toContain('uses no credits');
+    });
+
+    it('asks for the same days as the rest of the history', () => {
+      component.fromControl.setValue(new Date(2026, 9, 1));
+      component.toControl.setValue(new Date(2026, 9, 30));
+      component.applyRange();
+      testChatTile().click();
+      fixture.detectChanges();
+
+      expect(fetchTestChat.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({ from: '2026-10-01', to: '2026-10-30', page: 1 }));
+    });
+
+    it('says so when there are no test chat replies in the selection', () => {
+      fetchTestChat.and.returnValue(of({ items: [], totalCount: 0, page: 1, pageSize: 10 }));
+      component.showEntries = true;
+      testChatTile().click();
+      fixture.detectChanges();
+
+      expect(text(root())).toContain('No test chat replies in this selection.');
+      expect(text(root())).not.toContain('No credit movements in this selection.');
+    });
+  });
+
+  it('keeps Filter available once it has been used, so the same days can be searched again for what is new', () => {
+    const filterButton = () => root().querySelector('[data-testid=filter]') as HTMLButtonElement;
+    expect(filterButton().disabled).toBeFalse();
+
+    component.fromControl.setValue(new Date(2026, 9, 1));
+    component.toControl.setValue(new Date(2026, 9, 30));
+    filterButton().click();
+    fixture.detectChanges();
+    expect(filterButton().disabled).toBeFalse();
+
+    // Pressed again with nothing changed: the entries, tiles and graph are fetched again.
+    const ledgerCalls = fetchLedger.calls.count();
+    const summaryCalls = fetchSummary.calls.count();
+    filterButton().click();
+    fixture.detectChanges();
+
+    expect(fetchLedger.calls.count()).toBe(ledgerCalls + 1);
+    expect(fetchSummary.calls.count()).toBe(summaryCalls + 1);
+    expect(fetchLedger.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({ from: '2026-10-01', to: '2026-10-30', page: 1 }));
+  });
+
+  it('says what the customer wrote for an AI reply, instead of the bare note', () => {
+    fetchLedger.and.returnValue(
+      of({
+        items: [
+          {
+            id: 'a1', entryType: QuotaEntryType.Consumption, unitsDelta: -1, balanceAfter: 802, feature: 'AiConversations', note: 'ConversationReply',
+            customerText: 'Hi, I want to know about the nayan care platform', occurredAtUtc: '2026-10-29T13:40:06Z',
+          },
+          { id: 'a2', entryType: QuotaEntryType.Consumption, unitsDelta: -1, balanceAfter: 801, feature: 'AiConversations', note: 'ConversationReply', occurredAtUtc: '2026-10-29T13:41:06Z' },
+        ],
+        totalCount: 2,
+        page: 1,
+        pageSize: 10,
+      })
+    );
+    component.ngOnInit();
+    component.showEntries = true;
+    fixture.detectChanges();
+
+    const rows = Array.from(root().querySelectorAll('tr.mat-mdc-row')).map((r) => text(r));
+    expect(rows[0]).toContain('AI conversations · Customer: “Hi, I want to know about the nayan care platform”');
+    expect(rows[0]).not.toContain('ConversationReply');
+    // An older entry that cannot be followed to a message keeps what it said before.
+    expect(rows[1]).toContain('AI conversations · ConversationReply');
+  });
+
+  it('shows no Test chat tile on a screen that cannot list them', () => {
+    expect(Array.from(root().querySelectorAll('.ledger-tile')).some((t) => text(t).includes('Test chat'))).toBeFalse();
+  });
+
   it('lists the entries with what happened, a green + or red - amount, and the balance after', () => {
     component.showEntries = true;
     fixture.detectChanges();

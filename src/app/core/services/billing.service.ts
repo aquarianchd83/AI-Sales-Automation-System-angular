@@ -14,6 +14,7 @@ import {
   QuotaLedgerEntry,
   QuotaLedgerQuery,
   QuotaLedgerSummary,
+  TestChatCall,
   RefundEligibility,
   RefundRequest,
   IndianState,
@@ -108,6 +109,17 @@ export class BillingService {
         ...(query.quotaType != null ? { QuotaType: String(query.quotaType) } : {}),
         ...(query.feature ? { Feature: query.feature } : {}),
         ...(query.entryType != null ? { EntryType: String(query.entryType) } : {}),
+        ...(query.from ? { From: query.from } : {}),
+        ...(query.to ? { To: query.to } : {}),
+      },
+    });
+  }
+
+  /** The replies the AI gave in the tenant's Test chat, newest first. Free: listed apart from the ledger. */
+  getTestChat(query: QuotaLedgerQuery): Observable<PagedResult<TestChatCall>> {
+    return this.http.get<PagedResult<TestChatCall>>(`${this.baseUrl}/quota/test-chat`, {
+      params: {
+        ...toPagedParams(query),
         ...(query.from ? { From: query.from } : {}),
         ...(query.to ? { To: query.to } : {}),
       },

@@ -1,0 +1,110 @@
+<div class="page">
+  <app-page-header
+    title="Customer Questions"
+    subtitle="What your AI finds out from customers while it chats. It asks one at a time, only when it fits, and never asks what they already said."
+  >
+    <button mat-flat-button color="primary" type="button" [disabled]="atLimit" (click)="add()">
+      <mat-icon>add</mat-icon>
+      New question
+    </button>
+  </app-page-header>
+
+  <mat-card class="next-step-card">
+    <h3 class="card-title">Next step you offer</h3>
+    <p class="muted">
+      Some products have a demo, a site visit or a booking; some don't. Choose what yours offers and the AI will mention it
+      <strong>once</strong>, in the middle of the conversation, after the customer has had a couple of answers. It never pushes it.
+    </p>
+    <form [formGroup]="nextStepForm" class="next-step-form" novalidate (ngSubmit)="saveNextStep()">
+      <mat-form-field class="next-step-goal">
+        <mat-label>We offer</mat-label>
+        <mat-select formControlName="goal">
+          <mat-option *ngFor="let o of nextStepOptions" [value]="o.value">{{ o.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field class="next-step-detail" *ngIf="offersNextStep">
+        <mat-label>Details the AI can share (optional)</mat-label>
+        <input matInput formControlName="detail" [maxlength]="nextStepDetailMax" placeholder="Free 30-minute demo on Zoom, Mon–Sat" />
+        <mat-hint>This is the only thing the AI will say about it.</mat-hint>
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="nextStepSaving || !nextStepLoaded">
+        {{ nextStepSaving ? 'Saving…' : 'Save' }}
+      </button>
+    </form>
+  </mat-card>
+
+  <mat-card class="table-card">
+    <mat-progress-bar mode="indeterminate" *ngIf="loading || busy"></mat-progress-bar>
+
+    <div class="notice" *ngIf="atLimit">
+      You have {{ fields.length }} questions, the most allowed. Turn one off or delete it to add another.
+    </div>
+
+    <div class="table-scroll" *ngIf="fields.length">
+      <table mat-table [dataSource]="fields">
+        <ng-container matColumnDef="question">
+          <th mat-header-cell *matHeaderCellDef>Question</th>
+          <td mat-cell *matCellDef="let f" [class.is-off]="!f.isActive">
+            <div class="q-name">
+              {{ f.displayName }}
+              <span class="required-chip" *ngIf="f.isRequired">Required</span>
+            </div>
+            <div class="q-text">{{ f.question }}</div>
+            <div class="q-choices" *ngIf="f.allowedValues?.length">Choices: {{ f.allowedValues.join(', ') }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Answer</th>
+          <td mat-cell *matCellDef="let f" [class.is-off]="!f.isActive">{{ dataTypeLabel(f.dataType) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="answered">
+          <th mat-header-cell *matHeaderCellDef>Leads answered</th>
+          <td mat-cell *matCellDef="let f" [class.is-off]="!f.isActive">{{ f.capturedLeadCount }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="active">
+          <th mat-header-cell *matHeaderCellDef>Asking</th>
+          <td mat-cell *matCellDef="let f">
+            <mat-slide-toggle
+              [checked]="f.isActive"
+              [disabled]="busy"
+              [attr.aria-label]="'Ask ' + f.displayName"
+              (change)="toggle(f, $event.checked)"
+            ></mat-slide-toggle>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef aria-label="Actions"></th>
+          <td mat-cell *matCellDef="let f" class="actions-cell">
+            <button mat-icon-button type="button" matTooltip="Edit" (click)="edit(f)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button type="button" matTooltip="Delete" (click)="delete(f)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let f; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && loadFailed">
+      <mat-icon class="empty-icon">error_outline</mat-icon>
+      <p>The questions could not be loaded.</p>
+      <button mat-stroked-button type="button" (click)="load()">Try again</button>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !loadFailed && !fields.length">
+      <mat-icon class="empty-icon">quiz</mat-icon>
+      <p>No questions yet. Add what matters for your product, or start with budget, interest and timeline.</p>
+      <button mat-stroked-button type="button" [disabled]="busy" (click)="addStarterQuestions()">Add starter questions</button>
+    </div>
+  </mat-card>
+</div>

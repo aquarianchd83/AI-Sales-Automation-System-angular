@@ -179,7 +179,7 @@
   <mat-card class="settings-card ai-compare" *ngIf="!loading && canVerify && compared.length" data-testid="compare">
     <h3 class="group-title">Compare providers</h3>
     <p class="muted group-hint">
-      Accuracy and cost come from each card's "Run accuracy test", run with your own key and model. Prices are the ones saved on each card.
+      Accuracy and cost come from each card's "Run accuracy test", run with your own key and model. Prices come from <strong>Model token prices</strong> on the Configuration page, so there is one price list.
     </p>
     <div class="table-scroll">
       <table class="ai-compare-table">
@@ -205,7 +205,7 @@
               <ng-container *ngIf="p.benchmark?.totalCostUsd !== null && p.benchmark?.totalCostUsd !== undefined; else noCost">
                 $ {{ p.benchmark!.totalCostUsd | number: '1.4-6' }}
               </ng-container>
-              <ng-template #noCost>{{ p.benchmark ? (p.priceSet ? 'No token counts' : 'Set a price') : '-' }}</ng-template>
+              <ng-template #noCost>{{ p.benchmark ? (p.priceSet ? 'No token counts' : 'Add the model to Model token prices') : '-' }}</ng-template>
             </td>
             <td class="num">{{ p.priceSet ? '$ ' + p.inputPer1MUsd + ' / $ ' + p.outputPer1MUsd : 'Not set' }}</td>
           </tr>
