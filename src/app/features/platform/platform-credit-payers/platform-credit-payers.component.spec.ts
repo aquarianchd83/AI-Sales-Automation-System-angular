@@ -106,7 +106,7 @@ describe('PlatformCreditPayersComponent', () => {
     }).overrideProvider(MatDialog, { useValue: dialog });
   });
 
-  /** Only the open tab is rendered: 0 Prices, 1 Who pays, 2 Activity, 3 Platform wallet. */
+  /** Only the open tab is rendered: 0 Who pays, 1 Activity, 2 Platform wallet. */
   async function openTab(index: number): Promise<void> {
     (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.mat-mdc-tab')[index].click();
     fixture.detectChanges();
@@ -114,32 +114,32 @@ describe('PlatformCreditPayersComponent', () => {
     fixture.detectChanges();
   }
 
-  it('lists every action with its editable price on the Prices tab', () => {
+  it('has no Prices tab: what an action costs is set on Service Margins, which this page points to', () => {
+    create([chat, knowledge]);
+
+    const labels = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.mat-mdc-tab')).map((t) => (t.textContent ?? '').trim());
+    expect(labels).not.toContain('Prices');
+    expect(labels[0]).toBe('Who pays');
+    expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/platform/service-margins"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid=prices-table]')).toBeNull();
+  });
+
+  it('lists every scenario with who pays, its price and what it did over the last 30 days', () => {
     create([chat, knowledge]);
 
     expect(text()).toContain('Customer chat reply');
     expect(text()).toContain('Product knowledge: reading sources');
-    expect(text()).toContain('Free - nobody is charged.');
-  });
-
-  it('lists every scenario with who pays and what it did over the last 30 days', async () => {
-    create([chat, knowledge]);
-    await openTab(1);
-
-    expect(text()).toContain('Customer chat reply');
     expect(text()).toContain('12 actions');
   });
 
   it('warns when a scenario is set to the platform but its wallet is empty', async () => {
     create([{ ...chat, payer: CreditPayer.Platform, platformBalance: 0 }]);
-    await openTab(1);
 
     expect(text()).toContain('Platform wallet is empty');
   });
 
   it('does not warn when the platform wallet can cover the scenario', async () => {
     create([{ ...chat, payer: CreditPayer.Platform, platformBalance: 25 }]);
-    await openTab(1);
 
     expect(text()).not.toContain('Platform wallet is empty');
   });
@@ -165,30 +165,10 @@ describe('PlatformCreditPayersComponent', () => {
     expect(service.setPayer).not.toHaveBeenCalled();
   });
 
-  it('saves credits per action for a scenario the platform prices', () => {
-    create([knowledge]);
-    service.setPayer.and.returnValue(of({ ...knowledge, unitsPerAction: 2 }));
-
-    fixture.componentInstance.setDraftUnits(knowledge, '2');
-    expect(fixture.componentInstance.unitsChanged(knowledge)).toBeTrue();
-    fixture.componentInstance.saveUnits(knowledge);
-
-    expect(service.setPayer).toHaveBeenCalledWith(CreditScenario.ProductKnowledgeReading, { payer: CreditPayer.Platform, unitsPerAction: 2 });
-  });
-
-  it('refuses a negative or blank credits-per-action value', () => {
-    create([knowledge]);
-
-    fixture.componentInstance.setDraftUnits(knowledge, '-1');
-    expect(fixture.componentInstance.unitsValid(knowledge)).toBeFalse();
-    fixture.componentInstance.setDraftUnits(knowledge, '');
-    expect(fixture.componentInstance.unitsValid(knowledge)).toBeFalse();
-  });
-
   it('shows who paid for each spend, and flags the ones where the tenant paid because the platform wallet was empty', async () => {
     create([chat], [usage({ configuredPayer: CreditPayer.Platform, fellBackToTenant: true })]);
 
-    await openTab(2);
+    await openTab(1);
 
     expect(text()).toContain('SunVolt Energy');
     expect(text()).toContain('Platform wallet was empty');

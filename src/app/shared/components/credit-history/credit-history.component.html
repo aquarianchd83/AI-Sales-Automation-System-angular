@@ -13,7 +13,7 @@
     <mat-datepicker-toggle matIconSuffix [for]="toPicker"></mat-datepicker-toggle>
     <mat-datepicker #toPicker></mat-datepicker>
   </mat-form-field>
-  <button mat-flat-button color="primary" type="button" [disabled]="!rangeChanged" (click)="applyRange()">
+  <button mat-flat-button color="primary" type="button" (click)="applyRange()" data-testid="filter">
     <mat-icon>filter_alt</mat-icon>
     Filter
   </button>
@@ -41,7 +41,8 @@
     <span>{{ chartPeriod }} · <strong>{{ chartTitle }}</strong></span>
     <span class="ledger-legend"><i class="dot dot--in"></i> Purchased <i class="dot dot--out"></i> Used</span>
   </div>
-  <p class="muted" *ngIf="!chartHasData && !loadingChart">
+  <p class="muted" *ngIf="testChatSelected" data-testid="testchat-note">Test chat is free: it uses no credits, so there is nothing to chart.</p>
+  <p class="muted" *ngIf="!testChatSelected && !chartHasData && !loadingChart">
     No {{ chartTitle === 'All activity' ? 'credits bought or used' : chartTitle.toLowerCase() + ' activity' }} in this period.
   </p>
   <svg
@@ -81,7 +82,7 @@
     <table mat-table [dataSource]="ledger" class="ledger-table">
       <ng-container matColumnDef="processingDate">
         <th mat-header-cell *matHeaderCellDef>Processing date</th>
-        <td mat-cell *matCellDef="let entry">{{ entry.occurredAtUtc | zonedDate: 'medium' }}</td>
+        <td mat-cell *matCellDef="let entry">{{ entry.occurredAtUtc | zonedDate: 'medium' : timezone }}</td>
       </ng-container>
       <ng-container matColumnDef="credits">
         <th mat-header-cell *matHeaderCellDef>Credits</th>
@@ -109,7 +110,36 @@
       <tr mat-row *matRowDef="let entry; columns: ledgerColumns"></tr>
     </table>
   </div>
-  <p class="muted" *ngIf="!loadingLedger && !ledger.length">No credit movements in this selection.</p>
+  <p class="muted" *ngIf="!loadingLedger && !ledger.length && !testChatSelected">No credit movements in this selection.</p>
+
+  <!-- Test chat: the AI answered a test message. It reached the AI provider but took no credits, so nothing moves in the balance. -->
+  <div class="table-scroll" *ngIf="testChatSelected && testChat.length" data-testid="testchat-table">
+    <table mat-table [dataSource]="testChat" class="ledger-table">
+      <ng-container matColumnDef="processingDate">
+        <th mat-header-cell *matHeaderCellDef>Processing date</th>
+        <td mat-cell *matCellDef="let call">{{ call.occurredAtUtc | zonedDate: 'medium' : timezone }}</td>
+      </ng-container>
+      <ng-container matColumnDef="credits">
+        <th mat-header-cell *matHeaderCellDef>Credits</th>
+        <td mat-cell *matCellDef="let call"><span class="status-chip">Free</span></td>
+      </ng-container>
+      <ng-container matColumnDef="unit">
+        <th mat-header-cell *matHeaderCellDef>Unit</th>
+        <td mat-cell *matCellDef="let call"><span class="ledger-amount">0</span></td>
+      </ng-container>
+      <ng-container matColumnDef="activity">
+        <th mat-header-cell *matHeaderCellDef>Activity</th>
+        <td mat-cell *matCellDef="let call">AI conversations · {{ call.text ? 'Test chat: “' + call.text + '”' : 'Test chat reply' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="balance">
+        <th mat-header-cell *matHeaderCellDef>Balance after</th>
+        <td mat-cell *matCellDef="let call" class="muted">Unchanged</td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="testChatColumns"></tr>
+      <tr mat-row *matRowDef="let call; columns: testChatColumns"></tr>
+    </table>
+  </div>
+  <p class="muted" *ngIf="testChatSelected && !loadingLedger && !testChat.length">No test chat replies in this selection.</p>
   <mat-paginator
     *ngIf="ledgerTotal > pageSize"
     [length]="ledgerTotal"

@@ -1,0 +1,131 @@
+<div class="page">
+  <mat-card class="intro">
+    <p>
+      For each service a tenant is charged for: <strong>what it costs us</strong> (worked out from the AI and WhatsApp price lists and real usage - you do not type it, except for Content Studio, which we cannot track),
+      the <strong>credits it uses</strong> (you set it) and the <strong>margin</strong> that leaves.
+      A credit is worth what the pack it was bought in sold it for, so the margin is shown <strong>for each credit pack</strong>. Credits that come free with a plan are not shown.
+      A new charge applies to what happens next.
+    </p>
+  </mat-card>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="intro" *ngIf="failed" data-testid="failed">
+    <p>The margins could not be loaded. <button mat-button type="button" (click)="load()">Try again</button></p>
+  </mat-card>
+
+  <ng-container *ngIf="data">
+    <form (ngSubmit)="save()">
+      <mat-card class="table-card">
+        <div class="table-scroll">
+          <table mat-table [dataSource]="rows" [trackBy]="trackByScenario" data-testid="margins-table">
+            <ng-container matColumnDef="service">
+              <th mat-header-cell *matHeaderCellDef>Service</th>
+              <td mat-cell *matCellDef="let r" class="service-cell">
+                <div class="service-title">{{ r.title }}</div>
+                <div class="muted small">per {{ r.unitLabel }}</div>
+                <div class="chip-warn small" *ngIf="r.paidByPlatform">The platform pays for this one, so tenants are not charged.</div>
+                <div class="small loss" *ngIf="lossPacks(r).length" data-testid="loss">
+                  We lose money on every {{ r.unitLabel }} bought in {{ lossNames(r) }}.
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="cost">
+              <th mat-header-cell *matHeaderCellDef>Actual cost <span class="muted">(we pay the provider)</span></th>
+              <td mat-cell *matCellDef="let r" class="cost-cell">
+                <div class="cost-edit" *ngIf="r.costEditable; else workedOut" [formGroup]="costs">
+                  <mat-form-field class="credits-field cost-field" subscriptSizing="dynamic">
+                    <span matTextPrefix>₹&nbsp;</span>
+                    <input
+                      matInput
+                      type="number"
+                      min="0"
+                      step="any"
+                      [formControlName]="'' + r.scenario"
+                      data-testid="cost-input"
+                      [attr.aria-label]="'Cost per ' + r.unitLabel + ' for ' + r.title"
+                    />
+                  </mat-form-field>
+                  <span class="muted small">per {{ r.unitLabel }}</span>
+                </div>
+                <ng-template #workedOut>
+                  <ng-container *ngIf="r.costInr !== null; else unknownCost">
+                    <div class="amount" data-testid="cost">₹ {{ r.costInr | number: '1.2-4' }}</div>
+                    <div class="muted small">$ {{ r.costUsd | number: '1.4-6' }}</div>
+                  </ng-container>
+                  <ng-template #unknownCost><div class="amount muted" data-testid="cost">Unknown</div></ng-template>
+                </ng-template>
+                <div class="muted small basis">{{ r.costBasis }}</div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="credits">
+              <th mat-header-cell *matHeaderCellDef>Credits charged <span class="muted">(you set it)</span></th>
+              <td mat-cell *matCellDef="let r" class="credits-cell" [formGroup]="credits">
+                <div class="credits-edit">
+                  <mat-form-field class="credits-field" subscriptSizing="dynamic">
+                    <input
+                      matInput
+                      type="number"
+                      min="0"
+                      step="any"
+                      [formControlName]="'' + r.scenario"
+                      [attr.aria-label]="'Credits per ' + r.unitLabel + ' for ' + r.title"
+                    />
+                  </mat-form-field>
+                  <span class="muted small">per {{ r.unitLabel }}</span>
+                </div>
+                <div class="muted small" *ngIf="r.unitsPerItem !== 1" data-testid="mix">
+                  On the usual category mix. A marketing message uses {{ r.creditsPerUnit | number: '1.0-4' }} credits.
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container *ngFor="let pack of packs" [matColumnDef]="'pack-' + pack.id">
+              <th mat-header-cell *matHeaderCellDef class="pack-head">
+                <div class="pack-name">{{ pack.name }}</div>
+                <div class="muted small">₹ {{ pack.inrPerCredit | number: '1.2-4' }} a credit</div>
+              </th>
+              <td mat-cell *matCellDef="let r" class="pack-cell">
+                <ng-container *ngIf="forPack(r, pack) as e">
+                  <div class="margin-percent" [class.loss]="isLoss(e)" data-testid="margin-percent">
+                    <ng-container *ngIf="e.marginPercent !== null; else noCharge">{{ e.marginPercent | number: '1.0-1' }}%</ng-container>
+                    <ng-template #noCharge>-</ng-template>
+                  </div>
+                  <div class="small" data-testid="charge">Charge ₹ {{ e.chargeInr | number: '1.2-4' }}</div>
+                  <div class="small" [class.loss]="isLoss(e)" data-testid="margin-inr" *ngIf="e.marginInr !== null">
+                    {{ e.marginInr < 0 ? 'Loss' : 'Margin' }} ₹ {{ (e.marginInr < 0 ? -e.marginInr : e.marginInr) | number: '1.2-4' }}
+                  </div>
+                </ng-container>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columns"></tr>
+            <tr mat-row *matRowDef="let row; columns: columns"></tr>
+          </table>
+        </div>
+
+        <ul class="notes" *ngIf="data.notes.length" data-testid="notes">
+          <li class="muted small" *ngFor="let note of data.notes">{{ note }}</li>
+        </ul>
+
+        <p class="muted small footnote">
+          Packs are measured at their India price before tax, over the credits in the pack. Costs are in rupees at ₹{{ data.inrPerUsd | number: '1.0-2' }} to the dollar
+          (set on the Configuration page). Margin is the part of the charge left after the cost: (charge - cost) / charge.
+        </p>
+
+        <div class="actions" [class.pending]="dirty">
+          <span class="unsaved" *ngIf="dirty" data-testid="unsaved">
+            <mat-icon inline>info</mat-icon>
+            Not saved yet - tenants still see the old credit prices. Press <strong>Save charges</strong> to apply them.
+          </span>
+          <button mat-button type="button" [disabled]="!dirty || saving" (click)="discard()">Discard changes</button>
+          <button mat-flat-button color="primary" type="submit" [disabled]="!dirty || credits.invalid || costs.invalid || saving" data-testid="save">
+            {{ saving ? 'Saving…' : 'Save charges' }}
+          </button>
+        </div>
+      </mat-card>
+    </form>
+  </ng-container>
+</div>

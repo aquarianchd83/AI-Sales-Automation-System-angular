@@ -31,6 +31,7 @@ import { TENANT_ADMIN_ROLES, User } from '../../core/models/user.model';
 import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS } from '../../core/models/wallet.model';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
+import { BookingService } from '../../core/services/booking.service';
 import { CampaignService } from '../../core/services/campaign.service';
 import { ConversationService } from '../../core/services/conversation.service';
 import { CustomerService } from '../../core/services/customer.service';
@@ -84,6 +85,8 @@ interface Overview {
   pendingHandoffs: PagedResult<Handoff> | null;
   campaigns: PagedResult<Campaign> | null;
   templates: number | null;
+  /** Demos, visits and appointments customers agreed with the AI (real ones, not Test chat's). */
+  demosScheduled: number | null;
   /** Versions of product knowledge the tenant has published; null when it could not be read (or the user is not an admin). */
   publishedVersions: number | null;
 }
@@ -196,6 +199,7 @@ export class DashboardComponent implements OnInit {
     private readonly campaigns: CampaignService,
     private readonly templates: MessageTemplateService,
     private readonly publishedKnowledge: PublishedKnowledgeService,
+    private readonly bookings: BookingService,
     private readonly tenantSettings: TenantSettingsService,
     private readonly billing: BillingService,
     private readonly entitlements: EntitlementsStore
@@ -255,6 +259,8 @@ export class DashboardComponent implements OnInit {
       ),
       campaigns: this.safe(this.campaigns.getPaged({ page: 1, pageSize: CAMPAIGN_SAMPLE_SIZE })),
       templates: this.total(this.templates.getPaged(page1)),
+      // Still to happen or to be moved: a demo that is Done is no longer "scheduled".
+      demosScheduled: this.total(this.bookings.getPaged(page1, { outstanding: true })),
       publishedVersions: this.publishedKnowledge.get().pipe(
         map((o) => o.versions.length),
         catchError(() => of(null))
@@ -378,6 +384,14 @@ export class DashboardComponent implements OnInit {
         route: '/leads',
         value: won,
         hint: closed ? `${Math.round(((won ?? 0) / closed) * 100)}% win rate` : undefined,
+      },
+      {
+        // What customers agreed with the AI. Opens the list, where each one is with who, when and what to cover.
+        label: 'Demos scheduled',
+        icon: 'event_available',
+        tone: 'blue',
+        route: '/bookings',
+        value: o?.demosScheduled ?? null,
       },
       {
         label: 'Campaigns',

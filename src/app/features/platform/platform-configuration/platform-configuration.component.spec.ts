@@ -63,7 +63,11 @@ const config = (): PlatformConfiguration => ({
 });
 
 describe('PlatformConfigurationComponent', () => {
-  function render(loaded = config(), sections?: string[]) {
+  /** A settings category as the API returns it, with one plain setting in it. */
+  const category = (name: string) =>
+    ({ category: name, items: [{ key: `${name}:Setting`, description: null, isSecret: false, hasValue: true, value: 'x', isList: false, options: null }] });
+
+  function render(loaded = config(), sections?: string[], systemCategories: unknown[] = []) {
     const get = jasmine.createSpy('get').and.returnValue(of(loaded));
     const save = jasmine.createSpy('save').and.callFake((c: PlatformConfiguration) => of(c));
     const success = jasmine.createSpy('success');
@@ -76,7 +80,7 @@ describe('PlatformConfigurationComponent', () => {
         { provide: PlatformConfigurationService, useValue: { get, save } },
         { provide: NotificationService, useValue: { success } },
         { provide: PlatformBillingService, useValue: { getPlanCostDefaults } },
-        { provide: SettingsService, useValue: { getAll: () => of([]), getCategory: () => of({ category: 'Retention', items: [] }), update: () => of(undefined) } },
+        { provide: SettingsService, useValue: { getAll: () => of(systemCategories), getCategory: () => of({ category: 'Retention', items: [] }), update: () => of(undefined) } },
         { provide: ActivatedRoute, useValue: { snapshot: { data: sections ? { sections } : {} } } },
         { provide: BillingService, useValue: { getStates: () => of([{ code: 'MH', name: 'Maharashtra' }, { code: 'KA', name: 'Karnataka' }]) } },
       ],
@@ -88,6 +92,15 @@ describe('PlatformConfigurationComponent', () => {
   }
 
   const text = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ');
+
+  it('shows a System panel only for settings no other screen owns: not the WhatsApp provider or the QR bridge', () => {
+    const { root } = render(config(), undefined, [category('Retention'), category('WhatsAppProvider'), category('WhatsAppBridge'), category('Integrations')]);
+
+    const headings = Array.from(root.querySelectorAll('mat-card.config-card h2')).map((h) => text(h).trim());
+    expect(headings).toEqual(['System - Retention']);
+    expect(text(root)).not.toContain('WhatsAppProvider');
+    expect(text(root)).not.toContain('WhatsAppBridge');
+  });
 
   it('lists every section as a collapsible panel, all closed to start with', () => {
     const { root } = render();

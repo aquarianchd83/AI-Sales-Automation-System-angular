@@ -50,15 +50,12 @@ export class PlatformCreditPayersComponent implements OnInit, OnDestroy {
   readonly statuses = [CreditUsageStatus.Charged, CreditUsageStatus.Reversed, CreditUsageStatus.Redeemed, CreditUsageStatus.Unpaid];
   readonly payers = [CreditPayer.Tenant, CreditPayer.Platform];
 
-  readonly priceColumns = ['scenario', 'units', 'updated'];
   readonly scenarioColumns = ['scenario', 'payer', 'price', 'activity', 'cost'];
   readonly usageColumns = ['occurredAt', 'tenant', 'scenario', 'units', 'paidBy', 'status', 'actions'];
   readonly ledgerColumns = ['occurredAt', 'type', 'units', 'balance', 'tenant', 'note'];
 
   scenarios: CreditScenarioInfo[] = [];
   scenariosLoading = true;
-  /** Per-scenario "credits per action" being typed, before it is saved. */
-  readonly unitsDraft = new Map<CreditScenario, number | null>();
   readonly savingScenario = new Set<CreditScenario>();
 
   wallets: PlatformCreditWallet[] = [];
@@ -130,28 +127,6 @@ export class PlatformCreditPayersComponent implements OnInit, OnDestroy {
     return scenario.unitsPerAction ?? 0;
   }
 
-  isFree(scenario: CreditScenarioInfo): boolean {
-    return !scenario.unitsPerAction;
-  }
-
-  draftUnits(scenario: CreditScenarioInfo): number | null {
-    return this.unitsDraft.has(scenario.scenario) ? this.unitsDraft.get(scenario.scenario)! : scenario.unitsPerAction;
-  }
-
-  setDraftUnits(scenario: CreditScenarioInfo, value: string): void {
-    const parsed = value === '' ? null : Number(value);
-    this.unitsDraft.set(scenario.scenario, parsed == null || Number.isNaN(parsed) ? null : parsed);
-  }
-
-  unitsChanged(scenario: CreditScenarioInfo): boolean {
-    return this.unitsDraft.has(scenario.scenario) && this.unitsDraft.get(scenario.scenario) !== scenario.unitsPerAction;
-  }
-
-  unitsValid(scenario: CreditScenarioInfo): boolean {
-    const draft = this.draftUnits(scenario);
-    return draft != null && draft >= 0;
-  }
-
   /** Switching who pays is confirmed first - it changes whose balance the next customer message comes out of. */
   changePayer(scenario: CreditScenarioInfo, payer: CreditPayer): void {
     if (payer === scenario.payer || this.savingScenario.has(scenario.scenario)) {
@@ -177,13 +152,6 @@ export class PlatformCreditPayersComponent implements OnInit, OnDestroy {
       });
   }
 
-  saveUnits(scenario: CreditScenarioInfo): void {
-    if (!this.unitsValid(scenario)) {
-      return;
-    }
-    this.saveScenario(scenario, { payer: scenario.payer, unitsPerAction: this.draftUnits(scenario) });
-  }
-
   private saveScenario(scenario: CreditScenarioInfo, request: { payer: CreditPayer; unitsPerAction: number | null }): void {
     this.savingScenario.add(scenario.scenario);
     this.credits
@@ -191,7 +159,6 @@ export class PlatformCreditPayersComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.savingScenario.delete(scenario.scenario)))
       .subscribe((updated) => {
         this.scenarios = this.scenarios.map((s) => (s.scenario === updated.scenario ? updated : s));
-        this.unitsDraft.delete(scenario.scenario);
         this.notify.success(`${updated.title}: ${updated.payer === CreditPayer.Platform ? 'platform' : 'tenants'} pay.`);
         this.loadUsage();
       });

@@ -13,6 +13,7 @@ import { BillingService } from '../../core/services/billing.service';
 import { ContentStudioService } from '../../core/services/content-studio.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
+import { PlatformTicketService } from '../../core/services/platform-ticket.service';
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
@@ -56,6 +57,7 @@ describe('ShellComponent platform bell', () => {
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent, acknowledge, acknowledgeAll, delete: deleteSpy } },
+        { provide: PlatformTicketService, useValue: { getAll: () => of([]) } },
         { provide: PlatformWalletService, useValue: { summary$: of({ balance: 0, topUpCount: 0, lastTopUpDate: null }), refresh: () => undefined } },
         {
           provide: NotificationHubService,

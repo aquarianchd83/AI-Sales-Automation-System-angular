@@ -17,6 +17,7 @@ import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { ContentStudioService } from '../../core/services/content-studio.service';
 import { EntitlementsService } from '../../core/services/entitlements.service';
 import { EntitlementsStore } from '../../core/services/entitlements.store';
+import { PlatformTicketService } from '../../core/services/platform-ticket.service';
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { PlatformWalletTopUpDialogComponent } from '../../shared/components/platform-wallet-top-up-dialog/platform-wallet-top-up-dialog.component';
 import { PlatformFeature } from '../../core/models/wallet.model';
@@ -118,6 +119,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
         { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
         { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
+        { label: 'Demos Scheduled', icon: 'event_available', route: '/bookings', roles: [] },
       ],
     },
     {
@@ -147,7 +149,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Membership', icon: 'payments', route: '/billing', roles: TENANT_ADMIN_ONLY, exact: true },
         { label: 'Usage & Credits', icon: 'data_usage', route: '/billing/wallet', roles: TENANT_ADMIN_ONLY, matches: ['/billing/credit-usage'] },
-        { label: 'Credit Costs', icon: 'price_check', route: '/billing/credit-costs', roles: TENANT_ADMIN_ONLY },
+        { label: 'Credit Cap', icon: 'price_check', route: '/billing/credit-costs', roles: TENANT_ADMIN_ONLY },
       ],
     },
     {
@@ -188,7 +190,6 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Tenants', icon: 'business', route: '/platform/tenants', roles: [] },
         { label: 'Users', icon: 'manage_accounts', route: '/platform/users', roles: [] },
-        { label: 'Tickets', icon: 'confirmation_number', route: '/platform/tickets', roles: [] },
         { label: 'Announcements', icon: 'campaign', route: '/platform/announcements', roles: [] },
         { label: 'Knowledge Base', icon: 'menu_book', route: '/platform/knowledge', roles: [] },
         { label: 'Studio Questionnaires', icon: 'quiz', route: '/platform/studio-questionnaires', roles: [] },
@@ -200,6 +201,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Package', icon: 'payments', route: '/platform/billing', roles: [] },
         { label: 'Usage & Quotas', icon: 'data_usage', route: '/platform/usage', roles: [] },
         { label: 'Credit Costs & Payers', icon: 'account_balance_wallet', route: '/platform/credit-payers', roles: [] },
+        { label: 'Service Margins', icon: 'trending_up', route: '/platform/service-margins', roles: [] },
         { label: 'Payments', icon: 'receipt_long', route: '/platform/payments', roles: [] },
         { label: 'Refund Requests', icon: 'assignment_return', route: '/platform/refunds', roles: [] },
       ],
@@ -223,7 +225,6 @@ export class ShellComponent implements OnInit, OnDestroy {
           route: '/platform/whatsapp-connections',
           roles: [],
         },
-        { label: 'Background Jobs', icon: 'schedule', route: '/platform/jobs', roles: [] },
       ],
     },
     {
@@ -460,6 +461,13 @@ export class ShellComponent implements OnInit, OnDestroy {
   currentCategory: string | null = null;
   currentTitle = '';
 
+  /** Screens with no sidebar entry that still name themselves in the toolbar: Tickets has its own button in the top bar, and Background Jobs is reached
+   * from alerts and from a tenant's page. */
+  private readonly unlistedHeadings: { route: string; category: string; title: string }[] = [
+    { route: '/platform/tickets', category: 'Support', title: 'Tickets' },
+    { route: '/platform/jobs', category: 'Infrastructure', title: 'Background Jobs' },
+  ];
+
   /** Longest nav route that prefixes the url wins, so /platform/tenants/42 still reads "Tenants". */
   private updateHeading(url: string): void {
     const path = url.split(/[?#]/)[0];
@@ -473,8 +481,9 @@ export class ShellComponent implements OnInit, OnDestroy {
         }
       }
     }
-    this.currentCategory = best?.section.label ?? null;
-    this.currentTitle = best?.item.label ?? '';
+    const unlisted = best ? undefined : this.unlistedHeadings.find((h) => path === h.route || path.startsWith(h.route + '/'));
+    this.currentCategory = best?.section.label ?? unlisted?.category ?? null;
+    this.currentTitle = best?.item.label ?? unlisted?.title ?? '';
   }
 
   /** The credits left in the wallet, shown beside the bell - null until known (and never for a platform admin, who has no wallet). */
@@ -507,6 +516,8 @@ export class ShellComponent implements OnInit, OnDestroy {
       )
       .subscribe((e) => {
         this.updateHeading(e.urlAfterRedirects);
+        // A ticket is resolved on its own page, so the badge is read again as the operator moves on, not on the next tick.
+        this.refreshOpenTickets();
         // Credits are spent in the background and by what the tenant does on any page, so the figure is read again as they move around.
         if (!this.isPlatformSuperAdmin) {
           this.entitlementsLoader.load(true).subscribe({ error: () => undefined });
@@ -593,6 +604,11 @@ export class ShellComponent implements OnInit, OnDestroy {
           next: (all) => (this.platformAlerts = this.newestFirst(all)),
           error: () => undefined,
         });
+
+      // The Tickets button's badge: the tickets nobody has picked up yet. Read with the alerts, and again on every page change (see above).
+      timer(0, 60 * 1000)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => this.refreshOpenTickets());
     }
 
     // The full Notifications screen reads and deletes too; refresh the bell the moment it does, not on the next poll.
@@ -694,6 +710,24 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   get unreadPlatformCount(): number {
     return this.platformAlerts.filter((n) => !n.acknowledged).length;
+  }
+
+  /** Tickets raised for the product owner that are still Open - nobody has picked them up. Shown as a badge on the Tickets button. */
+  openTicketCount = 0;
+
+  private refreshOpenTickets(): void {
+    if (!this.showPlatformBell) {
+      return;
+    }
+    this.injector
+      .get(PlatformTicketService)
+      .getAll('Open')
+      .subscribe({ next: (tickets) => (this.openTicketCount = tickets.length), error: () => undefined });
+  }
+
+  /** What the Tickets button says to a screen reader and in its tooltip: how many are waiting, when any are. */
+  get ticketsLabel(): string {
+    return this.openTicketCount ? `Tickets, ${this.openTicketCount} open` : 'Tickets';
   }
 
   private newestFirst<T extends { createdAt: string }>(list: T[]): T[] {

@@ -96,7 +96,7 @@
           </a>
           <a mat-menu-item routerLink="/billing/credit-costs">
             <mat-icon>price_check</mat-icon>
-            <span>Credit costs</span>
+            <span>Credit cap</span>
           </a>
         </mat-menu>
         <ng-template #walletPlain>
@@ -174,6 +174,21 @@
           </mat-menu>
         </ng-container>
       </ng-container>
+
+      <!-- Support tickets: a platform admin's own, always one click away rather than a sidebar entry. -->
+      <a
+        *ngIf="showPlatformBell && !onboardingActive"
+        mat-icon-button
+        class="tickets-link"
+        routerLink="/platform/tickets"
+        routerLinkActive="tickets-link--active"
+        [matTooltip]="ticketsLabel"
+        [attr.aria-label]="ticketsLabel"
+        data-testid="tickets-link"
+      >
+        <mat-icon>confirmation_number</mat-icon>
+        <span class="bell-count" *ngIf="openTicketCount" data-testid="tickets-count">{{ openTicketCount > 9 ? '9+' : openTicketCount }}</span>
+      </a>
 
       <ng-container *ngIf="showPlatformBell">
         <button mat-icon-button type="button" class="bell" #platformTrigger="matMenuTrigger" [matMenuTriggerFor]="platformAlertsMenu" aria-label="Platform alerts">

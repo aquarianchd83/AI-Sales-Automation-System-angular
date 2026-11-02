@@ -40,6 +40,7 @@ import { PlatformTenantListComponent } from './platform-tenant-list/platform-ten
 import { PlatformTenantWhatsAppConfigDialogComponent } from './platform-tenant-whatsapp-config-dialog/platform-tenant-whatsapp-config-dialog.component';
 import { PlatformCreditPayersComponent } from './platform-credit-payers/platform-credit-payers.component';
 import { PlatformWalletComponent } from './platform-wallet/platform-wallet.component';
+import { PlatformServiceMarginsComponent } from './platform-service-margins/platform-service-margins.component';
 import { PlatformCreditRedeemDialogComponent } from './platform-credit-payers/platform-credit-redeem-dialog.component';
 import { PlatformCreditWalletDialogComponent } from './platform-credit-payers/platform-credit-wallet-dialog.component';
 import { PlatformUsageComponent } from './platform-usage/platform-usage.component';
@@ -67,6 +68,8 @@ const routes: Routes = [
       { path: 'usage', component: PlatformUsageComponent },
       // Who pays for each credit-spending scenario - the tenant or the platform - and who paid for each spend.
       { path: 'credit-payers', component: PlatformCreditPayersComponent },
+      // What each service costs us, what tenants are charged for it, and the margin.
+      { path: 'service-margins', component: PlatformServiceMarginsComponent },
       { path: 'wallet', component: PlatformWalletComponent },
       { path: 'payments', component: PlatformPaymentListComponent },
       { path: 'configuration', component: PlatformConfigurationComponent },
@@ -120,6 +123,7 @@ const routes: Routes = [
     PlatformUsageComponent,
     PlatformCreditPayersComponent,
     PlatformWalletComponent,
+    PlatformServiceMarginsComponent,
     PlatformCreditWalletDialogComponent,
     PlatformCreditRedeemDialogComponent,
     PlatformPaymentListComponent,

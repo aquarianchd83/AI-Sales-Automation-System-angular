@@ -1,0 +1,41 @@
+<h2 mat-dialog-title>Reschedule the {{ data.booking.kind.toLowerCase() }}</h2>
+
+<mat-dialog-content>
+  <p class="intro">
+    {{ data.booking.customerName || data.booking.customerPhone || 'The customer' }} - {{ data.booking.summary }}
+  </p>
+
+  <p class="hint muted">
+    Pick the new date and time to offer, or leave both empty to reschedule now and agree a time with the customer.
+  </p>
+
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <div class="row">
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>New date</mat-label>
+        <input matInput [matDatepicker]="datePicker" [min]="today" formControlName="date" data-testid="slot-date" />
+        <mat-datepicker-toggle matIconSuffix [for]="datePicker"></mat-datepicker-toggle>
+        <mat-datepicker #datePicker></mat-datepicker>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>New time</mat-label>
+        <input matInput type="time" formControlName="time" data-testid="slot-time" />
+      </mat-form-field>
+    </div>
+
+    <p class="zone muted" data-testid="zone">Times are in your workspace's time zone{{ data.timezone ? ': ' + data.timezone : '' }}.</p>
+    <p class="zone muted" *ngIf="incomplete" data-testid="incomplete">Pick both the date and the time, or neither.</p>
+
+    <mat-checkbox formControlName="writeMessage" *ngIf="hasConversation" data-testid="write-message">
+      Write the customer a message about it, ready for me to send
+    </mat-checkbox>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close data-testid="cancel">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving || incomplete" (click)="save()" data-testid="reschedule">
+    {{ saving ? 'Saving…' : 'Reschedule' }}
+  </button>
+</mat-dialog-actions>

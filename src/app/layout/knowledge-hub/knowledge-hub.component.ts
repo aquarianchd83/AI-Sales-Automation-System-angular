@@ -37,6 +37,7 @@ export class KnowledgeHubComponent implements OnInit {
     { label: 'Business Facts', icon: 'fact_check', route: '/content-studio/facts', roles: STUDIO_CONTENT_ROLES, needsStudio: true, feature: 'ContentStudio' },
     { label: 'What the Studio Knows', icon: 'speed', route: '/content-studio/readiness', roles: STUDIO_CONTENT_ROLES, needsStudio: true, feature: 'ContentStudio' },
     { label: 'Published Knowledge', icon: 'inventory', route: '/product-knowledge/versions', roles: [AppRole.Admin], feature: 'ProductKnowledge' },
+    { label: 'Customer Questions', icon: 'help_center', route: '/product-knowledge/questions', roles: [AppRole.Admin], feature: 'ProductKnowledge' },
     { label: 'Test Chat', icon: 'chat', route: '/product-knowledge/test-chat', roles: [AppRole.Admin], feature: 'ProductKnowledge' },
   ];
 

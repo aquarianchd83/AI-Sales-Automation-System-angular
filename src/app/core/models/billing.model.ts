@@ -245,6 +245,8 @@ export interface QuotaLedgerEntry {
   referenceId: string | null;
   note: string | null;
   occurredAtUtc: string;
+  /** For an AI reply, the start of the customer's message it answered (the workspace's own history only). */
+  customerText?: string | null;
 }
 
 /** The whole credit history at a glance (GET /platform/tenants/{id}/quota/ledger/summary). Units on ByEntryType are signed; UnitsUsed is positive. */
@@ -254,6 +256,17 @@ export interface QuotaLedgerSummary {
   byFeature: { feature: PlatformFeature; count: number; unitsUsed: number }[];
   /** One point per calendar day (UTC), oldest first; date is yyyy-MM-dd. */
   daily: { date: string; purchased: number; used: number }[];
+  /** Test chat replies in the range: free, so not among the entries or the credits above. */
+  testChatReplies?: number;
+}
+
+/** One reply the AI gave in the tenant's Test chat (GET /billing/quota/test-chat). It reached the AI provider but took no credits. */
+export interface TestChatCall {
+  id: string;
+  occurredAtUtc: string;
+  model: string | null;
+  /** The start of what was typed in the test. */
+  text?: string | null;
 }
 
 export interface QuotaLedgerQuery {
@@ -392,6 +405,8 @@ export enum TenantNotificationKind {
   AccountLocked = 17,
   /** Customer discovery did not start: the WhatsApp Consent Page is incomplete, unpublished or switched off. Nothing was charged. */
   ConsentPageSetupRequired = 21,
+  /** A customer agreed a demo, visit or similar with your AI assistant: be ready for it. */
+  NextStepBooked = 22,
 }
 
 export interface TenantNotification {
@@ -453,6 +468,7 @@ export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = 
   [TenantNotificationKind.WhatsAppTokenFailing]: 'WhatsApp access token failing',
   [TenantNotificationKind.AccountLocked]: 'Account locked after wrong passwords',
   [TenantNotificationKind.ConsentPageSetupRequired]: 'WhatsApp Consent Page setup required',
+  [TenantNotificationKind.NextStepBooked]: 'Customer booked a demo or visit',
 };
 
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */
@@ -482,6 +498,8 @@ export function tenantNotificationRoute(kind: TenantNotificationKind): string {
       return '/audit-log';
     case TenantNotificationKind.ConsentPageSetupRequired:
       return '/consent-page-settings';
+    case TenantNotificationKind.NextStepBooked:
+      return '/conversations';
     case TenantNotificationKind.JobStarted:
     case TenantNotificationKind.JobCompleted:
       return '/tenant-settings/jobs';
