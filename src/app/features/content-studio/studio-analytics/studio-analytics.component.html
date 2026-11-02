@@ -1,0 +1,71 @@
+<div class="page">
+  <app-page-header
+    title="Video performance"
+    subtitle="How the videos you published are doing. The numbers come from YouTube, once a day."
+  >
+    <a mat-stroked-button routerLink="/content-studio/planner">
+      <mat-icon>movie_creation</mat-icon>
+      Content planner
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="panel" *ngIf="loadFailed">
+    <p>The numbers could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <ng-container *ngIf="summary && !loadFailed">
+    <div class="cards" data-testid="cards">
+      <mat-card class="card"><span class="value" data-testid="published">{{ summary.published }}</span><span class="label">published</span></mat-card>
+      <mat-card class="card"><span class="value" data-testid="views">{{ summary.views | number }}</span><span class="label">views</span></mat-card>
+      <mat-card class="card"><span class="value" data-testid="likes">{{ summary.likes | number }}</span><span class="label">likes</span></mat-card>
+      <mat-card class="card"><span class="value" data-testid="comments">{{ summary.comments | number }}</span><span class="label">comments</span></mat-card>
+    </div>
+    <p class="muted small" *ngIf="summary.lastUpdatedUtc" data-testid="updated">Last updated {{ summary.lastUpdatedUtc | zonedDate: 'medium' }}.</p>
+    <p class="muted small" *ngIf="summary.waitingOrSending || summary.failedLast30Days" data-testid="queue">
+      <ng-container *ngIf="summary.waitingOrSending">{{ summary.waitingOrSending }} waiting or being sent. </ng-container>
+      <ng-container *ngIf="summary.failedLast30Days">{{ summary.failedLast30Days }} failed in the last 30 days - open the script in the planner to see why.</ng-container>
+    </p>
+
+    <mat-card class="panel">
+      <h2>The last 30 days</h2>
+      <ol class="funnel" data-testid="funnel">
+        <li *ngFor="let step of funnelSteps"><strong>{{ step.value }}</strong><span class="muted">{{ step.label }}</span></li>
+      </ol>
+    </mat-card>
+
+    <mat-card class="panel">
+      <h2>Your videos</h2>
+      <p class="muted" *ngIf="!summary.items.length" data-testid="none">
+        Nothing is published yet. Approve a script, make its video, and publish it from the <a routerLink="/content-studio/planner">content planner</a>.
+      </p>
+      <ul class="items" *ngIf="summary.items.length" data-testid="items">
+        <li *ngFor="let i of summary.items" [attr.data-item]="i.id">
+          <div class="main">
+            <strong>{{ i.title }}</strong>
+            <span class="muted small">{{ i.accountName }} · {{ i.privacy }}<ng-container *ngIf="i.publishedAtUtc"> · published {{ i.publishedAtUtc | zonedDate: 'mediumDate' }}</ng-container></span>
+            <span class="warn small" *ngIf="i.missingOnPlatform" data-testid="missing">YouTube no longer shows this video. These are the last numbers it gave.</span>
+            <span class="muted small" *ngIf="!i.refreshedAtUtc" data-testid="not-yet">Not read from YouTube yet - the first numbers arrive within a day.</span>
+          </div>
+          <div class="nums">
+            <span><strong data-testid="item-views">{{ i.views | number }}</strong> views</span>
+            <span>{{ i.likes | number }} likes</span>
+            <span>{{ i.comments | number }} comments</span>
+          </div>
+          <div class="spark">
+            <svg *ngIf="spark(i.series) as points" [attr.viewBox]="'0 0 ' + sparkWidth + ' ' + sparkHeight" [attr.width]="sparkWidth" [attr.height]="sparkHeight" role="img" aria-label="Views over time" data-testid="spark">
+              <polyline [attr.points]="points" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>
+            </svg>
+            <span class="muted small" *ngIf="!spark(i.series)" data-testid="no-line">A line appears after the second reading.</span>
+          </div>
+          <div class="actions">
+            <a mat-stroked-button [href]="i.url" target="_blank" rel="noopener noreferrer" *ngIf="i.url" data-testid="open"><mat-icon>open_in_new</mat-icon></a>
+            <button mat-button type="button" [disabled]="refreshing[i.id]" (click)="refresh(i)" data-testid="refresh"><mat-icon>refresh</mat-icon> Update</button>
+          </div>
+        </li>
+      </ul>
+    </mat-card>
+  </ng-container>
+</div>
