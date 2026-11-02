@@ -1,0 +1,208 @@
+<div class="page">
+  <app-page-header
+    title="Story studio"
+    subtitle="Turn an idea into a short vertical story with the same characters every time. Write the script, check it, and approve it before any video is made."
+  >
+    <button mat-flat-button color="primary" (click)="startNew()" data-testid="new-story">
+      <mat-icon>add</mat-icon>
+      New story
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading || busy"></mat-progress-bar>
+
+  <div class="split">
+    <!-- The list stays put; the right-hand side changes. -->
+    <mat-card class="list-card" aria-label="Your stories">
+      <p class="muted empty" *ngIf="!loading && !projects.length">No stories yet. Start one with "New story".</p>
+      <button
+        type="button"
+        class="row"
+        *ngFor="let p of projects; trackBy: trackById"
+        [class.active]="selected?.id === p.id"
+        (click)="open(p)"
+        [attr.data-project]="p.id"
+      >
+        <span class="row-title">{{ p.title }}</span>
+        <span class="muted">{{ statusLabels[p.status] }} · {{ p.targetSeconds }}s · {{ p.language }}</span>
+      </button>
+    </mat-card>
+
+    <section class="panel">
+      <!-- A new story: the brief, the cast, and where the clips come from. -->
+      <mat-card class="section-card" *ngIf="creating" data-testid="brief">
+        <h3>1. The idea</h3>
+        <form [formGroup]="brief" class="grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Title</mat-label>
+            <input matInput formControlName="title" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Language</mat-label>
+            <mat-select formControlName="language">
+              <mat-option *ngFor="let l of languages" [value]="l">{{ l }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="wide">
+            <mat-label>Topic or story idea</mat-label>
+            <textarea matInput rows="4" formControlName="topic" placeholder="A husband and wife argue; Guru Ji settles it with humour."></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Style and tone</mat-label>
+            <input matInput formControlName="style" placeholder="Warm, funny, cinematic" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Audience</mat-label>
+            <input matInput formControlName="audience" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Message or call to action (optional)</mat-label>
+            <input matInput formControlName="moral" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Length in seconds</mat-label>
+            <input matInput type="number" formControlName="targetSeconds" />
+          </mat-form-field>
+        </form>
+
+        <h3>2. The cast</h3>
+        <p class="muted">Pick characters you already have: they keep the same look every time and cost nothing to reuse. Or add a new one.</p>
+        <mat-form-field appearance="outline" class="search">
+          <mat-label>Search characters</mat-label>
+          <input matInput [formControl]="search" />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+
+        <div class="cast">
+          <div class="character" *ngFor="let c of characters; trackBy: trackById" [class.picked]="selectedCharacterIds.has(c.id)">
+            <mat-checkbox [checked]="selectedCharacterIds.has(c.id)" (change)="toggleCharacter(c)" [attr.data-character]="c.id">
+              <strong>{{ c.name }}</strong>
+              <span class="muted" *ngIf="!c.isOwnedByTenant"> (shared)</span>
+            </mat-checkbox>
+            <span class="muted small">{{ c.visualAttributes || c.description || 'No description yet' }}</span>
+            <span class="small" *ngIf="c.approvedReferenceId; else noPicture">Picture saved</span>
+            <ng-template #noPicture><span class="small warn">No picture yet</span></ng-template>
+            <ng-container *ngIf="c.isOwnedByTenant">
+              <input #file type="file" accept="image/png,image/jpeg,image/webp" hidden (change)="upload(c, file)" />
+              <button mat-stroked-button type="button" (click)="file.click()" [disabled]="busy">
+                <mat-icon>upload</mat-icon>
+                Add picture
+              </button>
+            </ng-container>
+          </div>
+        </div>
+        <mat-checkbox class="rights" [(ngModel)]="uploadRights" [ngModelOptions]="{ standalone: true }" data-testid="rights">
+          I have the rights to use the pictures I upload.
+        </mat-checkbox>
+
+        <button mat-button type="button" (click)="showNewCharacter = !showNewCharacter" data-testid="toggle-new-character">
+          <mat-icon>person_add</mat-icon>
+          {{ showNewCharacter ? 'Cancel new character' : 'Add a new character' }}
+        </button>
+        <form [formGroup]="character" class="grid" *ngIf="showNewCharacter" (ngSubmit)="saveCharacter()">
+          <mat-form-field appearance="outline">
+            <mat-label>Name</mat-label>
+            <input matInput formControlName="name" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Voice (accent, age, mood)</mat-label>
+            <input matInput formControlName="voicePreferences" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="wide">
+            <mat-label>What they look like</mat-label>
+            <textarea matInput rows="2" formControlName="visualAttributes"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="wide">
+            <mat-label>Personality</mat-label>
+            <input matInput formControlName="personality" />
+          </mat-form-field>
+          <button mat-flat-button color="primary" type="submit" [disabled]="character.invalid || busy">Save character</button>
+        </form>
+
+        <h3>3. Where the clips come from</h3>
+        <mat-radio-group class="providers" [formControl]="brief.controls.videoProvider">
+          <mat-radio-button *ngFor="let k of providerKinds" [value]="k">
+            <strong>{{ providerLabels[k] }}</strong>
+            <span class="muted small block">{{ providerHints[k] }}</span>
+          </mat-radio-button>
+        </mat-radio-group>
+
+        <div class="actions">
+          <button mat-flat-button color="primary" (click)="createProject()" [disabled]="brief.invalid || busy" data-testid="create-project">
+            Create story
+          </button>
+          <button mat-button (click)="creating = false">Cancel</button>
+        </div>
+      </mat-card>
+
+      <!-- A chosen story: its script, written and approved in place. -->
+      <ng-container *ngIf="selected as p">
+        <mat-card class="section-card" data-testid="detail">
+          <h3>{{ p.title }}</h3>
+          <p class="muted">{{ p.topic }}</p>
+          <p class="muted small">
+            {{ statusLabels[p.status] }} · {{ p.targetSeconds }} seconds · {{ p.language }} · Cast: {{ castNames.join(', ') || 'none chosen' }}
+          </p>
+
+          <h4>Video source</h4>
+          <mat-radio-group class="providers" [value]="p.videoProvider" (change)="changeProvider($event.value)" [disabled]="!isDraft">
+            <mat-radio-button *ngFor="let k of providerKinds" [value]="k">{{ providerLabels[k] }}</mat-radio-button>
+          </mat-radio-group>
+          <p class="muted small" *ngIf="estimate" data-testid="estimate">{{ estimate.note }}</p>
+        </mat-card>
+
+        <mat-card class="section-card" data-testid="script-card">
+          <div class="head">
+            <h3>Script</h3>
+            <span class="badge test" *ngIf="script?.isSimulated" data-testid="test-badge">Test data - not written by AI</span>
+          </div>
+
+          <p class="muted" *ngIf="!script">No script yet.</p>
+          <button mat-flat-button color="primary" (click)="generate()" [disabled]="busy || !isDraft" data-testid="generate" *ngIf="isDraft">
+            <mat-icon>auto_awesome</mat-icon>
+            {{ script ? 'Write a new script' : 'Write the script' }}
+          </button>
+
+          <ng-container *ngIf="draft">
+            <h4>{{ draft.title }}</h4>
+            <p><strong>Hook:</strong> {{ draft.hook }}</p>
+            <p class="muted">{{ draft.storySummary }}</p>
+
+            <div class="scene" *ngFor="let s of draft.scenes">
+              <div class="scene-head">
+                <strong>Scene {{ s.index }}</strong>
+                <span class="muted small">{{ s.targetSeconds }}s · {{ s.camera }}</span>
+              </div>
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>Video prompt</mat-label>
+                <textarea matInput rows="3" [(ngModel)]="s.videoPrompt" (ngModelChange)="markDirty()" [disabled]="!isDraft"></textarea>
+              </mat-form-field>
+              <div class="line" *ngFor="let d of s.dialogue">
+                <span class="speaker">{{ d.speaker }}</span>
+                <mat-form-field appearance="outline" class="line-text">
+                  <mat-label>{{ seconds(d.startMs) }}s - {{ seconds(d.endMs) }}s</mat-label>
+                  <input matInput [(ngModel)]="d.text" (ngModelChange)="d.subtitleText = d.text; markDirty()" [disabled]="!isDraft" />
+                </mat-form-field>
+              </div>
+            </div>
+            <p><strong>Ending:</strong> {{ draft.punchline }}</p>
+
+            <div class="actions" *ngIf="isDraft">
+              <button mat-stroked-button (click)="saveEdits()" [disabled]="!dirty || busy" data-testid="save-edits">Save my edits</button>
+              <button mat-flat-button color="primary" (click)="approve()" [disabled]="dirty || busy" data-testid="approve">
+                <mat-icon>check_circle</mat-icon>
+                Approve script
+              </button>
+              <span class="muted small" *ngIf="dirty">Save your edits before approving.</span>
+            </div>
+            <p class="muted small" *ngIf="p.status === statusEnum.ScriptApproved" data-testid="approved">
+              Script approved. The next step - making the clips - is not built yet.
+            </p>
+          </ng-container>
+        </mat-card>
+      </ng-container>
+
+      <p class="muted" *ngIf="!creating && !selected && !loading">Choose a story on the left, or start a new one.</p>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,161 @@
+.split {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.list-card {
+  padding: 8px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.row:hover,
+.row.active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.row-title {
+  font-weight: 500;
+}
+
+.empty {
+  padding: 12px;
+  margin: 0;
+}
+
+.section-card {
+  margin-bottom: 16px;
+  padding: 20px 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 16px;
+}
+
+.wide,
+.full {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.search {
+  width: 100%;
+  max-width: 360px;
+}
+
+.cast {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.character {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+}
+
+.character.picked {
+  border-color: currentColor;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.block {
+  display: block;
+}
+
+.warn {
+  color: #b26a00;
+}
+
+.rights {
+  display: block;
+  margin: 8px 0;
+}
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.badge.test {
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #fff3cd;
+  color: #664d03;
+  font-size: 12px;
+}
+
+.scene {
+  margin: 16px 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.scene-head {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.speaker {
+  min-width: 90px;
+  font-weight: 500;
+}
+
+.line-text {
+  flex: 1;
+}

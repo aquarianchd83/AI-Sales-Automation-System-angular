@@ -9,6 +9,7 @@ import { StudioActivityComponent } from './studio-activity/studio-activity.compo
 import { StudioFactsComponent } from './studio-facts/studio-facts.component';
 import { StudioQuestionnaireComponent } from './studio-questionnaire/studio-questionnaire.component';
 import { StudioReadinessComponent } from './studio-readiness/studio-readiness.component';
+import { StudioStoriesComponent } from './studio-stories/studio-stories.component';
 
 // The charge history is billing information (Admin only); the questionnaire, facts and readiness are for Admins and Sales Managers.
 const routes: Routes = [
@@ -16,10 +17,11 @@ const routes: Routes = [
   { path: 'questionnaire', component: StudioQuestionnaireComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
   { path: 'facts', component: StudioFactsComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
   { path: 'readiness', component: StudioReadinessComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
+  { path: 'stories', component: StudioStoriesComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
 ];
 
 @NgModule({
-  declarations: [StudioActivityComponent, StudioQuestionnaireComponent, StudioFactsComponent, StudioReadinessComponent],
+  declarations: [StudioActivityComponent, StudioQuestionnaireComponent, StudioFactsComponent, StudioReadinessComponent, StudioStoriesComponent],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })
 export class ContentStudioModule {}
