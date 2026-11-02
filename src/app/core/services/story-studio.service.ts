@@ -7,6 +7,7 @@ import {
   CinematicScript,
   CreateStoryCharacterBody,
   CreateStoryProjectBody,
+  GeneratedCharacter,
   SceneVideoProviderKind,
   StoryCharacter,
   StoryCostEstimate,
@@ -16,6 +17,7 @@ import {
   StoryRender,
   StoryScene,
   StoryScriptVersion,
+  StoryUsage,
 } from '../models/story-studio.model';
 
 /** The cinematic story studio: reusable characters, story projects, and the script that must be approved before any paid video work. */
@@ -122,6 +124,24 @@ export class StoryStudioService {
 
   downloadClip(sceneId: string): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/scenes/${sceneId}/clip`, { responseType: 'blob' });
+  }
+
+  /** Option C: makes the characters the script needs that are not already in the cast, with previews to approve. */
+  generateCharacters(projectId: string, confirmCost: boolean): Observable<GeneratedCharacter[]> {
+    return this.http.post<GeneratedCharacter[]>(`${this.baseUrl}/projects/${projectId}/characters/generate`, { confirmCost });
+  }
+
+  /** The subtitle text of one dialogue line; the clip's audio is not changed. */
+  editDialogue(sceneId: string, order: number, text: string): Observable<StoryClipScene> {
+    return this.http.put<StoryClipScene>(`${this.baseUrl}/scenes/${sceneId}/dialogue/${order}`, { text });
+  }
+
+  approveVideo(projectId: string): Observable<StoryProject> {
+    return this.http.post<StoryProject>(`${this.baseUrl}/projects/${projectId}/approve-video`, {});
+  }
+
+  getUsage(projectId: string): Observable<StoryUsage> {
+    return this.http.get<StoryUsage>(`${this.baseUrl}/projects/${projectId}/usage`);
   }
 
   approveScript(projectId: string): Observable<StoryScene[]> {

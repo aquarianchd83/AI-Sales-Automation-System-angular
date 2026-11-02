@@ -110,12 +110,13 @@ describe('StudioStoriesComponent', () => {
   function render(projects: StoryProject[] = [project()]): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
     ]);
     api.listProjects.and.returnValue(of(projects));
     api.listCharacters.and.returnValue(of([character('c1', 'Guru Ji'), character('c2', 'Sunita', { approvedReferenceId: 'r1' })]));
     api.listScenes.and.returnValue(of([]));
     api.listRenders.and.returnValue(of([]));
+    api.getUsage.and.returnValue(of({ lines: [], totalUsd: 0, budgetUsd: null, wastedOnFailedUsd: 0 }));
     api.getCostEstimate.and.returnValue(of({ isKnown: false, clipUsd: 0, clipSeconds: 8, clips: 4, provider: 'Simulator', note: 'Free test clips.' }));
 
     TestBed.configureTestingModule({
@@ -311,6 +312,73 @@ describe('StudioStoriesComponent', () => {
 
       expect(text(root().querySelector("[data-testid=\"render\"]"))).toContain("A scene has no finished clip.");
       expect(root().querySelector("[data-testid=\"play-final\"]")).toBeNull();
+    });
+  });
+
+  describe("review", () => {
+    const inReview = () => project({ status: StoryProjectStatus.InReview, currentScriptVersionId: "v1" });
+    const done: StoryRender = { id: "r1", status: StoryJobStatus.Completed, error: null, problems: [], durationSeconds: 32, hasVideo: true, createdAt: "2026-11-02T09:00:00Z" };
+
+    function open(renders: StoryRender[]): void {
+      render([inReview()]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Completed, { actualMilliseconds: 8000, dialogue: [{ speaker: "Guru Ji", text: "Shaant", startMs: 500, endMs: 3000 }] })]));
+      api.listRenders.and.returnValue(of(renders));
+      click("[data-project=\"p1\"]");
+    }
+
+    it("offers approval only once a render has finished", () => {
+      open([]);
+      expect(root().querySelector("[data-testid=\"approve-video\"]")).toBeNull();
+
+      TestBed.resetTestingModule();
+      open([done]);
+      expect(root().querySelector("[data-testid=\"approve-video\"]")).not.toBeNull();
+    });
+
+    it("approves the video and says so", () => {
+      open([done]);
+      api.approveVideo.and.returnValue(of(project({ status: StoryProjectStatus.Approved, currentScriptVersionId: "v1" })));
+
+      click("[data-testid=\"approve-video\"]");
+
+      expect(api.approveVideo).toHaveBeenCalledWith("p1");
+      expect(text(root().querySelector("[data-testid=\"video-approved\"]"))).toContain("Video approved");
+    });
+
+    it("saves a corrected subtitle when it is changed", () => {
+      open([done]);
+      api.editDialogue.and.returnValue(of(clip(1, StorySceneStatus.Completed)));
+      const box = root().querySelector("[data-line=\"1-1\"]") as HTMLInputElement;
+
+      box.value = "Shaant ho jao";
+      box.dispatchEvent(new Event("change"));
+
+      expect(api.editDialogue).toHaveBeenCalledWith("s1", 1, "Shaant ho jao");
+    });
+
+    it("shows what the story has cost, including attempts that failed", () => {
+      render([inReview()]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.getUsage.and.returnValue(of({ lines: [{ category: "Scene clips", jobs: 2, failed: 1, estimatedUsd: 1.92, actualUsd: 0.96 }], totalUsd: 1.92, budgetUsd: 10, wastedOnFailedUsd: 0.96 }));
+      click("[data-project=\"p1\"]");
+
+      const usage = text(root().querySelector("[data-testid=\"usage\"]"));
+      expect(usage).toContain("1.92 USD");
+      expect(usage).toContain("10.00 USD budget");
+      expect(usage).toContain("0.96 USD went on attempts that failed");
+    });
+
+    it("creates the missing characters from the script with the cost box passed through", () => {
+      render([project({ currentScriptVersionId: "v1" })]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.generateCharacters.and.returnValue(of([]));
+      click("[data-project=\"p1\"]");
+
+      fixture.componentInstance.confirmPictures = true;
+      click("[data-testid=\"make-characters\"]");
+
+      expect(api.generateCharacters).toHaveBeenCalledWith("p1", true);
     });
   });
 });

@@ -217,6 +217,26 @@ export interface StoryRender {
   createdAt: string;
 }
 
+export interface StoryUsageLine {
+  category: string;
+  jobs: number;
+  failed: number;
+  estimatedUsd: number;
+  actualUsd: number;
+}
+
+export interface StoryUsage {
+  lines: StoryUsageLine[];
+  totalUsd: number;
+  budgetUsd: number | null;
+  wastedOnFailedUsd: number;
+}
+
+export interface GeneratedCharacter {
+  character: StoryCharacter;
+  preview: StoryReference;
+}
+
 export interface StoryScene {
   id: string;
   index: number;

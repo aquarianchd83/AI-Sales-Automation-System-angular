@@ -149,6 +149,11 @@
             <mat-radio-button *ngFor="let k of providerKinds" [value]="k">{{ providerLabels[k] }}</mat-radio-button>
           </mat-radio-group>
           <p class="muted small" *ngIf="estimate" data-testid="estimate">{{ estimate.note }}</p>
+          <p class="muted small" *ngIf="usage && usage.lines.length" data-testid="usage">
+            So far: {{ usage.totalUsd | number: '1.2-2' }} USD<ng-container *ngIf="usage.budgetUsd"> of {{ usage.budgetUsd | number: '1.2-2' }} USD budget</ng-container>
+            ({{ usageSummary }}).
+            <ng-container *ngIf="usage.wastedOnFailedUsd > 0">{{ usage.wastedOnFailedUsd | number: '1.2-2' }} USD went on attempts that failed.</ng-container>
+          </p>
         </mat-card>
 
         <mat-card class="section-card" data-testid="script-card">
@@ -187,6 +192,15 @@
             </div>
             <p><strong>Ending:</strong> {{ draft.punchline }}</p>
 
+            <div class="actions" *ngIf="isDraft && script">
+              <mat-checkbox [(ngModel)]="confirmPictures" [ngModelOptions]="{ standalone: true }">
+                Pictures for new characters may cost money; I accept that.
+              </mat-checkbox>
+              <button mat-stroked-button (click)="makeCharacters()" [disabled]="busy" data-testid="make-characters">
+                <mat-icon>person_add</mat-icon>
+                Create the characters this script needs
+              </button>
+            </div>
             <div class="actions" *ngIf="isDraft">
               <button mat-stroked-button (click)="saveEdits()" [disabled]="!dirty || busy" data-testid="save-edits">Save my edits</button>
               <button mat-flat-button color="primary" (click)="approve()" [disabled]="dirty || busy" data-testid="approve">
@@ -212,6 +226,14 @@
               <span class="muted small" *ngIf="s.actualMilliseconds">{{ seconds(s.actualMilliseconds) }}s clip</span>
             </div>
             <p class="muted small prompt">{{ s.videoPrompt }}</p>
+            <div class="line" *ngFor="let d of s.dialogue; let i = index">
+              <span class="speaker">{{ d.speaker }}</span>
+              <mat-form-field appearance="outline" class="line-text" *ngIf="p.status !== statusEnum.Approved; else fixedLine">
+                <mat-label>Subtitle</mat-label>
+                <input matInput #sub [value]="d.text" (change)="editLine(s, i + 1, sub.value)" [attr.data-line]="s.index + '-' + (i + 1)" />
+              </mat-form-field>
+              <ng-template #fixedLine><span>{{ d.text }}</span></ng-template>
+            </div>
             <p class="warn small" *ngIf="s.error">{{ s.error }}</p>
             <p class="warn small" *ngIf="s.flagReason">Flagged: {{ s.flagReason }}</p>
             <button mat-button *ngIf="s.actualMilliseconds" (click)="preview('clip', s.id, 'Scene ' + s.index)" [attr.data-play]="s.index">
@@ -277,6 +299,15 @@
               {{ latestRender ? 'Put it together again' : 'Put the video together' }}
             </button>
           </div>
+
+          <div class="actions" *ngIf="canApproveVideo">
+            <button mat-flat-button color="primary" (click)="approveVideo()" [disabled]="busy" data-testid="approve-video">
+              <mat-icon>verified</mat-icon>
+              Approve this video
+            </button>
+            <span class="muted small">Watch it first. Approving says it is ready to share.</span>
+          </div>
+          <p class="small" *ngIf="p.status === statusEnum.Approved" data-testid="video-approved">Video approved.</p>
 
           <div class="scene" *ngIf="latestRender as r" data-testid="render">
             <div class="scene-head">

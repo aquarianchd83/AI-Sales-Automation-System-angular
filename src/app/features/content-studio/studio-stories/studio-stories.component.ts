@@ -20,6 +20,7 @@ import {
   StoryRender,
   StorySceneStatus,
   StoryScriptVersion,
+  StoryUsage,
 } from '../../../core/models/story-studio.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
@@ -56,6 +57,8 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   estimate: StoryCostEstimate | null = null;
   scenes: StoryClipScene[] = [];
   renders: StoryRender[] = [];
+  usage: StoryUsage | null = null;
+  confirmPictures = false;
   previewUrl: string | null = null;
   previewSafeUrl: SafeUrl | null = null;
   previewTitle = '';
@@ -235,6 +238,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.estimate = null;
     this.scenes = [];
     this.renders = [];
+    this.usage = null;
     this.clearPreview();
     this.confirmCost = false;
     this.stopPolling$.next();
@@ -345,6 +349,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       this.refreshProjectStatus();
       this.pollWhileWorking();
       this.loadRenders();
+      this.loadUsage();
     });
   }
 
@@ -373,6 +378,71 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     interval(5000)
       .pipe(takeUntil(this.stopPolling$), takeUntil(this.destroy$))
       .subscribe(() => (clipsWorking ? this.loadScenes() : this.loadRenders()));
+  }
+
+  get usageSummary(): string {
+    return (this.usage?.lines ?? []).map((l) => `${l.category} ${l.actualUsd || l.estimatedUsd ? (l.actualUsd || l.estimatedUsd).toFixed(2) : '0.00'}`).join(', ');
+  }
+
+  get canApproveVideo(): boolean {
+    return this.selected?.status === StoryProjectStatus.InReview && this.latestRender?.status === StoryJobStatus.Completed;
+  }
+
+  approveVideo(): void {
+    if (!this.selected || this.busy) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .approveVideo(this.selected.id)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe((project) => {
+        this.replace(project);
+        this.notifications.success('Video approved. You can download it now.');
+      });
+  }
+
+  /** Option C: pictures for the characters the script needs and the cast lacks. They wait for approval before they are reused. */
+  makeCharacters(): void {
+    if (!this.selected || this.busy) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .generateCharacters(this.selected.id, this.confirmPictures)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe((made) => {
+        this.confirmPictures = false;
+        if (!made.length) {
+          this.notifications.info('Your cast already covers every character in the script.');
+          return;
+        }
+        this.notifications.success(`${made.length} new character(s) added with a preview picture.`);
+        this.loadCharacters();
+        this.open(this.selected!);
+      });
+  }
+
+  /** Corrects one subtitle. Only the subtitle changes, so the video must be put together again to show it. */
+  editLine(s: StoryClipScene, order: number, text: string): void {
+    if (!text.trim() || this.busy || s.dialogue[order - 1]?.text === text.trim()) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .editDialogue(s.id, order, text)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.notifications.info('Subtitle corrected. Put the video together again to see it.');
+        this.loadScenes();
+      });
+  }
+
+  private loadUsage(): void {
+    if (!this.selected) {
+      return;
+    }
+    this.studio.getUsage(this.selected.id).pipe(takeUntil(this.destroy$)).subscribe((u) => (this.usage = u));
   }
 
   get latestRender(): StoryRender | null {
