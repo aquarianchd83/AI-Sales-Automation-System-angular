@@ -36,6 +36,8 @@
           <dd>{{ statusLabels[tenant.status] }}</dd>
           <dt>Owner</dt>
           <dd>{{ tenant.ownerEmail || '—' }}</dd>
+          <dt>Notices go to</dt>
+          <dd data-testid="effective-email">{{ effectiveNotificationEmail || '—' }}{{ tenant.billingAlertEmail ? '' : ' (owner)' }}</dd>
           <dt>Users</dt>
           <dd>{{ tenant.userCount }}</dd>
           <dt>Signed up</dt>
@@ -47,6 +49,27 @@
         </dl>
 
         <div class="override-row">
+        <div class="override">
+          <div class="inline-override">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inline-select">
+              <mat-label>Notification email</mat-label>
+              <input matInput type="email" [formControl]="notificationEmailControl" placeholder="Empty: the owner's address" data-testid="notification-email" />
+              <mat-error *ngIf="notificationEmailControl.invalid">Enter a valid email address.</mat-error>
+            </mat-form-field>
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              [disabled]="notificationEmailControl.invalid || notificationEmailControl.pristine || savingNotificationEmail"
+              (click)="saveNotificationEmail()"
+              data-testid="save-notification-email"
+            >
+              Apply
+            </button>
+          </div>
+          <p class="muted hint">Where this tenant's quota, billing and booking notices are emailed. Leave empty to send them to the owner's address.</p>
+        </div>
+
         <div class="override">
           <div class="inline-override">
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inline-select">

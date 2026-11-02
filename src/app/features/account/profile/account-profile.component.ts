@@ -17,7 +17,7 @@ const ALERT_PHONE_PATTERN = /^\+[0-9 ()-]{6,30}$/;
 
 /**
  * The signed-in user's own profile. For the platform's product owner the phone number is more than contact detail: it is the number the
- * platform's urgent alerts (a ticket raised for something only they can fix) are sent to on WhatsApp.
+ * platform's urgent alerts (a ticket raised for something only they can fix) are sent to on WhatsApp, and they can name the email address those alerts are sent to.
  */
 @Component({
   selector: 'app-account-profile',
@@ -30,6 +30,8 @@ export class AccountProfileComponent implements OnInit {
     fullName: ['', [Validators.required, Validators.maxLength(200)]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(256)]],
     phoneNumber: ['', [Validators.pattern(this.isProductOwner ? ALERT_PHONE_PATTERN : PHONE_PATTERN)]],
+    // Product owner only: where the platform's alert emails go, kept apart from the sign-in address.
+    notificationEmail: ['', [Validators.email, Validators.maxLength(256)]],
     timezone: ['', [Validators.required]],
   });
 
@@ -72,6 +74,8 @@ export class AccountProfileComponent implements OnInit {
         email: value.email.trim(),
         phoneNumber: value.phoneNumber.trim() || null,
         timezone: value.timezone,
+        // Only the product owner edits it; for anyone else the current value is sent back untouched, as the update replaces every field.
+        notificationEmail: this.isProductOwner ? value.notificationEmail.trim() || null : this.profile.notificationEmail ?? null,
         // Not edited here, but the update replaces every field, so the current one is sent back untouched.
         countryCode: this.profile.countryCode,
       })
@@ -95,6 +99,7 @@ export class AccountProfileComponent implements OnInit {
       email: profile.email,
       phoneNumber: profile.phoneNumber ?? '',
       timezone: profile.timezone,
+      notificationEmail: profile.notificationEmail ?? '',
     });
   }
 }

@@ -88,6 +88,44 @@ describe('AccountProfileComponent', () => {
       phoneNumber: '+919876543210',
       timezone: 'Asia/Kolkata',
       countryCode: 'IN',
+      notificationEmail: null,
     });
+  });
+
+  it('lets the product owner name the email platform alerts go to, apart from the sign-in address', () => {
+    const component = create(true, profile({ notificationEmail: 'alerts@platform.test' }));
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid=notification-email]')).not.toBeNull();
+    expect(component.form.controls.notificationEmail.value).toBe('alerts@platform.test');
+    account.updateProfile.and.returnValue(of(profile({ notificationEmail: 'ops@platform.test' })));
+
+    component.form.controls.notificationEmail.setValue('ops@platform.test');
+    component.save();
+
+    expect(account.updateProfile).toHaveBeenCalledWith(jasmine.objectContaining({ email: 'owner@platform.test', notificationEmail: 'ops@platform.test' }));
+  });
+
+  it('clears the alert email when the box is emptied, and refuses one that is not an address', () => {
+    const component = create(true, profile({ notificationEmail: 'alerts@platform.test' }));
+    account.updateProfile.and.returnValue(of(profile()));
+
+    component.form.controls.notificationEmail.setValue('not-an-email');
+    expect(component.form.controls.notificationEmail.hasError('email')).toBeTrue();
+    component.save();
+    expect(account.updateProfile).not.toHaveBeenCalled();
+
+    component.form.controls.notificationEmail.setValue('');
+    component.save();
+    expect(account.updateProfile).toHaveBeenCalledWith(jasmine.objectContaining({ notificationEmail: null }));
+  });
+
+  it('does not show the alert email to anyone but the product owner, and sends their current value back untouched', () => {
+    const component = create(false, profile({ roles: ['Admin'], isPlatformSuperAdmin: false, notificationEmail: 'keep@tenant.test' }));
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid=notification-email]')).toBeNull();
+    account.updateProfile.and.returnValue(of(profile()));
+
+    component.form.controls.fullName.setValue('Renamed');
+    component.save();
+
+    expect(account.updateProfile).toHaveBeenCalledWith(jasmine.objectContaining({ fullName: 'Renamed', notificationEmail: 'keep@tenant.test' }));
   });
 });

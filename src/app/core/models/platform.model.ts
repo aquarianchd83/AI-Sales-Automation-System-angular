@@ -115,6 +115,8 @@ export interface PlatformTenantDetail {
   trialEndsAtUtc: string | null;
   ownerUserId: string | null;
   ownerEmail: string | null;
+  /** Where the tenant's own notices are emailed. Null means they go to the owner's address. */
+  billingAlertEmail?: string | null;
   userCount: number;
   planName: string | null;
   subscriptionStatus: SubscriptionStatus | null;
@@ -1361,4 +1363,15 @@ export interface PlatformTenantNotification {
   deliveryNote: string | null;
   /** When the tenant dismissed the in-app copy. */
   acknowledgedAtUtc: string | null;
+}
+
+/** PUT /platform/tenants/{id}/notification-email - an empty email clears it, so notices go to the owner's address again. */
+export interface UpdateTenantNotificationEmailRequest {
+  email: string | null;
+}
+
+/** Where a tenant's notices go now: billingAlertEmail when set, otherwise the owner's address. */
+export interface TenantNotificationEmail {
+  billingAlertEmail: string | null;
+  ownerEmail: string | null;
 }
