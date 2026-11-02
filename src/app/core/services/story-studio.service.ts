@@ -11,6 +11,7 @@ import {
   StoryCharacter,
   StoryCostEstimate,
   StoryProject,
+  StoryClipScene,
   StoryReference,
   StoryScene,
   StoryScriptVersion,
@@ -78,6 +79,30 @@ export class StoryStudioService {
 
   saveScript(projectId: string, script: CinematicScript): Observable<StoryScriptVersion> {
     return this.http.put<StoryScriptVersion>(`${this.baseUrl}/projects/${projectId}/script`, { script });
+  }
+
+  listScenes(projectId: string): Observable<StoryClipScene[]> {
+    return this.http.get<StoryClipScene[]>(`${this.baseUrl}/projects/${projectId}/scenes`);
+  }
+
+  /** Starts every scene without a clip. A paid source needs confirmCost, which the server insists on. */
+  generateClips(projectId: string, confirmCost: boolean): Observable<StoryClipScene[]> {
+    return this.http.post<StoryClipScene[]>(`${this.baseUrl}/projects/${projectId}/clips/generate`, { confirmCost });
+  }
+
+  regenerateScene(sceneId: string, confirmCost: boolean): Observable<StoryClipScene> {
+    return this.http.post<StoryClipScene>(`${this.baseUrl}/scenes/${sceneId}/regenerate`, { confirmCost });
+  }
+
+  /** The Flow path: the clip the user generated in Flow, for one scene. */
+  uploadClip(sceneId: string, file: File): Observable<StoryClipScene> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<StoryClipScene>(`${this.baseUrl}/scenes/${sceneId}/clip`, form);
+  }
+
+  flagScene(sceneId: string, reason: string): Observable<StoryClipScene> {
+    return this.http.post<StoryClipScene>(`${this.baseUrl}/scenes/${sceneId}/flag`, { reason });
   }
 
   approveScript(projectId: string): Observable<StoryScene[]> {

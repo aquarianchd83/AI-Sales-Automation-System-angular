@@ -9,6 +9,8 @@ import {
   StoryCharacter,
   StoryCharacterOrigin,
   StoryCharacterVisibility,
+  StoryClipScene,
+  StorySceneStatus,
   StoryProject,
   StoryProjectStatus,
   StoryScriptVersion,
@@ -52,6 +54,20 @@ const project = (over: Partial<StoryProject> = {}): StoryProject => ({
   ...over,
 });
 
+const clip = (index: number, status: StorySceneStatus, over: Partial<StoryClipScene> = {}): StoryClipScene => ({
+  id: `s${index}`,
+  index,
+  targetSeconds: 8,
+  status,
+  videoPrompt: `prompt ${index}`,
+  dialogue: [],
+  actualMilliseconds: null,
+  error: null,
+  flagReason: null,
+  costUsd: 0,
+  ...over,
+});
+
 const script = (simulated: boolean): StoryScriptVersion => {
   const body: CinematicScript = {
     title: 'Guru Ji ka nyay',
@@ -92,10 +108,11 @@ describe('StudioStoriesComponent', () => {
   function render(projects: StoryProject[] = [project()]): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
     ]);
     api.listProjects.and.returnValue(of(projects));
     api.listCharacters.and.returnValue(of([character('c1', 'Guru Ji'), character('c2', 'Sunita', { approvedReferenceId: 'r1' })]));
+    api.listScenes.and.returnValue(of([]));
     api.getCostEstimate.and.returnValue(of({ isKnown: false, clipUsd: 0, clipSeconds: 8, clips: 4, provider: 'Simulator', note: 'Free test clips.' }));
 
     TestBed.configureTestingModule({
@@ -162,14 +179,87 @@ describe('StudioStoriesComponent', () => {
   it('approves the script in place and says so', () => {
     render([project({ currentScriptVersionId: 'v1' })]);
     api.getScript.and.returnValue(of(script(false)));
-    api.approveScript.and.returnValue(of([]));
+    api.approveScript.and.returnValue(of([]));
+    api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Pending)]));
+    // After approving, the server reports the story as approved; the page reads it again.
     click('[data-project="p1"]');
 
     expect(root().querySelector('[data-testid="test-badge"]')).toBeNull();
+    api.listProjects.and.returnValue(of([project({ status: StoryProjectStatus.ScriptApproved, currentScriptVersionId: 'v1' })]));
     click('[data-testid="approve"]');
 
     expect(api.approveScript).toHaveBeenCalledWith('p1');
     expect(fixture.componentInstance.selected?.status).toBe(StoryProjectStatus.ScriptApproved);
     expect(text(root().querySelector('[data-testid="approved"]'))).toContain('Script approved');
+  });
+
+  describe("clips", () => {
+    const approved = (over: Partial<StoryProject> = {}) => project({ status: StoryProjectStatus.ScriptApproved, currentScriptVersionId: "v1", ...over });
+
+    it("shows one card per scene with its status once the script is approved", () => {
+      render([approved()]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Pending), clip(2, StorySceneStatus.Completed, { actualMilliseconds: 8000 })]));
+      click("[data-project=\"p1\"]");
+
+      expect(text(root().querySelector("[data-scene=\"1\"]"))).toContain("Not started");
+      expect(text(root().querySelector("[data-scene=\"2\"]"))).toContain("Clip ready");
+      expect(text(root().querySelector("[data-scene=\"2\"]"))).toContain("8.0s clip");
+    });
+
+    it("makes free test clips without asking for a cost confirmation", () => {
+      render([approved()]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Pending)]));
+      api.generateClips.and.returnValue(of([clip(1, StorySceneStatus.Queued)]));
+      click("[data-project=\"p1\"]");
+
+      expect(root().querySelector("[data-testid=\"confirm-cost\"]")).toBeNull();
+      click("[data-testid=\"make-clips\"]");
+
+      expect(api.generateClips).toHaveBeenCalledWith("p1", false);
+    });
+
+    it("will not make paid clips until the cost box is ticked", () => {
+      render([approved({ videoProvider: SceneVideoProviderKind.Veo })]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.getCostEstimate.and.returnValue(of({ isKnown: true, clipUsd: 0.96, clipSeconds: 8, clips: 4, provider: "Veo", note: "n" }));
+      api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Pending), clip(2, StorySceneStatus.Pending)]));
+      api.generateClips.and.returnValue(of([clip(1, StorySceneStatus.Queued), clip(2, StorySceneStatus.Queued)]));
+      click("[data-project=\"p1\"]");
+
+      expect(text(root().querySelector("[data-testid=\"confirm-cost\"]"))).toContain("1.92 USD");
+      expect((root().querySelector("[data-testid=\"make-clips\"]") as HTMLButtonElement).disabled).toBeTrue();
+
+      fixture.componentInstance.confirmCost = true;
+      fixture.detectChanges();
+      click("[data-testid=\"make-clips\"]");
+
+      expect(api.generateClips).toHaveBeenCalledWith("p1", true);
+    });
+
+    it("offers an upload for each Flow scene and no make-clips button", () => {
+      render([approved({ videoProvider: SceneVideoProviderKind.FlowImport })]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.AwaitingImport)]));
+      click("[data-project=\"p1\"]");
+
+      expect(root().querySelector("[data-upload=\"1\"]")).not.toBeNull();
+      expect(root().querySelector("[data-testid=\"make-clips\"]")).toBeNull();
+    });
+
+    it("flags a finished scene with a reason", () => {
+      render([approved()]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Completed)]));
+      api.flagScene.and.returnValue(of(clip(1, StorySceneStatus.Flagged)));
+      click("[data-project=\"p1\"]");
+
+      click("[data-flag=\"1\"]");
+      fixture.componentInstance.flagReason = "Lips do not match";
+      fixture.componentInstance.submitFlag(fixture.componentInstance.scenes[0]);
+
+      expect(api.flagScene).toHaveBeenCalledWith("s1", "Lips do not match");
+    });
   });
 });

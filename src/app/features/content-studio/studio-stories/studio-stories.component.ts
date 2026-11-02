@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
-import { Subject, forkJoin } from 'rxjs';
+import { Subject, forkJoin, interval } from 'rxjs';
 import { debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
 
 import {
@@ -8,11 +8,14 @@ import {
   SCENE_VIDEO_PROVIDER_HINTS,
   SCENE_VIDEO_PROVIDER_LABELS,
   STORY_PROJECT_STATUS_LABELS,
+  STORY_SCENE_STATUS_LABELS,
   SceneVideoProviderKind,
   StoryCharacter,
+  StoryClipScene,
   StoryCostEstimate,
   StoryProject,
   StoryProjectStatus,
+  StorySceneStatus,
   StoryScriptVersion,
 } from '../../../core/models/story-studio.model';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -34,6 +37,8 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   readonly providerHints = SCENE_VIDEO_PROVIDER_HINTS;
   readonly statusLabels = STORY_PROJECT_STATUS_LABELS;
   readonly statusEnum = StoryProjectStatus;
+  readonly sceneStatus = StorySceneStatus;
+  readonly sceneStatusLabels = STORY_SCENE_STATUS_LABELS;
   readonly languages = ['Hinglish', 'Hindi', 'English'];
 
   projects: StoryProject[] = [];
@@ -45,6 +50,10 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   draft: CinematicScript | null = null;
   dirty = false;
   estimate: StoryCostEstimate | null = null;
+  scenes: StoryClipScene[] = [];
+  confirmCost = false;
+  flagging: string | null = null;
+  flagReason = '';
 
   loading = true;
   busy = false;
@@ -74,6 +83,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   });
 
   private readonly destroy$ = new Subject<void>();
+  private readonly stopPolling$ = new Subject<void>();
 
   constructor(
     private readonly studio: StoryStudioService,
@@ -87,6 +97,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopPolling$.next();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -212,6 +223,12 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.draft = null;
     this.dirty = false;
     this.estimate = null;
+    this.scenes = [];
+    this.confirmCost = false;
+    this.stopPolling$.next();
+    if (project.status !== StoryProjectStatus.Draft) {
+      this.loadScenes();
+    }
     if (project.currentScriptVersionId) {
       this.studio.getScript(project.id).pipe(takeUntil(this.destroy$)).subscribe((s) => this.showScript(s));
     }
@@ -282,6 +299,128 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       .subscribe((scenes) => {
         this.replace({ ...this.selected!, status: StoryProjectStatus.ScriptApproved });
         this.notifications.success(`Script approved: ${scenes.length} scenes are ready for video.`);
+        this.loadScenes();
+      });
+  }
+
+  /** Whether making clips costs money, so the confirm box and the price are shown. */
+  get costsMoney(): boolean {
+    return !!this.estimate?.isKnown && this.estimate.clipUsd > 0;
+  }
+
+  get totalEstimateUsd(): number {
+    return this.estimate ? this.estimate.clipUsd * this.scenes.filter((s) => this.canStart(s)).length : 0;
+  }
+
+  canStart(s: StoryClipScene): boolean {
+    return [StorySceneStatus.Pending, StorySceneStatus.Failed, StorySceneStatus.Flagged].includes(s.status);
+  }
+
+  get anyToStart(): boolean {
+    return this.scenes.some((s) => this.canStart(s));
+  }
+
+  loadScenes(): void {
+    if (!this.selected) {
+      return;
+    }
+    const id = this.selected.id;
+    this.studio.listScenes(id).pipe(takeUntil(this.destroy$)).subscribe((scenes) => {
+      if (this.selected?.id !== id) {
+        return;
+      }
+      this.scenes = scenes;
+      this.refreshProjectStatus();
+      this.pollWhileWorking();
+    });
+  }
+
+  /** The project status moves as its clips finish (Making clips, In review, Failed), so it is read again from the list. */
+  private refreshProjectStatus(): void {
+    if (!this.selected) {
+      return;
+    }
+    const id = this.selected.id;
+    this.studio.listProjects().pipe(takeUntil(this.destroy$)).subscribe((projects) => {
+      this.projects = projects;
+      const fresh = projects.find((p) => p.id === id);
+      if (fresh && this.selected?.id === id) {
+        this.selected = fresh;
+      }
+    });
+  }
+
+  private pollWhileWorking(): void {
+    this.stopPolling$.next();
+    if (!this.scenes.some((s) => s.status === StorySceneStatus.Queued || s.status === StorySceneStatus.Processing)) {
+      return;
+    }
+    interval(5000).pipe(takeUntil(this.stopPolling$), takeUntil(this.destroy$)).subscribe(() => this.loadScenes());
+  }
+
+  makeClips(): void {
+    if (!this.selected || this.busy || (this.costsMoney && !this.confirmCost)) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .generateClips(this.selected.id, this.confirmCost)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe((scenes) => {
+        this.scenes = scenes;
+        this.confirmCost = false;
+        this.refreshProjectStatus();
+        this.pollWhileWorking();
+      });
+  }
+
+  redo(s: StoryClipScene): void {
+    if (this.busy || (this.costsMoney && !this.confirmCost)) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .regenerateScene(s.id, this.confirmCost)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.confirmCost = false;
+        this.loadScenes();
+      });
+  }
+
+  /** The Flow path: the user generated this scene in Flow and uploads the file. */
+  uploadClip(s: StoryClipScene, input: HTMLInputElement): void {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || this.busy) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .uploadClip(s.id, file)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.notifications.success(`Clip for scene ${s.index} saved.`);
+        this.loadScenes();
+      });
+  }
+
+  startFlag(s: StoryClipScene): void {
+    this.flagging = s.id;
+    this.flagReason = '';
+  }
+
+  submitFlag(s: StoryClipScene): void {
+    if (!this.flagReason.trim() || this.busy) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .flagScene(s.id, this.flagReason)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.flagging = null;
+        this.loadScenes();
       });
   }
 

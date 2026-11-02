@@ -195,10 +195,72 @@
               </button>
               <span class="muted small" *ngIf="dirty">Save your edits before approving.</span>
             </div>
-            <p class="muted small" *ngIf="p.status === statusEnum.ScriptApproved" data-testid="approved">
-              Script approved. The next step - making the clips - is not built yet.
-            </p>
           </ng-container>
+        </mat-card>
+
+        <!-- After approval: one card per scene, from first clip to ready. -->
+        <mat-card class="section-card" *ngIf="!isDraft && scenes.length" data-testid="clips">
+          <h3>Clips</h3>
+          <p class="muted small" data-testid="approved">Script approved. {{ providerHints[p.videoProvider] }}</p>
+
+          <div class="scene" *ngFor="let s of scenes" [attr.data-scene]="s.index">
+            <div class="scene-head">
+              <strong>Scene {{ s.index }}</strong>
+              <span class="badge" [class.ok]="s.status === sceneStatus.Completed" [class.bad]="s.status === sceneStatus.Failed || s.status === sceneStatus.Flagged">
+                {{ sceneStatusLabels[s.status] }}
+              </span>
+              <span class="muted small" *ngIf="s.actualMilliseconds">{{ seconds(s.actualMilliseconds) }}s clip</span>
+            </div>
+            <p class="muted small prompt">{{ s.videoPrompt }}</p>
+            <p class="warn small" *ngIf="s.error">{{ s.error }}</p>
+            <p class="warn small" *ngIf="s.flagReason">Flagged: {{ s.flagReason }}</p>
+
+            <div class="actions" *ngIf="p.videoProvider === 2 && s.status !== sceneStatus.Pending && s.status !== sceneStatus.Queued && s.status !== sceneStatus.Processing">
+              <input #clipFile type="file" accept="video/mp4,video/quicktime,video/webm" hidden (change)="uploadClip(s, clipFile)" />
+              <button mat-stroked-button (click)="clipFile.click()" [disabled]="busy" [attr.data-upload]="s.index">
+                <mat-icon>upload</mat-icon>
+                {{ s.status === sceneStatus.Completed ? 'Replace with another clip' : 'Upload the clip from Flow' }}
+              </button>
+            </div>
+
+            <div class="actions" *ngIf="s.status === sceneStatus.Completed || s.status === sceneStatus.Failed">
+              <button mat-button (click)="startFlag(s)" *ngIf="s.status === sceneStatus.Completed" [attr.data-flag]="s.index">
+                <mat-icon>flag</mat-icon>
+                Something is wrong
+              </button>
+            </div>
+            <div class="flag" *ngIf="flagging === s.id">
+              <mat-form-field appearance="outline" class="full">
+                <mat-label>What is wrong? (lips do not match, wrong face...)</mat-label>
+                <input matInput [(ngModel)]="flagReason" />
+              </mat-form-field>
+              <button mat-flat-button color="warn" (click)="submitFlag(s)" [disabled]="!flagReason.trim() || busy">Flag this scene</button>
+              <button mat-button (click)="flagging = null">Cancel</button>
+            </div>
+
+            <div class="actions" *ngIf="p.videoProvider !== 2 && (s.status === sceneStatus.Flagged || s.status === sceneStatus.Failed)">
+              <button mat-stroked-button (click)="redo(s)" [disabled]="busy || (costsMoney && !confirmCost)" [attr.data-redo]="s.index">
+                <mat-icon>refresh</mat-icon>
+                Make this scene again
+              </button>
+            </div>
+          </div>
+
+          <div class="actions" *ngIf="anyToStart && p.videoProvider !== 2">
+            <mat-checkbox *ngIf="costsMoney" [(ngModel)]="confirmCost" [ngModelOptions]="{ standalone: true }" data-testid="confirm-cost">
+              I understand this costs about {{ totalEstimateUsd | number: '1.2-2' }} USD and is billed even if I am not happy with the result.
+            </mat-checkbox>
+            <button mat-flat-button color="primary" (click)="makeClips()" [disabled]="busy || (costsMoney && !confirmCost)" data-testid="make-clips">
+              <mat-icon>movie</mat-icon>
+              Make the clips
+            </button>
+          </div>
+          <p class="muted small" *ngIf="p.videoProvider === 2 && anyToStart">
+            Copy each scene's prompt into Google Flow, generate a vertical clip, and upload it here.
+          </p>
+          <p class="muted small" *ngIf="p.status === statusEnum.InReview" data-testid="in-review">
+            Every scene has a clip. Putting them together with voice and subtitles comes next and is not built yet.
+          </p>
         </mat-card>
       </ng-container>
 

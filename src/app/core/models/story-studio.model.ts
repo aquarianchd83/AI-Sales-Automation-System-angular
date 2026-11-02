@@ -164,6 +164,40 @@ export interface StoryCostEstimate {
   note: string;
 }
 
+export enum StorySceneStatus {
+  Pending = 0,
+  Queued = 1,
+  Processing = 2,
+  AwaitingImport = 3,
+  Completed = 4,
+  Failed = 5,
+  Flagged = 6,
+}
+
+export const STORY_SCENE_STATUS_LABELS: Record<number, string> = {
+  [StorySceneStatus.Pending]: 'Not started',
+  [StorySceneStatus.Queued]: 'Waiting to start',
+  [StorySceneStatus.Processing]: 'Being made',
+  [StorySceneStatus.AwaitingImport]: 'Waiting for your Flow clip',
+  [StorySceneStatus.Completed]: 'Clip ready',
+  [StorySceneStatus.Failed]: 'Failed',
+  [StorySceneStatus.Flagged]: 'Flagged - needs redoing',
+};
+
+/** One scene of an approved script with the state of its clip. */
+export interface StoryClipScene {
+  id: string;
+  index: number;
+  targetSeconds: number;
+  status: StorySceneStatus;
+  videoPrompt: string;
+  dialogue: { speaker: string; text: string; startMs: number; endMs: number }[];
+  actualMilliseconds: number | null;
+  error: string | null;
+  flagReason: string | null;
+  costUsd: number;
+}
+
 export interface StoryScene {
   id: string;
   index: number;
