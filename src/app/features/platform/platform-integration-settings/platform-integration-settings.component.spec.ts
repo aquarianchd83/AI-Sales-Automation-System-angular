@@ -560,11 +560,11 @@ describe('PlatformIntegrationSettingsComponent', () => {
       ]);
     });
 
-    it('offers the scene clip source as a Simulator / Veo toggle, in the same style as pictures and voice', () => {
+    it('offers the scene clip source as a Simulator / Gemini toggle, in the same style as pictures and voice', () => {
       const { fixture } = create(stored());
       const root = open(fixture, 'storyStudio');
 
-      expect(labels(root, 'Scene clips come from')).toEqual(['Simulator', 'Veo']);
+      expect(labels(root, 'Scene clips come from')).toEqual(['Simulator', 'Gemini']);
       expect(labels(root, 'Character pictures come from')).toEqual(['Simulator', 'ChatGPT']);
       // It sits under 1. Video clips (Veo), before 2. Pictures and voice.
       const html = (root.querySelector('[data-panel="storyStudio"]') as HTMLElement).innerHTML;
@@ -572,16 +572,16 @@ describe('PlatformIntegrationSettingsComponent', () => {
       expect(html.indexOf('Scene clips come from')).toBeLessThan(html.indexOf('2. Pictures and voice (OpenAI)'));
     });
 
-    it('saves the Veo switch with the page Save button', () => {
+    it('saves the Gemini switch with the page Save button', () => {
       const { fixture, component } = create(stored());
       open(fixture, 'storyStudio');
 
-      component.setStoryChoice('VideoProvider', 'Veo');
+      component.setStoryChoice('VideoProvider', 'Google');
       fixture.detectChanges();
-      expect(component.storyChoice('VideoProvider')).toBe('Veo');
+      expect(component.storyChoice('VideoProvider')).toBe('Google');
       component.save();
 
-      expect(settingsApi.update).toHaveBeenCalledOnceWith('ContentStudio', { 'ContentStudio:Cinematic:VideoProvider': 'Veo' });
+      expect(settingsApi.update).toHaveBeenCalledOnceWith('ContentStudio', { 'ContentStudio:Cinematic:VideoProvider': 'Google' });
     });
 
     it('has no box for a provider key, and says where the keys are', () => {

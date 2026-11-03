@@ -242,11 +242,11 @@
           </div>
 
           <h3 class="sub-title first">1. Video clips (Veo)</h3>
-          <p class="muted small">Veo makes the scene clips through the Gemini API. Google Flow import (you generate the clip in Flow and upload it) is always available.</p>
+          <p class="muted small">Gemini makes the scene clips with Veo, through the Gemini API. Google Flow import (you generate the clip in Flow and upload it) is always available.</p>
           <div class="field-label">Scene clips</div>
           <mat-button-toggle-group class="engine" [value]="storyChoice('VideoProvider')" (change)="setStoryChoice('VideoProvider', $event.value)" aria-label="Scene clips come from">
             <mat-button-toggle value="Simulator" [attr.data-choice]="'VideoProvider-Simulator'"><mat-icon>science</mat-icon> Simulator</mat-button-toggle>
-            <mat-button-toggle value="Veo" [attr.data-choice]="'VideoProvider-Veo'">Veo</mat-button-toggle>
+            <mat-button-toggle value="Google" [attr.data-choice]="'VideoProvider-Google'">Gemini</mat-button-toggle>
           </mat-button-toggle-group>
         <div class="note" *ngIf="providerKeys.google === 'ok'">
           <mat-icon>key</mat-icon>
