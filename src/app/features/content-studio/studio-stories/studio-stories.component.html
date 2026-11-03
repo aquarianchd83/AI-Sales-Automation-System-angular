@@ -130,9 +130,9 @@
 
         <h3>3. Where the clips come from</h3>
         <mat-radio-group class="providers" [formControl]="brief.controls.videoProvider">
-          <mat-radio-button *ngFor="let k of providerKinds" [value]="k">
+          <mat-radio-button *ngFor="let k of providerKinds" [value]="k" [disabled]="!!sourceReason(k)" [attr.data-source]="k">
             <strong>{{ providerLabels[k] }}</strong>
-            <span class="muted small block">{{ providerHints[k] }}</span>
+            <span class="muted small block">{{ sourceReason(k) || providerHints[k] }}</span>
           </mat-radio-button>
         </mat-radio-group>
 
@@ -155,7 +155,7 @@
 
           <h4>Video source</h4>
           <mat-radio-group class="providers" [value]="p.videoProvider" (change)="changeProvider($event.value)" [disabled]="!isDraft">
-            <mat-radio-button *ngFor="let k of providerKinds" [value]="k">{{ providerLabels[k] }}</mat-radio-button>
+            <mat-radio-button *ngFor="let k of providerKinds" [value]="k" [disabled]="!!sourceReason(k) && k !== p.videoProvider" [matTooltip]="sourceReason(k) || ''">{{ providerLabels[k] }}</mat-radio-button>
           </mat-radio-group>
           <p class="muted small" *ngIf="estimate" data-testid="estimate">{{ estimate.note }}</p>
           <p class="muted small" *ngIf="usage && usage.lines.length" data-testid="usage">

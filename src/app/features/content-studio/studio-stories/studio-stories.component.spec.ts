@@ -110,13 +110,14 @@ describe('StudioStoriesComponent', () => {
   function render(projects: StoryProject[] = [project()]): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
     ]);
     api.listProjects.and.returnValue(of(projects));
     api.listCharacters.and.returnValue(of([character('c1', 'Guru Ji'), character('c2', 'Sunita', { approvedReferenceId: 'r1' })]));
     api.listScenes.and.returnValue(of([]));
     api.listRenders.and.returnValue(of([]));
     api.getDiagnostics.and.returnValue(of([]));
+    api.getVideoSources.and.returnValue(of([]));
     api.getPublishPack.and.returnValue(of({ renderId: 'r1', platforms: [], published: [] }));
     api.getUsage.and.returnValue(of({ lines: [], totalUsd: 0, budgetUsd: null, wastedOnFailedUsd: 0 }));
     api.getCostEstimate.and.returnValue(of({ isKnown: false, clipUsd: 0, clipSeconds: 8, clips: 4, provider: 'Simulator', note: 'Free test clips.' }));
@@ -438,6 +439,36 @@ describe('StudioStoriesComponent', () => {
       fixture.componentInstance.publishUrls = { 0: 'https://youtube.com/shorts/x' };
       fixture.componentInstance.recordPublication(0);
       expect(api.recordPublication).toHaveBeenCalledWith('p1', 0, 'https://youtube.com/shorts/x');
+    });
+  });
+
+  describe('clip sources', () => {
+    const sources = (veoOpen: boolean) => [
+      { kind: 0, available: true, reason: null },
+      { kind: 1, available: veoOpen, reason: veoOpen ? null : 'Veo is not switched on for the studio.' },
+      { kind: 2, available: true, reason: null },
+    ];
+
+    it('shows Veo as unavailable, with the reason, until the platform switches it on', () => {
+      render();
+      api.getVideoSources.and.returnValue(of(sources(false)));
+      fixture.componentInstance.ngOnInit();
+      click('[data-testid="new-story"]');
+
+      const veo = root().querySelector('[data-source="1"]') as HTMLElement;
+      expect(veo.querySelector('input')?.disabled).toBeTrue();
+      expect(text(veo)).toContain('Veo is not switched on for the studio.');
+      expect((root().querySelector('[data-source="0"] input') as HTMLInputElement).disabled).toBeFalse();
+      expect((root().querySelector('[data-source="2"] input') as HTMLInputElement).disabled).toBeFalse();
+    });
+
+    it('lets Veo be chosen once it is switched on', () => {
+      render();
+      api.getVideoSources.and.returnValue(of(sources(true)));
+      fixture.componentInstance.ngOnInit();
+      click('[data-testid="new-story"]');
+
+      expect((root().querySelector('[data-source="1"] input') as HTMLInputElement).disabled).toBeFalse();
     });
   });
 });

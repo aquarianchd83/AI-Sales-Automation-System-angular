@@ -114,6 +114,7 @@ const studioCategory = (): SettingCategory => ({
   category: 'ContentStudio',
   items: [
     settingItem('ContentStudio:Enabled', 'true'),
+    settingItem(P + 'VideoProvider', 'Simulator'),
     settingItem(P + 'VeoModel', 'veo-3.1-fast-generate-preview'),
     settingItem(P + 'VeoUsdPerSecond', '0.12'),
     settingItem(P + 'MaxAutomaticRetries', '1'),
@@ -557,6 +558,30 @@ describe('PlatformIntegrationSettingsComponent', () => {
         '3. Generate the script',
         '4. Putting the video together (ffmpeg)',
       ]);
+    });
+
+    it('offers the scene clip source as a Simulator / Veo toggle, in the same style as pictures and voice', () => {
+      const { fixture } = create(stored());
+      const root = open(fixture, 'storyStudio');
+
+      expect(labels(root, 'Scene clips come from')).toEqual(['Simulator', 'Veo']);
+      expect(labels(root, 'Character pictures come from')).toEqual(['Simulator', 'ChatGPT']);
+      // It sits under 1. Video clips (Veo), before 2. Pictures and voice.
+      const html = (root.querySelector('[data-panel="storyStudio"]') as HTMLElement).innerHTML;
+      expect(html.indexOf('Scene clips come from')).toBeGreaterThan(html.indexOf('1. Video clips (Veo)'));
+      expect(html.indexOf('Scene clips come from')).toBeLessThan(html.indexOf('2. Pictures and voice (OpenAI)'));
+    });
+
+    it('saves the Veo switch with the page Save button', () => {
+      const { fixture, component } = create(stored());
+      open(fixture, 'storyStudio');
+
+      component.setStoryChoice('VideoProvider', 'Veo');
+      fixture.detectChanges();
+      expect(component.storyChoice('VideoProvider')).toBe('Veo');
+      component.save();
+
+      expect(settingsApi.update).toHaveBeenCalledOnceWith('ContentStudio', { 'ContentStudio:Cinematic:VideoProvider': 'Veo' });
     });
 
     it('has no box for a provider key, and says where the keys are', () => {

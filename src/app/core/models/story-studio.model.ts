@@ -49,6 +49,13 @@ export const STORY_PROJECT_STATUS_LABELS: Record<number, string> = {
   [StoryProjectStatus.Cancelled]: 'Cancelled',
 };
 
+/** Whether the platform lets tenants use a clip source right now, with the reason when not. */
+export interface VideoSource {
+  kind: SceneVideoProviderKind;
+  available: boolean;
+  reason: string | null;
+}
+
 export interface StoryCharacter {
   id: string;
   name: string;

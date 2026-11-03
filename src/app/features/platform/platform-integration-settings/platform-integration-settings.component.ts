@@ -340,11 +340,12 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
   }
 
   /** "Simulator" or "OpenAI", for the two pictures and voice toggles. */
-  storyChoice(name: 'CharacterImageProvider' | 'SpeechProvider'): string {
-    return this.storyControl(name).value === 'OpenAI' ? 'OpenAI' : 'Simulator';
+  storyChoice(name: 'VideoProvider' | 'CharacterImageProvider' | 'SpeechProvider'): string {
+    const on = name === 'VideoProvider' ? 'Veo' : 'OpenAI';
+    return this.storyControl(name).value === on ? on : 'Simulator';
   }
 
-  setStoryChoice(name: 'CharacterImageProvider' | 'SpeechProvider', value: string): void {
+  setStoryChoice(name: 'VideoProvider' | 'CharacterImageProvider' | 'SpeechProvider', value: string): void {
     const control = this.storyControl(name);
     control.setValue(value);
     control.markAsDirty();

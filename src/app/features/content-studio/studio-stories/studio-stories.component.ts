@@ -25,6 +25,7 @@ import {
   StorySceneStatus,
   StoryScriptVersion,
   StoryUsage,
+  VideoSource,
 } from '../../../core/models/story-studio.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
@@ -64,6 +65,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   renders: StoryRender[] = [];
   usage: StoryUsage | null = null;
   checks: StoryCheck[] = [];
+  videoSources: VideoSource[] = [];
   pack: StoryPublishPack | null = null;
   confirmVoice = false;
   voiceWarnings: Record<string, string[]> = {};
@@ -398,7 +400,14 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     return this.checks.filter((c) => !c.ok);
   }
 
+  /** Why a clip source cannot be chosen, or null when it can. A source the server did not list is treated as open. */
+  sourceReason(kind: SceneVideoProviderKind): string | null {
+    const source = this.videoSources.find((s) => s.kind === kind);
+    return source && !source.available ? source.reason : null;
+  }
+
   private loadChecks(): void {
+    this.studio.getVideoSources().pipe(takeUntil(this.destroy$)).subscribe((s) => (this.videoSources = s));
     this.studio.getDiagnostics().pipe(takeUntil(this.destroy$)).subscribe((c) => (this.checks = c));
   }
 

@@ -22,6 +22,7 @@ import {
   StoryScene,
   StoryScriptVersion,
   StoryUsage,
+  VideoSource,
   VoiceOverResult,
 } from '../models/story-studio.model';
 
@@ -147,6 +148,11 @@ export class StoryStudioService {
 
   getUsage(projectId: string): Observable<StoryUsage> {
     return this.http.get<StoryUsage>(`${this.baseUrl}/projects/${projectId}/usage`);
+  }
+
+  /** Where clips can come from right now; Veo is off until the platform operator switches it on. */
+  getVideoSources(): Observable<VideoSource[]> {
+    return this.http.get<VideoSource[]>(`${this.baseUrl}/video-sources`);
   }
 
   /** What this host has and lacks for live use. Reports configuration only; calls no paid service. */
