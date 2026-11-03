@@ -290,6 +290,9 @@
         </ng-container>
       </div>
 
+      <!-- The story studio's keys and providers: saved on their own. -->
+      <app-platform-story-settings *ngIf="selected === 'storyStudio'"></app-platform-story-settings>
+
       <!-- Product-knowledge policy and the AI call log: saved on their own. -->
       <app-platform-product-sources *ngIf="selected === 'sources'"></app-platform-product-sources>
       <app-platform-ai-policy *ngIf="selected === 'policy'" show="policy"></app-platform-ai-policy>

@@ -248,6 +248,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
         { id: 'knowledgeBase', label: 'Knowledge base', icon: 'menu_book' },
         { id: 'contentGeneration', label: 'Content generation', icon: 'edit_note' },
         { id: 'videoRenders', label: 'Video renders', icon: 'movie' },
+        { id: 'storyStudio', label: 'Story studio', icon: 'movie_creation' },
       ],
     },
     {

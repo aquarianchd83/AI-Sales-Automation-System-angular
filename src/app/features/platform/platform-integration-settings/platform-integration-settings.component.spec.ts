@@ -139,7 +139,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
     const nav = Array.from(root.querySelectorAll('[data-nav]')).map((e) => e.getAttribute('data-nav'));
     expect(nav).toEqual([
       'conversation', 'consentSms', 'dndCheck', 'discoveryLead', 'discoveryKeywords', 'businessKeywords', 'knowledgeBase', 'contentGeneration',
-      'videoRenders', 'productDocumentReading', 'productScannedReading', 'productSuggestedAnswers', 'productQuestionnaire', 'productGapCheck',
+      'videoRenders', 'storyStudio', 'productDocumentReading', 'productScannedReading', 'productSuggestedAnswers', 'productQuestionnaire', 'productGapCheck',
       'productKnowledgeDraft', 'sources', 'policy', 'calls',
     ]);
     expect(root.querySelector('[data-nav="discoveryLead"] .pill')?.textContent?.trim()).toBe('Claude');
