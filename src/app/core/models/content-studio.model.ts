@@ -120,7 +120,7 @@ export const STUDIO_CONTENT_ROLES: string[] = [AppRole.Admin, AppRole.SalesManag
 // Questionnaire. A definition is plain JSON the platform admin authors; question types and operators travel as words.
 // ---------------------------------------------------------------------------------------------------------------------------------------
 
-export type QuestionType = 'ShortText' | 'LongText' | 'Number' | 'Boolean' | 'SingleChoice' | 'MultiChoice' | 'Structured';
+export type QuestionType = 'ShortText' | 'LongText' | 'Number' | 'Boolean' | 'SingleChoice' | 'MultiChoice' | 'PointList' | 'Structured';
 
 export type ConditionOperator = 'Equal' | 'NotEqual' | 'In' | 'Contains' | 'Answered' | 'NotAnswered' | 'GreaterThan' | 'LessThan';
 

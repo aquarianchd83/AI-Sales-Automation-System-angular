@@ -9,7 +9,7 @@ import {
   SPECIAL_LABELS,
   SpecialKind,
 } from '../../../core/models/content-studio.model';
-import { isAnswered, isSpecial, special, specialKind, visibleKeys } from '../../../core/utils/questionnaire-engine';
+import { MAX_POINT_LENGTH, MAX_POINTS, isAnswered, isSpecial, special, specialKind, visibleKeys } from '../../../core/utils/questionnaire-engine';
 
 /**
  * Renders a questionnaire definition as a form: one control per question type, conditional questions appearing and disappearing as
@@ -40,8 +40,16 @@ export class QuestionnaireFormComponent implements OnChanges {
   private asked: QuestionDef[] = [];
 
   readonly specials: SpecialKind[] = ['unknown', 'need_help', 'not_applicable'];
+  readonly maxPointLength = MAX_POINT_LENGTH;
+
+  /**
+   * The rows of each point-list question as typed, including blank ones the tenant has added but not filled yet. The answer only ever holds the
+   * filled points; this keeps the empty row on screen so adding a point does not look like nothing happened.
+   */
+  private pointDrafts: Record<string, string[]> = {};
 
   ngOnChanges(): void {
+    this.syncPointDrafts();
     this.refreshVisible();
   }
 
@@ -57,6 +65,36 @@ export class QuestionnaireFormComponent implements OnChanges {
   text(question: QuestionDef): string {
     const value = this.answers[question.key];
     return typeof value === 'string' ? value : '';
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  /** The rows to show for a point-list question: always at least one, so there is somewhere to type. */
+  pointRows(question: QuestionDef): string[] {
+    return this.pointDrafts[question.key] ?? this.answerPoints(question, true);
+  }
+
+  canAddPoint(question: QuestionDef): boolean {
+    return this.pointRows(question).length < MAX_POINTS;
+  }
+
+  setPoint(question: QuestionDef, index: number, value: string): void {
+    const rows = [...this.pointRows(question)];
+    rows[index] = value;
+    this.commitPoints(question, rows);
+  }
+
+  addPoint(question: QuestionDef): void {
+    if (this.canAddPoint(question)) {
+      this.commitPoints(question, [...this.pointRows(question), '']);
+    }
+  }
+
+  removePoint(question: QuestionDef, index: number): void {
+    const rows = this.pointRows(question).filter((_, i) => i !== index);
+    this.commitPoints(question, rows.length ? rows : ['']);
   }
 
   numberValue(question: QuestionDef): number | '' {
@@ -159,6 +197,34 @@ export class QuestionnaireFormComponent implements OnChanges {
 
   errorFor(key: string): string | null {
     return this.errors[key] ?? null;
+  }
+
+  /** The filled points of an answer, with one empty row when there are none. */
+  private answerPoints(question: QuestionDef, padEmpty: boolean): string[] {
+    const value = this.answers[question.key];
+    const points = Array.isArray(value) ? value.filter((p): p is string => typeof p === 'string') : [];
+    return points.length || !padEmpty ? points : [''];
+  }
+
+  private commitPoints(question: QuestionDef, rows: string[]): void {
+    this.pointDrafts = { ...this.pointDrafts, [question.key]: rows };
+    const filled = rows.map((r) => r.trim()).filter((r) => r !== '');
+    this.commit(question.key, filled.length ? filled : undefined);
+  }
+
+  /** When the answers change from outside (a reset, "answer it instead"), the drafts follow them; typing keeps its own blank rows. */
+  private syncPointDrafts(): void {
+    if (!this.definition) {
+      return;
+    }
+    for (const q of this.definition.questions.filter((x) => x.type === 'PointList')) {
+      const draft = this.pointDrafts[q.key];
+      const filled = (draft ?? []).map((r) => r.trim()).filter((r) => r !== '');
+      const answered = this.answerPoints(q, false);
+      if (!draft || filled.length !== answered.length || filled.some((p, i) => p !== answered[i])) {
+        this.pointDrafts = { ...this.pointDrafts, [q.key]: this.answerPoints(q, true) };
+      }
+    }
   }
 
   private object(question: QuestionDef): Record<string, unknown> {

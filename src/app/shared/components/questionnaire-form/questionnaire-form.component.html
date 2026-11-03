@@ -48,6 +48,23 @@
         </mat-checkbox>
       </div>
 
+      <div *ngSwitchCase="'PointList'" class="points" [attr.data-points]="q.key">
+        <div class="point" *ngFor="let p of pointRows(q); let i = index; trackBy: trackByIndex">
+          <span class="bullet">{{ i + 1 }}.</span>
+          <mat-form-field subscriptSizing="dynamic" class="point-field">
+            <mat-label>Point {{ i + 1 }}</mat-label>
+            <input matInput [disabled]="readonly" [value]="p" [attr.maxlength]="maxPointLength" autocomplete="off" [attr.data-point]="i" (input)="setPoint(q, i, $any($event.target).value)" />
+          </mat-form-field>
+          <button mat-icon-button type="button" *ngIf="!readonly && pointRows(q).length > 1" (click)="removePoint(q, i)" [attr.aria-label]="'Remove point ' + (i + 1)" [attr.data-remove-point]="i">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <button mat-button type="button" *ngIf="!readonly && canAddPoint(q)" (click)="addPoint(q)" data-testid="add-point">
+          <mat-icon>add</mat-icon>
+          Add another point
+        </button>
+      </div>
+
       <div *ngSwitchCase="'Structured'" class="fields">
         <div class="field" *ngFor="let f of q.fields" [attr.data-field]="f.key">
           <ng-container [ngSwitch]="f.type">
