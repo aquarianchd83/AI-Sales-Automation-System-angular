@@ -8,10 +8,14 @@ import {
   CinematicScript,
   SCENE_VIDEO_PROVIDER_HINTS,
   SCENE_VIDEO_PROVIDER_LABELS,
+  STORY_PLATFORM_LABELS,
   STORY_PROJECT_STATUS_LABELS,
   STORY_SCENE_STATUS_LABELS,
   SceneVideoProviderKind,
   StoryCharacter,
+  StoryCheck,
+  StoryPlatform,
+  StoryPublishPack,
   StoryClipScene,
   StoryCostEstimate,
   StoryJobStatus,
@@ -41,6 +45,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   readonly providerHints = SCENE_VIDEO_PROVIDER_HINTS;
   readonly statusLabels = STORY_PROJECT_STATUS_LABELS;
   readonly statusEnum = StoryProjectStatus;
+  readonly platformLabels = STORY_PLATFORM_LABELS;
   readonly sceneStatus = StorySceneStatus;
   readonly jobStatus = StoryJobStatus;
   readonly sceneStatusLabels = STORY_SCENE_STATUS_LABELS;
@@ -58,6 +63,11 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   scenes: StoryClipScene[] = [];
   renders: StoryRender[] = [];
   usage: StoryUsage | null = null;
+  checks: StoryCheck[] = [];
+  pack: StoryPublishPack | null = null;
+  confirmVoice = false;
+  voiceWarnings: Record<string, string[]> = {};
+  publishUrls: Record<number, string> = {};
   confirmPictures = false;
   previewUrl: string | null = null;
   previewSafeUrl: SafeUrl | null = null;
@@ -105,6 +115,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAll();
+    this.loadChecks();
     this.search.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.loadCharacters());
   }
 
@@ -239,6 +250,8 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.scenes = [];
     this.renders = [];
     this.usage = null;
+    this.pack = null;
+    this.voiceWarnings = {};
     this.clearPreview();
     this.confirmCost = false;
     this.stopPolling$.next();
@@ -350,6 +363,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       this.pollWhileWorking();
       this.loadRenders();
       this.loadUsage();
+      this.loadPack();
     });
   }
 
@@ -380,6 +394,62 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       .subscribe(() => (clipsWorking ? this.loadScenes() : this.loadRenders()));
   }
 
+  get missingChecks(): StoryCheck[] {
+    return this.checks.filter((c) => !c.ok);
+  }
+
+  private loadChecks(): void {
+    this.studio.getDiagnostics().pipe(takeUntil(this.destroy$)).subscribe((c) => (this.checks = c));
+  }
+
+  /** Replaces a scene's own audio with generated speech; the original clip is kept. */
+  addVoiceOver(s: StoryClipScene): void {
+    if (this.busy || (this.costsSpeech && !this.confirmVoice)) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .addVoiceOver(s.id, this.confirmVoice)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe((result) => {
+        this.confirmVoice = false;
+        this.voiceWarnings = { ...this.voiceWarnings, [s.id]: result.warnings };
+        this.notifications.success(`Voice-over added to scene ${s.index}.`);
+        this.loadScenes();
+      });
+  }
+
+  /** True when the platform's speech provider is a paid one, so the cost box is shown. */
+  get costsSpeech(): boolean {
+    return this.checks.some((c) => c.key === 'voice' && !/free test tones/i.test(c.detail));
+  }
+
+  private loadPack(): void {
+    if (this.selected?.status !== StoryProjectStatus.Approved) {
+      return;
+    }
+    this.studio.getPublishPack(this.selected.id).pipe(takeUntil(this.destroy$)).subscribe((p) => (this.pack = p));
+  }
+
+  copy(text: string): void {
+    navigator.clipboard?.writeText(text).then(() => this.notifications.info('Copied.'), () => this.notifications.error('Could not copy. Select the text and copy it by hand.'));
+  }
+
+  recordPublication(platform: StoryPlatform): void {
+    const url = (this.publishUrls[platform] ?? '').trim();
+    if (!this.selected || !url || this.busy) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .recordPublication(this.selected.id, platform, url)
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.publishUrls = { ...this.publishUrls, [platform]: '' };
+        this.loadPack();
+      });
+  }
+
   get usageSummary(): string {
     return (this.usage?.lines ?? []).map((l) => `${l.category} ${l.actualUsd || l.estimatedUsd ? (l.actualUsd || l.estimatedUsd).toFixed(2) : '0.00'}`).join(', ');
   }
@@ -398,6 +468,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
       .subscribe((project) => {
         this.replace(project);
+        this.loadPack();
         this.notifications.success('Video approved. You can download it now.');
       });
   }

@@ -10,6 +10,10 @@ import {
   GeneratedCharacter,
   SceneVideoProviderKind,
   StoryCharacter,
+  StoryCheck,
+  StoryPlatform,
+  StoryPublication,
+  StoryPublishPack,
   StoryCostEstimate,
   StoryProject,
   StoryClipScene,
@@ -18,6 +22,7 @@ import {
   StoryScene,
   StoryScriptVersion,
   StoryUsage,
+  VoiceOverResult,
 } from '../models/story-studio.model';
 
 /** The cinematic story studio: reusable characters, story projects, and the script that must be approved before any paid video work. */
@@ -142,6 +147,25 @@ export class StoryStudioService {
 
   getUsage(projectId: string): Observable<StoryUsage> {
     return this.http.get<StoryUsage>(`${this.baseUrl}/projects/${projectId}/usage`);
+  }
+
+  /** What this host has and lacks for live use. Reports configuration only; calls no paid service. */
+  getDiagnostics(): Observable<StoryCheck[]> {
+    return this.http.get<StoryCheck[]>(`${this.baseUrl}/diagnostics`);
+  }
+
+  /** Replaces a scene's own audio with generated speech. A paid provider needs confirmCost. */
+  addVoiceOver(sceneId: string, confirmCost: boolean): Observable<VoiceOverResult> {
+    return this.http.post<VoiceOverResult>(`${this.baseUrl}/scenes/${sceneId}/voice-over`, { confirmCost });
+  }
+
+  getPublishPack(projectId: string): Observable<StoryPublishPack> {
+    return this.http.get<StoryPublishPack>(`${this.baseUrl}/projects/${projectId}/publish-pack`);
+  }
+
+  /** Notes where the user shared the video. The studio does not post for them. */
+  recordPublication(projectId: string, platform: StoryPlatform, url: string): Observable<StoryPublication> {
+    return this.http.post<StoryPublication>(`${this.baseUrl}/projects/${projectId}/publications`, { platform, url });
   }
 
   approveScript(projectId: string): Observable<StoryScene[]> {

@@ -11,6 +11,15 @@
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading || busy"></mat-progress-bar>
 
+  <!-- What this host lacks for live use, so a missing font or key is seen before a video fails. -->
+  <mat-card class="section-card setup" *ngIf="missingChecks.length" data-testid="setup">
+    <strong>Setup needed for real videos</strong>
+    <ul>
+      <li *ngFor="let c of missingChecks"><strong>{{ c.label }}:</strong> {{ c.detail }}</li>
+    </ul>
+    <span class="muted small">Test clips and test data work without any of this.</span>
+  </mat-card>
+
   <div class="split">
     <!-- The list stays put; the right-hand side changes. -->
     <mat-card class="list-card" aria-label="Your stories">
@@ -249,6 +258,16 @@
               </button>
             </div>
 
+            <div class="actions" *ngIf="s.status === sceneStatus.Completed && p.status !== statusEnum.Approved && s.dialogue.length">
+              <mat-checkbox *ngIf="costsSpeech" [(ngModel)]="confirmVoice" [ngModelOptions]="{ standalone: true }">
+                A generated voice costs money; I accept that.
+              </mat-checkbox>
+              <button mat-stroked-button (click)="addVoiceOver(s)" [disabled]="busy || (costsSpeech && !confirmVoice)" [attr.data-voice]="s.index">
+                <mat-icon>record_voice_over</mat-icon>
+                Replace the clip's voice with a generated voice-over
+              </button>
+            </div>
+            <p class="warn small" *ngFor="let w of voiceWarnings[s.id] || []">{{ w }}</p>
             <div class="actions" *ngIf="s.status === sceneStatus.Completed || s.status === sceneStatus.Failed">
               <button mat-button (click)="startFlag(s)" *ngIf="s.status === sceneStatus.Completed" [attr.data-flag]="s.index">
                 <mat-icon>flag</mat-icon>
@@ -308,6 +327,28 @@
             <span class="muted small">Watch it first. Approving says it is ready to share.</span>
           </div>
           <p class="small" *ngIf="p.status === statusEnum.Approved" data-testid="video-approved">Video approved.</p>
+
+          <!-- Sharing is the user's own act: copy the text, post the video, paste the address back. -->
+          <div *ngIf="pack" data-testid="publish-pack">
+            <h4>Share it</h4>
+            <p class="muted small">Download the MP4 above and post it yourself. The studio does not post for you; that would need each platform's account approval.</p>
+            <div class="scene" *ngFor="let pl of pack.platforms" [attr.data-platform]="pl.platform">
+              <strong>{{ platformLabels[pl.platform] }}</strong>
+              <p class="small"><span class="muted">Title:</span> {{ pl.title }} <button mat-button (click)="copy(pl.title)">Copy</button></p>
+              <p class="small prompt">{{ pl.description }} <button mat-button (click)="copy(pl.description)">Copy</button></p>
+              <ul class="muted small"><li *ngFor="let r of pl.rules">{{ r }}</li></ul>
+              <div class="line">
+                <mat-form-field appearance="outline" class="line-text">
+                  <mat-label>Address of your post (after you share it)</mat-label>
+                  <input matInput [(ngModel)]="publishUrls[pl.platform]" [ngModelOptions]="{ standalone: true }" />
+                </mat-form-field>
+                <button mat-stroked-button (click)="recordPublication(pl.platform)" [disabled]="busy || !(publishUrls[pl.platform] || '').trim()">Save</button>
+              </div>
+            </div>
+            <p class="small" *ngFor="let u of pack.published" data-testid="published">
+              Shared on {{ platformLabels[u.platform] }}: <a [href]="u.url" target="_blank" rel="noopener noreferrer">{{ u.url }}</a>
+            </p>
+          </div>
 
           <div class="scene" *ngIf="latestRender as r" data-testid="render">
             <div class="scene-head">

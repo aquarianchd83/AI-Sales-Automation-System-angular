@@ -110,12 +110,14 @@ describe('StudioStoriesComponent', () => {
   function render(projects: StoryProject[] = [project()]): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
     ]);
     api.listProjects.and.returnValue(of(projects));
     api.listCharacters.and.returnValue(of([character('c1', 'Guru Ji'), character('c2', 'Sunita', { approvedReferenceId: 'r1' })]));
     api.listScenes.and.returnValue(of([]));
     api.listRenders.and.returnValue(of([]));
+    api.getDiagnostics.and.returnValue(of([]));
+    api.getPublishPack.and.returnValue(of({ renderId: 'r1', platforms: [], published: [] }));
     api.getUsage.and.returnValue(of({ lines: [], totalUsd: 0, budgetUsd: null, wastedOnFailedUsd: 0 }));
     api.getCostEstimate.and.returnValue(of({ isKnown: false, clipUsd: 0, clipSeconds: 8, clips: 4, provider: 'Simulator', note: 'Free test clips.' }));
 
@@ -379,6 +381,63 @@ describe('StudioStoriesComponent', () => {
       click("[data-testid=\"make-characters\"]");
 
       expect(api.generateCharacters).toHaveBeenCalledWith("p1", true);
+    });
+  });
+
+  describe('setup, voice and sharing', () => {
+    it('lists what the host is missing so a failure is seen before a video is made', () => {
+      render();
+      api.getDiagnostics.and.returnValue(
+        of([
+          { key: 'ffmpeg', label: 'ffmpeg', ok: true, detail: 'Found.' },
+          { key: 'font', label: 'Devanagari subtitle font', ok: false, detail: 'None found on this host.' },
+        ]),
+      );
+      fixture.componentInstance.ngOnInit();
+      fixture.detectChanges();
+
+      const setup = text(root().querySelector('[data-testid="setup"]'));
+      expect(setup).toContain('Devanagari subtitle font');
+      expect(setup).not.toContain('ffmpeg:');
+    });
+
+    it('adds a voice-over to a finished scene and shows any timing warning', () => {
+      render([project({ status: StoryProjectStatus.InReview, currentScriptVersionId: 'v1' })]);
+      api.getScript.and.returnValue(of(script(false)));
+      const scene = clip(1, StorySceneStatus.Completed, { actualMilliseconds: 8000, dialogue: [{ speaker: 'Guru Ji', text: 'Shaant', startMs: 500, endMs: 3000 }] });
+      api.listScenes.and.returnValue(of([scene]));
+      api.addVoiceOver.and.returnValue(of({ scene, warnings: ['The line takes 5.0s but was given 2.5s.'], provider: 'Simulator', costUsd: 0 }));
+      click('[data-project="p1"]');
+
+      click('[data-voice="1"]');
+
+      expect(api.addVoiceOver).toHaveBeenCalledWith('s1', false);
+      expect(text(root().querySelector('[data-scene="1"]'))).toContain('takes 5.0s but was given 2.5s');
+    });
+
+    it('shows the share pack for an approved video and saves where it was posted', () => {
+      render([project({ status: StoryProjectStatus.Approved, currentScriptVersionId: 'v1' })]);
+      api.getScript.and.returnValue(of(script(false)));
+      api.listScenes.and.returnValue(of([clip(1, StorySceneStatus.Completed)]));
+      api.listRenders.and.returnValue(
+        of([{ id: 'r1', status: StoryJobStatus.Completed, error: null, problems: [], durationSeconds: 32, hasVideo: true, createdAt: '2026-11-03T09:00:00Z' }]),
+      );
+      api.getPublishPack.and.returnValue(
+        of({
+          renderId: 'r1',
+          platforms: [{ platform: 0, title: 'Guru Ji ka nyay #Shorts', description: 'Ek jhagda', hashtags: ['#Shorts'], rules: ['Title up to 100 characters.'] }],
+          published: [{ id: 'u1', platform: 2, url: 'https://www.instagram.com/reel/abc/', publishedAtUtc: '2026-11-03T09:00:00Z' }],
+        }),
+      );
+      api.recordPublication.and.returnValue(of({ id: 'u2', platform: 0, url: 'https://youtube.com/shorts/x', publishedAtUtc: '2026-11-03T09:00:00Z' }));
+      click('[data-project="p1"]');
+
+      expect(text(root().querySelector('[data-platform="0"]'))).toContain('Guru Ji ka nyay #Shorts');
+      expect(text(root().querySelector('[data-testid="published"]'))).toContain('Instagram Reels');
+
+      fixture.componentInstance.publishUrls = { 0: 'https://youtube.com/shorts/x' };
+      fixture.componentInstance.recordPublication(0);
+      expect(api.recordPublication).toHaveBeenCalledWith('p1', 0, 'https://youtube.com/shorts/x');
     });
   });
 });

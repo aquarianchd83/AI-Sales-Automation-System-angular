@@ -107,3 +107,21 @@ Unit tests per service (schema validation, gating, ledger), integration tests wi
 - Sync Labs billing: https://sync.so/docs/product/billing
 - YouTube quota: https://developers.google.com/youtube/v3/determine_quota_cost
 - Not found / unverified: Meta Reels publishing requirements, sync.so language list and commercial terms, Veo reference-image consistency, Hindi TTS quality.
+
+---
+
+## 13. Delivery status (2026-11-03)
+
+Built and tested against simulators and the real ffmpeg: characters (upload / library / generated from the script), script generation and approval, clips from Simulator / Flow import / Veo, final render with subtitles, subtitle corrections, final approval, voice-over (replaces a scene's audio with generated speech), cost by category in the studio ledger, a publish pack and a manual "where I posted it" record, and a setup check (`GET api/v1/content-studio/stories/diagnostics`).
+
+**Decisions made while building**
+- Clips keep their own audio by default. A voice-over is optional per scene and replaces it; lines whose speech overruns their slot are reported, never sped up.
+- Publishing is manual: the studio prepares titles, descriptions and tags and records the post address. Direct posting needs Google and Meta OAuth apps, app review and account authorisation, which cannot be set up or tested here.
+- Lip-sync is not built. A provider such as sync.so takes video and audio by URL, which needs time-limited links to the private S3 objects (the studio's file store has none yet). Decide after a live test of Veo clips in Hindi.
+
+**Needs a person with keys (cannot be verified from here)**
+1. Veo: set `ContentStudio:Cinematic:GeminiApiKey` and run one real 8-second clip. Compare the cost with the estimate.
+2. Pictures and speech: set the OpenAI key and switch `CharacterImageProvider` / `SpeechProvider` to OpenAI; try one Hindi line.
+3. Subtitle font: install Noto Sans Devanagari on the host, set `SubtitleFontsDirectory` and `SubtitleFontName`. The setup check shows when none is found.
+4. ffmpeg: install on the host and set `FfmpegPath` / `FfprobePath` if it is not on PATH.
+5. Run the Hindi lip-sync acceptance checks in section 5 on real output before deciding on a lip-sync provider.

@@ -237,6 +237,53 @@ export interface GeneratedCharacter {
   preview: StoryReference;
 }
 
+export interface StoryCheck {
+  key: string;
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface VoiceOverResult {
+  scene: StoryClipScene;
+  warnings: string[];
+  provider: string;
+  costUsd: number;
+}
+
+export enum StoryPlatform {
+  YouTubeShorts = 0,
+  FacebookReels = 1,
+  InstagramReels = 2,
+}
+
+export const STORY_PLATFORM_LABELS: Record<number, string> = {
+  [StoryPlatform.YouTubeShorts]: 'YouTube Shorts',
+  [StoryPlatform.FacebookReels]: 'Facebook Reels',
+  [StoryPlatform.InstagramReels]: 'Instagram Reels',
+};
+
+export interface PlatformPack {
+  platform: StoryPlatform;
+  title: string;
+  description: string;
+  hashtags: string[];
+  rules: string[];
+}
+
+export interface StoryPublication {
+  id: string;
+  platform: StoryPlatform;
+  url: string;
+  publishedAtUtc: string;
+}
+
+export interface StoryPublishPack {
+  renderId: string;
+  platforms: PlatformPack[];
+  published: StoryPublication[];
+}
+
 export interface StoryScene {
   id: string;
   index: number;

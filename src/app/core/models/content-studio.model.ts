@@ -14,6 +14,10 @@ export enum StudioActivityKind {
   VideoRender = 6,
   Publish = 7,
   Other = 8,
+  StoryScript = 9,
+  StoryCharacterImage = 10,
+  StorySceneClip = 11,
+  StoryVoice = 12,
 }
 
 export const STUDIO_ACTIVITY_KIND_LABELS: Record<StudioActivityKind, string> = {
@@ -26,6 +30,10 @@ export const STUDIO_ACTIVITY_KIND_LABELS: Record<StudioActivityKind, string> = {
   [StudioActivityKind.VideoRender]: 'Video render',
   [StudioActivityKind.Publish]: 'Publish',
   [StudioActivityKind.Other]: 'Other',
+  [StudioActivityKind.StoryScript]: 'Story script',
+  [StudioActivityKind.StoryCharacterImage]: 'Story character picture',
+  [StudioActivityKind.StorySceneClip]: 'Story scene clip',
+  [StudioActivityKind.StoryVoice]: 'Story voice-over',
 };
 
 export enum StudioActivityStatus {
