@@ -12,12 +12,15 @@ import {
   STORY_PROJECT_STATUS_LABELS,
   STORY_SCENE_STATUS_LABELS,
   SceneVideoProviderKind,
+  ScriptClaim,
   StoryCharacter,
   StoryCheck,
   StoryPlatform,
   StoryPublishPack,
   StoryClipScene,
   StoryCostEstimate,
+  StoryIdea,
+  StoryKnowledge,
   StoryJobStatus,
   StoryProject,
   StoryProjectStatus,
@@ -51,6 +54,17 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   readonly jobStatus = StoryJobStatus;
   readonly sceneStatusLabels = STORY_SCENE_STATUS_LABELS;
   readonly languages = ['Hinglish', 'Hindi', 'English'];
+
+  /**
+   * The later steps (characters, Veo clips, voice, the finished video, sharing) are built but not switched on: a story stops at the approved script
+   * until we decide how to go on. Everything below that is for those steps is behind this flag.
+   */
+  laterSteps = false;
+
+  knowledge: StoryKnowledge | null = null;
+  ideas: StoryIdea[] = [];
+  ideaLanguage = 'Hinglish';
+  loadingIdeas = false;
 
   projects: StoryProject[] = [];
   characters: StoryCharacter[] = [];
@@ -117,7 +131,10 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAll();
-    this.loadChecks();
+    this.loadKnowledge();
+    if (this.laterSteps) {
+      this.loadChecks();
+    }
     this.search.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.loadCharacters());
   }
 
@@ -151,7 +168,60 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.studio.listCharacters(this.search.value).pipe(takeUntil(this.destroy$)).subscribe((c) => (this.characters = c));
   }
 
+  private loadKnowledge(): void {
+    this.studio.getKnowledge().pipe(takeUntil(this.destroy$)).subscribe((k) => (this.knowledge = k));
+  }
+
+  /** Step 1: ideas drawn from the verified facts. Test data when the Story script runs on the simulator. */
+  suggestIdeas(): void {
+    if (this.busy || this.loadingIdeas || !this.knowledge?.isReady) {
+      return;
+    }
+    this.loadingIdeas = true;
+    this.studio
+      .suggestIdeas(this.ideaLanguage)
+      .pipe(finalize(() => (this.loadingIdeas = false)), takeUntil(this.destroy$))
+      .subscribe((ideas) => (this.ideas = ideas));
+  }
+
+  /** Starts a story from an idea: its problem and how the business solves it become the topic. No cast, no paid source: just the script next. */
+  useIdea(idea: StoryIdea): void {
+    if (this.busy) {
+      return;
+    }
+    this.busy = true;
+    this.studio
+      .createProject({
+        title: idea.title,
+        topic: `Problem: ${idea.problem}\nHow we solve it: ${idea.solution}`,
+        language: this.ideaLanguage,
+        style: null,
+        audience: null,
+        moral: null,
+        targetSeconds: 30,
+        videoProvider: SceneVideoProviderKind.Simulator,
+        budgetUsd: null,
+        characterIds: [],
+      })
+      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+      .subscribe((project) => {
+        this.projects = [project, ...this.projects];
+        this.creating = false;
+        this.ideas = [];
+        this.open(project);
+      });
+  }
+
+  claimFor(scene: number, index: number): ScriptClaim | undefined {
+    return this.script?.claims?.find((c) => c.scene === scene && c.order === index + 1);
+  }
+
+  get riskyClaims(): ScriptClaim[] {
+    return (this.script?.claims ?? []).filter((c) => c.isRisky);
+  }
+
   startNew(): void {
+    this.ideas = [];
     this.creating = true;
     this.selected = null;
     this.script = null;
@@ -257,13 +327,15 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.clearPreview();
     this.confirmCost = false;
     this.stopPolling$.next();
-    if (project.status !== StoryProjectStatus.Draft) {
+    if (project.status !== StoryProjectStatus.Draft && this.laterSteps) {
       this.loadScenes();
     }
     if (project.currentScriptVersionId) {
       this.studio.getScript(project.id).pipe(takeUntil(this.destroy$)).subscribe((s) => this.showScript(s));
     }
-    this.studio.getCostEstimate(project.id).pipe(takeUntil(this.destroy$)).subscribe((e) => (this.estimate = e));
+    if (this.laterSteps) {
+      this.studio.getCostEstimate(project.id).pipe(takeUntil(this.destroy$)).subscribe((e) => (this.estimate = e));
+    }
   }
 
   private showScript(version: StoryScriptVersion): void {
@@ -352,7 +424,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   }
 
   loadScenes(): void {
-    if (!this.selected) {
+    if (!this.selected || !this.laterSteps) {
       return;
     }
     const id = this.selected.id;

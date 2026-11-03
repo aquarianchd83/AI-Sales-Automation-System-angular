@@ -151,6 +151,41 @@ export interface CinematicScript {
   scenes: CinematicScene[];
 }
 
+/** One verified Business Fact, as the studio shows it. */
+export interface StoryKnowledgeFact {
+  id: string;
+  category: string;
+  subject: string | null;
+  statement: string;
+}
+
+/** What the studio knows about the tenant's business: their verified Business Facts. */
+export interface StoryKnowledge {
+  isReady: boolean;
+  verifiedFacts: number;
+  facts: StoryKnowledgeFact[];
+  message: string | null;
+}
+
+/** A video idea: one real customer problem the business solves, and how. */
+export interface StoryIdea {
+  title: string;
+  problem: string;
+  solution: string;
+  factIds: string[];
+}
+
+/** One spoken line checked against the verified facts. */
+export interface ScriptClaim {
+  scene: number;
+  order: number;
+  speaker: string;
+  text: string;
+  supported: boolean;
+  isRisky: boolean;
+  reason: string;
+}
+
 export interface StoryScriptVersion {
   id: string;
   number: number;
@@ -160,6 +195,8 @@ export interface StoryScriptVersion {
   script: CinematicScript;
   isSimulated: boolean;
   createdAt: string;
+  factsUsed?: StoryKnowledgeFact[] | null;
+  claims?: ScriptClaim[] | null;
 }
 
 export interface StoryCostEstimate {

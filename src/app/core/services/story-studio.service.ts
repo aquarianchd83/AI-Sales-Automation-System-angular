@@ -10,6 +10,8 @@ import {
   GeneratedCharacter,
   SceneVideoProviderKind,
   StoryCharacter,
+  StoryIdea,
+  StoryKnowledge,
   StoryCheck,
   StoryPlatform,
   StoryPublication,
@@ -148,6 +150,16 @@ export class StoryStudioService {
 
   getUsage(projectId: string): Observable<StoryUsage> {
     return this.http.get<StoryUsage>(`${this.baseUrl}/projects/${projectId}/usage`);
+  }
+
+  /** Step 1: what the studio knows about the business (verified Business Facts only). */
+  getKnowledge(): Observable<StoryKnowledge> {
+    return this.http.get<StoryKnowledge>(`${this.baseUrl}/knowledge`);
+  }
+
+  /** Video ideas drawn from the verified facts by the AI provider chosen for the Story script. */
+  suggestIdeas(language: string): Observable<StoryIdea[]> {
+    return this.http.post<StoryIdea[]>(`${this.baseUrl}/ideas`, { language });
   }
 
   /** Where clips can come from right now; Veo is off until the platform operator switches it on. */

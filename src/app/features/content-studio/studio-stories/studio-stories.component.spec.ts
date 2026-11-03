@@ -110,7 +110,7 @@ describe('StudioStoriesComponent', () => {
   function render(projects: StoryProject[] = [project()]): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
     ]);
     api.listProjects.and.returnValue(of(projects));
     api.listCharacters.and.returnValue(of([character('c1', 'Guru Ji'), character('c2', 'Sunita', { approvedReferenceId: 'r1' })]));
@@ -118,6 +118,7 @@ describe('StudioStoriesComponent', () => {
     api.listRenders.and.returnValue(of([]));
     api.getDiagnostics.and.returnValue(of([]));
     api.getVideoSources.and.returnValue(of([]));
+    api.getKnowledge.and.returnValue(of({ isReady: true, verifiedFacts: 2, facts: [], message: null }));
     api.getPublishPack.and.returnValue(of({ renderId: 'r1', platforms: [], published: [] }));
     api.getUsage.and.returnValue(of({ lines: [], totalUsd: 0, budgetUsd: null, wastedOnFailedUsd: 0 }));
     api.getCostEstimate.and.returnValue(of({ isKnown: false, clipUsd: 0, clipSeconds: 8, clips: 4, provider: 'Simulator', note: 'Free test clips.' }));
@@ -131,6 +132,8 @@ describe('StudioStoriesComponent', () => {
       ],
     });
     fixture = TestBed.createComponent(StudioStoriesComponent);
+    // These specs cover the later steps (cast, clips, voice, video, sharing), which are built but switched off in the page.
+    fixture.componentInstance.laterSteps = true;
     fixture.detectChanges();
   }
 
@@ -469,6 +472,128 @@ describe('StudioStoriesComponent', () => {
       click('[data-testid="new-story"]');
 
       expect((root().querySelector('[data-source="1"] input') as HTMLInputElement).disabled).toBeFalse();
+    });
+  });
+
+  describe('the simple flow: what we know, an idea, a script', () => {
+    const idea = { title: 'Wardrobe in 10 days', problem: 'Waiting weeks for a wardrobe', solution: 'We deliver in 10 days', factIds: ['f1'] };
+
+    function renderSimple(knowledge = { isReady: true, verifiedFacts: 2, facts: [{ id: 'f1', category: 'Services', subject: 'Wardrobes', statement: 'We deliver custom wardrobes in 10 days.' }], message: null as string | null }): void {
+      render();
+      TestBed.resetTestingModule();
+      api = jasmine.createSpyObj('StoryStudioService', [
+        'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript', 'getCostEstimate',
+        'listScenes', 'listRenders', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'getPublishPack',
+      ]);
+      api.listProjects.and.returnValue(of([]));
+      api.listCharacters.and.returnValue(of([]));
+      api.getKnowledge.and.returnValue(of(knowledge));
+      api.suggestIdeas.and.returnValue(of([idea]));
+      TestBed.configureTestingModule({
+        declarations: [StudioStoriesComponent],
+        imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
+        providers: [
+          { provide: StoryStudioService, useValue: api },
+          { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']) },
+        ],
+      });
+      fixture = TestBed.createComponent(StudioStoriesComponent);
+      fixture.detectChanges();
+    }
+
+    it('starts with what the studio knows, and no cast, video source or cost on the page', () => {
+      renderSimple();
+      click('[data-testid="new-story"]');
+
+      expect(text(root().querySelector('[data-testid="facts-count"]'))).toContain('2 verified facts');
+      expect(root().querySelector('[data-testid="brief"]')).toBeNull();
+      expect(root().textContent).not.toContain('The cast');
+      expect(root().textContent).not.toContain('Where the clips come from');
+      expect(api.listScenes).not.toHaveBeenCalled();
+      expect(api.getDiagnostics).not.toHaveBeenCalled();
+    });
+
+    it('stops with a plain message and links to the questionnaire when there are no verified facts', () => {
+      renderSimple({ isReady: false, verifiedFacts: 0, facts: [], message: 'You have no verified business facts yet.' });
+      click('[data-testid="new-story"]');
+
+      expect(text(root().querySelector('[data-testid="no-facts"]'))).toContain('no verified business facts');
+      expect(Array.from(root().querySelectorAll('[data-testid="no-facts"] a')).map((a) => a.getAttribute('href'))).toEqual([
+        '/content-studio/questionnaire', '/content-studio/facts',
+      ]);
+      expect((root().querySelector('[data-testid="suggest-ideas"]') as HTMLButtonElement).disabled).toBeTrue();
+    });
+
+    it('suggests ideas in the chosen language and starts a story from one, with no cast and no paid source', () => {
+      renderSimple();
+      api.createProject.and.returnValue(of(project({ id: 'p9', characterIds: [] })));
+      click('[data-testid="new-story"]');
+      fixture.componentInstance.ideaLanguage = 'Hindi';
+
+      click('[data-testid="suggest-ideas"]');
+      expect(api.suggestIdeas).toHaveBeenCalledWith('Hindi');
+      expect(text(root().querySelector('[data-idea="0"]'))).toContain('Waiting weeks for a wardrobe');
+
+      click('[data-use-idea="0"]');
+      const body = api.createProject.calls.mostRecent().args[0];
+      expect(body.title).toBe('Wardrobe in 10 days');
+      expect(body.topic).toContain('Waiting weeks for a wardrobe');
+      expect(body.topic).toContain('We deliver in 10 days');
+      expect(body.language).toBe('Hindi');
+      expect(body.characterIds).toEqual([]);
+      expect(body.videoProvider).toBe(SceneVideoProviderKind.Simulator);
+      expect(fixture.componentInstance.selected?.id).toBe('p9');
+    });
+
+    function openWithScript(claims: { scene: number; order: number; speaker: string; text: string; supported: boolean; isRisky: boolean; reason: string }[]): void {
+      renderSimple();
+      api.listProjects.and.returnValue(of([project({ currentScriptVersionId: 'v1' })]));
+      const v = script(false);
+      api.getScript.and.returnValue(of({ ...v, factsUsed: [{ id: 'f1', category: 'Services', subject: null, statement: 'We deliver custom wardrobes in 10 days.' }], claims }));
+      fixture.componentInstance.ngOnInit();
+      fixture.detectChanges();
+      click('[data-project="p1"]');
+    }
+
+    it('shows the facts the script was written from, and no video prompts or characters button', () => {
+      openWithScript([]);
+
+      expect(text(root().querySelector('[data-testid="facts-used"]'))).toContain('Written from 1 verified fact');
+      expect(text(root().querySelector('[data-testid="facts-used"]'))).toContain('We deliver custom wardrobes in 10 days.');
+      expect(root().querySelector('[data-testid="make-characters"]')).toBeNull();
+      expect(root().textContent).not.toContain('Video prompt');
+    });
+
+    it('blocks approval while a risky claim stands, and says which line', () => {
+      openWithScript([{ scene: 1, order: 1, speaker: 'Guru Ji', text: 'Shaant ho jao', supported: false, isRisky: true, reason: 'It sounds like a guarantee.' }]);
+
+      expect(root().querySelector('[data-testid="risky-claims"]')).not.toBeNull();
+      expect((root().querySelector('[data-testid="approve"]') as HTMLButtonElement).disabled).toBeTrue();
+      const claim = root().querySelector('[data-claim="1-1"]') as HTMLElement;
+      expect(claim.hidden).toBeFalse();
+      expect(text(claim)).toContain('It sounds like a guarantee.');
+    });
+
+    it('only warns about a plain unsupported line, and approval stays open', () => {
+      openWithScript([{ scene: 1, order: 1, speaker: 'Guru Ji', text: 'Shaant ho jao', supported: false, isRisky: false, reason: 'No fact says this.' }]);
+
+      expect(root().querySelector('[data-testid="risky-claims"]')).toBeNull();
+      expect((root().querySelector('[data-warn="1-1"]') as HTMLElement).hidden).toBeFalse();
+      expect((root().querySelector('[data-testid="approve"]') as HTMLButtonElement).disabled).toBeFalse();
+    });
+
+    it('ends at the approved script and says the video step is not switched on', () => {
+      renderSimple();
+      api.listProjects.and.returnValue(of([project({ status: StoryProjectStatus.ScriptApproved, currentScriptVersionId: 'v1' })]));
+      api.getScript.and.returnValue(of(script(false)));
+      fixture.componentInstance.ngOnInit();
+      fixture.detectChanges();
+      click('[data-project="p1"]');
+
+      expect(text(root().querySelector('[data-testid="approved-simple"]'))).toContain('not switched on yet');
+      expect(root().querySelector('[data-testid="clips"]')).toBeNull();
+      expect(root().querySelector('[data-testid="video"]')).toBeNull();
+      expect(api.listScenes).not.toHaveBeenCalled();
     });
   });
 });
