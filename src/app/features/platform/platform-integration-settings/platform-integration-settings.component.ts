@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { NonNullableFormBuilder, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormGroup, NonNullableFormBuilder, Validators } from '@angular/forms';
 import { forkJoin, Observable, of } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
@@ -15,7 +15,9 @@ import {
   PlatformAiFeatureSettings,
   PlatformIntegrationSettings,
 } from '../../../core/models/platform.model';
+import { SettingItem } from '../../../core/models/settings.model';
 import { NotificationService } from '../../../core/services/notification.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { PlatformIntegrationSettingsService } from '../../../core/services/platform-integration-settings.service';
 
 export type IntegrationChannelKey = 'consentSms' | 'dndCheck';
@@ -29,6 +31,8 @@ export type AiFeatureKey =
   | 'discoveryKeywords'
   | ProductTaskKey;
 
+const STORY_PREFIX = 'ContentStudio:Cinematic:';
+
 /** The product-knowledge task groups: each is Off, the simulator, or ChatGPT, Claude or Gemini on its own. */
 export type ProductTaskKey =
   | 'productDocumentReading'
@@ -36,7 +40,8 @@ export type ProductTaskKey =
   | 'productSuggestedAnswers'
   | 'productQuestionnaire'
   | 'productGapCheck'
-  | 'productKnowledgeDraft';
+  | 'productKnowledgeDraft'
+  | 'storyScript';
 
 interface AiFeaturePanel {
   key: AiFeatureKey;
@@ -72,6 +77,7 @@ const ALL_AI_KEYS: AiFeatureKey[] = [
   'productQuestionnaire',
   'productGapCheck',
   'productKnowledgeDraft',
+  'storyScript',
 ];
 
 /** One entry of the list on the left: a service, an AI feature, a task group, the policy or the call log. */
@@ -185,6 +191,9 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       'Finds missing information, sources that disagree, and merges repeated facts into one.'),
     product('productKnowledgeDraft', 'ProductKnowledgeDraft', 'Draft knowledge file',
       'Writes the draft knowledge file the AI chat answers from, for the tenant to review before it is used.'),
+    // Shown inside the Story Studio panel, not as a panel of its own.
+    product('storyScript', 'StoryScript', 'Story script',
+      'Writes the scenes, dialogue and video prompts of a story. The script must be approved before any paid video work starts.'),
   ];
 
   /** The tools on offer, by the name people know them under. */
@@ -213,6 +222,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     productQuestionnaire: this.aiGroup(),
     productGapCheck: this.aiGroup(),
     productKnowledgeDraft: this.aiGroup(),
+    storyScript: this.aiGroup(),
   });
 
   readonly form = this.fb.group({
@@ -281,7 +291,8 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
   constructor(
     private readonly fb: NonNullableFormBuilder,
     private readonly integrations: PlatformIntegrationSettingsService,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly settings: SettingsService,
   ) {}
 
   ngOnInit(): void {
@@ -303,7 +314,87 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
 
   /** Something on either form is waiting to be saved. */
   get dirty(): boolean {
-    return this.form.dirty || this.aiForm.dirty;
+    return this.form.dirty || this.aiForm.dirty || this.storyForm.dirty;
+  }
+
+  // ---- Story Studio: the studio's own settings (Veo, pictures and voice, ffmpeg). Its provider keys are the ones under AI Providers. ----
+
+  /** The settings the Story Studio panel edits, by key. Built when they load. */
+  readonly storyForm = new FormGroup<Record<string, AbstractControl>>({});
+  storyItems: Record<string, SettingItem> = {};
+  storyFailed = false;
+  /** Whether each provider has a usable key under Configuration > AI Providers: 'ok', 'missing' or 'off'. */
+  providerKeys: { google: 'ok' | 'missing' | 'off'; openai: 'ok' | 'missing' | 'off' } = { google: 'missing', openai: 'missing' };
+
+  /** The Story Studio panel is one entry on the left, so its pill shows what the script runs on and its dot shows any unsaved change. */
+  get storyScriptPanel(): AiFeaturePanel {
+    return this.productTaskFeatures.find((f) => f.key === 'storyScript')!;
+  }
+
+  storyControl(name: string): FormControl<string> {
+    return (this.storyForm.controls[STORY_PREFIX + name] as FormControl<string> | undefined) ?? new FormControl<string>('', { nonNullable: true });
+  }
+
+  storyHint(name: string): string | null {
+    return this.storyItems[STORY_PREFIX + name]?.description ?? null;
+  }
+
+  /** "Simulator" or "OpenAI", for the two pictures and voice toggles. */
+  storyChoice(name: 'CharacterImageProvider' | 'SpeechProvider'): string {
+    return this.storyControl(name).value === 'OpenAI' ? 'OpenAI' : 'Simulator';
+  }
+
+  setStoryChoice(name: 'CharacterImageProvider' | 'SpeechProvider', value: string): void {
+    const control = this.storyControl(name);
+    control.setValue(value);
+    control.markAsDirty();
+  }
+
+  /** Reads the keys' state from AI Providers: this page never stores a key, it only says whether one is there. */
+  private loadProviderKeys(): void {
+    this.settings.getCategory('AiProviders').subscribe({
+      next: (category) => {
+        const state = (name: string): 'ok' | 'missing' | 'off' => {
+          const enabled = category.items.find((i) => i.key === `AiProviders:${name}:Enabled`)?.value;
+          if (enabled?.toLowerCase() === 'false') {
+            return 'off';
+          }
+          return category.items.find((i) => i.key === `AiProviders:${name}:ApiKey`)?.hasValue ? 'ok' : 'missing';
+        };
+        this.providerKeys = { google: state('Google'), openai: state('OpenAI') };
+      },
+      error: () => (this.providerKeys = { google: 'missing', openai: 'missing' }),
+    });
+  }
+
+  loadStory(): void {
+    this.storyFailed = false;
+    this.settings.getCategory('ContentStudio').subscribe({
+      next: (category) => {
+        const mine = category.items.filter((i) => i.key.startsWith(STORY_PREFIX));
+        this.storyItems = Object.fromEntries(mine.map((i) => [i.key, i]));
+        for (const key of Object.keys(this.storyForm.controls)) {
+          this.storyForm.removeControl(key);
+        }
+        for (const item of mine) {
+          this.storyForm.addControl(item.key, new FormControl<string>(item.value ?? '', { nonNullable: true }));
+        }
+        this.storyForm.markAsPristine();
+      },
+      error: () => (this.storyFailed = true),
+    });
+    this.loadProviderKeys();
+  }
+
+  /** Only what changed. */
+  private storyChanges(): Record<string, string> {
+    const values: Record<string, string> = {};
+    for (const [key, control] of Object.entries(this.storyForm.controls)) {
+      if (control.dirty) {
+        values[key] = String((control as FormControl<string>).value ?? '').trim();
+      }
+    }
+    return values;
   }
 
   isAiThirdParty(key: AiFeatureKey): boolean {
@@ -404,6 +495,9 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
 
   /** The pill beside an item on the left: what it runs on now (as on screen, saved or not). Null for the policy and the log. */
   engineLabel(id: string): string | null {
+    if (id === 'storyStudio') {
+      id = 'storyScript';
+    }
     if (id === 'conversation') {
       const engine = this.chatEngine();
       return engine === 'Simulator' ? 'Simulator' : this.aiToolLabel(engine as AiToolProvider);
@@ -421,6 +515,9 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
   /** live: a real tool or API; sim: the simulator; off: switched off; warn: a tool is chosen but cannot be used (switched off under AI
    * Providers, or no key), so the simulator answers. */
   engineTone(id: string): 'live' | 'sim' | 'off' | 'warn' {
+    if (id === 'storyStudio') {
+      id = 'storyScript';
+    }
     const label = this.engineLabel(id);
     if (label === 'Off') {
       return 'off';
@@ -439,6 +536,9 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
 
   /** An item with a change that is not saved yet. */
   isDirty(id: string): boolean {
+    if (id === 'storyStudio') {
+      return this.aiForm.controls.storyScript.dirty || this.storyForm.dirty;
+    }
     if (id === 'consentSms' || id === 'dndCheck') {
       return this.form.controls[id].dirty;
     }
@@ -558,6 +658,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
         },
         error: () => (this.loadFailed = true),
       });
+    this.loadStory();
   }
 
   save(): void {
@@ -577,8 +678,11 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       ? this.integrations.saveAiFeatures(this.buildAiRequest())
       : of(null);
 
+    const changes = this.storyChanges();
+    const story$: Observable<unknown> = Object.keys(changes).length ? this.settings.update('ContentStudio', changes) : of(null);
+
     this.saving = true;
-    forkJoin({ channels: channels$, ai: ai$ })
+    forkJoin({ channels: channels$, ai: ai$, story: story$ })
       .pipe(finalize(() => (this.saving = false)))
       .subscribe({
         next: ({ channels, ai }) => {
@@ -588,6 +692,9 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
           }
           if (ai) {
             this.applyAi(ai);
+          }
+          if (Object.keys(changes).length) {
+            this.loadStory();
           }
         },
         error: () => {
@@ -688,6 +795,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       productQuestionnaire: task('productQuestionnaire'),
       productGapCheck: task('productGapCheck'),
       productKnowledgeDraft: task('productKnowledgeDraft'),
+      storyScript: task('storyScript'),
     });
   }
 

@@ -7,7 +7,6 @@ import { PlatformAnnouncementListComponent } from './platform-announcement-list/
 import { PlatformAwsSettingsComponent } from './platform-aws-settings/platform-aws-settings.component';
 import { PlatformDeliverySettingsComponent } from './platform-delivery-settings/platform-delivery-settings.component';
 import { PlatformAiPolicyComponent } from './platform-ai-policy/platform-ai-policy.component';
-import { PlatformStorySettingsComponent } from './platform-story-settings/platform-story-settings.component';
 import { PlatformProductSourcesComponent } from './platform-product-sources/platform-product-sources.component';
 import { PlatformIntegrationSettingsComponent } from './platform-integration-settings/platform-integration-settings.component';
 import { PlatformAuditLogComponent } from './platform-audit-log/platform-audit-log.component';
@@ -150,7 +149,6 @@ const routes: Routes = [
     PlatformDeliverySettingsComponent,
     PlatformIntegrationSettingsComponent,
     PlatformAiPolicyComponent,
-    PlatformStorySettingsComponent,
     PlatformProductSourcesComponent,
     PlatformWhatsAppSettingsComponent,
     PlatformWhatsAppProviderComponent,
