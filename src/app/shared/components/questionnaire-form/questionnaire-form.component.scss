@@ -122,3 +122,27 @@
   font-size: 12px;
   line-height: 28px;
 }
+
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.point {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.bullet {
+  flex: 0 0 24px;
+  text-align: right;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.point-field {
+  flex: 1;
+}

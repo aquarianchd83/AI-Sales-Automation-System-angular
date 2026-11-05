@@ -329,3 +329,18 @@
     padding: 20px 16px;
   }
 }
+
+.sub-title.first {
+  margin-top: 8px;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 8px 16px;
+  margin-top: 8px;
+}

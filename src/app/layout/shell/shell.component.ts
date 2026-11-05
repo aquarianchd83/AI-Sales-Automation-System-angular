@@ -134,6 +134,14 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Social Ads', icon: 'public', route: '/social-ads', roles: TENANT_ADMIN_ONLY },
         {
+          label: 'Story Studio',
+          icon: 'movie_creation',
+          route: '/content-studio/stories',
+          roles: STUDIO_CONTENT_ROLES,
+          visible: () => this.studioEnabled,
+          feature: 'ContentStudio',
+        },
+        {
           label: 'Charges & Activity',
           icon: 'receipt_long',
           route: '/content-studio',

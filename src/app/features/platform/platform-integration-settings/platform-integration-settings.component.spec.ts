@@ -12,7 +12,9 @@ import {
   PlatformAiFeatureSettings,
   PlatformIntegrationSettings,
 } from '../../../core/models/platform.model';
+import { SettingCategory, SettingItem } from '../../../core/models/settings.model';
 import { NotificationService } from '../../../core/services/notification.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { PlatformIntegrationSettingsService } from '../../../core/services/platform-integration-settings.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { PlatformIntegrationSettingsComponent } from './platform-integration-settings.component';
@@ -84,6 +86,7 @@ const aiStored = (over: Partial<PlatformAiFeatureSettings> = {}): PlatformAiFeat
     ['ProductQuestionnaire', 'Questionnaire and benefits', 'Simulator'],
     ['ProductGapCheck', 'Gaps and conflicts check', 'Simulator'],
     ['ProductKnowledgeDraft', 'Draft knowledge file', 'Simulator'],
+    ['StoryScript', 'Story script', 'Simulator'],
   ].map(([feature, title, mode]) => ({
     feature,
     title,
@@ -94,8 +97,53 @@ const aiStored = (over: Partial<PlatformAiFeatureSettings> = {}): PlatformAiFeat
   ...over,
 });
 
+const P = 'ContentStudio:Cinematic:';
+const settingItem = (key: string, value: string, over: Partial<SettingItem> = {}): SettingItem => ({
+  key,
+  category: key.split(':')[0],
+  isSecret: false,
+  isList: false,
+  description: null,
+  value,
+  hasValue: true,
+  valueHint: null,
+  ...over,
+});
+
+const studioCategory = (): SettingCategory => ({
+  category: 'ContentStudio',
+  items: [
+    settingItem('ContentStudio:Enabled', 'true'),
+    settingItem(P + 'VideoProvider', 'Simulator'),
+    settingItem(P + 'VeoModel', 'veo-3.1-fast-generate-preview'),
+    settingItem(P + 'VeoUsdPerSecond', '0.12'),
+    settingItem(P + 'MaxAutomaticRetries', '1'),
+    settingItem(P + 'CharacterImageProvider', 'Simulator'),
+    settingItem(P + 'SpeechProvider', 'Simulator'),
+    settingItem(P + 'ImageModel', 'gpt-image-1'),
+    settingItem(P + 'ImageUsdEstimate', '0.17'),
+    settingItem(P + 'SpeechModel', 'gpt-4o-mini-tts'),
+    settingItem(P + 'SpeechUsdPerLine', '0.02'),
+    settingItem(P + 'FfmpegPath', ''),
+    settingItem(P + 'FfprobePath', ''),
+    settingItem(P + 'SubtitleFontsDirectory', ''),
+    settingItem(P + 'SubtitleFontName', ''),
+  ],
+});
+
+const providersCategory = (over: Record<string, Partial<SettingItem>> = {}): SettingCategory => ({
+  category: 'AiProviders',
+  items: [
+    settingItem('AiProviders:Google:Enabled', 'true'),
+    settingItem('AiProviders:Google:ApiKey', '', { isSecret: true, value: null, hasValue: true }),
+    settingItem('AiProviders:OpenAI:Enabled', 'true'),
+    settingItem('AiProviders:OpenAI:ApiKey', '', { isSecret: true, value: null, hasValue: false }),
+  ].map((i) => ({ ...i, ...(over[i.key] ?? {}) })),
+});
+
 describe('PlatformIntegrationSettingsComponent', () => {
   let service: jasmine.SpyObj<PlatformIntegrationSettingsService>;
+  let settingsApi: jasmine.SpyObj<SettingsService>;
   let notify: jasmine.SpyObj<NotificationService>;
 
   const create = (settings: PlatformIntegrationSettings, ai: PlatformAiFeatureSettings = aiStored()) => {
@@ -110,6 +158,9 @@ describe('PlatformIntegrationSettingsComponent', () => {
     service.testConsentSms.and.returnValue(of({ success: true, message: 'accepted' }));
     service.testDndCheck.and.returnValue(of({ success: true, message: 'passes' }));
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
+    settingsApi = jasmine.createSpyObj('SettingsService', ['getCategory', 'update']);
+    settingsApi.getCategory.and.callFake((name: string) => of(name === 'AiProviders' ? providersCategory() : studioCategory()));
+    settingsApi.update.and.returnValue(of(void 0));
 
     TestBed.configureTestingModule({
       declarations: [PlatformIntegrationSettingsComponent, AiPolicyStubComponent],
@@ -117,6 +168,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
       providers: [
         { provide: PlatformIntegrationSettingsService, useValue: service },
         { provide: NotificationService, useValue: notify },
+        { provide: SettingsService, useValue: settingsApi },
       ],
     });
 
@@ -139,7 +191,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
     const nav = Array.from(root.querySelectorAll('[data-nav]')).map((e) => e.getAttribute('data-nav'));
     expect(nav).toEqual([
       'conversation', 'consentSms', 'dndCheck', 'discoveryLead', 'discoveryKeywords', 'businessKeywords', 'knowledgeBase', 'contentGeneration',
-      'videoRenders', 'productDocumentReading', 'productScannedReading', 'productSuggestedAnswers', 'productQuestionnaire', 'productGapCheck',
+      'videoRenders', 'storyStudio', 'productDocumentReading', 'productScannedReading', 'productSuggestedAnswers', 'productQuestionnaire', 'productGapCheck',
       'productKnowledgeDraft', 'sources', 'policy', 'calls',
     ]);
     expect(root.querySelector('[data-nav="discoveryLead"] .pill')?.textContent?.trim()).toBe('Claude');
@@ -419,7 +471,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
 
       expect(component.productTaskFeatures.map((f) => f.title)).toEqual([
         'Reading documents and PDFs', 'Reading scanned pages and images', 'Suggested answers', 'Questionnaire and benefits',
-        'Gaps and conflicts check', 'Draft knowledge file',
+        'Gaps and conflicts check', 'Draft knowledge file', 'Story script',
       ]);
       expect(labels(root, 'Suggested answers runs on')).toEqual(['Off', 'Simulator', 'ChatGPT', 'Claude', 'Gemini']);
       expect(component.toolsFor('productSuggestedAnswers').map((t) => t.label)).toEqual(['ChatGPT', 'Claude', 'Gemini']);
@@ -443,7 +495,7 @@ describe('PlatformIntegrationSettingsComponent', () => {
       component.save();
 
       const sent = service.saveAiFeatures.calls.mostRecent().args[0].productKnowledgeTasks;
-      expect(sent.length).toBe(6);
+      expect(sent.length).toBe(7);   // the six product-knowledge groups and the story script
       expect(sent.find((g) => g.feature === 'ProductSuggestedAnswers')).toEqual({ feature: 'ProductSuggestedAnswers', mode: 'Api', provider: 'Anthropic' });
       expect(sent.find((g) => g.feature === 'ProductDocumentReading')?.mode).toBe('Off');
       expect(sent.find((g) => g.feature === 'ProductScannedReading')?.mode).toBe('Off');
@@ -486,6 +538,131 @@ describe('PlatformIntegrationSettingsComponent', () => {
 
       component.save();
       expect(service.saveAiFeatures.calls.mostRecent().args[0].businessKeywords).toEqual({ mode: 'Api', provider: 'Google' });
+    });
+  });
+
+  describe('Story Studio', () => {
+    const text = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const labels = (root: HTMLElement, group: string) =>
+      Array.from(root.querySelectorAll(`mat-button-toggle-group[aria-label="${group}"] mat-button-toggle`)).map((e) => e.textContent?.replace(/science|block/g, '').trim());
+
+    it('is one panel with the four parts in order, under the heading Story Studio', () => {
+      const { fixture } = create(stored());
+      const root = open(fixture, 'storyStudio');
+
+      const panel = root.querySelector('[data-panel="storyStudio"]')!;
+      expect(text(panel.querySelector('h2'))).toBe('Story Studio');
+      expect(Array.from(panel.querySelectorAll('h3.sub-title')).map((h) => text(h))).toEqual([
+        '1. Video clips (Veo)',
+        '2. Pictures and voice (OpenAI)',
+        '3. Generate the script',
+        '4. Putting the video together (ffmpeg)',
+      ]);
+    });
+
+    it('offers the scene clip source as a Simulator / Gemini toggle, in the same style as pictures and voice', () => {
+      const { fixture } = create(stored());
+      const root = open(fixture, 'storyStudio');
+
+      expect(labels(root, 'Scene clips come from')).toEqual(['Simulator', 'Gemini']);
+      expect(labels(root, 'Character pictures come from')).toEqual(['Simulator', 'ChatGPT']);
+      // It sits under 1. Video clips (Veo), before 2. Pictures and voice.
+      const html = (root.querySelector('[data-panel="storyStudio"]') as HTMLElement).innerHTML;
+      expect(html.indexOf('Scene clips come from')).toBeGreaterThan(html.indexOf('1. Video clips (Veo)'));
+      expect(html.indexOf('Scene clips come from')).toBeLessThan(html.indexOf('2. Pictures and voice (OpenAI)'));
+    });
+
+    it('saves the Gemini switch with the page Save button', () => {
+      const { fixture, component } = create(stored());
+      open(fixture, 'storyStudio');
+
+      component.setStoryChoice('VideoProvider', 'Google');
+      fixture.detectChanges();
+      expect(component.storyChoice('VideoProvider')).toBe('Google');
+      component.save();
+
+      expect(settingsApi.update).toHaveBeenCalledOnceWith('ContentStudio', { 'ContentStudio:Cinematic:VideoProvider': 'Google' });
+    });
+
+    it('has no box for a provider key, and says where the keys are', () => {
+      const { fixture } = create(stored());
+      const panel = open(fixture, 'storyStudio').querySelector('[data-panel="storyStudio"]')!;
+
+      expect(panel.querySelector('input[type="password"]')).toBeNull();
+      expect(panel.querySelector('[data-story="GeminiApiKey"], [data-story="OpenAiApiKey"]')).toBeNull();
+      expect(Array.from(panel.querySelectorAll('a')).some((a) => a.getAttribute('href') === '/settings/ai-providers')).toBeTrue();
+    });
+
+    it('reads the Gemini and ChatGPT key state from AI Providers', () => {
+      const { fixture } = create(stored());
+      const panel = open(fixture, 'storyStudio').querySelector('[data-panel="storyStudio"]')!;
+
+      expect(text(panel)).toContain('Uses the Gemini key saved under Configuration > AI Providers.');
+      expect(text(panel)).toContain('No ChatGPT key is saved yet.');
+    });
+
+    it('says when a provider is switched off under AI Providers', () => {
+      settingsApi = jasmine.createSpyObj('SettingsService', ['getCategory', 'update']);
+      const { fixture, component } = create(stored());
+      settingsApi.getCategory.and.callFake((name: string) =>
+        of(name === 'AiProviders' ? providersCategory({ 'AiProviders:Google:Enabled': { value: 'false' } }) : studioCategory()),
+      );
+      component.loadStory();
+      const panel = open(fixture, 'storyStudio').querySelector('[data-panel="storyStudio"]')!;
+
+      expect(text(panel)).toContain('Gemini is turned off under Configuration > AI Providers');
+    });
+
+    it('lets the script run on Off, the simulator or one of the three tools, like the other AI features', () => {
+      const { fixture } = create(stored());
+      const panel = open(fixture, 'storyStudio').querySelector('[data-panel="storyStudio"]')!;
+
+      const root = fixture.nativeElement as HTMLElement;
+      expect(labels(root, 'Character pictures come from')).toEqual(['Simulator', 'ChatGPT']);
+      expect(labels(root, 'Voice-overs come from')).toEqual(['Simulator', 'ChatGPT']);
+      expect(labels(root, 'Story script runs on')).toEqual(['Off', 'Simulator', 'ChatGPT', 'Claude', 'Gemini']);
+      expect(panel).not.toBeNull();
+    });
+
+    it('saves the script switch and the studio settings with the page Save button, sending only what changed', () => {
+      const { fixture, component } = create(stored());
+      open(fixture, 'storyStudio');
+
+      component.aiForm.controls.storyScript.controls.mode.setValue('Api');
+      component.aiForm.controls.storyScript.controls.provider.setValue('Google');
+      component.aiForm.controls.storyScript.markAsDirty();
+      component.setStoryChoice('SpeechProvider', 'OpenAI');
+      component.storyControl('VeoUsdPerSecond').setValue(' 0.40 ');
+      component.storyControl('VeoUsdPerSecond').markAsDirty();
+      fixture.detectChanges();
+      expect(component.dirty).toBeTrue();
+      expect(fixture.nativeElement.querySelector('[data-nav="storyStudio"] .nav-dirty')).not.toBeNull();
+
+      component.save();
+
+      expect(service.saveAiFeatures.calls.mostRecent().args[0].productKnowledgeTasks?.find((t) => t.feature === 'StoryScript')).toEqual({
+        feature: 'StoryScript', mode: 'Api', provider: 'Google',
+      });
+      expect(settingsApi.update).toHaveBeenCalledOnceWith('ContentStudio', {
+        'ContentStudio:Cinematic:SpeechProvider': 'OpenAI',
+        'ContentStudio:Cinematic:VeoUsdPerSecond': '0.40',
+      });
+    });
+
+    it('does not call the settings API when only another panel changed', () => {
+      const { component } = create(stored());
+      component.aiForm.controls.discoveryLead.controls.provider.setValue('Anthropic');
+      component.aiForm.controls.discoveryLead.markAsDirty();
+
+      component.save();
+
+      expect(settingsApi.update).not.toHaveBeenCalled();
+    });
+
+    it('shows the script engine as the pill on the Story Studio entry', () => {
+      const { fixture } = create(stored());
+
+      expect(fixture.nativeElement.querySelector('[data-nav="storyStudio"] .pill')?.textContent?.trim()).toBe('Simulator');
     });
   });
 });

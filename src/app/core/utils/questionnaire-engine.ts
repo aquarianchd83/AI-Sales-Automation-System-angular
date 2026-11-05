@@ -16,6 +16,10 @@ import {
  */
 
 export const DEFAULT_SHORT_TEXT_LENGTH = 200;
+/** A point list holds a handful of short points. Matches the server (QuestionnaireEngine). */
+export const MAX_POINTS = 8;
+export const MIN_POINT_LENGTH = 3;
+export const MAX_POINT_LENGTH = 100;
 export const DEFAULT_LONG_TEXT_LENGTH = 4000;
 
 export const SECRET_MESSAGE = "This looks like a password, access key or card number. Please don't put secrets here - leave them out.";
@@ -281,6 +285,34 @@ function valueProblem(question: QuestionDef, value: AnswerValue): string | null 
       return Array.isArray(value) && value.every((v) => (question.options ?? []).some((o) => o.value.toLowerCase() === String(v).toLowerCase()))
         ? null
         : 'Choose only from the listed options.';
+    case 'PointList': {
+      if (!Array.isArray(value)) {
+        return 'Answer with a list of points.';
+      }
+      if (value.some((p) => typeof p !== 'string')) {
+        return 'Each point must be text.';
+      }
+      const points = (value as string[]).map((p) => p.trim());
+      if (points.length === 0 || points.every((p) => p === '')) {
+        return 'Add at least one point.';
+      }
+      if (points.length > MAX_POINTS) {
+        return `Add at most ${MAX_POINTS} points.`;
+      }
+      if (points.some((p) => p === '')) {
+        return 'Remove the empty point.';
+      }
+      if (points.some((p) => p.length < MIN_POINT_LENGTH)) {
+        return `Each point needs at least ${MIN_POINT_LENGTH} characters.`;
+      }
+      if (points.some((p) => p.length > MAX_POINT_LENGTH)) {
+        return `Keep each point to ${MAX_POINT_LENGTH} characters or fewer.`;
+      }
+      if (new Set(points.map((p) => p.toLowerCase())).size !== points.length) {
+        return 'A point was written twice.';
+      }
+      return points.some(looksLikeSecret) ? SECRET_MESSAGE : null;
+    }
     case 'Structured': {
       if (typeof value !== 'object' || Array.isArray(value)) {
         return 'Answer with the listed fields.';

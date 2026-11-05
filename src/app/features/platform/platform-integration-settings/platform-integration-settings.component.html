@@ -220,74 +220,142 @@
               </div>
             </header>
 
-            <div class="field-label">Runs on</div>
-            <mat-button-toggle-group class="engine" [value]="engineOf(feature.key)" (change)="setEngine(feature.key, $event.value)" [attr.aria-label]="feature.title + ' runs on'">
-              <mat-button-toggle value="Off" *ngIf="feature.allowOff"><mat-icon>block</mat-icon> Off</mat-button-toggle>
-              <mat-button-toggle value="Simulator"><mat-icon>science</mat-icon> Simulator</mat-button-toggle>
-              <mat-button-toggle
-                *ngFor="let tool of aiTools"
-                [value]="tool.value"
-                [disabled]="!supports(feature.key, tool.value)"
-                [matTooltip]="supports(feature.key, tool.value) ? '' : notSupportedReason(feature.key, tool.label)"
-              >{{ tool.label }}</mat-button-toggle>
-            </mat-button-toggle-group>
-
-            <!-- One note at a time: the most important thing to know about this choice. -->
-            <div class="note" *ngIf="isAiOff(feature.key)" data-testid="off-note">
-              <mat-icon>block</mat-icon>
-              <span>Switched off: this AI step is skipped. Nothing is read or drafted by AI and nothing is sent anywhere.</span>
-            </div>
-            <div class="note" *ngIf="noToolYet(feature.key)">
-              <mat-icon>info</mat-icon>
-              <span>Simulator only - this feature is not connected to a third-party tool yet. {{ feature.simulatorNote }}</span>
-            </div>
-            <div class="note" *ngIf="!noToolYet(feature.key) && !isAiOff(feature.key) && !isAiThirdParty(feature.key)">
-              <mat-icon>science</mat-icon>
-              <span>The simulator answers on its own and nothing leaves the platform. {{ feature.simulatorNote }}</span>
-            </div>
-            <div class="note note--warn" *ngIf="savedToolUnsupported(feature.key)">
-              <mat-icon>warning</mat-icon>
-              <span>
-                The tool saved earlier ({{ aiToolLabel(channel(feature.key)?.provider ?? 'OpenAI') }}) is not available for this feature, so the simulator
-                answers. Choose one of the tools above.
-              </span>
-            </div>
-
-            <ng-container *ngIf="isAiThirdParty(feature.key) && !noToolYet(feature.key)">
-              <div class="note note--warn" *ngIf="aiToolOff(feature.key)">
-                <mat-icon>power_settings_new</mat-icon>
-                <span>
-                  {{ pickedToolLabel(feature.key) }} is turned off, so the simulator answers for now. Your choice is kept and applies again when you switch it
-                  on under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>.
-                </span>
-              </div>
-              <div class="note" *ngIf="!aiToolOff(feature.key)" [class.note--warn]="!aiHasKey(feature.key)">
-                <mat-icon>{{ aiHasKey(feature.key) ? 'key' : 'warning' }}</mat-icon>
-                <span *ngIf="aiHasKey(feature.key); else noKey">
-                  Uses the {{ pickedToolLabel(feature.key) }} key saved under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>.
-                </span>
-                <ng-template #noKey>
-                  <span>
-                    No {{ pickedToolLabel(feature.key) }} key is saved yet. Add it under
-                    <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a> first.
-                  </span>
-                </ng-template>
-              </div>
-
-              <div class="test-inline">
-                <button mat-stroked-button type="button" [disabled]="isTesting(feature.key) || saving" (click)="testAi(feature.key)">
-                  <mat-icon>{{ isTesting(feature.key) ? 'hourglass_empty' : 'bolt' }}</mat-icon>
-                  {{ isTesting(feature.key) ? 'Working…' : 'Test ' + pickedToolLabel(feature.key) }}
-                </button>
-                <span class="muted small">One short question with the saved key, without saving this choice.</span>
-              </div>
-              <div class="result" *ngIf="resultOf(feature.key) as result" [class.result--fail]="!result.success" role="status">
-                <mat-icon>{{ result.success ? 'check_circle' : 'error' }}</mat-icon>
-                <span>{{ result.message }}</span>
-              </div>
-            </ng-container>
+            <ng-container *ngTemplateOutlet="featureBody; context: { $implicit: feature }"></ng-container>
           </mat-card>
         </ng-container>
+
+        <!-- Story Studio: one panel, four parts. Its provider keys are the ones saved under Configuration > AI Providers. -->
+        <mat-card class="panel" *ngIf="selected === 'storyStudio'" formGroupName="storyScript" data-panel="storyStudio">
+          <header class="panel-head">
+            <div>
+              <h2>Story Studio</h2>
+              <p class="muted">
+                Turns a topic into a short vertical story video: script, characters, clips, voice and subtitles. No key is entered here; the keys are the ones
+                saved under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>.
+              </p>
+            </div>
+          </header>
+
+          <div class="note note--warn" *ngIf="storyFailed" data-testid="story-failed">
+            <mat-icon>warning</mat-icon>
+            <span>The Story Studio settings could not be loaded. <button mat-button type="button" (click)="loadStory()">Try again</button></span>
+          </div>
+
+          <h3 class="sub-title first">1. Video clips (Veo)</h3>
+          <p class="muted small">Gemini makes the scene clips with Veo, through the Gemini API. Google Flow import (you generate the clip in Flow and upload it) is always available.</p>
+          <div class="field-label">Scene clips</div>
+          <mat-button-toggle-group class="engine" [value]="storyChoice('VideoProvider')" (change)="setStoryChoice('VideoProvider', $event.value)" aria-label="Scene clips come from">
+            <mat-button-toggle value="Simulator" [attr.data-choice]="'VideoProvider-Simulator'"><mat-icon>science</mat-icon> Simulator</mat-button-toggle>
+            <mat-button-toggle value="Google" [attr.data-choice]="'VideoProvider-Google'">Gemini</mat-button-toggle>
+          </mat-button-toggle-group>
+        <div class="note" *ngIf="providerKeys.google === 'ok'">
+          <mat-icon>key</mat-icon>
+          <span>Uses the Gemini key saved under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>.</span>
+        </div>
+        <div class="note note--warn" *ngIf="providerKeys.google === 'missing'">
+          <mat-icon>warning</mat-icon>
+          <span>No Gemini key is saved yet. Add it under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a> first.</span>
+        </div>
+        <div class="note note--warn" *ngIf="providerKeys.google === 'off'">
+          <mat-icon>power_settings_new</mat-icon>
+          <span>Gemini is turned off under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>. Switch it on to use it here.</span>
+        </div>
+          <div class="fields">
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Veo model</mat-label>
+            <input matInput [formControl]="storyControl('VeoModel')" [attr.data-story]="'VeoModel'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('VeoModel') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Price per second (USD, estimate)</mat-label>
+            <input matInput [formControl]="storyControl('VeoUsdPerSecond')" [attr.data-story]="'VeoUsdPerSecond'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('VeoUsdPerSecond') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Automatic retries of a failed clip</mat-label>
+            <input matInput [formControl]="storyControl('MaxAutomaticRetries')" [attr.data-story]="'MaxAutomaticRetries'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('MaxAutomaticRetries') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          </div>
+
+          <h3 class="sub-title">2. Pictures and voice (OpenAI)</h3>
+          <p class="muted small">Each can stay on the free simulator (placeholder pictures, test tones) or use ChatGPT.</p>
+        <div class="field-label">Character pictures</div>
+        <mat-button-toggle-group class="engine" [value]="storyChoice('CharacterImageProvider')" (change)="setStoryChoice('CharacterImageProvider', $event.value)" aria-label="Character pictures come from">
+          <mat-button-toggle value="Simulator" [attr.data-choice]="'CharacterImageProvider-Simulator'"><mat-icon>science</mat-icon> Simulator</mat-button-toggle>
+          <mat-button-toggle value="OpenAI" [attr.data-choice]="'CharacterImageProvider-OpenAI'">ChatGPT</mat-button-toggle>
+        </mat-button-toggle-group>
+        <div class="field-label">Voice-overs</div>
+        <mat-button-toggle-group class="engine" [value]="storyChoice('SpeechProvider')" (change)="setStoryChoice('SpeechProvider', $event.value)" aria-label="Voice-overs come from">
+          <mat-button-toggle value="Simulator" [attr.data-choice]="'SpeechProvider-Simulator'"><mat-icon>science</mat-icon> Simulator</mat-button-toggle>
+          <mat-button-toggle value="OpenAI" [attr.data-choice]="'SpeechProvider-OpenAI'">ChatGPT</mat-button-toggle>
+        </mat-button-toggle-group>
+        <div class="note" *ngIf="providerKeys.openai === 'ok'">
+          <mat-icon>key</mat-icon>
+          <span>Uses the ChatGPT key saved under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>.</span>
+        </div>
+        <div class="note note--warn" *ngIf="providerKeys.openai === 'missing'">
+          <mat-icon>warning</mat-icon>
+          <span>No ChatGPT key is saved yet. Add it under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a> first.</span>
+        </div>
+        <div class="note note--warn" *ngIf="providerKeys.openai === 'off'">
+          <mat-icon>power_settings_new</mat-icon>
+          <span>ChatGPT is turned off under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>. Switch it on to use it here.</span>
+        </div>
+          <div class="fields">
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Picture model</mat-label>
+            <input matInput [formControl]="storyControl('ImageModel')" [attr.data-story]="'ImageModel'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('ImageModel') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Price per picture (USD, estimate)</mat-label>
+            <input matInput [formControl]="storyControl('ImageUsdEstimate')" [attr.data-story]="'ImageUsdEstimate'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('ImageUsdEstimate') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Speech model</mat-label>
+            <input matInput [formControl]="storyControl('SpeechModel')" [attr.data-story]="'SpeechModel'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('SpeechModel') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Price per spoken line (USD, estimate)</mat-label>
+            <input matInput [formControl]="storyControl('SpeechUsdPerLine')" [attr.data-story]="'SpeechUsdPerLine'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('SpeechUsdPerLine') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          </div>
+
+          <h3 class="sub-title">3. Generate the script</h3>
+          <ng-container *ngTemplateOutlet="featureBody; context: { $implicit: storyScriptPanel }"></ng-container>
+
+          <h3 class="sub-title">4. Putting the video together (ffmpeg)</h3>
+          <p class="muted small">
+            ffmpeg joins the clips and draws the subtitles. Leave the paths empty when ffmpeg is on the server PATH. Hindi subtitles need a Devanagari font
+            (for example Noto Sans Devanagari) on the server.
+          </p>
+          <div class="fields">
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>ffmpeg path</mat-label>
+            <input matInput [formControl]="storyControl('FfmpegPath')" [attr.data-story]="'FfmpegPath'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('FfmpegPath') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>ffprobe path</mat-label>
+            <input matInput [formControl]="storyControl('FfprobePath')" [attr.data-story]="'FfprobePath'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('FfprobePath') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Subtitle fonts folder</mat-label>
+            <input matInput [formControl]="storyControl('SubtitleFontsDirectory')" [attr.data-story]="'SubtitleFontsDirectory'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('SubtitleFontsDirectory') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="field">
+            <mat-label>Subtitle font name</mat-label>
+            <input matInput [formControl]="storyControl('SubtitleFontName')" [attr.data-story]="'SubtitleFontName'" autocomplete="off" />
+            <mat-hint *ngIf="storyHint('SubtitleFontName') as hint">{{ hint }}</mat-hint>
+          </mat-form-field>
+          </div>
+        </mat-card>
       </div>
 
       <!-- Product-knowledge policy and the AI call log: saved on their own. -->
@@ -296,4 +364,74 @@
       <app-platform-ai-policy *ngIf="selected === 'calls'" show="calls"></app-platform-ai-policy>
     </section>
   </div>
+
+  <!-- The body of an AI feature panel (what it runs on, the notes about its key, the test): shared by every panel and by the Story Studio. -->
+  <ng-template #featureBody let-feature>
+      <div class="field-label">Runs on</div>
+      <mat-button-toggle-group class="engine" [value]="engineOf(feature.key)" (change)="setEngine(feature.key, $event.value)" [attr.aria-label]="feature.title + ' runs on'">
+        <mat-button-toggle value="Off" *ngIf="feature.allowOff"><mat-icon>block</mat-icon> Off</mat-button-toggle>
+        <mat-button-toggle value="Simulator"><mat-icon>science</mat-icon> Simulator</mat-button-toggle>
+        <mat-button-toggle
+          *ngFor="let tool of aiTools"
+          [value]="tool.value"
+          [disabled]="!supports(feature.key, tool.value)"
+          [matTooltip]="supports(feature.key, tool.value) ? '' : notSupportedReason(feature.key, tool.label)"
+        >{{ tool.label }}</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <!-- One note at a time: the most important thing to know about this choice. -->
+      <div class="note" *ngIf="isAiOff(feature.key)" data-testid="off-note">
+        <mat-icon>block</mat-icon>
+        <span>Switched off: this AI step is skipped. Nothing is read or drafted by AI and nothing is sent anywhere.</span>
+      </div>
+      <div class="note" *ngIf="noToolYet(feature.key)">
+        <mat-icon>info</mat-icon>
+        <span>Simulator only - this feature is not connected to a third-party tool yet. {{ feature.simulatorNote }}</span>
+      </div>
+      <div class="note" *ngIf="!noToolYet(feature.key) && !isAiOff(feature.key) && !isAiThirdParty(feature.key)">
+        <mat-icon>science</mat-icon>
+        <span>The simulator answers on its own and nothing leaves the platform. {{ feature.simulatorNote }}</span>
+      </div>
+      <div class="note note--warn" *ngIf="savedToolUnsupported(feature.key)">
+        <mat-icon>warning</mat-icon>
+        <span>
+          The tool saved earlier ({{ aiToolLabel(channel(feature.key)?.provider ?? 'OpenAI') }}) is not available for this feature, so the simulator
+          answers. Choose one of the tools above.
+        </span>
+      </div>
+
+      <ng-container *ngIf="isAiThirdParty(feature.key) && !noToolYet(feature.key)">
+        <div class="note note--warn" *ngIf="aiToolOff(feature.key)">
+          <mat-icon>power_settings_new</mat-icon>
+          <span>
+            {{ pickedToolLabel(feature.key) }} is turned off, so the simulator answers for now. Your choice is kept and applies again when you switch it
+            on under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>.
+          </span>
+        </div>
+        <div class="note" *ngIf="!aiToolOff(feature.key)" [class.note--warn]="!aiHasKey(feature.key)">
+          <mat-icon>{{ aiHasKey(feature.key) ? 'key' : 'warning' }}</mat-icon>
+          <span *ngIf="aiHasKey(feature.key); else noKey">
+            Uses the {{ pickedToolLabel(feature.key) }} key saved under <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a>.
+          </span>
+          <ng-template #noKey>
+            <span>
+              No {{ pickedToolLabel(feature.key) }} key is saved yet. Add it under
+              <a routerLink="/settings/ai-providers">Configuration &gt; AI Providers</a> first.
+            </span>
+          </ng-template>
+        </div>
+
+        <div class="test-inline">
+          <button mat-stroked-button type="button" [disabled]="isTesting(feature.key) || saving" (click)="testAi(feature.key)">
+            <mat-icon>{{ isTesting(feature.key) ? 'hourglass_empty' : 'bolt' }}</mat-icon>
+            {{ isTesting(feature.key) ? 'Working…' : 'Test ' + pickedToolLabel(feature.key) }}
+          </button>
+          <span class="muted small">One short question with the saved key, without saving this choice.</span>
+        </div>
+        <div class="result" *ngIf="resultOf(feature.key) as result" [class.result--fail]="!result.success" role="status">
+          <mat-icon>{{ result.success ? 'check_circle' : 'error' }}</mat-icon>
+          <span>{{ result.message }}</span>
+        </div>
+      </ng-container>
+  </ng-template>
 </div>

@@ -14,6 +14,10 @@ export enum StudioActivityKind {
   VideoRender = 6,
   Publish = 7,
   Other = 8,
+  StoryScript = 9,
+  StoryCharacterImage = 10,
+  StorySceneClip = 11,
+  StoryVoice = 12,
 }
 
 export const STUDIO_ACTIVITY_KIND_LABELS: Record<StudioActivityKind, string> = {
@@ -26,6 +30,10 @@ export const STUDIO_ACTIVITY_KIND_LABELS: Record<StudioActivityKind, string> = {
   [StudioActivityKind.VideoRender]: 'Video render',
   [StudioActivityKind.Publish]: 'Publish',
   [StudioActivityKind.Other]: 'Other',
+  [StudioActivityKind.StoryScript]: 'Story script',
+  [StudioActivityKind.StoryCharacterImage]: 'Story character picture',
+  [StudioActivityKind.StorySceneClip]: 'Story scene clip',
+  [StudioActivityKind.StoryVoice]: 'Story voice-over',
 };
 
 export enum StudioActivityStatus {
@@ -112,7 +120,7 @@ export const STUDIO_CONTENT_ROLES: string[] = [AppRole.Admin, AppRole.SalesManag
 // Questionnaire. A definition is plain JSON the platform admin authors; question types and operators travel as words.
 // ---------------------------------------------------------------------------------------------------------------------------------------
 
-export type QuestionType = 'ShortText' | 'LongText' | 'Number' | 'Boolean' | 'SingleChoice' | 'MultiChoice' | 'Structured';
+export type QuestionType = 'ShortText' | 'LongText' | 'Number' | 'Boolean' | 'SingleChoice' | 'MultiChoice' | 'PointList' | 'Structured';
 
 export type ConditionOperator = 'Equal' | 'NotEqual' | 'In' | 'Contains' | 'Answered' | 'NotAnswered' | 'GreaterThan' | 'LessThan';
 
