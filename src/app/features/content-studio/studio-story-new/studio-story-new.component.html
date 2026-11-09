@@ -144,11 +144,20 @@
               <textarea matInput rows="3" [(ngModel)]="differentiator" data-testid="f-differentiator"></textarea>
               <mat-hint>Why choose this solution?</mat-hint>
             </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>7. Call to action</mat-label>
-              <textarea matInput rows="3" [(ngModel)]="callToAction" data-testid="f-cta"></textarea>
-              <mat-hint>Book a free demo, start your free trial.</mat-hint>
-            </mat-form-field>
+            <div>
+              <mat-form-field appearance="outline" class="wide">
+                <mat-label>7. Call to action</mat-label>
+                <mat-select [(ngModel)]="ctaChoice" data-testid="f-cta">
+                  <mat-option *ngFor="let c of ctaOptions" [value]="c">{{ c }}</mat-option>
+                  <mat-option [value]="OTHER">Other (type your own)</mat-option>
+                </mat-select>
+                <mat-hint>What should the viewer do next?</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="wide" *ngIf="ctaChoice === OTHER">
+                <mat-label>Describe the call to action</mat-label>
+                <input matInput [(ngModel)]="ctaOther" data-testid="f-cta-other" />
+              </mat-form-field>
+            </div>
 
             <mat-form-field appearance="outline">
               <mat-label>Length</mat-label>

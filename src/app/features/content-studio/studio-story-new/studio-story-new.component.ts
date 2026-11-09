@@ -18,6 +18,9 @@ import { ProblemOption, StoryBrief, buildStoryTopic, factList, factText, parsePr
 /** The value of a dropdown's "Other (type your own)" entry. */
 export const OTHER = '__other__';
 
+/** Calls to action offered after the ones the business wrote down itself. */
+export const DEFAULT_CALLS_TO_ACTION = ['Book a free demo', 'Start your free trial', 'Contact us today', 'Get a free quote', 'Visit our website'];
+
 /**
  * New story: pick one of the problems the business solves, confirm the sector it belongs to, answer seven short questions about it, then
  * generate five or six variations of that problem and tick the ones to turn into stories - one story, one script, per ticked variation.
@@ -64,7 +67,9 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
   capabilities = '';
   benefits = '';
   differentiator = '';
-  callToAction = '';
+  ctaOptions: string[] = [];
+  ctaChoice = '';
+  ctaOther = '';
   targetSeconds = 30;
   language = 'Hinglish';
 
@@ -122,7 +127,9 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
       .filter(Boolean);
     this.audienceOptions = this.unique(audiences);
 
-    this.callToAction = factText(facts, /^(call to action|cta)$/i);
+    const written = factList(facts, /^(call to action|cta)$/i);
+    this.ctaOptions = this.unique([...written, ...DEFAULT_CALLS_TO_ACTION]);
+    this.ctaChoice = written[0] ?? '';
     this.capabilities = factText(facts, /^(key )?(capabilit(y|ies)|features?)$/i);
     this.benefits = factText(facts, /^(business )?benefits?$/i);
     this.differentiator = factText(facts, /^(differentiators?|unique selling points?|why us)$/i);
@@ -274,6 +281,10 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
 
   get audience(): string {
     return (this.audienceChoice === OTHER ? this.audienceOther : this.audienceChoice).trim();
+  }
+
+  get callToAction(): string {
+    return (this.ctaChoice === OTHER ? this.ctaOther : this.ctaChoice).trim();
   }
 
   get solution(): string {

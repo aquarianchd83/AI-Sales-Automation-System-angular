@@ -237,7 +237,7 @@ describe('StudioStoryNewComponent', () => {
       render();
       click('[data-testid="sector-accept"]');
       comp.audienceChoice = 'Small business owners';
-      comp.callToAction = 'Book a free demo';
+      comp.ctaChoice = 'Book a free demo';
       comp.capabilities = 'Finds leads';
       fixture.detectChanges();
     }
@@ -259,6 +259,19 @@ describe('StudioStoryNewComponent', () => {
       click('[data-testid="sector-accept"]');
       expect(comp.filled).toBe(3);
       expect(text(q('[data-testid="filled-count"]'))).toBe('3 of 8 filled');
+    });
+
+    it('offers calls to action as a dropdown: the ones the business wrote first, then common ones, then Other', () => {
+      render(knowledge({ facts: [...knowledge().facts, { id: 'x', category: 'Call to action', subject: null, statement: 'Message us on WhatsApp' }] }));
+
+      expect(comp.ctaOptions[0]).toBe('Message us on WhatsApp');
+      expect(comp.ctaOptions).toContain('Book a free demo');
+      expect(comp.ctaChoice).toBe('Message us on WhatsApp');
+      expect(comp.callToAction).toBe('Message us on WhatsApp');
+
+      comp.ctaChoice = '__other__';
+      comp.ctaOther = ' Join our webinar ';
+      expect(comp.callToAction).toBe('Join our webinar');
     });
 
     it('turns each ticked variation into its own story with its own script, then goes back to the list', () => {
