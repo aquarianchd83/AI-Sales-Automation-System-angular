@@ -1,7 +1,7 @@
 <div class="page">
   <app-page-header
     title="New story"
-    subtitle="Pick a problem, tell us about it, and the studio writes five or six takes on it. Videos run 20 to 30 seconds."
+    subtitle="Pick a problem, tell us about it, and raise a request: the platform team writes the script and makes the video. Videos run 20 to 30 seconds."
   >
     <a mat-stroked-button routerLink="/content-studio/stories" data-testid="back-to-stories">
       <mat-icon>arrow_back</mat-icon>
@@ -9,7 +9,13 @@
     </a>
   </app-page-header>
 
-  <mat-progress-bar mode="indeterminate" *ngIf="loading || generating || writing"></mat-progress-bar>
+  <mat-progress-bar mode="indeterminate" *ngIf="loading || raising"></mat-progress-bar>
+
+  <!-- What preparing the video costs, up front. -->
+  <div class="cost-top" *ngIf="!loading" data-testid="cost-top">
+    <app-credit-cost [scenarios]="[3]" prefix="Preparing your video uses"></app-credit-cost>
+    <span class="muted small">Charged to your studio credits when the platform team writes the script; given back if it fails.</span>
+  </div>
 
   <ng-container *ngIf="!loading">
     <!-- No verified facts: nothing true to write from. -->
@@ -184,51 +190,18 @@
           </div>
         </mat-card>
 
-        <!-- 3. variations -->
-        <mat-card class="section-card" data-testid="step-variations">
-          <div class="head-row">
-            <h3><span class="num">3</span> Variations of this problem</h3>
-            <button mat-flat-button color="primary" type="button" (click)="generate()" [disabled]="generating || writing" data-testid="generate">
-              <mat-icon>auto_awesome</mat-icon>
-              {{ variations.length ? 'Regenerate' : 'Generate 6 variations' }}
-            </button>
-          </div>
-          <p class="muted small" *ngIf="!variations.length">
-            Each variation tells the same problem from a different angle. Tick the ones you want. Each ticked variation becomes its own request: the platform team writes its script and makes its video.
-          </p>
+        <!-- The end of the page: hand it to the platform team. -->
+        <div class="raise-bar" data-testid="raise-bar">
           <p class="error small" *ngIf="sectorError" data-testid="sector-error">Confirm the sector first.</p>
           <p class="error small" *ngIf="problemError" data-testid="problem-error">Describe the problem first.</p>
-
-          <div class="variations" *ngIf="variations.length">
-            <button
-              type="button"
-              class="variation"
-              *ngFor="let v of variations; let n = index"
-              [class.on]="picked.has(n)"
-              [attr.aria-pressed]="picked.has(n)"
-              (click)="toggle(n)"
-              [attr.data-variation]="n"
-            >
-              <span class="tag">{{ v.angle }}</span>
-              <strong>{{ v.title }}</strong>
-              <span class="small">{{ v.hook }}</span>
-              <span class="muted small">{{ v.outline }}</span>
+          <div class="raise-actions">
+            <app-credit-cost [scenarios]="[3]" prefix="Preparing it uses" data-testid="raise-cost"></app-credit-cost>
+            <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="raising" data-testid="raise-request">
+              <mat-icon>send</mat-icon>
+              Raise the request
             </button>
           </div>
-
-          <p class="small" *ngIf="variations.length" data-testid="picked-count">{{ picked.size }} selected</p>
-        </mat-card>
-
-        <!-- The end of the page: hand the ticked variations to the platform team. -->
-        <div class="raise-bar" data-testid="raise-bar">
-          <p class="muted small">
-            The platform team writes the script and makes the video for each ticked variation. You will be told here when a video is ready.
-          </p>
-          <p class="error small" *ngIf="pickError" data-testid="pick-error">Generate the variations and tick at least one first.</p>
-          <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="writing || generating" data-testid="raise-request">
-            <mat-icon>send</mat-icon>
-            Raise the request
-          </button>
+          <p class="muted small">The platform team writes the script and makes the video. You will be told here when it is ready.</p>
         </div>
       </ng-container>
     </ng-container>

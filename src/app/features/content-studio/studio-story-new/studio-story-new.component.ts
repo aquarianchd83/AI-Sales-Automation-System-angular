@@ -1,14 +1,9 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subject, forkJoin, from, of } from 'rxjs';
-import { catchError, concatMap, finalize, map, takeUntil, toArray } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { catchError, finalize, takeUntil } from 'rxjs/operators';
 
-import {
-  SceneVideoProviderKind,
-  StoryKnowledge,
-  StoryVariation,
-  StoryVariationRequest,
-} from '../../../core/models/story-studio.model';
+import { SceneVideoProviderKind, StoryKnowledge } from '../../../core/models/story-studio.model';
 import { INDUSTRY_SUGGESTIONS, TenantProfile, UpdateTenantBusinessProfileRequest } from '../../../core/models/tenant-profile.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
@@ -22,9 +17,9 @@ export const OTHER = '__other__';
 export const DEFAULT_CALLS_TO_ACTION = ['Book a free demo', 'Start your free trial', 'Contact us today', 'Get a free quote', 'Visit our website'];
 
 /**
- * New story: pick one of the problems the business solves, confirm the sector it belongs to, answer seven short questions about it, then
- * generate five or six variations of that problem and tick the ones to ask for - one request, one video, per ticked variation. The tenant does not
- * write the script or make the video: raising the request hands it to the platform team, who tell the tenant in-app when the video is ready.
+ * New story: pick one of the problems the business solves, confirm the sector it belongs to, answer seven short questions about it, then raise
+ * the request. The tenant does not write the script or make the video: the request hands it to the platform team, who tell the tenant in-app when
+ * the video is ready. Preparing it uses studio credits (shown on the page), charged when the script is written.
  *
  * The sector is the one the tenant already gave in their business profile. It is shown here to be confirmed; only when the tenant picks a
  * different one and says "update my profile" is the profile written. Otherwise the profile is never touched.
@@ -74,14 +69,10 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
   targetSeconds = 30;
   language = 'Hinglish';
 
-  // 3. the variations
-  variations: StoryVariation[] = [];
-  picked = new Set<number>();
-  generating = false;
-  writing = false;
+  // the request
+  raising = false;
   sectorError = false;
   problemError = false;
-  pickError = false;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -153,7 +144,7 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
     return this.problems[this.selectedProblemIndex];
   }
 
-  /** The problem changed: its summary and its matching solution become the starting answers, and any variations are stale. */
+  /** The problem changed: its summary and its matching solution become the starting answers. */
   pickProblem(index: number): void {
     this.selectedProblemIndex = index;
     const p = this.problems[index];
@@ -161,8 +152,6 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
     this.solutionOptions = this.unique(this.problems.map((x) => x.title));
     this.solutionChoice = p?.title ?? '';
     this.solutionOther = '';
-    this.variations = [];
-    this.picked.clear();
     this.problemError = false;
   }
 
@@ -316,10 +305,11 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
     };
   }
 
-  // ---------- variations ----------
+  // ---------- the request ----------
 
-  generate(): void {
-    if (this.generating || this.writing) {
+  /** Raises the request for this problem: the platform team writes the script and makes the video; then back to the list. */
+  raise(): void {
+    if (this.raising) {
       return;
     }
     this.sectorError = !this.sectorConfirmed;
@@ -328,94 +318,27 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
       return;
     }
     const b = this.brief;
-    const body: StoryVariationRequest = {
-      problem: b.problem,
-      sector: b.sector,
-      audience: b.audience || null,
-      solution: b.solution || null,
-      capabilities: b.capabilities || null,
-      benefits: b.benefits || null,
-      differentiator: b.differentiator || null,
-      callToAction: b.callToAction || null,
-      language: this.language,
-      targetSeconds: this.targetSeconds,
-    };
-    this.generating = true;
+    this.raising = true;
     this.studio
-      .suggestVariations(body)
-      .pipe(finalize(() => (this.generating = false)), takeUntil(this.destroy$))
-      .subscribe((variations) => {
-        this.variations = variations;
-        this.picked.clear();
-        this.pickError = false;
+      .raiseRequest({
+        title: this.selectedProblem?.title ?? b.problem.slice(0, 100),
+        topic: buildStoryTopic(b, this.knowledge?.facts ?? []),
+        language: this.language,
+        style: null,
+        audience: b.audience || null,
+        moral: b.callToAction || null,
+        targetSeconds: this.targetSeconds,
+        videoProvider: SceneVideoProviderKind.Simulator,
+        budgetUsd: null,
+        characterIds: [],
+      })
+      .pipe(finalize(() => (this.raising = false)), takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.notifications.success('Request raised. The platform team will write the script and make the video, and you will be told when it is ready.');
+          void this.router.navigate(['/content-studio/stories']);
+        },
+        error: () => this.notifications.error('The request could not be raised. Nothing was saved. Try again.'),
       });
-  }
-
-  toggle(index: number): void {
-    if (this.picked.has(index)) {
-      this.picked.delete(index);
-    } else {
-      this.picked.add(index);
-    }
-    this.pickError = false;
-  }
-
-  /** One request per ticked variation (each becomes a story the platform team writes the script and video for); then back to the list. */
-  raise(): void {
-    if (this.writing || this.generating) {
-      return;
-    }
-    const chosen = this.variations.filter((_, i) => this.picked.has(i));
-    if (!chosen.length) {
-      this.pickError = true;
-      return;
-    }
-    const facts = this.knowledge?.facts ?? [];
-    const b = this.brief;
-    this.writing = true;
-    from(chosen)
-      .pipe(
-        concatMap((v) =>
-          this.studio
-            .raiseRequest({
-              title: v.title,
-              topic: buildStoryTopic(b, v, facts),
-              language: this.language,
-              style: null,
-              audience: b.audience || null,
-              moral: b.callToAction || null,
-              targetSeconds: this.targetSeconds,
-              videoProvider: SceneVideoProviderKind.Simulator,
-              budgetUsd: null,
-              characterIds: [],
-            })
-            .pipe(
-              map(() => true),
-              catchError(() => of(false)),
-            ),
-        ),
-        toArray(),
-        finalize(() => (this.writing = false)),
-        takeUntil(this.destroy$),
-      )
-      .subscribe((results) => {
-        const raised = results.filter(Boolean).length;
-        if (!raised) {
-          this.notifications.error('No request could be raised. Nothing was saved.');
-          return;
-        }
-        const requests = `${raised} ${raised === 1 ? 'request' : 'requests'}`;
-        const missed = results.length - raised;
-        this.notifications.success(
-          missed
-            ? `${requests} raised, ${missed} could not be. The platform team will write the script and make the video, and you will be told when it is ready.`
-            : `${requests} raised. The platform team will write the script and make the video, and you will be told when it is ready.`,
-        );
-        void this.router.navigate(['/content-studio/stories']);
-      });
-  }
-
-  back(): void {
-    void this.router.navigate(['/content-studio/stories']);
   }
 }

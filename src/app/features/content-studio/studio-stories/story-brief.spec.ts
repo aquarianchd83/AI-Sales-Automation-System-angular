@@ -30,21 +30,20 @@ describe('story brief helpers', () => {
     expect(factText([fact('Benefits', 'Saves time'), fact('Benefits', 'Cuts cost'), fact('About', 'x')], /^benefits?$/i)).toBe('Saves time\nCuts cost');
   });
 
-  it('builds the topic: brief, angle, then every non-problem fact as an instruction', () => {
-    const topic = buildStoryTopic(brief, { angle: 'Myth buster', title: 't', hook: 'Hook.', outline: 'Out.' }, [
+  it('builds the topic: the brief, then every non-problem fact as an instruction', () => {
+    const topic = buildStoryTopic(brief, [
       fact('Problems', 'Problems: 1) A: a'), fact('Offers', '10% discount'), fact('Services', 'Wardrobes', 'Custom'),
     ]);
     expect(topic).toContain('Sector: Healthcare');
     expect(topic).toContain('Business benefits: Fewer missed calls');
     expect(topic).not.toContain('Key capabilities');
-    expect(topic).toContain('Angle: Myth buster. Opening line: Hook. Outline: Out.');
     expect(topic).toContain('- Offers: 10% discount');
     expect(topic).toContain('- Services / Custom: Wardrobes');
     expect(topic).not.toContain('Problems: 1)');
   });
 
   it('never exceeds the 4000 characters the API accepts', () => {
-    const topic = buildStoryTopic(brief, null, [fact('About', 'y'.repeat(5000))]);
+    const topic = buildStoryTopic(brief, [fact('About', 'y'.repeat(5000))]);
     expect(topic.length).toBe(4000);
     expect(topic.endsWith('...')).toBeTrue();
   });

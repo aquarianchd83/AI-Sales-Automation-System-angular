@@ -11,9 +11,7 @@ import {
   SceneVideoProviderKind,
   StoryCharacter,
   StoryIdea,
-  StoryVariation,
   StoryVideoRequest,
-  StoryVariationRequest,
   StoryKnowledge,
   StoryCheck,
   StoryPlatform,
@@ -163,11 +161,6 @@ export class StoryStudioService {
   /** Video ideas drawn from the verified facts by the AI provider chosen for the Story script. */
   suggestIdeas(language: string): Observable<StoryIdea[]> {
     return this.http.post<StoryIdea[]>(`${this.baseUrl}/ideas`, { language });
-  }
-
-  /** Five or six takes on one problem, written from the brief the tenant filled in. */
-  suggestVariations(body: StoryVariationRequest): Observable<StoryVariation[]> {
-    return this.http.post<StoryVariation[]>(`${this.baseUrl}/variations`, body);
   }
 
   /** Raises a request for a video: the story is made from the brief and the platform team takes it from there. Nothing is charged here. */

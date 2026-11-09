@@ -1,4 +1,4 @@
-import { StoryKnowledgeFact, StoryVariation } from '../../../core/models/story-studio.model';
+import { StoryKnowledgeFact } from '../../../core/models/story-studio.model';
 
 /** One problem the business says it solves, as the picker shows it: a short name and the summary beside it. */
 export interface ProblemOption {
@@ -57,10 +57,10 @@ export interface StoryBrief {
 const MAX_TOPIC = 4000;
 
 /**
- * The topic sent to the script writer: the brief, the angle of the chosen variation, then every other verified fact as instructions to follow.
+ * The topic sent to the script writer: the brief, then every other verified fact as instructions to follow.
  * Audience and call to action also travel in their own story fields; they are repeated here so the script sees the whole brief in one place.
  */
-export function buildStoryTopic(brief: StoryBrief, variation: StoryVariation | null, facts: StoryKnowledgeFact[]): string {
+export function buildStoryTopic(brief: StoryBrief, facts: StoryKnowledgeFact[]): string {
   const lines = [
     `Sector: ${brief.sector}`,
     `Problem: ${brief.problem}`,
@@ -71,9 +71,6 @@ export function buildStoryTopic(brief: StoryBrief, variation: StoryVariation | n
     brief.differentiator && `Differentiator: ${brief.differentiator}`,
     brief.callToAction && `Call to action: ${brief.callToAction}`,
   ].filter(Boolean) as string[];
-  if (variation) {
-    lines.push(`Angle: ${variation.angle}. Opening line: ${variation.hook} Outline: ${variation.outline}`);
-  }
   lines.push('Video flow: Problem, Solution, How it works, Business benefit, Call to action.');
 
   const rest = facts

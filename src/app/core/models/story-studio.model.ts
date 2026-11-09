@@ -216,28 +216,6 @@ export interface PlatformStoryVideoRequestDetail extends PlatformStoryVideoReque
   canGenerateVideo: boolean;
 }
 
-/** What the tenant told the studio about one problem; variations are written from it. */
-export interface StoryVariationRequest {
-  problem: string;
-  sector: string;
-  audience: string | null;
-  solution: string | null;
-  capabilities: string | null;
-  benefits: string | null;
-  differentiator: string | null;
-  callToAction: string | null;
-  language: string | null;
-  targetSeconds: number | null;
-}
-
-/** One way to tell the same problem: an angle, a title, the opening line and a short outline. */
-export interface StoryVariation {
-  angle: string;
-  title: string;
-  hook: string;
-  outline: string;
-}
-
 /** A video idea: one real customer problem the business solves, and how. */
 export interface StoryIdea {
   title: string;

@@ -4,8 +4,9 @@ import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
-import { SceneVideoProviderKind, StoryKnowledge, StoryVariation, StoryVideoRequest } from '../../../core/models/story-studio.model';
+import { SceneVideoProviderKind, StoryKnowledge, StoryVideoRequest } from '../../../core/models/story-studio.model';
 import { TenantProfile } from '../../../core/models/tenant-profile.model';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
 import { TenantProfileService } from '../../../core/services/tenant-profile.service';
@@ -47,8 +48,6 @@ const profile = (over: Partial<TenantProfile> = {}): TenantProfile => ({
   ...over,
 });
 
-const variation = (n: number): StoryVariation => ({ angle: `Angle ${n}`, title: `Title ${n}`, hook: `Hook ${n}.`, outline: `Outline ${n}.` });
-
 describe('StudioStoryNewComponent', () => {
   let fixture: ComponentFixture<StudioStoryNewComponent>;
   let comp: StudioStoryNewComponent;
@@ -66,12 +65,11 @@ describe('StudioStoryNewComponent', () => {
   };
 
   function render(k: StoryKnowledge = knowledge(), p: TenantProfile | null = profile()): void {
-    api = jasmine.createSpyObj('StoryStudioService', ['getKnowledge', 'suggestVariations', 'raiseRequest']);
+    api = jasmine.createSpyObj('StoryStudioService', ['getKnowledge', 'raiseRequest']);
     profiles = jasmine.createSpyObj('TenantProfileService', ['getProfile', 'updateBusinessProfile']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
     api.getKnowledge.and.returnValue(of(k));
     profiles.getProfile.and.returnValue(p ? of(p) : throwError(() => new Error('no profile')));
-    api.suggestVariations.and.returnValue(of([1, 2, 3, 4, 5, 6].map(variation)));
     api.raiseRequest.and.callFake((body) => of({ id: 'r-' + body.title, projectId: 'p-' + body.title, title: body.title, status: 'Raised' } as unknown as StoryVideoRequest));
 
     TestBed.configureTestingModule({
@@ -120,34 +118,30 @@ describe('StudioStoryNewComponent', () => {
     expect(text(q('[data-testid="sector-badge"]'))).toBe('From your business profile: Real estate');
   });
 
-  it('changing the problem restarts the answers from that problem and drops the old variations', () => {
+  it('changing the problem restarts the answers from that problem', () => {
     render();
-    comp.sectorAcceptedAsIs = true;
-    comp.generate();
-    expect(comp.variations.length).toBe(6);
 
     comp.pickProblem(1);
     fixture.detectChanges();
 
     expect(comp.businessProblem).toBe('Classify leads as hot, warm and cold.');
     expect(comp.solutionChoice).toBe('AI Lead Qualification');
-    expect(comp.variations).toEqual([]);
   });
 
   describe('the sector', () => {
-    it('must be confirmed before variations are written', () => {
+    it('must be confirmed before the request is raised', () => {
       render();
 
-      click('[data-testid="generate"]');
-      expect(api.suggestVariations).not.toHaveBeenCalled();
+      click('[data-testid="raise-request"]');
+      expect(api.raiseRequest).not.toHaveBeenCalled();
       expect(q('[data-testid="sector-error"]')).not.toBeNull();
 
       click('[data-testid="sector-accept"]');
-      expect(q('[data-testid="sector-error"]')).toBeNull();
       expect(text(q('[data-testid="sector-message"]'))).toContain('Your profile is unchanged');
 
-      click('[data-testid="generate"]');
-      expect(api.suggestVariations).toHaveBeenCalledTimes(1);
+      click('[data-testid="raise-request"]');
+      expect(q('[data-testid="sector-error"]')).toBeNull();
+      expect(api.raiseRequest).toHaveBeenCalledTimes(1);
     });
 
     it('confirming the profile sector never touches the profile', () => {
@@ -231,8 +225,8 @@ describe('StudioStoryNewComponent', () => {
     });
   });
 
-  describe('variations and scripts', () => {
-    function readyToGenerate(): void {
+  describe('raising the request', () => {
+    function readyToRaise(): void {
       render();
       click('[data-testid="sector-accept"]');
       comp.audienceChoice = 'Small business owners';
@@ -241,15 +235,12 @@ describe('StudioStoryNewComponent', () => {
       fixture.detectChanges();
     }
 
-    it('sends the whole brief to the variation writer and shows six to choose from', () => {
-      readyToGenerate();
-      click('[data-testid="generate"]');
+    it('has no variations section: the page ends with the request', () => {
+      render();
 
-      expect(api.suggestVariations).toHaveBeenCalledWith(jasmine.objectContaining({
-        problem: 'Find potential customers.', sector: 'Real estate', audience: 'Small business owners', solution: 'AI Lead Discovery',
-        capabilities: 'Finds leads', callToAction: 'Book a free demo', language: 'Hinglish', targetSeconds: 30,
-      }));
-      expect(root().querySelectorAll('[data-variation]').length).toBe(6);
+      expect(q('[data-testid="step-variations"]')).toBeNull();
+      expect(q('[data-testid="generate"]')).toBeNull();
+      expect(root().textContent).not.toContain('Variations of this problem');
     });
 
     it('counts the sector and the seven answers as the page is filled in', () => {
@@ -273,88 +264,78 @@ describe('StudioStoryNewComponent', () => {
       expect(comp.callToAction).toBe('Join our webinar');
     });
 
-    it('has "Raise the request" at the bottom of the page, after the variations', () => {
+    it('shows what preparing the video costs at the top of the page and beside "Raise the request"', () => {
       render();
 
+      expect(q('[data-testid="cost-top"] app-credit-cost')).not.toBeNull();
+      expect(text(q('[data-testid="cost-top"]'))).toContain('Preparing your video uses');
       const bar = q('[data-testid="raise-bar"]') as HTMLElement;
-      expect(bar).not.toBeNull();
-      expect(text(q('[data-testid="raise-request"]'))).toContain('Raise the request');
-      const variations = q('[data-testid="step-variations"]') as HTMLElement;
-      expect(variations.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(q('[data-testid="write-scripts"]')).toBeNull();
+      expect(bar.querySelector('[data-testid="raise-cost"]')).not.toBeNull();
+      expect(text(bar.querySelector('[data-testid="raise-cost"]'))).toContain('Preparing it uses');
+      expect(text(bar.querySelector('[data-testid="raise-request"]'))).toContain('Raise the request');
     });
 
-    it('raises one request per ticked variation, with the whole brief, then goes back to the list', () => {
-      readyToGenerate();
+    it('states the real price from the credit costs the platform set, in both places', () => {
+      render();
+      TestBed.inject(EntitlementsStore).set({
+        planCode: 'pro', planName: 'Pro', features: ['ContentStudio'], balance: 48,
+        costs: [{ feature: 'ContentStudio', scenario: 3, title: 'Studio generation', unitLabel: 'script', credits: 2, perAction: true }],
+      } as any);
+      fixture.detectChanges();
+
+      expect(text(q('[data-testid="cost-top"] [data-testid="credit-cost"]'))).toContain('Preparing your video uses 2 credits per script');
+      expect(text(q('[data-testid="raise-bar"] [data-testid="credit-cost"]'))).toContain('Preparing it uses 2 credits per script');
+    });
+
+    it('raises one request with the whole brief and goes back to the list', () => {
+      readyToRaise();
       comp.targetSeconds = 20;
       comp.language = 'Hindi';
-      click('[data-testid="generate"]');
-      click('[data-variation="0"]');
-      click('[data-variation="3"]');
-      expect(text(q('[data-testid="picked-count"]'))).toBe('2 selected');
 
       click('[data-testid="raise-request"]');
 
-      expect(api.raiseRequest).toHaveBeenCalledTimes(2);
-      const first = api.raiseRequest.calls.argsFor(0)[0];
-      expect(first.title).toBe('Title 1');
-      expect(first.audience).toBe('Small business owners');
-      expect(first.moral).toBe('Book a free demo');
-      expect(first.targetSeconds).toBe(20);
-      expect(first.language).toBe('Hindi');
-      expect(first.videoProvider).toBe(SceneVideoProviderKind.Simulator);
-      expect(first.characterIds).toEqual([]);
-      expect(first.topic).toContain('Sector: Real estate');
-      expect(first.topic).toContain('Angle: Angle 1. Opening line: Hook 1.');
-      expect(first.topic).toContain('Business facts to follow as instructions');
-      expect(first.topic).toContain('Offers: Current offer: 10% discount');
-      expect(first.topic).not.toContain('Problems: Problems our product solves');
-      expect(api.raiseRequest.calls.argsFor(1)[0].title).toBe('Title 4');
-      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('2 requests raised.'));
+      expect(api.raiseRequest).toHaveBeenCalledTimes(1);
+      const body = api.raiseRequest.calls.mostRecent().args[0];
+      expect(body.title).toBe('AI Lead Discovery');
+      expect(body.audience).toBe('Small business owners');
+      expect(body.moral).toBe('Book a free demo');
+      expect(body.targetSeconds).toBe(20);
+      expect(body.language).toBe('Hindi');
+      expect(body.videoProvider).toBe(SceneVideoProviderKind.Simulator);
+      expect(body.characterIds).toEqual([]);
+      expect(body.topic).toContain('Sector: Real estate');
+      expect(body.topic).toContain('Problem: Find potential customers.');
+      expect(body.topic).toContain('Solution: AI Lead Discovery');
+      expect(body.topic).toContain('Key capabilities: Finds leads');
+      expect(body.topic).toContain('Business facts to follow as instructions');
+      expect(body.topic).toContain('Offers: Current offer: 10% discount');
+      expect(body.topic).not.toContain('Problems: Problems our product solves');
+      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('Request raised.'));
       expect(navigate).toHaveBeenCalledWith(['/content-studio/stories']);
     });
 
-    it('asks for at least one tick and raises nothing without it', () => {
-      readyToGenerate();
-      click('[data-testid="generate"]');
-      click('[data-testid="raise-request"]');
+    it('asks to describe the problem when it is empty, and raises nothing', () => {
+      readyToRaise();
+      comp.businessProblem = '  ';
+      comp.problems = [];
+      fixture.detectChanges();
 
-      expect(q('[data-testid="pick-error"]')).not.toBeNull();
+      comp.raise();
+      fixture.detectChanges();
+
+      expect(comp.problemError).toBeTrue();
       expect(api.raiseRequest).not.toHaveBeenCalled();
     });
 
-    it('asks for the variations first when none were generated', () => {
-      readyToGenerate();
-      click('[data-testid="raise-request"]');
-
-      expect(q('[data-testid="pick-error"]')).not.toBeNull();
-      expect(api.raiseRequest).not.toHaveBeenCalled();
-    });
-
-    it('says how many could not be raised, and still goes back when some were', () => {
-      readyToGenerate();
-      api.raiseRequest.and.callFake((body) =>
-        body.title === 'Title 2' ? throwError(() => new Error('down')) : of({ id: 'r', projectId: 'p', title: body.title, status: 'Raised' } as unknown as StoryVideoRequest));
-      click('[data-testid="generate"]');
-      click('[data-variation="0"]');
-      click('[data-variation="1"]');
-
-      click('[data-testid="raise-request"]');
-
-      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('1 request raised, 1 could not be.'));
-      expect(navigate).toHaveBeenCalledWith(['/content-studio/stories']);
-    });
-
-    it('stays on the page when no request could be raised', () => {
-      readyToGenerate();
+    it('stays on the page, and says so, when the request could not be raised', () => {
+      readyToRaise();
       api.raiseRequest.and.returnValue(throwError(() => new Error('down')));
-      click('[data-testid="generate"]');
-      click('[data-variation="0"]');
 
       click('[data-testid="raise-request"]');
 
       expect(notify.error).toHaveBeenCalled();
       expect(navigate).not.toHaveBeenCalled();
+      expect(comp.raising).toBeFalse();
     });
   });
 });

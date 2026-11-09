@@ -159,6 +159,22 @@ h3 {
   }
 }
 
+.cost-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+
+.raise-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .raise-bar {
   display: flex;
   flex-direction: column;
