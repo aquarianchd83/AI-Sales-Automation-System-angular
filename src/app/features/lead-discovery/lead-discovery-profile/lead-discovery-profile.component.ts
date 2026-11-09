@@ -246,6 +246,16 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       options.push({ id: savedId, name: this.saved!.sourceCampaignName ?? '(deleted campaign)', status: this.saved!.sourceCampaignStatus });
     }
     this.sourceCampaignOptions = options;
+
+    // With nothing to enroll customers into the section shows only its explanation, so the toggle can't be left on (it could never be saved valid).
+    if (!options.length && this.form.controls.autoCampaignEnabled.value) {
+      this.form.controls.autoCampaignEnabled.setValue(false);
+    }
+  }
+
+  /** True once the campaigns have loaded and there is not one to pick: the Auto campaign section then explains itself instead of showing controls. */
+  get noCampaignsYet(): boolean {
+    return !this.campaignsLoading && !this.campaignsLoadFailed && this.sourceCampaignOptions.length === 0;
   }
 
   /** True once the selected source campaign is known not to be eligible (Stopped, or no longer

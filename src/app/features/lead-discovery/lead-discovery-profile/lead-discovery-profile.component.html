@@ -364,7 +364,13 @@
           </div>
         </div>
 
-        <div class="switch-list">
+        <div class="info-note" *ngIf="noCampaignsYet" role="note">
+          <p><strong>What it does:</strong> every new customer found by this job automatically gets your campaign's messages. You don't add them yourself.</p>
+          <p><strong>Example:</strong> you have a "Welcome offer" campaign. The job finds 20 eye clinics. All 20 receive the offer on their own.</p>
+          <p><strong>To turn it on:</strong> you have no campaign yet. Create one under Campaigns, then come back here.</p>
+        </div>
+
+        <div class="switch-list" *ngIf="!noCampaignsYet">
           <div class="switch-row">
             <div>
               <strong>Auto campaign enabled</strong>
@@ -374,7 +380,7 @@
           </div>
         </div>
 
-        <ng-container *ngIf="form.controls.autoCampaignEnabled.value">
+        <ng-container *ngIf="!noCampaignsYet && form.controls.autoCampaignEnabled.value">
           <mat-form-field appearance="outline" class="full-width list-gap">
             <mat-label>Source campaign</mat-label>
             <mat-select formControlName="sourceCampaignId" [disabled]="campaignsLoading">

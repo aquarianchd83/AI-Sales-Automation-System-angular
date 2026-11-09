@@ -124,6 +124,18 @@ mat-icon[matPrefix] {
   color: #b3261e;
 }
 
+/* The section's whole content while there is no campaign to pick: what it is, why, and how to turn it on. */
+.info-note {
+  padding: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.75);
+
+  p {
+    margin: 0 0 10px;
+  }
+}
+
 /* Not a dismissible hint - stays visible the whole time the toggle above it is on, so its background
    gives it more weight than the plain-text --error variant. */
 .field-message--warn {

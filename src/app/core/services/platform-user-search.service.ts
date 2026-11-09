@@ -21,4 +21,14 @@ export class PlatformUserSearchService {
       params: { search: term.trim() },
     });
   }
+
+  /** Support reset: sets the user's password and signs them out everywhere. Audited by the API. */
+  resetPassword(userId: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/platform/users/${userId}/reset-password`, { newPassword });
+  }
+
+  /** Every user of one organization - the Tenants grid's Users count opens this. */
+  listForTenant(tenantId: string): Observable<PlatformUserSearchResult[]> {
+    return this.http.get<PlatformUserSearchResult[]>(`${environment.apiBaseUrl}/platform/tenants/${tenantId}/users`);
+  }
 }

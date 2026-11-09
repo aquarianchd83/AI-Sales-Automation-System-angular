@@ -48,6 +48,7 @@ import { PlatformCreditRedeemDialogComponent } from './platform-credit-payers/pl
 import { PlatformCreditWalletDialogComponent } from './platform-credit-payers/platform-credit-wallet-dialog.component';
 import { PlatformUsageComponent } from './platform-usage/platform-usage.component';
 import { PlatformUserSearchComponent } from './platform-user-search/platform-user-search.component';
+import { PlatformUserPasswordResetDialogComponent } from './platform-user-password-reset-dialog/platform-user-password-reset-dialog.component';
 import { PlatformWhatsAppConnectionsComponent } from './platform-whatsapp-connections/platform-whatsapp-connections.component';
 import { PlatformMediaComponent } from './platform-media/platform-media.component';
 import { PlatformMessageTemplatesComponent } from './platform-message-templates/platform-message-templates.component';
@@ -121,6 +122,7 @@ const routes: Routes = [
     PlatformTenantFormDialogComponent,
     PlatformTenantJobsDialogComponent,
     PlatformTenantPurgeDialogComponent,
+    PlatformUserPasswordResetDialogComponent,
     PlatformTenantWhatsAppConfigDialogComponent,
     PlatformTenantConfigOverridesDialogComponent,
     PlatformStudioQuestionnairesComponent,

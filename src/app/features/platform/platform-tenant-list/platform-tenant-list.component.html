@@ -64,7 +64,10 @@
 
         <ng-container matColumnDef="userCount">
           <th mat-header-cell *matHeaderCellDef>Users</th>
-          <td mat-cell *matCellDef="let tenant">{{ tenant.userCount }}</td>
+          <td mat-cell *matCellDef="let tenant">
+            <a [routerLink]="['/platform/users']" [queryParams]="{ tenantId: tenant.id, tenantName: tenant.name }"
+               [attr.aria-label]="'View users of ' + tenant.name">{{ tenant.userCount }}</a>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="createdAt">
