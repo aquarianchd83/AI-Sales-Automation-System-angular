@@ -161,7 +161,7 @@ describe('StudioStoriesComponent', () => {
   const q = (selector: string) => root().querySelector(selector) as HTMLElement | null;
 
   const request = (over: Partial<StoryVideoRequest> = {}): StoryVideoRequest => ({
-    id: 'q1', projectId: 'p1', title: 'Guru Ji', status: 'Raised', raisedAtUtc: '2026-11-09T09:00:00Z', scriptGeneratedAtUtc: null, videoUrl: null, videoReadyAtUtc: null, rejectedReason: null, ...over,
+    id: 'q1', projectId: 'p1', title: 'Guru Ji', status: 'Raised', raisedAtUtc: '2026-11-09T09:00:00Z', scriptGeneratedAtUtc: null, videoUrl: null, videoReadyAtUtc: null, rejectedReason: null, prepaidCredits: null, creditsRefunded: null, ...over,
   });
 
   it('shows where a requested story stands instead of its own status, and no video link until there is one', () => {
@@ -188,14 +188,37 @@ describe('StudioStoriesComponent', () => {
     expect(text(q('[data-testid="requested-note"]'))).toContain('platform team');
   });
 
-  it('shows a declined request as Declined, with the reason and the credits returned', () => {
+  it('shows the credits prepaid for a requested video as its charge, and says when they were refunded', () => {
+    render([project()], [request({ status: 'Raised', prepaidCredits: 1500, creditsRefunded: 0 })]);
+    expect(text(q('[data-charge="p1"]'))).toBe('1,500 credits');
+  });
+
+  it('says when the credits prepaid for a video were refunded', () => {
+    render([project()], [request({ status: 'Rejected', prepaidCredits: 1500, creditsRefunded: 1500, rejectedReason: 'Could not be made.' })]);
+
+    expect(text(q('[data-charge="p1"]'))).toBe('1,500 credits (refunded)');
+  });
+
+  it('shows no refund note until there is a request', () => {
+    render([project()], []);
+
+    expect(q('[data-testid="refund-note"]')).toBeNull();
+  });
+
+  it('tells the tenant that prepaid credits are refunded when the video is not created, once there is a request', () => {
+    render([project()], [request({ status: 'Raised', prepaidCredits: 1500, creditsRefunded: 0 })]);
+
+    expect(text(q('[data-testid="refund-note"]'))).toContain('refunded in full if the video is not created');
+  });
+
+  it('shows a refunded request as Refunded, with the reason and the credits refunded', () => {
     render([project()], [request({ status: 'Rejected', rejectedReason: 'The video engine could not make this one.' })]);
-    expect(text(q('[data-project="p1"] [data-status]'))).toBe('Declined');
+    expect(text(q('[data-project="p1"] [data-status]'))).toBe('Refunded');
 
     click('[data-project="p1"]');
 
     expect(text(q('[data-testid="declined-note"]'))).toContain('The video engine could not make this one.');
-    expect(text(q('[data-testid="declined-note"]'))).toContain('returned');
+    expect(text(q('[data-testid="declined-note"]'))).toContain('refunded');
     expect(q('[data-testid="requested-note"]')).toBeNull();
     expect(q('[data-testid="generate"]')).toBeNull();
   });

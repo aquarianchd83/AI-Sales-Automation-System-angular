@@ -409,7 +409,7 @@ export enum TenantNotificationKind {
   NextStepBooked = 22,
   /** The platform team attached the video you asked for in the Story studio. */
   StoryVideoReady = 23,
-  /** The platform team could not make the video you asked for: the credits were returned, and the notice says why. */
+  /** The platform team could not make the video you asked for: the credits were refunded, and the notice says why. */
   StoryVideoRejected = 24,
 }
 
@@ -474,7 +474,7 @@ export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = 
   [TenantNotificationKind.ConsentPageSetupRequired]: 'WhatsApp Consent Page setup required',
   [TenantNotificationKind.NextStepBooked]: 'Customer booked a demo or visit',
   [TenantNotificationKind.StoryVideoReady]: 'Your requested video is ready',
-  [TenantNotificationKind.StoryVideoRejected]: 'Your video request was declined',
+  [TenantNotificationKind.StoryVideoRejected]: 'Your credits were refunded for a video',
 };
 
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */

@@ -174,7 +174,7 @@ export const STORY_VIDEO_REQUEST_STATUS_LABELS: Record<StoryVideoRequestStatus, 
   Raised: 'Requested',
   ScriptReady: 'Script written',
   VideoReady: 'Video ready',
-  Rejected: 'Declined',
+  Rejected: 'Refunded',
 };
 
 /** One of the tenant's own requests (StoryVideoRequestDto). */
@@ -187,8 +187,11 @@ export interface StoryVideoRequest {
   scriptGeneratedAtUtc: string | null;
   videoUrl: string | null;
   videoReadyAtUtc: string | null;
-  /** Why the platform team could not make the video (the credits were returned). */
+  /** Why the platform team could not make the video (the credits were refunded). */
   rejectedReason: string | null;
+  /** The credits taken when the request was raised, and how many of them went back. */
+  prepaidCredits: number | null;
+  creditsRefunded: number | null;
 }
 
 /** One request in the platform admin's list, across every tenant. */
@@ -204,6 +207,9 @@ export interface PlatformStoryVideoRequestRow {
   raisedAtUtc: string;
   scriptGeneratedAtUtc: string | null;
   videoReadyAtUtc: string | null;
+  /** The credits the tenant prepaid, and how many of them were refunded. */
+  prepaidCredits: number | null;
+  creditsRefunded: number | null;
 }
 
 /** A request opened by the platform admin: the brief, the script so far, and the video if there is one. */
@@ -218,8 +224,6 @@ export interface PlatformStoryVideoRequestDetail extends PlatformStoryVideoReque
   /** False until a real video engine is switched on: the admin can only upload for now. */
   canGenerateVideo: boolean;
   rejectedReason: string | null;
-  /** What the tenant paid for this video, in credits, after any refund. */
-  creditsCharged: number | null;
 }
 
 /** A video idea: one real customer problem the business solves, and how. */

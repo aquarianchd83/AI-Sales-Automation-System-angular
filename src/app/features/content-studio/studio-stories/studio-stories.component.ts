@@ -214,8 +214,17 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     return request ? STORY_VIDEO_REQUEST_STATUS_LABELS[request.status] : this.statusLabels[p.status];
   }
 
-  /** "2 credits", or "0" for a story that has used none. */
+  get hasRequests(): boolean {
+    return Object.keys(this.requests).length > 0;
+  }
+
+  /** What a story cost: for a requested video the credits prepaid (and "refunded" when they went back); otherwise "2 credits", or "0" for none. */
   chargeLabel(id: string): string {
+    const prepaid = this.requests[id]?.prepaidCredits;
+    if (prepaid != null) {
+      const refunded = (this.requests[id]?.creditsRefunded ?? 0) > 0;
+      return `${formatUnits(prepaid)} ${prepaid === 1 ? 'credit' : 'credits'}${refunded ? ' (refunded)' : ''}`;
+    }
     const v = this.charges[id];
     return v === undefined ? '' : v === 0 ? '0' : `${formatUnits(v)} ${v === 1 ? 'credit' : 'credits'}`;
   }

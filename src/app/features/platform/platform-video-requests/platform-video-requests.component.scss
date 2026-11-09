@@ -139,3 +139,22 @@
   background: rgba(198, 40, 40, 0.08);
   color: #b71c1c;
 }
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.refunded-tag {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.actions-cell {
+  text-align: right;
+  white-space: nowrap;
+}

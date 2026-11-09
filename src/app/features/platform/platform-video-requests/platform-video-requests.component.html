@@ -19,7 +19,7 @@
 
     <p class="muted note">
       Videos tenants have asked for in the Story studio. The tenant paid the video price when raising the request. Open one to write its script and upload the
-      finished video, or decline it (the credits go back). The tenant is told in-app either way. Waiting requests come first, oldest on top.
+      finished video, or refund it when the video cannot be made. The tenant is told in-app either way. Waiting requests come first, oldest on top.
     </p>
 
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -58,9 +58,37 @@
           </td>
         </ng-container>
 
+        <ng-container matColumnDef="prepaid">
+          <th mat-header-cell *matHeaderCellDef class="num">Prepaid credits</th>
+          <td mat-cell *matCellDef="let row" class="num" data-testid="prepaid">
+            <ng-container *ngIf="row.prepaidCredits !== null; else noCharge">
+              {{ row.prepaidCredits | number: '1.0-2' }}
+              <span class="refunded-tag" *ngIf="row.creditsRefunded > 0" data-testid="refunded-tag">refunded</span>
+            </ng-container>
+            <ng-template #noCharge><span class="muted">-</span></ng-template>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="length">
           <th mat-header-cell *matHeaderCellDef>Language and length</th>
           <td mat-cell *matCellDef="let row">{{ row.language }} · {{ row.targetSeconds }}s</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let row" class="actions-cell">
+            <button
+              mat-stroked-button
+              color="warn"
+              type="button"
+              *ngIf="canRefund(row)"
+              (click)="refund(row, $event)"
+              [attr.data-refund]="row.id"
+              title="Refund the prepaid credits: the video cannot be made"
+            >
+              Refund
+            </button>
+          </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
@@ -105,12 +133,12 @@
       <button mat-icon-button type="button" (click)="close()" aria-label="Close"><mat-icon>close</mat-icon></button>
     </div>
 
-    <p class="small" *ngIf="r.creditsCharged !== null" data-testid="paid">
-      <span class="muted">The tenant paid:</span> {{ r.creditsCharged | number: '1.0-2' }} credits{{ r.status === 'Rejected' ? ' (returned)' : '' }}
+    <p class="small" *ngIf="r.prepaidCredits !== null" data-testid="paid">
+      <span class="muted">Prepaid by the tenant:</span> {{ r.prepaidCredits | number: '1.0-2' }} credits{{ r.creditsRefunded && r.creditsRefunded > 0 ? ' (refunded)' : '' }}
     </p>
     <div class="declined" *ngIf="r.status === 'Rejected'" data-testid="declined">
       <mat-icon>block</mat-icon>
-      <span>Declined: {{ r.rejectedReason }}</span>
+      <span>Refunded: {{ r.rejectedReason }}</span>
     </div>
 
     <h4>What the tenant asked for</h4>
@@ -180,11 +208,11 @@
     </ng-container>
 
     <ng-container *ngIf="r.status === 'Raised' || r.status === 'ScriptReady'">
-      <h4>Cannot make this video?</h4>
+      <h4>Cannot make this video? Refund it</h4>
       <div class="actions" *ngIf="!decliningOpen">
         <button mat-stroked-button color="warn" type="button" (click)="openDecline()" data-testid="decline">
           <mat-icon>block</mat-icon>
-          Decline and return the credits
+          Refund the prepaid credits
         </button>
       </div>
       <div class="confirm" *ngIf="decliningOpen" data-testid="decline-form">
@@ -195,7 +223,7 @@
         <p class="error small" *ngIf="declineError" data-testid="decline-error">{{ declineError }}</p>
         <div class="actions">
           <button mat-flat-button color="warn" type="button" (click)="decline()" [disabled]="declining" data-testid="decline-confirm">
-            Decline{{ r.creditsCharged !== null ? ' and return ' + (r.creditsCharged | number: '1.0-2') + ' credits' : ' and return the credits' }}
+            Refund{{ r.prepaidCredits !== null ? ' ' + (r.prepaidCredits | number: '1.0-2') + ' credits' : ' the credits' }}
           </button>
           <button mat-button type="button" (click)="cancelDecline()" [disabled]="declining">Cancel</button>
         </div>

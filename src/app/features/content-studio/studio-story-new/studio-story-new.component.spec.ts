@@ -275,6 +275,15 @@ describe('StudioStoryNewComponent', () => {
       expect(text(bar.querySelector('[data-testid="raise-request"]'))).toContain('Raise the request');
     });
 
+    it('promises the tenant a refund if the video is not created, at the top and by the button', () => {
+      render();
+
+      expect(text(q('[data-testid="cost-top"]'))).toContain('refunded in full');
+      const promise = q('[data-testid="raise-bar"] [data-testid="refund-promise"]') as HTMLElement;
+      expect(promise).not.toBeNull();
+      expect(text(promise)).toContain('If the video is not created, the credits you prepay are refunded in full.');
+    });
+
     it('states the video render price the platform set (not the per-step generation price), in both places', () => {
       render();
       TestBed.inject(EntitlementsStore).set({

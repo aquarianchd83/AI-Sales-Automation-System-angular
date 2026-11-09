@@ -14,7 +14,7 @@
   <!-- What the video costs, up front: the platform's price for a video (Credit costs: Content Studio video render). -->
   <div class="cost-top" *ngIf="!loading" data-testid="cost-top">
     <app-credit-cost [scenarios]="[4]" prefix="This video costs"></app-credit-cost>
-    <span class="muted small">Taken from your credits when you raise the request; returned if the platform team cannot make the video.</span>
+    <span class="muted small">Prepaid from your credits when you raise the request. If the video is not created, the credits are refunded in full.</span>
   </div>
 
   <ng-container *ngIf="!loading">
@@ -221,6 +221,10 @@
               Raise the request
             </button>
           </div>
+          <p class="promise small" data-testid="refund-promise">
+            <mat-icon>verified_user</mat-icon>
+            <span>If the video is not created, the credits you prepay are refunded in full.</span>
+          </p>
           <p class="muted small">The platform team writes the script and makes the video. You will be told here when it is ready.</p>
         </div>
       </ng-container>

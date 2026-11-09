@@ -11,7 +11,7 @@ import { PlatformVideoRequestsComponent } from './platform-video-requests.compon
 
 const row = (over: Partial<PlatformStoryVideoRequestRow> = {}): PlatformStoryVideoRequestRow => ({
   id: 'r1', tenantId: 't1', tenantName: 'Bansal Corp', projectId: 'p1', title: 'Question hook', language: 'Hinglish', targetSeconds: 30,
-  status: 'Raised', raisedAtUtc: '2026-11-09T09:00:00Z', scriptGeneratedAtUtc: null, videoReadyAtUtc: null, ...over,
+  status: 'Raised', raisedAtUtc: '2026-11-09T09:00:00Z', scriptGeneratedAtUtc: null, videoReadyAtUtc: null, prepaidCredits: 1500, creditsRefunded: 0, ...over,
 });
 
 const script = (simulated = false): StoryScriptVersion =>
@@ -25,7 +25,7 @@ const script = (simulated = false): StoryScriptVersion =>
 
 const detail = (over: Partial<PlatformStoryVideoRequestDetail> = {}): PlatformStoryVideoRequestDetail => ({
   ...row(), topic: 'Sector: Real estate\nProblem: Finding customers is slow', audience: 'Small business owners', callToAction: 'Book a free demo',
-  script: null, videoUrl: null, videoFileName: null, videoSource: null, canGenerateVideo: false, rejectedReason: null, creditsCharged: 1500, ...over,
+  script: null, videoUrl: null, videoFileName: null, videoSource: null, canGenerateVideo: false, rejectedReason: null, ...over,
 });
 
 describe('PlatformVideoRequestsComponent', () => {
@@ -136,11 +136,51 @@ describe('PlatformVideoRequestsComponent', () => {
     });
   });
 
-  it('shows what the tenant paid for the video', () => {
+  it('shows the prepaid credits of every request in the grid, and marks the refunded ones', () => {
+    render([row(), row({ id: 'r2', title: 'Myth buster', status: 'Rejected', creditsRefunded: 1500 }), row({ id: 'r3', title: 'Old', prepaidCredits: null })]);
+
+    const cells = Array.from(root().querySelectorAll('[data-testid="prepaid"]')).map((c) => text(c));
+    expect(cells[0]).toBe('1,500');
+    expect(cells[1]).toBe('1,500 refunded');
+    expect(cells[2]).toBe('-');
+    expect(text(root().querySelector('th.num'))).toBe('Prepaid credits');
+  });
+
+  describe('the Refund button in the grid', () => {
+    it('is offered on a request that is waiting, and not on a delivered or already refunded one', () => {
+      render([row(), row({ id: 'r2', status: 'ScriptReady' }), row({ id: 'r3', status: 'VideoReady' }), row({ id: 'r4', status: 'Rejected' })]);
+
+      expect(q('[data-refund="r1"]')).not.toBeNull();
+      expect(q('[data-refund="r2"]')).not.toBeNull();
+      expect(q('[data-refund="r3"]')).toBeNull();
+      expect(q('[data-refund="r4"]')).toBeNull();
+    });
+
+    it('opens that request with the refund form ready, and refunds nothing until a reason is given', () => {
+      render();
+      click('[data-refund="r1"]');
+
+      expect(api.get).toHaveBeenCalledWith('r1');
+      expect(q('[data-testid="decline-form"]')).not.toBeNull();
+      expect(api.reject).not.toHaveBeenCalled();
+      expect(text(q('[data-testid="decline-confirm"]'))).toBe('Refund 1,500 credits');
+    });
+
+    it('does not open the form when the request cannot be refunded any more', () => {
+      render();
+      api.get.and.returnValue(of(detail({ status: 'VideoReady', videoUrl: 'https://bucket.example/v.mp4' })));
+      click('[data-request="r2"]');
+
+      expect(q('[data-testid="decline-form"]')).toBeNull();
+      expect(q('[data-testid="decline"]')).toBeNull();
+    });
+  });
+
+  it('shows what the tenant prepaid for the video', () => {
     render();
     click('[data-request="r1"]');
 
-    expect(text(q('[data-testid="paid"]'))).toContain('The tenant paid: 1,500 credits');
+    expect(text(q('[data-testid="paid"]'))).toContain('Prepaid by the tenant: 1,500 credits');
   });
 
   describe('declining', () => {
@@ -149,7 +189,7 @@ describe('PlatformVideoRequestsComponent', () => {
       click('[data-request="r1"]');
       click('[data-testid="decline"]');
 
-      expect(text(q('[data-testid="decline-confirm"]'))).toContain('Decline and return 1,500 credits');
+      expect(text(q('[data-testid="decline-confirm"]'))).toContain('Refund 1,500 credits');
       click('[data-testid="decline-confirm"]');
       expect(text(q('[data-testid="decline-error"]'))).toContain('Say why');
       expect(api.reject).not.toHaveBeenCalled();
@@ -158,7 +198,7 @@ describe('PlatformVideoRequestsComponent', () => {
     it('declines with the reason, shows it, and takes away the script and video actions', () => {
       render();
       click('[data-request="r1"]');
-      api.reject.and.returnValue(of(detail({ status: 'Rejected', rejectedReason: 'The video engine could not make this one.' })));
+      api.reject.and.returnValue(of(detail({ status: 'Rejected', rejectedReason: 'The video engine could not make this one.', creditsRefunded: 1500 })));
       click('[data-testid="decline"]');
       const box = q('[data-testid="decline-reason"]') as HTMLTextAreaElement;
       box.value = '  The video engine could not make this one.  ';
@@ -168,12 +208,12 @@ describe('PlatformVideoRequestsComponent', () => {
       click('[data-testid="decline-confirm"]');
 
       expect(api.reject).toHaveBeenCalledOnceWith('r1', 'The video engine could not make this one.');
-      expect(text(q('[data-testid="declined"]'))).toContain('The video engine could not make this one.');
-      expect(text(q('[data-testid="paid"]'))).toContain('(returned)');
+      expect(text(q('[data-testid="declined"]'))).toContain('Refunded: The video engine could not make this one.');
+      expect(text(q('[data-testid="paid"]'))).toContain('(refunded)');
       expect(q('[data-testid="generate-script"]')).toBeNull();
       expect(q('[data-testid="video-file"]')).toBeNull();
       expect(q('[data-testid="decline"]')).toBeNull();
-      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('credits went back'));
+      expect(notify.success).toHaveBeenCalledWith('Credits refunded. The tenant has been told.');
     });
 
     it('cannot decline a request whose video is already attached', () => {

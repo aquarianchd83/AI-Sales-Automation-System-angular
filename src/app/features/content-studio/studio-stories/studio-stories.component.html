@@ -52,6 +52,10 @@
           </tr>
         </tbody>
       </table>
+      <p class="refund-note muted small" *ngIf="hasRequests" data-testid="refund-note">
+        <mat-icon>verified_user</mat-icon>
+        Credits prepaid for a video are refunded in full if the video is not created.
+      </p>
     </mat-card>
 
     <section class="panel">
@@ -195,7 +199,7 @@
 
           <p class="muted" *ngIf="!script && !requestFor(p.id)">No script yet. It is written from your verified facts.</p>
           <p class="muted" *ngIf="requestFor(p.id)?.status === 'Rejected'" data-testid="declined-note">
-            Declined: {{ requestFor(p.id)?.rejectedReason }} The credits for this video were returned to you.
+            Refunded: {{ requestFor(p.id)?.rejectedReason }} The credits you prepaid for this video were refunded.
           </p>
           <p class="muted" *ngIf="!script && requestFor(p.id) && requestFor(p.id)?.status !== 'Rejected'" data-testid="requested-note">
             Your request is with the platform team. They write the script and make the video, and you will be told when it is ready.

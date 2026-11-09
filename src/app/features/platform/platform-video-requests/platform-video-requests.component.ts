@@ -28,7 +28,7 @@ export type VideoChoice = 'upload' | 'generate';
   styleUrls: ['./platform-video-requests.component.scss'],
 })
 export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
-  readonly displayedColumns = ['raised', 'tenant', 'story', 'status', 'length'];
+  readonly displayedColumns = ['raised', 'tenant', 'story', 'status', 'prepaid', 'length', 'actions'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusLabels = STORY_VIDEO_REQUEST_STATUS_LABELS;
   readonly statuses: StoryVideoRequestStatus[] = ['Raised', 'ScriptReady', 'VideoReady'];
@@ -101,7 +101,18 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
     return this.statusLabels[status] ?? status;
   }
 
-  open(row: PlatformStoryVideoRequestRow): void {
+  /** A request that is still waiting and was not refunded yet: the admin can refund it when the video cannot be made. */
+  canRefund(row: { status: StoryVideoRequestStatus }): boolean {
+    return row.status === 'Raised' || row.status === 'ScriptReady';
+  }
+
+  /** The Refund button of a row: opens the request with the refund form ready (the reason is asked for before anything is returned). */
+  refund(row: PlatformStoryVideoRequestRow, event: Event): void {
+    event.stopPropagation();
+    this.open(row, true);
+  }
+
+  open(row: PlatformStoryVideoRequestRow, startRefund = false): void {
     this.loadingDetail = true;
     this.confirmingScript = false;
     this.decliningOpen = false;
@@ -112,7 +123,10 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
     this.requests
       .get(row.id)
       .pipe(finalize(() => (this.loadingDetail = false)), takeUntil(this.destroy$))
-      .subscribe((detail) => (this.selected = detail));
+      .subscribe((detail) => {
+        this.selected = detail;
+        this.decliningOpen = startRefund && this.canRefund(detail);
+      });
   }
 
   close(): void {
@@ -159,7 +173,7 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
     this.declineError = '';
   }
 
-  /** The video cannot be made: gives the tenant their credits back and says why. */
+  /** The video cannot be made: refunds the tenant's prepaid credits and says why. */
   decline(): void {
     const current = this.selected;
     if (!current || this.declining) {
@@ -178,7 +192,7 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
         this.selected = detail;
         this.decliningOpen = false;
         this.declineReason = '';
-        this.notifications.success('Request declined. The credits went back to the tenant, who has been told.');
+        this.notifications.success('Credits refunded. The tenant has been told.');
         this.reload$.next();
       });
   }
