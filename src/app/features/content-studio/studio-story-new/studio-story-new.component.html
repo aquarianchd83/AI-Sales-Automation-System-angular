@@ -50,17 +50,24 @@
 
       <ng-container *ngIf="problems.length">
         <!-- 2. about this problem -->
-        <mat-card class="section-card" data-testid="step-details">
-          <h3><span class="num">2</span> Tell us about this problem</h3>
+        <mat-card class="section-card form-card" data-testid="step-details">
+          <header class="card-head">
+            <h3><span class="num">2</span> Tell us about this problem</h3>
+            <div class="meter">
+              <span class="small" data-testid="filled-count">{{ filled }} of 8 filled</span>
+              <mat-progress-bar mode="determinate" [value]="filledPercent"></mat-progress-bar>
+            </div>
+          </header>
 
-          <div class="sector" [class.ok]="sectorConfirmed" data-testid="sector">
+          <!-- Sector: the one answer that is confirmed rather than typed. -->
+          <section class="sector" [class.ok]="sectorConfirmed" data-testid="sector">
             <div class="sector-head">
-              <strong>Sector this problem belongs to</strong>
+              <span class="block-title">Sector</span>
               <span class="badge" data-testid="sector-badge">{{ sectorBadge }}</span>
             </div>
             <div class="sector-pick">
-              <mat-form-field appearance="outline" class="grow">
-                <mat-label>Sector</mat-label>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+                <mat-label>Sector this problem belongs to</mat-label>
                 <mat-select [(ngModel)]="sectorChoice" (selectionChange)="sectorChanged()" data-testid="sector-select">
                   <mat-option *ngFor="let s of sectorOptions" [value]="s">{{ s }}</mat-option>
                   <mat-option [value]="OTHER">Other (type your own)</mat-option>
@@ -77,7 +84,7 @@
                 Looks right
               </button>
             </div>
-            <mat-form-field appearance="outline" class="wide" *ngIf="sectorChoice === OTHER">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide" *ngIf="sectorChoice === OTHER">
               <mat-label>Describe the sector</mat-label>
               <input matInput [(ngModel)]="sectorOther" (ngModelChange)="sectorChanged()" data-testid="sector-other" />
             </mat-form-field>
@@ -93,101 +100,114 @@
                 </button>
               </div>
             </div>
-            <p class="small" [class.success]="sectorConfirmed" data-testid="sector-message">{{ sectorMessage }}</p>
-          </div>
+            <p class="sector-note" [class.success]="sectorConfirmed" data-testid="sector-message">{{ sectorMessage }}</p>
+          </section>
 
-          <p class="muted small">Filled in from your business facts where we can. Fix anything that is off. Pick the closest answer, or choose Other to type your own.</p>
+          <p class="lead">Filled in from your business facts where we can. Fix anything that is off, or choose Other to type your own.</p>
 
-          <div class="grid">
-            <mat-form-field appearance="outline" class="wide">
-              <mat-label>1. Business problem</mat-label>
-              <textarea matInput rows="2" [(ngModel)]="businessProblem" data-testid="f-problem"></textarea>
-              <mat-hint>What problem does the business solve?</mat-hint>
-            </mat-form-field>
-
-            <div>
-              <mat-form-field appearance="outline" class="wide">
-                <mat-label>2. Target audience</mat-label>
-                <mat-select [(ngModel)]="audienceChoice" data-testid="f-audience">
-                  <mat-option *ngFor="let a of audienceOptions" [value]="a">{{ a }}</mat-option>
-                  <mat-option [value]="OTHER">Other (type your own)</mat-option>
-                </mat-select>
-                <mat-hint>Who experiences this problem?</mat-hint>
+          <section class="block">
+            <h4 class="block-title">The problem</h4>
+            <div class="fields">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="span-2">
+                <mat-label>Business problem</mat-label>
+                <textarea matInput rows="2" [(ngModel)]="businessProblem" data-testid="f-problem"></textarea>
+                <mat-hint>What problem does the business solve?</mat-hint>
               </mat-form-field>
-              <mat-form-field appearance="outline" class="wide" *ngIf="audienceChoice === OTHER">
-                <mat-label>Describe the audience</mat-label>
-                <input matInput [(ngModel)]="audienceOther" data-testid="f-audience-other" />
+
+              <div class="field">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Target audience</mat-label>
+                  <mat-select [(ngModel)]="audienceChoice" data-testid="f-audience">
+                    <mat-option *ngFor="let a of audienceOptions" [value]="a">{{ a }}</mat-option>
+                    <mat-option [value]="OTHER">Other (type your own)</mat-option>
+                  </mat-select>
+                  <mat-hint>Who experiences this problem?</mat-hint>
+                </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" *ngIf="audienceChoice === OTHER">
+                  <mat-label>Describe the audience</mat-label>
+                  <input matInput [(ngModel)]="audienceOther" data-testid="f-audience-other" />
+                </mat-form-field>
+              </div>
+
+              <div class="field">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Solution</mat-label>
+                  <mat-select [(ngModel)]="solutionChoice" data-testid="f-solution">
+                    <mat-option *ngFor="let s of solutionOptions" [value]="s">{{ s }}</mat-option>
+                    <mat-option [value]="OTHER">Other (type your own)</mat-option>
+                  </mat-select>
+                  <mat-hint>How does the product solve it?</mat-hint>
+                </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" *ngIf="solutionChoice === OTHER">
+                  <mat-label>Describe the solution</mat-label>
+                  <input matInput [(ngModel)]="solutionOther" data-testid="f-solution-other" />
+                </mat-form-field>
+              </div>
+            </div>
+          </section>
+
+          <section class="block">
+            <h4 class="block-title">What you offer</h4>
+            <div class="fields fields--3">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Key capabilities</mat-label>
+                <textarea matInput rows="3" [(ngModel)]="capabilities" data-testid="f-capabilities"></textarea>
+                <mat-hint>What can the product actually do?</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Business benefits</mat-label>
+                <textarea matInput rows="3" [(ngModel)]="benefits" data-testid="f-benefits"></textarea>
+                <mat-hint>What practical benefit does it offer?</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Differentiator</mat-label>
+                <textarea matInput rows="3" [(ngModel)]="differentiator" data-testid="f-differentiator"></textarea>
+                <mat-hint>Why choose this solution?</mat-hint>
               </mat-form-field>
             </div>
+          </section>
 
-            <div>
-              <mat-form-field appearance="outline" class="wide">
-                <mat-label>3. Solution</mat-label>
-                <mat-select [(ngModel)]="solutionChoice" data-testid="f-solution">
-                  <mat-option *ngFor="let s of solutionOptions" [value]="s">{{ s }}</mat-option>
-                  <mat-option [value]="OTHER">Other (type your own)</mat-option>
+          <section class="block">
+            <h4 class="block-title">The video</h4>
+            <div class="fields fields--3">
+              <div class="field">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Call to action</mat-label>
+                  <mat-select [(ngModel)]="ctaChoice" data-testid="f-cta">
+                    <mat-option *ngFor="let c of ctaOptions" [value]="c">{{ c }}</mat-option>
+                    <mat-option [value]="OTHER">Other (type your own)</mat-option>
+                  </mat-select>
+                  <mat-hint>What should the viewer do next?</mat-hint>
+                </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" *ngIf="ctaChoice === OTHER">
+                  <mat-label>Describe the call to action</mat-label>
+                  <input matInput [(ngModel)]="ctaOther" data-testid="f-cta-other" />
+                </mat-form-field>
+              </div>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Length</mat-label>
+                <mat-select [(ngModel)]="targetSeconds" data-testid="f-length">
+                  <mat-option *ngFor="let s of lengths" [value]="s">{{ s }} seconds</mat-option>
                 </mat-select>
-                <mat-hint>How does the product solve it?</mat-hint>
+                <mat-hint>How long the video runs.</mat-hint>
               </mat-form-field>
-              <mat-form-field appearance="outline" class="wide" *ngIf="solutionChoice === OTHER">
-                <mat-label>Describe the solution</mat-label>
-                <input matInput [(ngModel)]="solutionOther" data-testid="f-solution-other" />
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Language</mat-label>
+                <mat-select [(ngModel)]="language" data-testid="f-language">
+                  <mat-option *ngFor="let l of languages" [value]="l">{{ l }}</mat-option>
+                </mat-select>
+                <mat-hint>The language of the spoken lines.</mat-hint>
               </mat-form-field>
             </div>
+          </section>
 
-            <mat-form-field appearance="outline">
-              <mat-label>4. Key capabilities</mat-label>
-              <textarea matInput rows="3" [(ngModel)]="capabilities" data-testid="f-capabilities"></textarea>
-              <mat-hint>What can the product actually do?</mat-hint>
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>5. Business benefits</mat-label>
-              <textarea matInput rows="3" [(ngModel)]="benefits" data-testid="f-benefits"></textarea>
-              <mat-hint>What measurable or practical benefit does it offer?</mat-hint>
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>6. Differentiator</mat-label>
-              <textarea matInput rows="3" [(ngModel)]="differentiator" data-testid="f-differentiator"></textarea>
-              <mat-hint>Why choose this solution?</mat-hint>
-            </mat-form-field>
-            <div>
-              <mat-form-field appearance="outline" class="wide">
-                <mat-label>7. Call to action</mat-label>
-                <mat-select [(ngModel)]="ctaChoice" data-testid="f-cta">
-                  <mat-option *ngFor="let c of ctaOptions" [value]="c">{{ c }}</mat-option>
-                  <mat-option [value]="OTHER">Other (type your own)</mat-option>
-                </mat-select>
-                <mat-hint>What should the viewer do next?</mat-hint>
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="wide" *ngIf="ctaChoice === OTHER">
-                <mat-label>Describe the call to action</mat-label>
-                <input matInput [(ngModel)]="ctaOther" data-testid="f-cta-other" />
-              </mat-form-field>
+          <footer class="card-foot">
+            <div class="flow small">
+              <span class="muted">Video flow</span>
+              <span class="chip">Problem</span>→<span class="chip">Solution</span>→<span class="chip">How it works</span>→<span class="chip">Business benefit</span>→<span class="chip">CTA</span>
             </div>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Length</mat-label>
-              <mat-select [(ngModel)]="targetSeconds" data-testid="f-length">
-                <mat-option *ngFor="let s of lengths" [value]="s">{{ s }} seconds</mat-option>
-              </mat-select>
-            </mat-form-field>
-            <mat-form-field appearance="outline">
-              <mat-label>Language</mat-label>
-              <mat-select [(ngModel)]="language" data-testid="f-language">
-                <mat-option *ngFor="let l of languages" [value]="l">{{ l }}</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-
-          <div class="progress-row">
-            <span class="small" data-testid="filled-count">{{ filled }} of 8 filled</span>
             <span class="muted small">Your other business facts (hours, offers, customers) are added as instructions.</span>
-          </div>
-          <mat-progress-bar mode="determinate" [value]="filledPercent"></mat-progress-bar>
-          <div class="flow small">
-            <span class="muted">Video flow</span>
-            <span class="chip">Problem</span>→<span class="chip">Solution</span>→<span class="chip">How it works</span>→<span class="chip">Business benefit</span>→<span class="chip">CTA</span>
-          </div>
+          </footer>
         </mat-card>
 
         <!-- The end of the page: hand it to the platform team. -->
