@@ -168,12 +168,13 @@ export interface StoryKnowledge {
 }
 
 /** Where a tenant's request for a video stands. The API sends the name. */
-export type StoryVideoRequestStatus = 'Raised' | 'ScriptReady' | 'VideoReady';
+export type StoryVideoRequestStatus = 'Raised' | 'ScriptReady' | 'VideoReady' | 'Rejected';
 
 export const STORY_VIDEO_REQUEST_STATUS_LABELS: Record<StoryVideoRequestStatus, string> = {
   Raised: 'Requested',
   ScriptReady: 'Script written',
   VideoReady: 'Video ready',
+  Rejected: 'Declined',
 };
 
 /** One of the tenant's own requests (StoryVideoRequestDto). */
@@ -186,6 +187,8 @@ export interface StoryVideoRequest {
   scriptGeneratedAtUtc: string | null;
   videoUrl: string | null;
   videoReadyAtUtc: string | null;
+  /** Why the platform team could not make the video (the credits were returned). */
+  rejectedReason: string | null;
 }
 
 /** One request in the platform admin's list, across every tenant. */
@@ -214,6 +217,9 @@ export interface PlatformStoryVideoRequestDetail extends PlatformStoryVideoReque
   videoSource: string | null;
   /** False until a real video engine is switched on: the admin can only upload for now. */
   canGenerateVideo: boolean;
+  rejectedReason: string | null;
+  /** What the tenant paid for this video, in credits, after any refund. */
+  creditsCharged: number | null;
 }
 
 /** A video idea: one real customer problem the business solves, and how. */

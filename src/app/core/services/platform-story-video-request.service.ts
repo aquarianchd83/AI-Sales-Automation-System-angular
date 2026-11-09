@@ -32,9 +32,14 @@ export class PlatformStoryVideoRequestService {
     return this.http.get<PlatformStoryVideoRequestDetail>(`${this.baseUrl}/${id}`);
   }
 
-  /** Writes the script for the tenant. Charged to the tenant's studio credits, and given back when nothing usable comes. */
+  /** Writes the script for the tenant. Not charged again: the video's price, taken when the request was raised, covers it. */
   generateScript(id: string): Observable<PlatformStoryVideoRequestDetail> {
     return this.http.post<PlatformStoryVideoRequestDetail>(`${this.baseUrl}/${id}/script`, {});
+  }
+
+  /** The video cannot be made: the credits go back to the tenant, who is told why (the reason is required). */
+  reject(id: string, reason: string): Observable<PlatformStoryVideoRequestDetail> {
+    return this.http.post<PlatformStoryVideoRequestDetail>(`${this.baseUrl}/${id}/reject`, { reason });
   }
 
   /** Uploads the finished video (field name `file`): stored under the tenant's folder, the link recorded, the tenant told in-app. */

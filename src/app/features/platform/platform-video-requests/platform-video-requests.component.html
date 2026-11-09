@@ -18,8 +18,8 @@
     </div>
 
     <p class="muted note">
-      Videos tenants have asked for in the Story studio. Open one to write its script (charged to the tenant's studio credits) and then upload the finished
-      video. The tenant is told in-app when it is ready. Waiting requests come first, oldest on top.
+      Videos tenants have asked for in the Story studio. The tenant paid the video price when raising the request. Open one to write its script and upload the
+      finished video, or decline it (the credits go back). The tenant is told in-app either way. Waiting requests come first, oldest on top.
     </p>
 
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -51,7 +51,7 @@
               data-testid="status"
               [class.status-chip--scheduled]="row.status === 'Raised'"
               [class.status-chip--opted-in]="row.status === 'VideoReady'"
-              [class.status-chip--inactive]="row.status === 'ScriptReady'"
+              [class.status-chip--inactive]="row.status === 'ScriptReady' || row.status === 'Rejected'"
             >
               {{ statusLabel(row.status) }}
             </span>
@@ -99,10 +99,18 @@
         <h3>{{ r.title }}</h3>
         <div class="muted">{{ r.tenantName }} · {{ r.language }} · {{ r.targetSeconds }}s</div>
       </div>
-      <span class="status-chip" [class.status-chip--opted-in]="r.status === 'VideoReady'" [class.status-chip--scheduled]="r.status === 'Raised'" [class.status-chip--inactive]="r.status === 'ScriptReady'">
+      <span class="status-chip" [class.status-chip--opted-in]="r.status === 'VideoReady'" [class.status-chip--scheduled]="r.status === 'Raised'" [class.status-chip--inactive]="r.status === 'ScriptReady' || r.status === 'Rejected'">
         {{ statusLabel(r.status) }}
       </span>
       <button mat-icon-button type="button" (click)="close()" aria-label="Close"><mat-icon>close</mat-icon></button>
+    </div>
+
+    <p class="small" *ngIf="r.creditsCharged !== null" data-testid="paid">
+      <span class="muted">The tenant paid:</span> {{ r.creditsCharged | number: '1.0-2' }} credits{{ r.status === 'Rejected' ? ' (returned)' : '' }}
+    </p>
+    <div class="declined" *ngIf="r.status === 'Rejected'" data-testid="declined">
+      <mat-icon>block</mat-icon>
+      <span>Declined: {{ r.rejectedReason }}</span>
     </div>
 
     <h4>What the tenant asked for</h4>
@@ -111,7 +119,7 @@
     <p class="small"><span class="muted">Call to action:</span> {{ r.callToAction || 'Not given' }}</p>
 
     <h4>Script</h4>
-    <ng-container *ngIf="r.status !== 'VideoReady'">
+    <ng-container *ngIf="r.status === 'Raised' || r.status === 'ScriptReady'">
       <div class="actions" *ngIf="!confirmingScript">
         <button mat-flat-button color="primary" type="button" (click)="askToWriteScript()" [disabled]="writingScript" data-testid="generate-script">
           <mat-icon>auto_awesome</mat-icon>
@@ -119,9 +127,7 @@
         </button>
       </div>
       <div class="confirm" *ngIf="confirmingScript" data-testid="confirm-script">
-        <p>
-          Writing the script uses {{ r.tenantName }}'s studio credits (given back if it fails). Write it now?
-        </p>
+        <p>Write the script now? {{ r.tenantName }} is not charged again: the video price they paid covers it.</p>
         <div class="actions">
           <button mat-flat-button color="primary" type="button" (click)="writeScript()" [disabled]="writingScript" data-testid="confirm-script-yes">
             Yes, write the script
@@ -141,6 +147,7 @@
       <p class="small"><span class="muted">Ending:</span> {{ v.script.punchline }}</p>
     </div>
 
+    <ng-container *ngIf="r.status !== 'Rejected'">
     <h4>Video</h4>
     <mat-radio-group class="choices" [(ngModel)]="videoChoice" data-testid="video-choice">
       <mat-radio-button value="upload">Upload a video</mat-radio-button>
@@ -170,5 +177,29 @@
         <span class="muted"> · {{ r.videoReadyAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}. The tenant has been told.</span>
       </span>
     </div>
+    </ng-container>
+
+    <ng-container *ngIf="r.status === 'Raised' || r.status === 'ScriptReady'">
+      <h4>Cannot make this video?</h4>
+      <div class="actions" *ngIf="!decliningOpen">
+        <button mat-stroked-button color="warn" type="button" (click)="openDecline()" data-testid="decline">
+          <mat-icon>block</mat-icon>
+          Decline and return the credits
+        </button>
+      </div>
+      <div class="confirm" *ngIf="decliningOpen" data-testid="decline-form">
+        <mat-form-field appearance="outline" class="wide" subscriptSizing="dynamic">
+          <mat-label>Why (the tenant is told)</mat-label>
+          <textarea matInput rows="2" [(ngModel)]="declineReason" data-testid="decline-reason"></textarea>
+        </mat-form-field>
+        <p class="error small" *ngIf="declineError" data-testid="decline-error">{{ declineError }}</p>
+        <div class="actions">
+          <button mat-flat-button color="warn" type="button" (click)="decline()" [disabled]="declining" data-testid="decline-confirm">
+            Decline{{ r.creditsCharged !== null ? ' and return ' + (r.creditsCharged | number: '1.0-2') + ' credits' : ' and return the credits' }}
+          </button>
+          <button mat-button type="button" (click)="cancelDecline()" [disabled]="declining">Cancel</button>
+        </div>
+      </div>
+    </ng-container>
   </mat-card>
 </div>

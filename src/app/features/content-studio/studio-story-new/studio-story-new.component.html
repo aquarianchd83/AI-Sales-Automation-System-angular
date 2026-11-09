@@ -14,7 +14,7 @@
   <!-- What the video costs, up front: the platform's price for a video (Credit costs: Content Studio video render). -->
   <div class="cost-top" *ngIf="!loading" data-testid="cost-top">
     <app-credit-cost [scenarios]="[4]" prefix="This video costs"></app-credit-cost>
-    <span class="muted small">The price of one video, set by the platform.</span>
+    <span class="muted small">Taken from your credits when you raise the request; returned if the platform team cannot make the video.</span>
   </div>
 
   <ng-container *ngIf="!loading">

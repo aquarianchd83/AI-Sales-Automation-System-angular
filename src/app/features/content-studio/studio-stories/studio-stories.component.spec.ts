@@ -161,7 +161,7 @@ describe('StudioStoriesComponent', () => {
   const q = (selector: string) => root().querySelector(selector) as HTMLElement | null;
 
   const request = (over: Partial<StoryVideoRequest> = {}): StoryVideoRequest => ({
-    id: 'q1', projectId: 'p1', title: 'Guru Ji', status: 'Raised', raisedAtUtc: '2026-11-09T09:00:00Z', scriptGeneratedAtUtc: null, videoUrl: null, videoReadyAtUtc: null, ...over,
+    id: 'q1', projectId: 'p1', title: 'Guru Ji', status: 'Raised', raisedAtUtc: '2026-11-09T09:00:00Z', scriptGeneratedAtUtc: null, videoUrl: null, videoReadyAtUtc: null, rejectedReason: null, ...over,
   });
 
   it('shows where a requested story stands instead of its own status, and no video link until there is one', () => {
@@ -186,6 +186,18 @@ describe('StudioStoriesComponent', () => {
 
     expect(q('[data-testid="generate"]')).toBeNull();
     expect(text(q('[data-testid="requested-note"]'))).toContain('platform team');
+  });
+
+  it('shows a declined request as Declined, with the reason and the credits returned', () => {
+    render([project()], [request({ status: 'Rejected', rejectedReason: 'The video engine could not make this one.' })]);
+    expect(text(q('[data-project="p1"] [data-status]'))).toBe('Declined');
+
+    click('[data-project="p1"]');
+
+    expect(text(q('[data-testid="declined-note"]'))).toContain('The video engine could not make this one.');
+    expect(text(q('[data-testid="declined-note"]'))).toContain('returned');
+    expect(q('[data-testid="requested-note"]')).toBeNull();
+    expect(q('[data-testid="generate"]')).toBeNull();
   });
 
   it('still lets a story that was never requested write its own script', () => {

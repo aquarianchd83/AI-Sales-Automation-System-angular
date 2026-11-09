@@ -194,7 +194,10 @@
           </div>
 
           <p class="muted" *ngIf="!script && !requestFor(p.id)">No script yet. It is written from your verified facts.</p>
-          <p class="muted" *ngIf="!script && requestFor(p.id)" data-testid="requested-note">
+          <p class="muted" *ngIf="requestFor(p.id)?.status === 'Rejected'" data-testid="declined-note">
+            Declined: {{ requestFor(p.id)?.rejectedReason }} The credits for this video were returned to you.
+          </p>
+          <p class="muted" *ngIf="!script && requestFor(p.id) && requestFor(p.id)?.status !== 'Rejected'" data-testid="requested-note">
             Your request is with the platform team. They write the script and make the video, and you will be told when it is ready.
           </p>
           <button mat-flat-button color="primary" (click)="generate()" [disabled]="busy || !isDraft" data-testid="generate" *ngIf="isDraft && !requestFor(p.id)">

@@ -25,7 +25,7 @@ const script = (simulated = false): StoryScriptVersion =>
 
 const detail = (over: Partial<PlatformStoryVideoRequestDetail> = {}): PlatformStoryVideoRequestDetail => ({
   ...row(), topic: 'Sector: Real estate\nProblem: Finding customers is slow', audience: 'Small business owners', callToAction: 'Book a free demo',
-  script: null, videoUrl: null, videoFileName: null, videoSource: null, canGenerateVideo: false, ...over,
+  script: null, videoUrl: null, videoFileName: null, videoSource: null, canGenerateVideo: false, rejectedReason: null, creditsCharged: 1500, ...over,
 });
 
 describe('PlatformVideoRequestsComponent', () => {
@@ -43,7 +43,7 @@ describe('PlatformVideoRequestsComponent', () => {
   };
 
   function render(rows: PlatformStoryVideoRequestRow[] = [row(), row({ id: 'r2', tenantName: 'Other Co', title: 'Myth buster', status: 'VideoReady' })]): void {
-    api = jasmine.createSpyObj('PlatformStoryVideoRequestService', ['getPaged', 'get', 'generateScript', 'uploadVideo']);
+    api = jasmine.createSpyObj('PlatformStoryVideoRequestService', ['getPaged', 'get', 'generateScript', 'uploadVideo', 'reject']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
     api.getPaged.and.returnValue(of({ items: rows, totalCount: rows.length, page: 1, pageSize: 25, totalPages: 1 }));
     api.get.and.returnValue(of(detail()));
@@ -101,12 +101,12 @@ describe('PlatformVideoRequestsComponent', () => {
   });
 
   describe('the script', () => {
-    it('asks before using the tenant\'s credits, and writes nothing until told to', () => {
+    it('asks before writing, says the tenant is not charged again, and writes nothing until told to', () => {
       render();
       click('[data-request="r1"]');
       click('[data-testid="generate-script"]');
 
-      expect(text(q('[data-testid="confirm-script"]'))).toContain("Bansal Corp's studio credits");
+      expect(text(q('[data-testid="confirm-script"]'))).toContain('not charged again');
       expect(api.generateScript).not.toHaveBeenCalled();
 
       api.generateScript.and.returnValue(of(detail({ status: 'ScriptReady', script: script() })));
@@ -114,7 +114,7 @@ describe('PlatformVideoRequestsComponent', () => {
       expect(api.generateScript).toHaveBeenCalledOnceWith('r1');
     });
 
-    it('shows the script once written and says it was charged to the tenant', () => {
+    it('shows the script once written and says the tenant was not charged again', () => {
       render();
       click('[data-request="r1"]');
       api.generateScript.and.returnValue(of(detail({ status: 'ScriptReady', script: script() })));
@@ -124,17 +124,7 @@ describe('PlatformVideoRequestsComponent', () => {
       expect(text(q('[data-testid="script"]'))).toContain('Wardrobe in 10 days');
       expect(text(q('[data-testid="script"]'))).toContain('Scene 1, Customer: Weeks for a wardrobe?');
       expect(q('[data-testid="no-script"]')).toBeNull();
-      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining("charged to the tenant's studio credits"));
-    });
-
-    it('says a test script cost nothing', () => {
-      render();
-      click('[data-request="r1"]');
-      api.generateScript.and.returnValue(of(detail({ status: 'ScriptReady', script: script(true) })));
-      click('[data-testid="generate-script"]');
-      click('[data-testid="confirm-script-yes"]');
-
-      expect(notify.success).toHaveBeenCalledWith('Test script written. Nothing was charged.');
+      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('not charged again'));
     });
 
     it('does not offer to rewrite the script once the video is attached', () => {
@@ -143,6 +133,55 @@ describe('PlatformVideoRequestsComponent', () => {
       click('[data-request="r2"]');
 
       expect(q('[data-testid="generate-script"]')).toBeNull();
+    });
+  });
+
+  it('shows what the tenant paid for the video', () => {
+    render();
+    click('[data-request="r1"]');
+
+    expect(text(q('[data-testid="paid"]'))).toContain('The tenant paid: 1,500 credits');
+  });
+
+  describe('declining', () => {
+    it('asks for a reason first, and says how many credits go back', () => {
+      render();
+      click('[data-request="r1"]');
+      click('[data-testid="decline"]');
+
+      expect(text(q('[data-testid="decline-confirm"]'))).toContain('Decline and return 1,500 credits');
+      click('[data-testid="decline-confirm"]');
+      expect(text(q('[data-testid="decline-error"]'))).toContain('Say why');
+      expect(api.reject).not.toHaveBeenCalled();
+    });
+
+    it('declines with the reason, shows it, and takes away the script and video actions', () => {
+      render();
+      click('[data-request="r1"]');
+      api.reject.and.returnValue(of(detail({ status: 'Rejected', rejectedReason: 'The video engine could not make this one.' })));
+      click('[data-testid="decline"]');
+      const box = q('[data-testid="decline-reason"]') as HTMLTextAreaElement;
+      box.value = '  The video engine could not make this one.  ';
+      box.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      click('[data-testid="decline-confirm"]');
+
+      expect(api.reject).toHaveBeenCalledOnceWith('r1', 'The video engine could not make this one.');
+      expect(text(q('[data-testid="declined"]'))).toContain('The video engine could not make this one.');
+      expect(text(q('[data-testid="paid"]'))).toContain('(returned)');
+      expect(q('[data-testid="generate-script"]')).toBeNull();
+      expect(q('[data-testid="video-file"]')).toBeNull();
+      expect(q('[data-testid="decline"]')).toBeNull();
+      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('credits went back'));
+    });
+
+    it('cannot decline a request whose video is already attached', () => {
+      render();
+      api.get.and.returnValue(of(detail({ status: 'VideoReady', videoUrl: 'https://bucket.example/v.mp4' })));
+      click('[data-request="r2"]');
+
+      expect(q('[data-testid="decline"]')).toBeNull();
     });
   });
 

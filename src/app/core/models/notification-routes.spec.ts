@@ -35,6 +35,11 @@ describe('notification routes', () => {
     expect(isUrgentNotification(TenantNotificationKind.StoryVideoReady)).toBeFalse();
   });
 
+  it('sends a declined video to the Story studio too, where the reason is shown', () => {
+    expect(tenantNotificationRoute(TenantNotificationKind.StoryVideoRejected)).toBe('/content-studio/stories');
+    expect(NOTIFICATION_KIND_LABELS[TenantNotificationKind.StoryVideoRejected]).toBe('Your video request was declined');
+  });
+
   it('sends an operator alert to the refund queue, the tenant, or the jobs', () => {
     expect(platformNotificationRoute({ kind: 'RefundRequested', tenantId: 't1' })).toBe('/platform/refunds');
     expect(platformNotificationRoute({ kind: 'RefundFailed', tenantId: 't1' })).toBe('/platform/refunds');

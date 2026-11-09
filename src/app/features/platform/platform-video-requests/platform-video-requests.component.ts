@@ -18,8 +18,8 @@ import { PlatformStoryVideoRequestQuery, PlatformStoryVideoRequestService } from
 export type VideoChoice = 'upload' | 'generate';
 
 /**
- * Every tenant's request for a Story studio video. The platform admin opens one, has the script written (charged to the tenant's studio credits) and
- * then either uploads the finished video or - once a real engine is switched on - has the system make it from the script. A video, however it came,
+ * Every tenant's request for a Story studio video. The tenant already paid the video's price when raising it. The platform admin opens one, has the script
+ * written (not charged again) and then either uploads the finished video or - once a real engine is switched on - has the system make it from the script. A video, however it came,
  * is stored under the tenant's folder, its link recorded on the request, and the tenant told in-app.
  */
 @Component({
@@ -40,8 +40,12 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
 
   selected: PlatformStoryVideoRequestDetail | null = null;
   loadingDetail = false;
-  /** The admin clicked "Generate script" and has not yet confirmed that it uses the tenant's credits. */
+  /** The admin clicked "Generate script" and has not yet confirmed it. */
   confirmingScript = false;
+  decliningOpen = false;
+  declineReason = '';
+  declineError = '';
+  declining = false;
   writingScript = false;
   uploading = false;
   videoChoice: VideoChoice = 'upload';
@@ -100,6 +104,9 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
   open(row: PlatformStoryVideoRequestRow): void {
     this.loadingDetail = true;
     this.confirmingScript = false;
+    this.decliningOpen = false;
+    this.declineReason = '';
+    this.declineError = '';
     this.chosenFile = null;
     this.fileError = '';
     this.requests
@@ -134,7 +141,44 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => ((this.writingScript = false), (this.confirmingScript = false))), takeUntil(this.destroy$))
       .subscribe((detail) => {
         this.selected = detail;
-        this.notifications.success(detail.script?.isSimulated ? 'Test script written. Nothing was charged.' : "Script written, and charged to the tenant's studio credits.");
+        this.notifications.success('Script written. The tenant is not charged again: the video price covers it.');
+        this.reload$.next();
+      });
+  }
+
+  // ----- declining -----
+
+  openDecline(): void {
+    this.decliningOpen = true;
+    this.declineError = '';
+  }
+
+  cancelDecline(): void {
+    this.decliningOpen = false;
+    this.declineReason = '';
+    this.declineError = '';
+  }
+
+  /** The video cannot be made: gives the tenant their credits back and says why. */
+  decline(): void {
+    const current = this.selected;
+    if (!current || this.declining) {
+      return;
+    }
+    const reason = this.declineReason.trim();
+    if (!reason) {
+      this.declineError = 'Say why: the tenant is told.';
+      return;
+    }
+    this.declining = true;
+    this.requests
+      .reject(current.id, reason)
+      .pipe(finalize(() => (this.declining = false)), takeUntil(this.destroy$))
+      .subscribe((detail) => {
+        this.selected = detail;
+        this.decliningOpen = false;
+        this.declineReason = '';
+        this.notifications.success('Request declined. The credits went back to the tenant, who has been told.');
         this.reload$.next();
       });
   }

@@ -338,7 +338,8 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
           this.notifications.success('Request raised. The platform team will write the script and make the video, and you will be told when it is ready.');
           void this.router.navigate(['/content-studio/stories']);
         },
-        error: () => this.notifications.error('The request could not be raised. Nothing was saved. Try again.'),
+        // The error interceptor already shows the server's message (for example, not enough credits): nothing was charged or saved.
+        error: () => undefined,
       });
   }
 }

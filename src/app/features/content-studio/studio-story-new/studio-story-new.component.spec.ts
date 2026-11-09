@@ -330,14 +330,14 @@ describe('StudioStoryNewComponent', () => {
       expect(api.raiseRequest).not.toHaveBeenCalled();
     });
 
-    it('stays on the page, and says so, when the request could not be raised', () => {
+    it('stays on the page when the request could not be raised (the error interceptor shows why, for example not enough credits)', () => {
       readyToRaise();
       api.raiseRequest.and.returnValue(throwError(() => new Error('down')));
 
       click('[data-testid="raise-request"]');
 
-      expect(notify.error).toHaveBeenCalled();
       expect(navigate).not.toHaveBeenCalled();
+      expect(notify.success).not.toHaveBeenCalled();
       expect(comp.raising).toBeFalse();
     });
   });
