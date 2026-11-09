@@ -20,6 +20,8 @@ import {
 } from '../../../core/models/story-studio.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
+import { ContentStudioService } from '../../../core/services/content-studio.service';
+import { StudioActivityKind } from '../../../core/models/content-studio.model';
 import { SharedModule } from '../../../shared/shared.module';
 import { StudioStoriesComponent } from './studio-stories.component';
 
@@ -100,6 +102,15 @@ const script = (simulated: boolean): StoryScriptVersion => {
 describe('StudioStoriesComponent', () => {
   let fixture: ComponentFixture<StudioStoriesComponent>;
   let api: jasmine.SpyObj<StoryStudioService>;
+  let metering: jasmine.SpyObj<ContentStudioService>;
+
+  /** Studio-credit activity: the script of p1 cost 3 credits and 1 came back; one more step belongs to another story. */
+  function meteringSpy(): jasmine.SpyObj<ContentStudioService> {
+    const m = jasmine.createSpyObj<ContentStudioService>('ContentStudioService', ['getActivity']);
+    const row = (referenceId: string | null, netUnits: number) => ({ referenceType: 'StoryProject', referenceId, netUnits, kind: StudioActivityKind.StoryScript } as any);
+    m.getActivity.and.returnValue(of({ items: [row('p1', 2), row('p1', 1), row('other', 5)], totalCount: 3, page: 1, pageSize: 100, totalPages: 1 }));
+    return m;
+  }
 
   // The New story dialog renders in the overlay, outside the fixture: look there while it is open.
   const root = () => (document.querySelector('.cdk-overlay-container .new-story-dialog') ? document.body : (fixture.nativeElement as HTMLElement));
@@ -133,6 +144,7 @@ describe('StudioStoriesComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: StoryStudioService, useValue: api },
+        { provide: ContentStudioService, useValue: (metering = meteringSpy()) },
         { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error']) },
       ],
     });
@@ -152,7 +164,7 @@ describe('StudioStoriesComponent', () => {
     render();
     const heads = Array.from(root().querySelectorAll('[data-testid="stories-grid"] th')).map((th) => text(th));
     expect(heads).toEqual(['Title', 'Status', 'Language', 'Charge']);
-    expect(text(root().querySelector('[data-charge="p1"]'))).toBe('$0.00');
+    expect(text(root().querySelector('[data-charge="p1"]'))).toBe('3 credits');
   });
 
   it('starts a new story with the character library and no way to continue without a title and topic', () => {
@@ -507,6 +519,7 @@ describe('StudioStoriesComponent', () => {
         imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
         providers: [
           { provide: StoryStudioService, useValue: api },
+          { provide: ContentStudioService, useValue: (metering = meteringSpy()) },
           { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']) },
         ],
       });

@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/c
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { Subject, forkJoin, interval, of } from 'rxjs';
+import { EMPTY, Subject, forkJoin, interval } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
 
 import {
@@ -31,6 +31,9 @@ import {
   StoryUsage,
   VideoSource,
 } from '../../../core/models/story-studio.model';
+import { StudioActivityKind } from '../../../core/models/content-studio.model';
+import { ContentStudioService } from '../../../core/services/content-studio.service';
+import { formatUnits } from '../../../core/models/billing.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
 
@@ -59,7 +62,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   @ViewChild('newStoryDialog', { static: true }) newStoryDialog!: TemplateRef<unknown>;
   private newStoryRef: MatDialogRef<unknown> | null = null;
 
-  /** What each story has cost so far (USD), by project id. Missing until the usage call answers. */
+  /** Credits each story's script has used so far (charged less refunded), by project id. Missing until the activity list answers. */
   charges: Record<string, number> = {};
 
   /** The "Problems" facts split into one entry per problem, for the picker on step 1. */
@@ -139,6 +142,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly studio: StoryStudioService,
+    private readonly metering: ContentStudioService,
     private readonly notifications: NotificationService,
     private readonly fb: FormBuilder,
     private readonly sanitizer: DomSanitizer,
@@ -181,22 +185,33 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Sums the studio-credit activity that points at each story (its script writes), net of refunds. */
   private loadCharges(projects: StoryProject[]): void {
-    for (const p of projects) {
-      this.studio
-        .getUsage(p.id)
-        .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
-        .subscribe((u) => {
-          if (u) {
-            this.charges[p.id] = u.totalUsd;
-          }
-        });
+    if (!projects.length) {
+      return;
     }
+    this.metering
+      .getActivity({ kind: StudioActivityKind.StoryScript, page: 1, pageSize: 100 })
+      .pipe(catchError(() => EMPTY), takeUntil(this.destroy$))
+      .subscribe((result) => {
+        const totals: Record<string, number> = {};
+        for (const p of projects) {
+          totals[p.id] = 0;
+        }
+        for (const a of result.items) {
+          const id = (a.referenceId ?? '').toLowerCase();
+          if (a.referenceType === 'StoryProject' && id in totals) {
+            totals[id] += a.netUnits;
+          }
+        }
+        this.charges = totals;
+      });
   }
 
+  /** "2 credits", or "0" for a story that has used none. */
   chargeLabel(id: string): string {
     const v = this.charges[id];
-    return v === undefined ? '' : `$${v.toFixed(2)}`;
+    return v === undefined ? '' : v === 0 ? '0' : `${formatUnits(v)} ${v === 1 ? 'credit' : 'credits'}`;
   }
 
   private loadCharacters(): void {
