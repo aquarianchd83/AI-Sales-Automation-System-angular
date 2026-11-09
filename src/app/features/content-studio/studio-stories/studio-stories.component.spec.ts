@@ -495,17 +495,7 @@ describe('StudioStoriesComponent', () => {
     });
   });
 
-  describe('the simple flow: what we know, an idea, a script', () => {
-    /** The fields live on /content-studio/stories/new, which is the same component told it is on that page. */
-    function openNewPage(): void {
-      const c = fixture.componentInstance;
-      c.isNewPage = true;
-      c.creating = true;
-      fixture.detectChanges();
-    }
-
-    const idea = { title: 'Wardrobe in 10 days', problem: 'Waiting weeks for a wardrobe', solution: 'We deliver in 10 days', factIds: ['f1'] };
-
+  describe('the simple flow: a story is written from the facts, and stops at the approved script', () => {
     function renderSimple(knowledge = { isReady: true, verifiedFacts: 2, facts: [{ id: 'f1', category: 'Services', subject: 'Wardrobes', statement: 'We deliver custom wardrobes in 10 days.' }], message: null as string | null }): void {
       render();
       TestBed.resetTestingModule();
@@ -517,7 +507,6 @@ describe('StudioStoriesComponent', () => {
       api.listCharacters.and.returnValue(of([]));
       api.getKnowledge.and.returnValue(of(knowledge));
       api.getUsage.and.returnValue(of({ lines: [], totalUsd: 0, budgetUsd: null, wastedOnFailedUsd: 0 }));
-      api.suggestIdeas.and.returnValue(of([idea]));
       TestBed.configureTestingModule({
         declarations: [StudioStoriesComponent],
         imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
@@ -531,27 +520,6 @@ describe('StudioStoriesComponent', () => {
       fixture.detectChanges();
     }
 
-    it('shows only the problems, in a dropdown with the selected one summarised beside it', () => {
-      renderSimple({
-        isReady: true, verifiedFacts: 2, message: null,
-        facts: [
-          { id: 'a', category: 'About', subject: null, statement: 'The business is called Bansal Corp.' },
-          { id: 'p', category: 'Problems', subject: null, statement: 'Problems our product solves: 1) AI Lead Discovery: Find potential customers.; 2) AI Lead Qualification: Classify leads as hot, warm and cold.; 3) AI Sales Agent: Answer customer questions.' },
-        ] as any,
-      });
-      openNewPage();
-
-      expect(root().querySelector('details.facts')).toBeNull();
-      expect(root().textContent).not.toContain('Bansal Corp');
-      const comp = fixture.componentInstance;
-      expect(comp.problems.map((p) => p.title)).toEqual(['AI Lead Discovery', 'AI Lead Qualification', 'AI Sales Agent']);
-      const box = () => root().querySelector('[data-testid="problem-summary"]') as HTMLTextAreaElement;
-      expect(box().value).toBe('Find potential customers.');
-      comp.selectedProblemIndex = 1;
-      fixture.detectChanges();
-      expect(box().value).toBe('Classify leads as hot, warm and cold.');
-    });
-
     it('sends New story to a page of its own instead of opening the fields here', () => {
       renderSimple();
       const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
@@ -559,79 +527,6 @@ describe('StudioStoriesComponent', () => {
 
       expect(navigate).toHaveBeenCalledWith(['/content-studio/stories/new']);
       expect(root().querySelector('[data-testid="ideas-card"]')).toBeNull();
-    });
-
-    it('on its own page, the progress bar stops once the page is up (it does not wait for a list it never loads)', () => {
-      renderSimple();
-      (TestBed.inject(ActivatedRoute).snapshot as any).data = { newStory: true };
-      const c = fixture.componentInstance;
-      c.loading = true; // as it is when the page first opens
-      c.ngOnInit();
-      fixture.detectChanges();
-
-      expect(c.loading).toBeFalse();
-      expect(root().querySelector('mat-progress-bar')).toBeNull();
-    });
-
-    it('on its own page, shows the fields and a way back to the stories, and not the list', () => {
-      renderSimple();
-      openNewPage();
-
-      expect(root().querySelector('[data-testid="ideas-card"]')).not.toBeNull();
-      expect(root().querySelector('[data-testid="stories-grid"]')).toBeNull();
-      expect(root().querySelector('[data-testid="new-story"]')).toBeNull();
-      const back = root().querySelector('[data-testid="back-to-stories"]') as HTMLElement;
-      expect(text(back)).toContain('Back to stories');
-      expect(back.getAttribute('href')).toBe('/content-studio/stories');
-    });
-
-    it('starts with what the studio knows, and no cast, video source or cost on the page', () => {
-      renderSimple();
-      openNewPage();
-
-      expect(text(root().querySelector('[data-testid="facts-count"]'))).toContain('2 verified facts');
-      expect(root().querySelector('[data-testid="brief"]')).toBeNull();
-      expect(root().textContent).not.toContain('The cast');
-      expect(root().textContent).not.toContain('Where the clips come from');
-      expect(api.listScenes).not.toHaveBeenCalled();
-      expect(api.getDiagnostics).not.toHaveBeenCalled();
-    });
-
-    it('stops with a plain message and links to the questionnaire when there are no verified facts', () => {
-      renderSimple({ isReady: false, verifiedFacts: 0, facts: [], message: 'You have no verified business facts yet.' });
-      openNewPage();
-
-      expect(text(root().querySelector('[data-testid="no-facts"]'))).toContain('no verified business facts');
-      expect(Array.from(root().querySelectorAll('[data-testid="no-facts"] a')).map((a) => a.getAttribute('href'))).toEqual([
-        '/content-studio/questionnaire', '/content-studio/facts',
-      ]);
-      expect((root().querySelector('[data-testid="suggest-ideas"]') as HTMLButtonElement).disabled).toBeTrue();
-    });
-
-    it('suggests ideas in the chosen language and starts a story from one, with no cast and no paid source', () => {
-      renderSimple();
-      api.createProject.and.returnValue(of(project({ id: 'p9', characterIds: [] })));
-      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
-      openNewPage();
-      fixture.componentInstance.ideaLanguage = 'Hindi';
-
-      click('[data-testid="suggest-ideas"]');
-      expect(api.suggestIdeas).toHaveBeenCalledWith('Hindi');
-      expect(text(root().querySelector('[data-idea="0"]'))).toContain('Waiting weeks for a wardrobe');
-
-      click('[data-use-idea="0"]');
-      const body = api.createProject.calls.mostRecent().args[0];
-      expect(body.title).toBe('Wardrobe in 10 days');
-      expect(body.topic).toContain('Waiting weeks for a wardrobe');
-      expect(body.topic).toContain('We deliver in 10 days');
-      // The other verified facts ride along as instructions.
-      expect(body.topic).toContain('follow as instructions');
-      expect(body.topic).toContain('Services / Wardrobes: We deliver custom wardrobes in 10 days.');
-      expect(body.language).toBe('Hindi');
-      expect(body.characterIds).toEqual([]);
-      expect(body.videoProvider).toBe(SceneVideoProviderKind.Simulator);
-      // Back on the stories page, with the story just made open.
-      expect(navigate).toHaveBeenCalledWith(['/content-studio/stories'], { queryParams: { project: 'p9' } });
     });
 
     function openWithScript(claims: { scene: number; order: number; speaker: string; text: string; supported: boolean; isRisky: boolean; reason: string }[]): void {

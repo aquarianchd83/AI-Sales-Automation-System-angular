@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { EMPTY, Subject, forkJoin, interval } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
 
@@ -20,8 +20,6 @@ import {
   StoryPublishPack,
   StoryClipScene,
   StoryCostEstimate,
-  StoryIdea,
-  StoryKnowledge,
   StoryJobStatus,
   StoryProject,
   StoryProjectStatus,
@@ -62,31 +60,16 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   /** Credits each story's script has used so far (charged less refunded), by project id. Missing until the activity list answers. */
   charges: Record<string, number> = {};
 
-  /** The "Problems" facts split into one entry per problem, for the picker on step 1. */
-  problems: ProblemOption[] = [];
-  selectedProblemIndex = 0;
-
-  get selectedProblem(): ProblemOption | undefined {
-    return this.problems[this.selectedProblemIndex];
-  }
-
   /**
    * The later steps (characters, Veo clips, voice, the finished video, sharing) are built but not switched on: a story stops at the approved script
    * until we decide how to go on. Everything below that is for those steps is behind this flag.
    */
   laterSteps = false;
 
-  knowledge: StoryKnowledge | null = null;
-  ideas: StoryIdea[] = [];
-  ideaLanguage = 'Hinglish';
-  loadingIdeas = false;
-
   projects: StoryProject[] = [];
   characters: StoryCharacter[] = [];
   selected: StoryProject | null = null;
   creating = false;
-  /** True on /content-studio/stories/new: the page that holds the New story fields, with a way back to the list. */
-  isNewPage = false;
 
   script: StoryScriptVersion | null = null;
   draft: CinematicScript | null = null;
@@ -146,21 +129,10 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     private readonly fb: FormBuilder,
     private readonly sanitizer: DomSanitizer,
     private readonly router: Router,
-    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
-    this.isNewPage = !!this.route.snapshot.data?.['newStory'];
-    this.creating = this.isNewPage && !this.laterSteps;
-    if (this.isNewPage) {
-      // Only the facts are needed here; the list of stories belongs to the page this one came from.
-      // `loading` starts true and only the list load clears it, which this page skips: without this the bar never stops.
-      this.loading = false;
-      this.loadKnowledge();
-      return;
-    }
     this.loadAll();
-    this.loadKnowledge();
     if (this.laterSteps) {
       this.loadChecks();
     }
@@ -191,12 +163,6 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
         this.projects = projects;
         this.characters = characters;
         this.loadCharges(projects);
-        // Back from the New story page with the story just made: open it.
-        const wanted = this.route.snapshot.queryParamMap.get('project');
-        const made = wanted ? projects.find((p) => p.id === wanted) : undefined;
-        if (made) {
-          this.open(made);
-        }
       });
   }
 
@@ -233,59 +199,6 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.studio.listCharacters(this.search.value).pipe(takeUntil(this.destroy$)).subscribe((c) => (this.characters = c));
   }
 
-  private loadKnowledge(): void {
-    this.studio.getKnowledge().pipe(takeUntil(this.destroy$)).subscribe((k) => {
-      this.knowledge = k;
-      this.problems = parseProblems(k.facts ?? []);
-      this.selectedProblemIndex = 0;
-    });
-  }
-
-  /** Step 1: ideas drawn from the verified facts. Test data when the Story script runs on the simulator. */
-  suggestIdeas(): void {
-    if (this.busy || this.loadingIdeas || !this.knowledge?.isReady) {
-      return;
-    }
-    this.loadingIdeas = true;
-    this.studio
-      .suggestIdeas(this.ideaLanguage)
-      .pipe(finalize(() => (this.loadingIdeas = false)), takeUntil(this.destroy$))
-      .subscribe((ideas) => (this.ideas = ideas));
-  }
-
-  /** Starts a story from an idea: its problem and how the business solves it become the topic. No cast, no paid source: just the script next. */
-  useIdea(idea: StoryIdea): void {
-    if (this.busy) {
-      return;
-    }
-    this.busy = true;
-    this.studio
-      .createProject({
-        title: idea.title,
-        topic: buildTopic(idea, this.knowledge?.facts ?? []),
-        language: this.ideaLanguage,
-        style: null,
-        audience: null,
-        moral: null,
-        targetSeconds: 30,
-        videoProvider: SceneVideoProviderKind.Simulator,
-        budgetUsd: null,
-        characterIds: [],
-      })
-      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
-      .subscribe((project) => {
-        this.ideas = [];
-        if (this.isNewPage) {
-          // Back to the stories page, with the new story open.
-          void this.router.navigate(['/content-studio/stories'], { queryParams: { project: project.id } });
-          return;
-        }
-        this.projects = [project, ...this.projects];
-        this.creating = false;
-        this.open(project);
-      });
-  }
-
   claimFor(scene: number, index: number): ScriptClaim | undefined {
     return this.script?.claims?.find((c) => c.scene === scene && c.order === index + 1);
   }
@@ -299,20 +212,11 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       void this.router.navigate(['/content-studio/stories/new']);
       return;
     }
-    this.ideas = [];
     this.creating = true;
     this.selected = null;
     this.script = null;
     this.draft = null;
     this.selectedCharacterIds.clear();
-  }
-
-  closeNew(): void {
-    if (this.isNewPage) {
-      void this.router.navigate(['/content-studio/stories']);
-      return;
-    }
-    this.creating = false;
   }
 
   toggleCharacter(c: StoryCharacter): void {
@@ -824,47 +728,4 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   trackById(_: number, item: { id: string }): string {
     return item.id;
   }
-}
-
-export interface ProblemOption {
-  title: string;
-  summary: string;
-}
-
-/**
- * A "Problems" fact is often one sentence listing several: "Problems our product solves: 1) Lead Discovery: Find customers.; 2) ...".
- * Splits each into a title (shown in the dropdown) and a summary (shown beside it).
- */
-export function parseProblems(facts: { category: string; statement: string }[]): ProblemOption[] {
-  const out: ProblemOption[] = [];
-  for (const f of facts.filter((x) => /^problems?$/i.test((x.category ?? '').trim()))) {
-    const statement = (f.statement ?? '').trim();
-    const firstItem = statement.search(/(^|\s)1\)\s/);
-    const parts = firstItem >= 0 ? statement.slice(firstItem).split(/(?:^|\s*;?\s+)\d+\)\s+/).filter((p) => p.trim()) : [statement];
-    for (const raw of parts) {
-      const text = raw.trim().replace(/[;\s]+$/, '');
-      if (!text) {
-        continue;
-      }
-      const colon = text.indexOf(':');
-      const hasTitle = colon > 0 && colon < 80;
-      const title = hasTitle ? text.slice(0, colon).trim() : text.length > 60 ? text.slice(0, 57) + '...' : text;
-      const summary = hasTitle ? text.slice(colon + 1).trim() : text;
-      out.push({ title, summary: summary || text });
-    }
-  }
-  return out;
-}
-
-/** The topic sent to the script writer: the chosen problem and solution, then every other verified fact as instructions to follow. */
-export function buildTopic(idea: { problem: string; solution: string }, facts: { category: string; subject: string | null; statement: string }[]): string {
-  const head = `Problem: ${idea.problem}\nHow we solve it: ${idea.solution}`;
-  const rest = facts
-    .filter((f) => !/^problems?$/i.test((f.category ?? '').trim()))
-    .map((f) => `- ${f.category}${f.subject ? ' / ' + f.subject : ''}: ${f.statement}`);
-  if (!rest.length) {
-    return head;
-  }
-  const out = `${head}\n\nBusiness facts to follow as instructions (use them exactly; do not contradict them):\n${rest.join('\n')}`;
-  return out.length > 4000 ? out.slice(0, 3997) + '...' : out;
 }

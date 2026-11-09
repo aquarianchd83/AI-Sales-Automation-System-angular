@@ -10,6 +10,7 @@ import { StudioFactsComponent } from './studio-facts/studio-facts.component';
 import { StudioQuestionnaireComponent } from './studio-questionnaire/studio-questionnaire.component';
 import { StudioReadinessComponent } from './studio-readiness/studio-readiness.component';
 import { StudioStoriesComponent } from './studio-stories/studio-stories.component';
+import { StudioStoryNewComponent } from './studio-story-new/studio-story-new.component';
 
 // The charge history is billing information (Admin only); the questionnaire, facts and readiness are for Admins and Sales Managers.
 const routes: Routes = [
@@ -19,11 +20,11 @@ const routes: Routes = [
   { path: 'readiness', component: StudioReadinessComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
   { path: 'stories', component: StudioStoriesComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
   // The New story fields get a page of their own, with a way back to the list.
-  { path: 'stories/new', component: StudioStoriesComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES, newStory: true } },
+  { path: 'stories/new', component: StudioStoryNewComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
 ];
 
 @NgModule({
-  declarations: [StudioActivityComponent, StudioQuestionnaireComponent, StudioFactsComponent, StudioReadinessComponent, StudioStoriesComponent],
+  declarations: [StudioActivityComponent, StudioQuestionnaireComponent, StudioFactsComponent, StudioReadinessComponent, StudioStoriesComponent, StudioStoryNewComponent],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })
 export class ContentStudioModule {}
