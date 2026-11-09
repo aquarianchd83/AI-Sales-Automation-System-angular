@@ -59,7 +59,8 @@ export class KnowledgeHubComponent implements OnInit {
 
   /** The Studio's charge history and the Story studio share the /content-studio module but are not knowledge screens, so they render without the list. */
   get showList(): boolean {
-    return !['/content-studio', '/content-studio/stories'].includes(this.router.url.split(/[?#]/)[0]);
+    const path = this.router.url.split(/[?#]/)[0];
+    return path !== '/content-studio' && path !== '/content-studio/stories' && !path.startsWith('/content-studio/stories/');
   }
 
   visibleItems(): HubItem[] {

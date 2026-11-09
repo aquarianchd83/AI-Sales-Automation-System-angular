@@ -1,9 +1,13 @@
 <div class="page">
   <app-page-header
-    title="Story studio"
+    [title]="isNewPage ? 'New story' : 'Story studio'"
     subtitle="Turn what your business has already told us into a short video about the problem your product solves. Write the script and approve it: nothing is made or paid for yet."
   >
-    <button mat-flat-button color="primary" (click)="startNew()" data-testid="new-story">
+    <a mat-stroked-button routerLink="/content-studio/stories" *ngIf="isNewPage" data-testid="back-to-stories">
+      <mat-icon>arrow_back</mat-icon>
+      Back to stories
+    </a>
+    <button mat-flat-button color="primary" (click)="startNew()" *ngIf="!isNewPage" data-testid="new-story">
       <mat-icon>add</mat-icon>
       New story
     </button>
@@ -23,7 +27,6 @@
   <div class="split">
     <!-- New story: the facts, an idea, and the language, right on the page. Accepting an idea starts the script. -->
     <mat-card class="section-card" *ngIf="creating && !laterSteps" data-testid="ideas-card">
-      <h2 class="card-title">New story</h2>
       <h3>1. What we know about your business</h3>
       <ng-container *ngIf="knowledge as k">
         <div class="notice" *ngIf="!k.isReady" data-testid="no-facts">
@@ -78,7 +81,7 @@
     </mat-card>
 
     <!-- The list of stories, full width. Pick a row to open it below. -->
-    <mat-card class="list-card" aria-label="Your stories">
+    <mat-card class="list-card" aria-label="Your stories" *ngIf="!isNewPage">
       <p class="muted empty" *ngIf="!loading && !projects.length">No stories yet. Start one with "New story".</p>
       <table class="stories-grid" *ngIf="projects.length" data-testid="stories-grid">
         <thead>
@@ -106,7 +109,7 @@
       </table>
     </mat-card>
 
-    <section class="panel">
+    <section class="panel" *ngIf="!isNewPage">
       <!-- A new story: the brief, the cast, and where the clips come from. -->
       <!-- Step 1 and 2: what we know, and an idea to write about. The cast, the video source and the rest come later. -->
 

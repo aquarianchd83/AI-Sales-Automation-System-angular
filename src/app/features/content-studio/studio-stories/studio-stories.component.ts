@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { ActivatedRoute, Router } from '@angular/router';
 import { EMPTY, Subject, forkJoin, interval } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
 
@@ -84,6 +85,8 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   characters: StoryCharacter[] = [];
   selected: StoryProject | null = null;
   creating = false;
+  /** True on /content-studio/stories/new: the page that holds the New story fields, with a way back to the list. */
+  isNewPage = false;
 
   script: StoryScriptVersion | null = null;
   draft: CinematicScript | null = null;
@@ -142,9 +145,18 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     private readonly notifications: NotificationService,
     private readonly fb: FormBuilder,
     private readonly sanitizer: DomSanitizer,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
+    this.isNewPage = !!this.route.snapshot.data?.['newStory'];
+    this.creating = this.isNewPage && !this.laterSteps;
+    if (this.isNewPage) {
+      // Only the facts are needed here; the list of stories belongs to the page this one came from.
+      this.loadKnowledge();
+      return;
+    }
     this.loadAll();
     this.loadKnowledge();
     if (this.laterSteps) {
@@ -177,6 +189,12 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
         this.projects = projects;
         this.characters = characters;
         this.loadCharges(projects);
+        // Back from the New story page with the story just made: open it.
+        const wanted = this.route.snapshot.queryParamMap.get('project');
+        const made = wanted ? projects.find((p) => p.id === wanted) : undefined;
+        if (made) {
+          this.open(made);
+        }
       });
   }
 
@@ -254,9 +272,14 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       })
       .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
       .subscribe((project) => {
+        this.ideas = [];
+        if (this.isNewPage) {
+          // Back to the stories page, with the new story open.
+          void this.router.navigate(['/content-studio/stories'], { queryParams: { project: project.id } });
+          return;
+        }
         this.projects = [project, ...this.projects];
         this.creating = false;
-        this.ideas = [];
         this.open(project);
       });
   }
@@ -270,6 +293,10 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   }
 
   startNew(): void {
+    if (!this.laterSteps) {
+      void this.router.navigate(['/content-studio/stories/new']);
+      return;
+    }
     this.ideas = [];
     this.creating = true;
     this.selected = null;
@@ -279,6 +306,10 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   }
 
   closeNew(): void {
+    if (this.isNewPage) {
+      void this.router.navigate(['/content-studio/stories']);
+      return;
+    }
     this.creating = false;
   }
 

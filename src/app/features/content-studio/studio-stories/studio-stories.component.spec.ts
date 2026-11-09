@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
@@ -495,6 +496,14 @@ describe('StudioStoriesComponent', () => {
   });
 
   describe('the simple flow: what we know, an idea, a script', () => {
+    /** The fields live on /content-studio/stories/new, which is the same component told it is on that page. */
+    function openNewPage(): void {
+      const c = fixture.componentInstance;
+      c.isNewPage = true;
+      c.creating = true;
+      fixture.detectChanges();
+    }
+
     const idea = { title: 'Wardrobe in 10 days', problem: 'Waiting weeks for a wardrobe', solution: 'We deliver in 10 days', factIds: ['f1'] };
 
     function renderSimple(knowledge = { isReady: true, verifiedFacts: 2, facts: [{ id: 'f1', category: 'Services', subject: 'Wardrobes', statement: 'We deliver custom wardrobes in 10 days.' }], message: null as string | null }): void {
@@ -530,7 +539,7 @@ describe('StudioStoriesComponent', () => {
           { id: 'p', category: 'Problems', subject: null, statement: 'Problems our product solves: 1) AI Lead Discovery: Find potential customers.; 2) AI Lead Qualification: Classify leads as hot, warm and cold.; 3) AI Sales Agent: Answer customer questions.' },
         ] as any,
       });
-      click('[data-testid="new-story"]');
+      openNewPage();
 
       expect(root().querySelector('details.facts')).toBeNull();
       expect(root().textContent).not.toContain('Bansal Corp');
@@ -543,9 +552,30 @@ describe('StudioStoriesComponent', () => {
       expect(box().value).toBe('Classify leads as hot, warm and cold.');
     });
 
+    it('sends New story to a page of its own instead of opening the fields here', () => {
+      renderSimple();
+      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      click('[data-testid="new-story"]');
+
+      expect(navigate).toHaveBeenCalledWith(['/content-studio/stories/new']);
+      expect(root().querySelector('[data-testid="ideas-card"]')).toBeNull();
+    });
+
+    it('on its own page, shows the fields and a way back to the stories, and not the list', () => {
+      renderSimple();
+      openNewPage();
+
+      expect(root().querySelector('[data-testid="ideas-card"]')).not.toBeNull();
+      expect(root().querySelector('[data-testid="stories-grid"]')).toBeNull();
+      expect(root().querySelector('[data-testid="new-story"]')).toBeNull();
+      const back = root().querySelector('[data-testid="back-to-stories"]') as HTMLElement;
+      expect(text(back)).toContain('Back to stories');
+      expect(back.getAttribute('href')).toBe('/content-studio/stories');
+    });
+
     it('starts with what the studio knows, and no cast, video source or cost on the page', () => {
       renderSimple();
-      click('[data-testid="new-story"]');
+      openNewPage();
 
       expect(text(root().querySelector('[data-testid="facts-count"]'))).toContain('2 verified facts');
       expect(root().querySelector('[data-testid="brief"]')).toBeNull();
@@ -557,7 +587,7 @@ describe('StudioStoriesComponent', () => {
 
     it('stops with a plain message and links to the questionnaire when there are no verified facts', () => {
       renderSimple({ isReady: false, verifiedFacts: 0, facts: [], message: 'You have no verified business facts yet.' });
-      click('[data-testid="new-story"]');
+      openNewPage();
 
       expect(text(root().querySelector('[data-testid="no-facts"]'))).toContain('no verified business facts');
       expect(Array.from(root().querySelectorAll('[data-testid="no-facts"] a')).map((a) => a.getAttribute('href'))).toEqual([
@@ -569,7 +599,8 @@ describe('StudioStoriesComponent', () => {
     it('suggests ideas in the chosen language and starts a story from one, with no cast and no paid source', () => {
       renderSimple();
       api.createProject.and.returnValue(of(project({ id: 'p9', characterIds: [] })));
-      click('[data-testid="new-story"]');
+      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      openNewPage();
       fixture.componentInstance.ideaLanguage = 'Hindi';
 
       click('[data-testid="suggest-ideas"]');
@@ -587,7 +618,8 @@ describe('StudioStoriesComponent', () => {
       expect(body.language).toBe('Hindi');
       expect(body.characterIds).toEqual([]);
       expect(body.videoProvider).toBe(SceneVideoProviderKind.Simulator);
-      expect(fixture.componentInstance.selected?.id).toBe('p9');
+      // Back on the stories page, with the story just made open.
+      expect(navigate).toHaveBeenCalledWith(['/content-studio/stories'], { queryParams: { project: 'p9' } });
     });
 
     function openWithScript(claims: { scene: number; order: number; speaker: string; text: string; supported: boolean; isRisky: boolean; reason: string }[]): void {

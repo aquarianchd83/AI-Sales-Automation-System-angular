@@ -18,6 +18,8 @@ const routes: Routes = [
   { path: 'facts', component: StudioFactsComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
   { path: 'readiness', component: StudioReadinessComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
   { path: 'stories', component: StudioStoriesComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES } },
+  // The New story fields get a page of their own, with a way back to the list.
+  { path: 'stories/new', component: StudioStoriesComponent, canActivate: [roleGuard], data: { roles: STUDIO_CONTENT_ROLES, newStory: true } },
 ];
 
 @NgModule({
