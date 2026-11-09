@@ -54,14 +54,19 @@
             <p class="small" data-testid="facts-count">
               {{ k.verifiedFacts }} verified {{ k.verifiedFacts === 1 ? 'fact' : 'facts' }} about your business. The video is written only from these.
             </p>
-            <details class="facts">
-              <summary>See the facts</summary>
-              <ul>
-                <li *ngFor="let f of k.facts">
-                  <strong>{{ f.category }}<ng-container *ngIf="f.subject"> / {{ f.subject }}</ng-container>:</strong> {{ f.statement }}
-                </li>
-              </ul>
-            </details>
+            <div class="problem-picker" *ngIf="problems.length" data-testid="problem-picker">
+              <mat-form-field appearance="outline" class="problem-select">
+                <mat-label>Problem your business solves</mat-label>
+                <mat-select [(ngModel)]="selectedProblemIndex" [ngModelOptions]="{ standalone: true }" data-testid="problem-select">
+                  <mat-option *ngFor="let p of problems; let n = index" [value]="n">{{ p.title }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="problem-summary">
+                <mat-label>Summary</mat-label>
+                <textarea matInput rows="3" readonly [value]="selectedProblem?.summary ?? ''" data-testid="problem-summary"></textarea>
+              </mat-form-field>
+            </div>
+            <p class="muted small" *ngIf="!problems.length" data-testid="no-problems">No problems are recorded in your business facts yet.</p>
           </ng-container>
         </ng-container>
 

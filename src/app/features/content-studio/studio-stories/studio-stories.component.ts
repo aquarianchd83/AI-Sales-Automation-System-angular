@@ -55,6 +55,14 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   readonly sceneStatusLabels = STORY_SCENE_STATUS_LABELS;
   readonly languages = ['Hinglish', 'Hindi', 'English'];
 
+  /** The "Problems" facts split into one entry per problem, for the picker on step 1. */
+  problems: ProblemOption[] = [];
+  selectedProblemIndex = 0;
+
+  get selectedProblem(): ProblemOption | undefined {
+    return this.problems[this.selectedProblemIndex];
+  }
+
   /**
    * The later steps (characters, Veo clips, voice, the finished video, sharing) are built but not switched on: a story stops at the approved script
    * until we decide how to go on. Everything below that is for those steps is behind this flag.
@@ -169,7 +177,11 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   }
 
   private loadKnowledge(): void {
-    this.studio.getKnowledge().pipe(takeUntil(this.destroy$)).subscribe((k) => (this.knowledge = k));
+    this.studio.getKnowledge().pipe(takeUntil(this.destroy$)).subscribe((k) => {
+      this.knowledge = k;
+      this.problems = parseProblems(k.facts ?? []);
+      this.selectedProblemIndex = 0;
+    });
   }
 
   /** Step 1: ideas drawn from the verified facts. Test data when the Story script runs on the simulator. */
@@ -193,7 +205,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.studio
       .createProject({
         title: idea.title,
-        topic: `Problem: ${idea.problem}\nHow we solve it: ${idea.solution}`,
+        topic: buildTopic(idea, this.knowledge?.facts ?? []),
         language: this.ideaLanguage,
         style: null,
         audience: null,
@@ -738,4 +750,47 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   trackById(_: number, item: { id: string }): string {
     return item.id;
   }
+}
+
+export interface ProblemOption {
+  title: string;
+  summary: string;
+}
+
+/**
+ * A "Problems" fact is often one sentence listing several: "Problems our product solves: 1) Lead Discovery: Find customers.; 2) ...".
+ * Splits each into a title (shown in the dropdown) and a summary (shown beside it).
+ */
+export function parseProblems(facts: { category: string; statement: string }[]): ProblemOption[] {
+  const out: ProblemOption[] = [];
+  for (const f of facts.filter((x) => /^problems?$/i.test((x.category ?? '').trim()))) {
+    const statement = (f.statement ?? '').trim();
+    const firstItem = statement.search(/(^|\s)1\)\s/);
+    const parts = firstItem >= 0 ? statement.slice(firstItem).split(/(?:^|\s*;?\s+)\d+\)\s+/).filter((p) => p.trim()) : [statement];
+    for (const raw of parts) {
+      const text = raw.trim().replace(/[;\s]+$/, '');
+      if (!text) {
+        continue;
+      }
+      const colon = text.indexOf(':');
+      const hasTitle = colon > 0 && colon < 80;
+      const title = hasTitle ? text.slice(0, colon).trim() : text.length > 60 ? text.slice(0, 57) + '...' : text;
+      const summary = hasTitle ? text.slice(colon + 1).trim() : text;
+      out.push({ title, summary: summary || text });
+    }
+  }
+  return out;
+}
+
+/** The topic sent to the script writer: the chosen problem and solution, then every other verified fact as instructions to follow. */
+export function buildTopic(idea: { problem: string; solution: string }, facts: { category: string; subject: string | null; statement: string }[]): string {
+  const head = `Problem: ${idea.problem}\nHow we solve it: ${idea.solution}`;
+  const rest = facts
+    .filter((f) => !/^problems?$/i.test((f.category ?? '').trim()))
+    .map((f) => `- ${f.category}${f.subject ? ' / ' + f.subject : ''}: ${f.statement}`);
+  if (!rest.length) {
+    return head;
+  }
+  const out = `${head}\n\nBusiness facts to follow as instructions (use them exactly; do not contradict them):\n${rest.join('\n')}`;
+  return out.length > 4000 ? out.slice(0, 3997) + '...' : out;
 }

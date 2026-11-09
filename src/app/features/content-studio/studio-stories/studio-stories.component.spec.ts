@@ -501,6 +501,27 @@ describe('StudioStoriesComponent', () => {
       fixture.detectChanges();
     }
 
+    it('shows only the problems, in a dropdown with the selected one summarised beside it', () => {
+      renderSimple({
+        isReady: true, verifiedFacts: 2, message: null,
+        facts: [
+          { id: 'a', category: 'About', subject: null, statement: 'The business is called Bansal Corp.' },
+          { id: 'p', category: 'Problems', subject: null, statement: 'Problems our product solves: 1) AI Lead Discovery: Find potential customers.; 2) AI Lead Qualification: Classify leads as hot, warm and cold.; 3) AI Sales Agent: Answer customer questions.' },
+        ] as any,
+      });
+      click('[data-testid="new-story"]');
+
+      expect(root().querySelector('details.facts')).toBeNull();
+      expect(root().textContent).not.toContain('Bansal Corp');
+      const comp = fixture.componentInstance;
+      expect(comp.problems.map((p) => p.title)).toEqual(['AI Lead Discovery', 'AI Lead Qualification', 'AI Sales Agent']);
+      const box = () => root().querySelector('[data-testid="problem-summary"]') as HTMLTextAreaElement;
+      expect(box().value).toBe('Find potential customers.');
+      comp.selectedProblemIndex = 1;
+      fixture.detectChanges();
+      expect(box().value).toBe('Classify leads as hot, warm and cold.');
+    });
+
     it('starts with what the studio knows, and no cast, video source or cost on the page', () => {
       renderSimple();
       click('[data-testid="new-story"]');
@@ -539,6 +560,9 @@ describe('StudioStoriesComponent', () => {
       expect(body.title).toBe('Wardrobe in 10 days');
       expect(body.topic).toContain('Waiting weeks for a wardrobe');
       expect(body.topic).toContain('We deliver in 10 days');
+      // The other verified facts ride along as instructions.
+      expect(body.topic).toContain('follow as instructions');
+      expect(body.topic).toContain('Services / Wardrobes: We deliver custom wardrobes in 10 days.');
       expect(body.language).toBe('Hindi');
       expect(body.characterIds).toEqual([]);
       expect(body.videoProvider).toBe(SceneVideoProviderKind.Simulator);
