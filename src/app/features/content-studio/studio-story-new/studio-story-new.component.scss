@@ -228,6 +228,24 @@ h3 {
   color: #1565c0;
 }
 
+.clone-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(25, 118, 210, 0.08);
+  color: #1565c0;
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .cost-top {
   display: flex;
   align-items: center;

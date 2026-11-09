@@ -80,3 +80,41 @@ export function buildStoryTopic(brief: StoryBrief, facts: StoryKnowledgeFact[]):
   const out = rest.length ? `${head}\n\nBusiness facts to follow as instructions (use them exactly; do not contradict them):\n${rest.join('\n')}` : head;
   return out.length > MAX_TOPIC ? out.slice(0, MAX_TOPIC - 3) + '...' : out;
 }
+
+const TOPIC_FIELDS: [keyof StoryBrief, string][] = [
+  ['sector', 'Sector'],
+  ['problem', 'Problem'],
+  ['audience', 'Target audience'],
+  ['solution', 'Solution'],
+  ['capabilities', 'Key capabilities'],
+  ['benefits', 'Business benefits'],
+  ['differentiator', 'Differentiator'],
+  ['callToAction', 'Call to action'],
+];
+
+/**
+ * Reads the answers back out of a story's topic (the inverse of buildStoryTopic), so a story can be cloned: the brief is the first block of the topic,
+ * one "Label: value" per line, and what follows the blank line (the business facts given as instructions) is not part of it. A line without a label
+ * continues the answer before it.
+ */
+export function parseStoryTopic(topic: string | null | undefined): Partial<StoryBrief> {
+  const head = (topic ?? '').split(/\n\s*\n/)[0];
+  const out: Partial<StoryBrief> = {};
+  let last: keyof StoryBrief | null = null;
+  for (const line of head.split('\n')) {
+    const field = TOPIC_FIELDS.find(([, label]) => line.startsWith(label + ':'));
+    if (field) {
+      last = field[0];
+      const value = line.slice(field[1].length + 1).trim();
+      if (value) {
+        out[last] = value;
+      }
+    } else if (/^[A-Z][^:]{0,40}:/.test(line)) {
+      // A label this reader does not know ("Video flow:", an old topic's "How we solve it:") ends the answer before it.
+      last = null;
+    } else if (last && line.trim()) {
+      out[last] = ((out[last] ?? '') + '\n' + line.trim()).trim();
+    }
+  }
+  return out;
+}

@@ -303,3 +303,14 @@
     height: 18px;
   }
 }
+
+.video-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.actions-col {
+  text-align: right;
+  white-space: nowrap;
+}

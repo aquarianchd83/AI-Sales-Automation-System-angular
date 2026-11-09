@@ -30,8 +30,9 @@
             <th>Title</th>
             <th>Status</th>
             <th>Language</th>
-            <th class="num">Charge</th>
+            <th class="num">Credit</th>
             <th>Video</th>
+            <th class="actions-col"></th>
           </tr>
         </thead>
         <tbody>
@@ -47,7 +48,19 @@
             <td>{{ p.language }}</td>
             <td class="num" [attr.data-charge]="p.id">{{ chargeLabel(p.id) }}</td>
             <td>
-              <a *ngIf="requestFor(p.id)?.videoUrl as url" [href]="url" target="_blank" rel="noopener" (click)="$event.stopPropagation()" [attr.data-video]="p.id">Watch video</a>
+              <span class="video-actions" *ngIf="requestFor(p.id)?.videoUrl as url">
+                <a [href]="url" target="_blank" rel="noopener" (click)="$event.stopPropagation()" [attr.data-video]="p.id">Watch video</a>
+                <button mat-stroked-button type="button" (click)="downloadRequestVideo(p, $event)" [attr.data-download]="p.id" title="Download the video">
+                  <mat-icon>download</mat-icon>
+                  Download
+                </button>
+              </span>
+            </td>
+            <td class="actions-col">
+              <button mat-stroked-button type="button" (click)="clone(p, $event)" [attr.data-clone]="p.id" title="Start a new story with the same answers">
+                <mat-icon>content_copy</mat-icon>
+                Clone
+              </button>
             </td>
           </tr>
         </tbody>

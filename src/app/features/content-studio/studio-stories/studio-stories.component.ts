@@ -204,6 +204,33 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Saves the finished video of a requested story. */
+  downloadRequestVideo(p: StoryProject, event: Event): void {
+    event.stopPropagation();
+    const request = this.requestFor(p.id);
+    if (!request?.videoUrl) {
+      return;
+    }
+    this.studio
+      .downloadRequestVideo(request.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((blob) => {
+        const extension = blob.type === 'video/webm' ? '.webm' : blob.type === 'video/quicktime' ? '.mov' : '.mp4';
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${p.title}${extension}`;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+  }
+
+  /** Starts a new story from this one: the New story page opens with the same answers, to change and raise as a new request. */
+  clone(p: StoryProject, event: Event): void {
+    event.stopPropagation();
+    void this.router.navigate(['/content-studio/stories/new'], { queryParams: { clone: p.id } });
+  }
+
   requestFor(id: string | undefined | null): StoryVideoRequest | undefined {
     return id ? this.requests[id] : undefined;
   }

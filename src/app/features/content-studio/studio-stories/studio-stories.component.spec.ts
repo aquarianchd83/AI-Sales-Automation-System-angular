@@ -123,7 +123,7 @@ describe('StudioStoriesComponent', () => {
   function render(projects: StoryProject[] = [project()], requests: StoryVideoRequest[] = []): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter', 'listRequests',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter', 'listRequests', 'downloadRequestVideo',
     ]);
     api.listProjects.and.returnValue(of(projects));
     api.listRequests.and.returnValue(of(requests));
@@ -188,6 +188,55 @@ describe('StudioStoriesComponent', () => {
     expect(text(q('[data-testid="requested-note"]'))).toContain('platform team');
   });
 
+  describe('download and clone', () => {
+    const ready = () => request({ status: 'VideoReady', videoUrl: 'https://bucket.example/t/guru.mp4', videoReadyAtUtc: '2026-11-10T09:00:00Z', prepaidCredits: 1500, creditsRefunded: 0 });
+
+    it('offers Download beside Watch video only once the video is ready', () => {
+      render([project()], [request({ status: 'Raised' })]);
+      expect(q('[data-download="p1"]')).toBeNull();
+
+      TestBed.resetTestingModule();
+      render([project()], [ready()]);
+      expect(text(q('[data-download="p1"]'))).toContain('Download');
+      expect(q('[data-video="p1"]')).not.toBeNull();
+    });
+
+    it('downloads the video of that request as a file named after the story, without opening the story', () => {
+      render([project()], [ready()]);
+      api.downloadRequestVideo.and.returnValue(of(new Blob(['abc'], { type: 'video/webm' })));
+      spyOn(URL, 'createObjectURL').and.returnValue('blob:video');
+      spyOn(URL, 'revokeObjectURL');
+      let saved: HTMLAnchorElement | null = null;
+      spyOn(HTMLAnchorElement.prototype, 'click').and.callFake(function (this: HTMLAnchorElement) {
+        saved = this;
+      });
+
+      click('[data-download="p1"]');
+
+      expect(api.downloadRequestVideo).toHaveBeenCalledOnceWith('q1');
+      expect(saved).not.toBeNull();
+      expect(saved!.download).toBe('Guru Ji.webm');
+      expect(fixture.componentInstance.selected).toBeNull();
+    });
+
+    it('clones a story: opens New story with that story to copy from, without opening the story', () => {
+      render([project()], [ready()]);
+      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+      click('[data-clone="p1"]');
+
+      expect(navigate).toHaveBeenCalledWith(['/content-studio/stories/new'], { queryParams: { clone: 'p1' } });
+      expect(fixture.componentInstance.selected).toBeNull();
+    });
+
+    it('offers Clone on every story, requested or not', () => {
+      render([project(), project({ id: 'p2', title: 'Another' })], []);
+
+      expect(q('[data-clone="p1"]')).not.toBeNull();
+      expect(q('[data-clone="p2"]')).not.toBeNull();
+    });
+  });
+
   it('shows the credits prepaid for a requested video as its charge, and says when they were refunded', () => {
     render([project()], [request({ status: 'Raised', prepaidCredits: 1500, creditsRefunded: 0 })]);
     expect(text(q('[data-charge="p1"]'))).toBe('1,500 credits');
@@ -231,10 +280,10 @@ describe('StudioStoriesComponent', () => {
     expect(q('[data-testid="requested-note"]')).toBeNull();
   });
 
-  it('shows the stories in a full-width grid: title, status, language, charge and video', () => {
+  it('shows the stories in a full-width grid: title, status, language, credit and video', () => {
     render();
     const heads = Array.from(root().querySelectorAll('[data-testid="stories-grid"] th')).map((th) => text(th));
-    expect(heads).toEqual(['Title', 'Status', 'Language', 'Charge', 'Video']);
+    expect(heads).toEqual(['Title', 'Status', 'Language', 'Credit', 'Video', '']);
     expect(text(root().querySelector('[data-charge="p1"]'))).toBe('3 credits');
   });
 

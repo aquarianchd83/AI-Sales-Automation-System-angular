@@ -1,5 +1,5 @@
 import { StoryKnowledgeFact } from '../../../core/models/story-studio.model';
-import { StoryBrief, buildStoryTopic, factText, parseProblems } from './story-brief';
+import { StoryBrief, buildStoryTopic, factText, parseProblems, parseStoryTopic } from './story-brief';
 
 const fact = (category: string, statement: string, subject: string | null = null): StoryKnowledgeFact => ({ id: category, category, subject, statement });
 
@@ -46,5 +46,38 @@ describe('story brief helpers', () => {
     const topic = buildStoryTopic(brief, [fact('About', 'y'.repeat(5000))]);
     expect(topic.length).toBe(4000);
     expect(topic.endsWith('...')).toBeTrue();
+  });
+
+  describe('reading a stored topic back (for cloning)', () => {
+    it('gives back the answers buildStoryTopic wrote, and nothing from the facts that follow', () => {
+      const full: StoryBrief = {
+        sector: 'Real estate', problem: 'Finding customers is slow', audience: 'Small business owners', solution: 'AI Lead Discovery',
+        capabilities: 'Finds leads', benefits: 'Less manual work', differentiator: 'One platform', callToAction: 'Book a free demo',
+      };
+      const topic = buildStoryTopic(full, [fact('Offers', 'Problem: not a brief line'), fact('About', 'Sector: neither')]);
+
+      expect(parseStoryTopic(topic)).toEqual(full);
+    });
+
+    it('leaves out the answers that were empty', () => {
+      const topic = buildStoryTopic({ ...brief, capabilities: '', differentiator: '' }, []);
+
+      const parsed = parseStoryTopic(topic);
+      expect(parsed.capabilities).toBeUndefined();
+      expect(parsed.differentiator).toBeUndefined();
+      expect(parsed.benefits).toBe('Fewer missed calls');
+    });
+
+    it('keeps an answer that ran over several lines together', () => {
+      const topic = buildStoryTopic({ ...brief, capabilities: 'Finds leads\nScores them\nSends follow-ups' }, []);
+
+      expect(parseStoryTopic(topic).capabilities).toBe('Finds leads\nScores them\nSends follow-ups');
+    });
+
+    it('copes with an old or empty topic', () => {
+      expect(parseStoryTopic('Problem: Waiting weeks for a wardrobe\nHow we solve it: 10 days')).toEqual({ problem: 'Waiting weeks for a wardrobe' });
+      expect(parseStoryTopic('')).toEqual({});
+      expect(parseStoryTopic(null)).toEqual({});
+    });
   });
 });

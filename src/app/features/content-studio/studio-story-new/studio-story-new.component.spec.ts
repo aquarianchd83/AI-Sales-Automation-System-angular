@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
-import { SceneVideoProviderKind, StoryKnowledge, StoryVideoRequest } from '../../../core/models/story-studio.model';
+import { SceneVideoProviderKind, StoryKnowledge, StoryProject, StoryVideoRequest } from '../../../core/models/story-studio.model';
 import { TenantProfile } from '../../../core/models/tenant-profile.model';
 import { EntitlementsStore } from '../../../core/services/entitlements.store';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -64,12 +64,13 @@ describe('StudioStoryNewComponent', () => {
     fixture.detectChanges();
   };
 
-  function render(k: StoryKnowledge = knowledge(), p: TenantProfile | null = profile()): void {
-    api = jasmine.createSpyObj('StoryStudioService', ['getKnowledge', 'raiseRequest']);
+  function render(k: StoryKnowledge = knowledge(), p: TenantProfile | null = profile(), clone: { id: string; source: StoryProject | 'fails' } | null = null): void {
+    api = jasmine.createSpyObj('StoryStudioService', ['getKnowledge', 'raiseRequest', 'getProject']);
     profiles = jasmine.createSpyObj('TenantProfileService', ['getProfile', 'updateBusinessProfile']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
     api.getKnowledge.and.returnValue(of(k));
     profiles.getProfile.and.returnValue(p ? of(p) : throwError(() => new Error('no profile')));
+    api.getProject.and.returnValue(clone?.source === 'fails' || !clone ? throwError(() => new Error('gone')) : of(clone.source));
     api.raiseRequest.and.callFake((body) => of({ id: 'r-' + body.title, projectId: 'p-' + body.title, title: body.title, status: 'Raised' } as unknown as StoryVideoRequest));
 
     TestBed.configureTestingModule({
@@ -79,6 +80,7 @@ describe('StudioStoryNewComponent', () => {
         { provide: StoryStudioService, useValue: api },
         { provide: TenantProfileService, useValue: profiles },
         { provide: NotificationService, useValue: notify },
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(clone ? { clone: clone.id } : {}) } } },
       ],
     });
     navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
@@ -222,6 +224,82 @@ describe('StudioStoryNewComponent', () => {
       fixture.detectChanges();
 
       expect(text(q('[data-testid="sector-ask"]'))).toContain('has no sector yet');
+    });
+  });
+
+  describe('cloning a story', () => {
+    const source = (over: Partial<StoryProject> = {}): StoryProject =>
+      ({
+        id: 'p1', title: 'AI Sales Agent', language: 'Hindi', targetSeconds: 20, audience: 'Small business owners', moral: 'Contact us today',
+        topic: 'Sector: Healthcare\nProblem: Patients wait too long\nTarget audience: Clinic owners\nSolution: AI Sales Agent\nKey capabilities: Answers questions\nBusiness benefits: Fewer missed calls\nDifferentiator: Knows your business\nCall to action: Contact us today\nVideo flow: Problem, Solution, How it works, Business benefit, Call to action.\n\nBusiness facts to follow as instructions:\n- Offers: 10% discount',
+        ...over,
+      }) as StoryProject;
+
+    it('opens with the same answers, and says it is a copy', () => {
+      render(knowledge(), profile(), { id: 'p1', source: source() });
+
+      expect(api.getProject).toHaveBeenCalledWith('p1');
+      expect(text(q('[data-testid="clone-note"]'))).toContain('Copied from "AI Sales Agent"');
+      expect(comp.selectedProblem?.title).toBe('AI Sales Agent');
+      expect(comp.businessProblem).toBe('Patients wait too long');
+      expect(comp.solutionChoice).toBe('AI Sales Agent');
+      expect(comp.capabilities).toBe('Answers questions');
+      expect(comp.benefits).toBe('Fewer missed calls');
+      expect(comp.differentiator).toBe('Knows your business');
+      expect(comp.ctaChoice).toBe('Contact us today');
+      expect(comp.language).toBe('Hindi');
+      expect(comp.targetSeconds).toBe(20);
+    });
+
+    it('selects an audience that is on the list, and types in one that is not', () => {
+      render(knowledge(), profile(), { id: 'p1', source: source({ topic: 'Target audience: Small business owners\nProblem: x' }) });
+      expect(comp.audienceChoice).toBe('Small business owners');
+      expect(comp.audienceOther).toBe('');
+
+      TestBed.resetTestingModule();
+      render(knowledge(), profile(), { id: 'p1', source: source() });
+      expect(comp.audienceChoice).toBe('__other__');
+      expect(comp.audienceOther).toBe('Clinic owners');
+    });
+
+    it('still asks for the sector to be confirmed, and treats a different one like any other change', () => {
+      render(knowledge(), profile(), { id: 'p1', source: source() });
+      fixture.detectChanges();
+
+      expect(comp.sector).toBe('Healthcare');
+      expect(comp.sectorConfirmed).toBeFalse();
+      expect(q('[data-testid="sector-ask"]')).not.toBeNull();
+    });
+
+    it('is raised as a new request: nothing is raised until the button is clicked, and it carries the copied answers', () => {
+      render(knowledge(), profile(), { id: 'p1', source: source({ topic: source().topic.replace('Healthcare', 'Real estate') }) });
+      expect(api.raiseRequest).not.toHaveBeenCalled();
+
+      click('[data-testid="sector-accept"]');
+      click('[data-testid="raise-request"]');
+
+      const body = api.raiseRequest.calls.mostRecent().args[0];
+      expect(body.title).toBe('AI Sales Agent');
+      expect(body.topic).toContain('Problem: Patients wait too long');
+      expect(body.topic).toContain('Key capabilities: Answers questions');
+      expect(body.moral).toBe('Contact us today');
+      expect(body.language).toBe('Hindi');
+      expect(body.targetSeconds).toBe(20);
+    });
+
+    it('opens as an ordinary New story when the story to copy cannot be read', () => {
+      render(knowledge(), profile(), { id: 'gone', source: 'fails' });
+
+      expect(q('[data-testid="clone-note"]')).toBeNull();
+      expect(comp.selectedProblemIndex).toBe(0);
+      expect(comp.loading).toBeFalse();
+    });
+
+    it('is not a copy when opened without one', () => {
+      render();
+
+      expect(api.getProject).not.toHaveBeenCalled();
+      expect(q('[data-testid="clone-note"]')).toBeNull();
     });
   });
 

@@ -1,14 +1,14 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, finalize, takeUntil } from 'rxjs/operators';
 
-import { SceneVideoProviderKind, StoryKnowledge } from '../../../core/models/story-studio.model';
+import { SceneVideoProviderKind, StoryKnowledge, StoryProject } from '../../../core/models/story-studio.model';
 import { INDUSTRY_SUGGESTIONS, TenantProfile, UpdateTenantBusinessProfileRequest } from '../../../core/models/tenant-profile.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
 import { TenantProfileService } from '../../../core/services/tenant-profile.service';
-import { ProblemOption, StoryBrief, buildStoryTopic, factList, factText, parseProblems } from '../studio-stories/story-brief';
+import { ProblemOption, StoryBrief, buildStoryTopic, factList, factText, parseProblems, parseStoryTopic } from '../studio-stories/story-brief';
 
 /** The value of a dropdown's "Other (type your own)" entry. */
 export const OTHER = '__other__';
@@ -69,6 +69,9 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
   targetSeconds = 30;
   language = 'Hinglish';
 
+  /** Set when the page was opened with "Clone" on a story: the title it started from. */
+  clonedFrom: string | null = null;
+
   // the request
   raising = false;
   sectorError = false;
@@ -81,18 +84,24 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
     private readonly profiles: TenantProfileService,
     private readonly notifications: NotificationService,
     private readonly router: Router,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
+    const cloneId = this.route.snapshot.queryParamMap?.get('clone') ?? null;
     forkJoin({
       knowledge: this.studio.getKnowledge().pipe(catchError(() => of(null))),
       profile: this.profiles.getProfile().pipe(catchError(() => of(null))),
+      source: cloneId ? this.studio.getProject(cloneId).pipe(catchError(() => of(null))) : of(null),
     })
       .pipe(finalize(() => (this.loading = false)), takeUntil(this.destroy$))
-      .subscribe(({ knowledge, profile }) => {
+      .subscribe(({ knowledge, profile, source }) => {
         this.knowledge = knowledge;
         this.profile = profile;
         this.setUp();
+        if (source) {
+          this.applyClone(source);
+        }
       });
   }
 
@@ -126,6 +135,49 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
     this.benefits = factText(facts, /^(business )?benefits?$/i);
     this.differentiator = factText(facts, /^(differentiators?|unique selling points?|why us)$/i);
     this.pickProblem(0);
+  }
+
+  /**
+   * Starts from another story: the same answers, to change and raise as a new request (a new video, so a new price). The sector still has to be
+   * confirmed here, like any other.
+   */
+  private applyClone(source: StoryProject): void {
+    const brief = parseStoryTopic(source.topic);
+    const index = this.problems.findIndex((p) => p.title.toLowerCase() === source.title.toLowerCase());
+    if (index >= 0) {
+      this.pickProblem(index);
+    }
+    if (brief.problem) {
+      this.businessProblem = brief.problem;
+    }
+    this.capabilities = brief.capabilities ?? '';
+    this.benefits = brief.benefits ?? '';
+    this.differentiator = brief.differentiator ?? '';
+
+    [this.audienceChoice, this.audienceOther] = this.choose(brief.audience ?? source.audience ?? '', this.audienceOptions);
+    [this.solutionChoice, this.solutionOther] = this.choose(brief.solution ?? '', this.solutionOptions, this.solutionChoice);
+    [this.ctaChoice, this.ctaOther] = this.choose(brief.callToAction ?? source.moral ?? '', this.ctaOptions, this.ctaChoice);
+    if (brief.sector) {
+      [this.sectorChoice, this.sectorOther] = this.choose(brief.sector, this.sectorOptions, this.sectorChoice);
+      this.sectorChanged();
+    }
+    if (this.languages.includes(source.language)) {
+      this.language = source.language;
+    }
+    if (this.lengths.includes(source.targetSeconds)) {
+      this.targetSeconds = source.targetSeconds;
+    }
+    this.clonedFrom = source.title;
+  }
+
+  /** A dropdown's value for an answer: the matching option, or "Other" with the answer typed in. An empty answer keeps what was there. */
+  private choose(value: string, options: string[], keep = ''): [string, string] {
+    const wanted = value.trim();
+    if (!wanted) {
+      return [keep, ''];
+    }
+    const match = options.find((o) => o.toLowerCase() === wanted.toLowerCase());
+    return match ? [match, ''] : [OTHER, wanted];
   }
 
   private unique(list: string[]): string[] {

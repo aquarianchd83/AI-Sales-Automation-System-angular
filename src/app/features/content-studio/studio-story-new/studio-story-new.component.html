@@ -17,6 +17,11 @@
     <span class="muted small">Prepaid from your credits when you raise the request. If the video is not created, the credits are refunded in full.</span>
   </div>
 
+  <p class="clone-note" *ngIf="clonedFrom" data-testid="clone-note">
+    <mat-icon>content_copy</mat-icon>
+    <span>Copied from "{{ clonedFrom }}". Change anything, then raise the request: it is a new video, so it is charged as one.</span>
+  </p>
+
   <ng-container *ngIf="!loading">
     <!-- No verified facts: nothing true to write from. -->
     <mat-card class="section-card notice" *ngIf="!knowledge?.isReady" data-testid="no-facts">
