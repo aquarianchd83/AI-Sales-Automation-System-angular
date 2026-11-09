@@ -19,7 +19,7 @@ export const DEFAULT_CALLS_TO_ACTION = ['Book a free demo', 'Start your free tri
 /**
  * New story: pick one of the problems the business solves, confirm the sector it belongs to, answer seven short questions about it, then raise
  * the request. The tenant does not write the script or make the video: the request hands it to the platform team, who tell the tenant in-app when
- * the video is ready. Preparing it uses studio credits (shown on the page), charged when the script is written.
+ * the video is ready. The page shows the price of one video (the platform's "Content Studio video render" credit cost).
  *
  * The sector is the one the tenant already gave in their business profile. It is shown here to be confirmed; only when the tenant picks a
  * different one and says "update my profile" is the profile written. Otherwise the profile is never touched.

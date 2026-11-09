@@ -268,23 +268,26 @@ describe('StudioStoryNewComponent', () => {
       render();
 
       expect(q('[data-testid="cost-top"] app-credit-cost')).not.toBeNull();
-      expect(text(q('[data-testid="cost-top"]'))).toContain('Preparing your video uses');
+      expect(text(q('[data-testid="cost-top"]'))).toContain('This video costs');
       const bar = q('[data-testid="raise-bar"]') as HTMLElement;
       expect(bar.querySelector('[data-testid="raise-cost"]')).not.toBeNull();
-      expect(text(bar.querySelector('[data-testid="raise-cost"]'))).toContain('Preparing it uses');
+      expect(text(bar.querySelector('[data-testid="raise-cost"]'))).toContain('This video costs');
       expect(text(bar.querySelector('[data-testid="raise-request"]'))).toContain('Raise the request');
     });
 
-    it('states the real price from the credit costs the platform set, in both places', () => {
+    it('states the video render price the platform set (not the per-step generation price), in both places', () => {
       render();
       TestBed.inject(EntitlementsStore).set({
         planCode: 'pro', planName: 'Pro', features: ['ContentStudio'], balance: 48,
-        costs: [{ feature: 'ContentStudio', scenario: 3, title: 'Studio generation', unitLabel: 'script', credits: 2, perAction: true }],
+        costs: [
+          { feature: 'ContentStudio', scenario: 3, title: 'Studio generation', unitLabel: 'step', credits: 1, perAction: true },
+          { feature: 'ContentStudio', scenario: 4, title: 'Studio video render', unitLabel: 'video', credits: 1500, perAction: true },
+        ],
       } as any);
       fixture.detectChanges();
 
-      expect(text(q('[data-testid="cost-top"] [data-testid="credit-cost"]'))).toContain('Preparing your video uses 2 credits per script');
-      expect(text(q('[data-testid="raise-bar"] [data-testid="credit-cost"]'))).toContain('Preparing it uses 2 credits per script');
+      expect(text(q('[data-testid="cost-top"] [data-testid="credit-cost"]'))).toContain('This video costs 1,500 credits per video');
+      expect(text(q('[data-testid="raise-bar"] [data-testid="credit-cost"]'))).toContain('This video costs 1,500 credits per video');
     });
 
     it('raises one request with the whole brief and goes back to the list', () => {

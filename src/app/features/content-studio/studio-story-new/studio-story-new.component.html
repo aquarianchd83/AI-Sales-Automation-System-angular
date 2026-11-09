@@ -11,10 +11,10 @@
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading || raising"></mat-progress-bar>
 
-  <!-- What preparing the video costs, up front. -->
+  <!-- What the video costs, up front: the platform's price for a video (Credit costs: Content Studio video render). -->
   <div class="cost-top" *ngIf="!loading" data-testid="cost-top">
-    <app-credit-cost [scenarios]="[3]" prefix="Preparing your video uses"></app-credit-cost>
-    <span class="muted small">Charged to your studio credits when the platform team writes the script; given back if it fails.</span>
+    <app-credit-cost [scenarios]="[4]" prefix="This video costs"></app-credit-cost>
+    <span class="muted small">The price of one video, set by the platform.</span>
   </div>
 
   <ng-container *ngIf="!loading">
@@ -215,7 +215,7 @@
           <p class="error small" *ngIf="sectorError" data-testid="sector-error">Confirm the sector first.</p>
           <p class="error small" *ngIf="problemError" data-testid="problem-error">Describe the problem first.</p>
           <div class="raise-actions">
-            <app-credit-cost [scenarios]="[3]" prefix="Preparing it uses" data-testid="raise-cost"></app-credit-cost>
+            <app-credit-cost [scenarios]="[4]" prefix="This video costs" data-testid="raise-cost"></app-credit-cost>
             <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="raising" data-testid="raise-request">
               <mat-icon>send</mat-icon>
               Raise the request
