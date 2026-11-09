@@ -1,46 +1,9 @@
 <div class="page">
-  <app-page-header
-    title="Story studio"
-    subtitle="Turn what your business has already told us into a short video about the problem your product solves. Write the script and approve it: nothing is made or paid for yet."
-  >
-    <button mat-flat-button color="primary" (click)="startNew()" data-testid="new-story">
-      <mat-icon>add</mat-icon>
-      New story
-    </button>
-  </app-page-header>
-
-  <mat-progress-bar mode="indeterminate" *ngIf="loading || busy"></mat-progress-bar>
-
-  <!-- What this host lacks for live use, so a missing font or key is seen before a video fails. -->
-  <mat-card class="section-card setup" *ngIf="laterSteps && missingChecks.length" data-testid="setup">
-    <strong>Setup needed for real videos</strong>
-    <ul>
-      <li *ngFor="let c of missingChecks"><strong>{{ c.label }}:</strong> {{ c.detail }}</li>
-    </ul>
-    <span class="muted small">Test clips and test data work without any of this.</span>
-  </mat-card>
-
-  <div class="split">
-    <!-- The list stays put; the right-hand side changes. -->
-    <mat-card class="list-card" aria-label="Your stories">
-      <p class="muted empty" *ngIf="!loading && !projects.length">No stories yet. Start one with "New story".</p>
-      <button
-        type="button"
-        class="row"
-        *ngFor="let p of projects; trackBy: trackById"
-        [class.active]="selected?.id === p.id"
-        (click)="open(p)"
-        [attr.data-project]="p.id"
-      >
-        <span class="row-title">{{ p.title }}</span>
-        <span class="muted">{{ statusLabels[p.status] }} · {{ p.targetSeconds }}s · {{ p.language }}</span>
-      </button>
-    </mat-card>
-
-    <section class="panel">
-      <!-- A new story: the brief, the cast, and where the clips come from. -->
-      <!-- Step 1 and 2: what we know, and an idea to write about. The cast, the video source and the rest come later. -->
-      <mat-card class="section-card" *ngIf="creating && !laterSteps" data-testid="ideas-card">
+  <!-- New story: the facts, an idea, and the language, in a modal. Accepting an idea starts the script. -->
+  <ng-template #newStoryDialog>
+    <h2 mat-dialog-title>New story</h2>
+    <mat-dialog-content>
+      <div class="new-story-dialog" data-testid="ideas-card">
         <h3>1. What we know about your business</h3>
         <ng-container *ngIf="knowledge as k">
           <div class="notice" *ngIf="!k.isReady" data-testid="no-facts">
@@ -83,7 +46,7 @@
             <mat-icon>lightbulb</mat-icon>
             {{ ideas.length ? 'Suggest other ideas' : 'Suggest ideas' }}
           </button>
-          <button mat-button (click)="creating = false">Cancel</button>
+          <button mat-button (click)="closeNew()">Cancel</button>
         </div>
 
         <div class="idea" *ngFor="let i of ideas; let n = index" [attr.data-idea]="n">
@@ -92,7 +55,65 @@
           <p class="small"><span class="muted">How you solve it:</span> {{ i.solution }}</p>
           <button mat-stroked-button (click)="useIdea(i)" [disabled]="busy" [attr.data-use-idea]="n">Write a script for this</button>
         </div>
-      </mat-card>
+      </div>
+    </mat-dialog-content>
+  </ng-template>
+
+  <app-page-header
+    title="Story studio"
+    subtitle="Turn what your business has already told us into a short video about the problem your product solves. Write the script and approve it: nothing is made or paid for yet."
+  >
+    <button mat-flat-button color="primary" (click)="startNew()" data-testid="new-story">
+      <mat-icon>add</mat-icon>
+      New story
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading || busy"></mat-progress-bar>
+
+  <!-- What this host lacks for live use, so a missing font or key is seen before a video fails. -->
+  <mat-card class="section-card setup" *ngIf="laterSteps && missingChecks.length" data-testid="setup">
+    <strong>Setup needed for real videos</strong>
+    <ul>
+      <li *ngFor="let c of missingChecks"><strong>{{ c.label }}:</strong> {{ c.detail }}</li>
+    </ul>
+    <span class="muted small">Test clips and test data work without any of this.</span>
+  </mat-card>
+
+  <div class="split">
+    <!-- The list of stories, full width. Pick a row to open it below. -->
+    <mat-card class="list-card" aria-label="Your stories">
+      <p class="muted empty" *ngIf="!loading && !projects.length">No stories yet. Start one with "New story".</p>
+      <table class="stories-grid" *ngIf="projects.length" data-testid="stories-grid">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Language</th>
+            <th class="num">Charge</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let p of projects; trackBy: trackById"
+            class="story-row"
+            [class.active]="selected?.id === p.id"
+            (click)="open(p)"
+            [attr.data-project]="p.id"
+          >
+            <td class="row-title">{{ p.title }}</td>
+            <td>{{ statusLabels[p.status] }}</td>
+            <td>{{ p.language }}</td>
+            <td class="num" [attr.data-charge]="p.id">{{ chargeLabel(p.id) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </mat-card>
+
+    <section class="panel">
+      <!-- A new story: the brief, the cast, and where the clips come from. -->
+      <!-- Step 1 and 2: what we know, and an idea to write about. The cast, the video source and the rest come later. -->
+
 
       <mat-card class="section-card" *ngIf="creating && laterSteps" data-testid="brief">
         <h3>1. The idea</h3>

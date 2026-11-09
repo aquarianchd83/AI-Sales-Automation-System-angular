@@ -1,8 +1,9 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { Subject, forkJoin, interval } from 'rxjs';
-import { debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin, interval, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
 
 import {
   CinematicScript,
@@ -54,6 +55,12 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   readonly jobStatus = StoryJobStatus;
   readonly sceneStatusLabels = STORY_SCENE_STATUS_LABELS;
   readonly languages = ['Hinglish', 'Hindi', 'English'];
+
+  @ViewChild('newStoryDialog', { static: true }) newStoryDialog!: TemplateRef<unknown>;
+  private newStoryRef: MatDialogRef<unknown> | null = null;
+
+  /** What each story has cost so far (USD), by project id. Missing until the usage call answers. */
+  charges: Record<string, number> = {};
 
   /** The "Problems" facts split into one entry per problem, for the picker on step 1. */
   problems: ProblemOption[] = [];
@@ -135,6 +142,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     private readonly notifications: NotificationService,
     private readonly fb: FormBuilder,
     private readonly sanitizer: DomSanitizer,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -169,7 +177,26 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       .subscribe(({ projects, characters }) => {
         this.projects = projects;
         this.characters = characters;
+        this.loadCharges(projects);
       });
+  }
+
+  private loadCharges(projects: StoryProject[]): void {
+    for (const p of projects) {
+      this.studio
+        .getUsage(p.id)
+        .pipe(catchError(() => of(null)), takeUntil(this.destroy$))
+        .subscribe((u) => {
+          if (u) {
+            this.charges[p.id] = u.totalUsd;
+          }
+        });
+    }
+  }
+
+  chargeLabel(id: string): string {
+    const v = this.charges[id];
+    return v === undefined ? '' : `$${v.toFixed(2)}`;
   }
 
   private loadCharacters(): void {
@@ -220,6 +247,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
         this.projects = [project, ...this.projects];
         this.creating = false;
         this.ideas = [];
+        this.newStoryRef?.close();
         this.open(project);
       });
   }
@@ -235,10 +263,22 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   startNew(): void {
     this.ideas = [];
     this.creating = true;
+    if (!this.laterSteps) {
+      this.newStoryRef = this.dialog.open(this.newStoryDialog, { width: '760px', maxWidth: '95vw', maxHeight: '90vh' });
+      this.newStoryRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.creating = false;
+        this.newStoryRef = null;
+      });
+    }
     this.selected = null;
     this.script = null;
     this.draft = null;
     this.selectedCharacterIds.clear();
+  }
+
+  closeNew(): void {
+    this.newStoryRef?.close();
+    this.creating = false;
   }
 
   toggleCharacter(c: StoryCharacter): void {

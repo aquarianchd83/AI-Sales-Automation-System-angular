@@ -1,3 +1,4 @@
+import { ApplicationRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -100,10 +101,14 @@ describe('StudioStoriesComponent', () => {
   let fixture: ComponentFixture<StudioStoriesComponent>;
   let api: jasmine.SpyObj<StoryStudioService>;
 
-  const root = () => fixture.nativeElement as HTMLElement;
+  // The New story dialog renders in the overlay, outside the fixture: look there while it is open.
+  const root = () => (document.querySelector('.cdk-overlay-container .new-story-dialog') ? document.body : (fixture.nativeElement as HTMLElement));
   const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
   const click = (selector: string) => {
     (root().querySelector(selector) as HTMLElement).click();
+    fixture.detectChanges();
+    // The dialog's own view hangs off the application, not the fixture.
+    TestBed.inject(ApplicationRef).tick();
     fixture.detectChanges();
   };
 
@@ -141,6 +146,13 @@ describe('StudioStoriesComponent', () => {
     render();
     expect(text(root().querySelector('[data-project="p1"]'))).toContain('Guru Ji');
     expect(text(root().querySelector('[data-project="p1"]'))).toContain('Drafting script');
+  });
+
+  it('shows the stories in a full-width grid: title, status, language and charge', () => {
+    render();
+    const heads = Array.from(root().querySelectorAll('[data-testid="stories-grid"] th')).map((th) => text(th));
+    expect(heads).toEqual(['Title', 'Status', 'Language', 'Charge']);
+    expect(text(root().querySelector('[data-charge="p1"]'))).toBe('$0.00');
   });
 
   it('starts a new story with the character library and no way to continue without a title and topic', () => {
@@ -488,6 +500,7 @@ describe('StudioStoriesComponent', () => {
       api.listProjects.and.returnValue(of([]));
       api.listCharacters.and.returnValue(of([]));
       api.getKnowledge.and.returnValue(of(knowledge));
+      api.getUsage.and.returnValue(of({ lines: [], totalUsd: 0, budgetUsd: null, wastedOnFailedUsd: 0 }));
       api.suggestIdeas.and.returnValue(of([idea]));
       TestBed.configureTestingModule({
         declarations: [StudioStoriesComponent],
@@ -519,6 +532,7 @@ describe('StudioStoriesComponent', () => {
       expect(box().value).toBe('Find potential customers.');
       comp.selectedProblemIndex = 1;
       fixture.detectChanges();
+      TestBed.inject(ApplicationRef).tick();
       expect(box().value).toBe('Classify leads as hot, warm and cold.');
     });
 
