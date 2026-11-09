@@ -1,0 +1,174 @@
+<div class="page">
+  <mat-card class="table-card">
+    <div class="filters">
+      <mat-form-field class="filter-search" subscriptSizing="dynamic">
+        <mat-label>Search</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Tenant or story title" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+      <mat-form-field class="filter-select" subscriptSizing="dynamic">
+        <mat-label>Status</mat-label>
+        <mat-select [formControl]="statusControl" data-testid="status-filter">
+          <mat-option value="">All</mat-option>
+          <mat-option *ngFor="let s of statuses" [value]="s">{{ statusLabel(s) }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <span class="spacer"></span>
+      <span class="muted" *ngIf="!loading">{{ page.totalCount }} request{{ page.totalCount === 1 ? '' : 's' }}</span>
+    </div>
+
+    <p class="muted note">
+      Videos tenants have asked for in the Story studio. Open one to write its script (charged to the tenant's studio credits) and then upload the finished
+      video. The tenant is told in-app when it is ready. Waiting requests come first, oldest on top.
+    </p>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+    <div class="table-scroll">
+      <table mat-table [dataSource]="page.items" data-testid="requests-table">
+        <ng-container matColumnDef="raised">
+          <th mat-header-cell *matHeaderCellDef>Raised</th>
+          <td mat-cell *matCellDef="let row">{{ row.raisedAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tenant">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let row">{{ row.tenantName }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="story">
+          <th mat-header-cell *matHeaderCellDef>Story</th>
+          <td mat-cell *matCellDef="let row">
+            <strong>{{ row.title }}</strong>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span
+              class="status-chip"
+              data-testid="status"
+              [class.status-chip--scheduled]="row.status === 'Raised'"
+              [class.status-chip--opted-in]="row.status === 'VideoReady'"
+              [class.status-chip--inactive]="row.status === 'ScriptReady'"
+            >
+              {{ statusLabel(row.status) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="length">
+          <th mat-header-cell *matHeaderCellDef>Language and length</th>
+          <td mat-cell *matCellDef="let row">{{ row.language }} · {{ row.targetSeconds }}s</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          class="request-row"
+          [class.active]="selected?.id === row.id"
+          (click)="open(row)"
+          [attr.data-request]="row.id"
+        ></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && !page.items.length">
+      <mat-icon class="empty-icon">movie</mat-icon>
+      <p>No video requests match.</p>
+    </div>
+
+    <mat-paginator
+      [length]="page.totalCount"
+      [pageSize]="page.pageSize"
+      [pageIndex]="page.page - 1"
+      [pageSizeOptions]="pageSizeOptions"
+      showFirstLastButtons
+      (page)="onPage($event)"
+    ></mat-paginator>
+  </mat-card>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loadingDetail"></mat-progress-bar>
+
+  <!-- The request opened: what was asked for, the script, the video. -->
+  <mat-card class="detail-card" *ngIf="selected as r" data-testid="request-detail">
+    <div class="detail-head">
+      <div>
+        <h3>{{ r.title }}</h3>
+        <div class="muted">{{ r.tenantName }} · {{ r.language }} · {{ r.targetSeconds }}s</div>
+      </div>
+      <span class="status-chip" [class.status-chip--opted-in]="r.status === 'VideoReady'" [class.status-chip--scheduled]="r.status === 'Raised'" [class.status-chip--inactive]="r.status === 'ScriptReady'">
+        {{ statusLabel(r.status) }}
+      </span>
+      <button mat-icon-button type="button" (click)="close()" aria-label="Close"><mat-icon>close</mat-icon></button>
+    </div>
+
+    <h4>What the tenant asked for</h4>
+    <pre class="brief" data-testid="brief">{{ r.topic }}</pre>
+    <p class="small"><span class="muted">Target audience:</span> {{ r.audience || 'Not given' }}</p>
+    <p class="small"><span class="muted">Call to action:</span> {{ r.callToAction || 'Not given' }}</p>
+
+    <h4>Script</h4>
+    <ng-container *ngIf="r.status !== 'VideoReady'">
+      <div class="actions" *ngIf="!confirmingScript">
+        <button mat-flat-button color="primary" type="button" (click)="askToWriteScript()" [disabled]="writingScript" data-testid="generate-script">
+          <mat-icon>auto_awesome</mat-icon>
+          {{ r.script ? 'Write a new script' : 'Generate script' }}
+        </button>
+      </div>
+      <div class="confirm" *ngIf="confirmingScript" data-testid="confirm-script">
+        <p>
+          Writing the script uses {{ r.tenantName }}'s studio credits (given back if it fails). Write it now?
+        </p>
+        <div class="actions">
+          <button mat-flat-button color="primary" type="button" (click)="writeScript()" [disabled]="writingScript" data-testid="confirm-script-yes">
+            Yes, write the script
+          </button>
+          <button mat-button type="button" (click)="cancelScript()" [disabled]="writingScript">Cancel</button>
+        </div>
+      </div>
+    </ng-container>
+    <p class="muted small" *ngIf="!r.script" data-testid="no-script">No script yet.</p>
+    <div *ngIf="r.script as v" data-testid="script">
+      <p class="small" *ngIf="v.isSimulated"><strong>Test data</strong> - not written by AI.</p>
+      <p><strong>{{ v.script.title }}</strong></p>
+      <p class="small"><span class="muted">Hook:</span> {{ v.script.hook }}</p>
+      <ul class="lines">
+        <li *ngFor="let l of scriptLines"><span class="muted">Scene {{ l.scene }}, {{ l.speaker }}:</span> {{ l.text }}</li>
+      </ul>
+      <p class="small"><span class="muted">Ending:</span> {{ v.script.punchline }}</p>
+    </div>
+
+    <h4>Video</h4>
+    <mat-radio-group class="choices" [(ngModel)]="videoChoice" data-testid="video-choice">
+      <mat-radio-button value="upload">Upload a video</mat-radio-button>
+      <mat-radio-button value="generate" [disabled]="!r.canGenerateVideo" data-testid="choice-generate">
+        Let the system make it from the script
+      </mat-radio-button>
+    </mat-radio-group>
+    <p class="muted small" *ngIf="!r.canGenerateVideo" data-testid="generate-unavailable">
+      The system cannot make the video yet: a video engine has not been switched on. Upload the finished video for now.
+    </p>
+
+    <div class="upload" *ngIf="videoChoice === 'upload'">
+      <input #file type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v" (change)="chooseFile(file)" data-testid="video-file" />
+      <button mat-flat-button color="primary" type="button" (click)="upload(file)" [disabled]="uploading" data-testid="upload-video">
+        <mat-icon>cloud_upload</mat-icon>
+        {{ r.videoUrl ? 'Replace the video' : 'Upload video' }}
+      </button>
+      <span class="small" *ngIf="uploading">Uploading to the tenant's folder…</span>
+    </div>
+    <p class="error small" *ngIf="fileError" data-testid="file-error">{{ fileError }}</p>
+
+    <div class="video-ready" *ngIf="r.videoUrl" data-testid="video-ready">
+      <mat-icon>check_circle</mat-icon>
+      <span>
+        Video ready{{ r.videoFileName ? ': ' + r.videoFileName : '' }}.
+        <a [href]="r.videoUrl" target="_blank" rel="noopener" data-testid="video-link">Open the video</a>
+        <span class="muted"> · {{ r.videoReadyAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}. The tenant has been told.</span>
+      </span>
+    </div>
+  </mat-card>
+</div>

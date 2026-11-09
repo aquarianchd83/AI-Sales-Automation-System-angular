@@ -194,7 +194,7 @@
             </button>
           </div>
           <p class="muted small" *ngIf="!variations.length">
-            Each variation tells the same problem from a different angle. Tick the ones you want. Each ticked variation becomes its own story with its own script.
+            Each variation tells the same problem from a different angle. Tick the ones you want. Each ticked variation becomes its own request: the platform team writes its script and makes its video.
           </p>
           <p class="error small" *ngIf="sectorError" data-testid="sector-error">Confirm the sector first.</p>
           <p class="error small" *ngIf="problemError" data-testid="problem-error">Describe the problem first.</p>
@@ -216,15 +216,20 @@
             </button>
           </div>
 
-          <div class="head-row" *ngIf="variations.length">
-            <span class="small" data-testid="picked-count">{{ picked.size }} selected</span>
-            <button mat-flat-button color="primary" type="button" (click)="writeScripts()" [disabled]="writing || generating" data-testid="write-scripts">
-              <mat-icon>edit_note</mat-icon>
-              {{ picked.size > 1 ? 'Write ' + picked.size + ' scripts' : 'Write script' }}
-            </button>
-          </div>
-          <p class="error small" *ngIf="pickError" data-testid="pick-error">Tick at least one variation.</p>
+          <p class="small" *ngIf="variations.length" data-testid="picked-count">{{ picked.size }} selected</p>
         </mat-card>
+
+        <!-- The end of the page: hand the ticked variations to the platform team. -->
+        <div class="raise-bar" data-testid="raise-bar">
+          <p class="muted small">
+            The platform team writes the script and makes the video for each ticked variation. You will be told here when a video is ready.
+          </p>
+          <p class="error small" *ngIf="pickError" data-testid="pick-error">Generate the variations and tick at least one first.</p>
+          <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="writing || generating" data-testid="raise-request">
+            <mat-icon>send</mat-icon>
+            Raise the request
+          </button>
+        </div>
       </ng-container>
     </ng-container>
   </ng-container>

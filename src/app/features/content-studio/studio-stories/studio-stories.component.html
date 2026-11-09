@@ -31,6 +31,7 @@
             <th>Status</th>
             <th>Language</th>
             <th class="num">Charge</th>
+            <th>Video</th>
           </tr>
         </thead>
         <tbody>
@@ -42,9 +43,12 @@
             [attr.data-project]="p.id"
           >
             <td class="row-title">{{ p.title }}</td>
-            <td>{{ statusLabels[p.status] }}</td>
+            <td data-status>{{ rowStatus(p) }}</td>
             <td>{{ p.language }}</td>
             <td class="num" [attr.data-charge]="p.id">{{ chargeLabel(p.id) }}</td>
+            <td>
+              <a *ngIf="requestFor(p.id)?.videoUrl as url" [href]="url" target="_blank" rel="noopener" (click)="$event.stopPropagation()" [attr.data-video]="p.id">Watch video</a>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -189,8 +193,11 @@
             <span class="badge test" *ngIf="script?.isSimulated" data-testid="test-badge">Test data - not written by AI</span>
           </div>
 
-          <p class="muted" *ngIf="!script">No script yet. It is written from your verified facts.</p>
-          <button mat-flat-button color="primary" (click)="generate()" [disabled]="busy || !isDraft" data-testid="generate" *ngIf="isDraft">
+          <p class="muted" *ngIf="!script && !requestFor(p.id)">No script yet. It is written from your verified facts.</p>
+          <p class="muted" *ngIf="!script && requestFor(p.id)" data-testid="requested-note">
+            Your request is with the platform team. They write the script and make the video, and you will be told when it is ready.
+          </p>
+          <button mat-flat-button color="primary" (click)="generate()" [disabled]="busy || !isDraft" data-testid="generate" *ngIf="isDraft && !requestFor(p.id)">
             <mat-icon>auto_awesome</mat-icon>
             {{ script ? 'Write a new script' : 'Write the script from my facts' }}
           </button>

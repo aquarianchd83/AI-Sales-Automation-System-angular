@@ -19,6 +19,7 @@ import {
   StoryScriptVersion,
 } from '../../../core/models/story-studio.model';
 import { NotificationService } from '../../../core/services/notification.service';
+import { StoryVideoRequest } from '../../../core/models/story-studio.model';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
 import { ContentStudioService } from '../../../core/services/content-studio.service';
 import { StudioActivityKind } from '../../../core/models/content-studio.model';
@@ -119,12 +120,13 @@ describe('StudioStoriesComponent', () => {
     fixture.detectChanges();
   };
 
-  function render(projects: StoryProject[] = [project()]): void {
+  function render(projects: StoryProject[] = [project()], requests: StoryVideoRequest[] = []): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter', 'listRequests',
     ]);
     api.listProjects.and.returnValue(of(projects));
+    api.listRequests.and.returnValue(of(requests));
     api.listCharacters.and.returnValue(of([character('c1', 'Guru Ji'), character('c2', 'Sunita', { approvedReferenceId: 'r1' })]));
     api.listScenes.and.returnValue(of([]));
     api.listRenders.and.returnValue(of([]));
@@ -156,10 +158,48 @@ describe('StudioStoriesComponent', () => {
     expect(text(root().querySelector('[data-project="p1"]'))).toContain('Drafting script');
   });
 
-  it('shows the stories in a full-width grid: title, status, language and charge', () => {
+  const q = (selector: string) => root().querySelector(selector) as HTMLElement | null;
+
+  const request = (over: Partial<StoryVideoRequest> = {}): StoryVideoRequest => ({
+    id: 'q1', projectId: 'p1', title: 'Guru Ji', status: 'Raised', raisedAtUtc: '2026-11-09T09:00:00Z', scriptGeneratedAtUtc: null, videoUrl: null, videoReadyAtUtc: null, ...over,
+  });
+
+  it('shows where a requested story stands instead of its own status, and no video link until there is one', () => {
+    render([project()], [request({ status: 'Raised' })]);
+
+    expect(text(q('[data-project="p1"] [data-status]'))).toBe('Requested');
+    expect(q('[data-video="p1"]')).toBeNull();
+  });
+
+  it('links to the video once the platform team has attached it', () => {
+    render([project()], [request({ status: 'VideoReady', videoUrl: 'https://bucket.example/t/guru.mp4', videoReadyAtUtc: '2026-11-10T09:00:00Z' })]);
+
+    expect(text(q('[data-project="p1"] [data-status]'))).toBe('Video ready');
+    const link = q('[data-video="p1"]') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('https://bucket.example/t/guru.mp4');
+    expect(link.getAttribute('target')).toBe('_blank');
+  });
+
+  it('leaves the script of a requested story to the platform team: no write button, and a note saying so', () => {
+    render([project()], [request({ status: 'Raised' })]);
+    click('[data-project="p1"]');
+
+    expect(q('[data-testid="generate"]')).toBeNull();
+    expect(text(q('[data-testid="requested-note"]'))).toContain('platform team');
+  });
+
+  it('still lets a story that was never requested write its own script', () => {
+    render([project()], []);
+    click('[data-project="p1"]');
+
+    expect(q('[data-testid="generate"]')).not.toBeNull();
+    expect(q('[data-testid="requested-note"]')).toBeNull();
+  });
+
+  it('shows the stories in a full-width grid: title, status, language, charge and video', () => {
     render();
     const heads = Array.from(root().querySelectorAll('[data-testid="stories-grid"] th')).map((th) => text(th));
-    expect(heads).toEqual(['Title', 'Status', 'Language', 'Charge']);
+    expect(heads).toEqual(['Title', 'Status', 'Language', 'Charge', 'Video']);
     expect(text(root().querySelector('[data-charge="p1"]'))).toBe('3 credits');
   });
 
@@ -501,9 +541,10 @@ describe('StudioStoriesComponent', () => {
       TestBed.resetTestingModule();
       api = jasmine.createSpyObj('StoryStudioService', [
         'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript', 'getCostEstimate',
-        'listScenes', 'listRenders', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'getPublishPack',
+        'listScenes', 'listRenders', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'getPublishPack', 'listRequests',
       ]);
       api.listProjects.and.returnValue(of([]));
+      api.listRequests.and.returnValue(of([]));
       api.listCharacters.and.returnValue(of([]));
       api.getKnowledge.and.returnValue(of(knowledge));
       api.getUsage.and.returnValue(of({ lines: [], totalUsd: 0, budgetUsd: null, wastedOnFailedUsd: 0 }));

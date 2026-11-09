@@ -10,6 +10,7 @@ import {
   SCENE_VIDEO_PROVIDER_HINTS,
   SCENE_VIDEO_PROVIDER_LABELS,
   STORY_PLATFORM_LABELS,
+  STORY_VIDEO_REQUEST_STATUS_LABELS,
   STORY_PROJECT_STATUS_LABELS,
   STORY_SCENE_STATUS_LABELS,
   SceneVideoProviderKind,
@@ -27,6 +28,7 @@ import {
   StorySceneStatus,
   StoryScriptVersion,
   StoryUsage,
+  StoryVideoRequest,
   VideoSource,
 } from '../../../core/models/story-studio.model';
 import { StudioActivityKind } from '../../../core/models/content-studio.model';
@@ -59,6 +61,9 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
 
   /** Credits each story's script has used so far (charged less refunded), by project id. Missing until the activity list answers. */
   charges: Record<string, number> = {};
+
+  /** The tenant's requests for a video, by story. A story with one is written and made by the platform team, not here. */
+  requests: Record<string, StoryVideoRequest> = {};
 
   /**
    * The later steps (characters, Veo clips, voice, the finished video, sharing) are built but not switched on: a story stops at the approved script
@@ -163,6 +168,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
         this.projects = projects;
         this.characters = characters;
         this.loadCharges(projects);
+        this.loadRequests();
       });
   }
 
@@ -187,6 +193,25 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
         }
         this.charges = totals;
       });
+  }
+
+  private loadRequests(): void {
+    this.studio
+      .listRequests()
+      .pipe(catchError(() => EMPTY), takeUntil(this.destroy$))
+      .subscribe((list) => {
+        this.requests = Object.fromEntries(list.map((r) => [r.projectId, r]));
+      });
+  }
+
+  requestFor(id: string | undefined | null): StoryVideoRequest | undefined {
+    return id ? this.requests[id] : undefined;
+  }
+
+  /** What the grid says a story is: where its request stands, or its own status when it was never requested. */
+  rowStatus(p: StoryProject): string {
+    const request = this.requestFor(p.id);
+    return request ? STORY_VIDEO_REQUEST_STATUS_LABELS[request.status] : this.statusLabels[p.status];
   }
 
   /** "2 credits", or "0" for a story that has used none. */

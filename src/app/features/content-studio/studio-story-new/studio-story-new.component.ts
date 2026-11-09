@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subject, forkJoin, from, of } from 'rxjs';
-import { catchError, concatMap, finalize, map, switchMap, takeUntil, toArray } from 'rxjs/operators';
+import { catchError, concatMap, finalize, map, takeUntil, toArray } from 'rxjs/operators';
 
 import {
   SceneVideoProviderKind,
@@ -23,7 +23,8 @@ export const DEFAULT_CALLS_TO_ACTION = ['Book a free demo', 'Start your free tri
 
 /**
  * New story: pick one of the problems the business solves, confirm the sector it belongs to, answer seven short questions about it, then
- * generate five or six variations of that problem and tick the ones to turn into stories - one story, one script, per ticked variation.
+ * generate five or six variations of that problem and tick the ones to ask for - one request, one video, per ticked variation. The tenant does not
+ * write the script or make the video: raising the request hands it to the platform team, who tell the tenant in-app when the video is ready.
  *
  * The sector is the one the tenant already gave in their business profile. It is shown here to be confirmed; only when the tenant picks a
  * different one and says "update my profile" is the profile written. Otherwise the profile is never touched.
@@ -359,8 +360,8 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
     this.pickError = false;
   }
 
-  /** One story, with its own script, per ticked variation; then back to the list. */
-  writeScripts(): void {
+  /** One request per ticked variation (each becomes a story the platform team writes the script and video for); then back to the list. */
+  raise(): void {
     if (this.writing || this.generating) {
       return;
     }
@@ -376,7 +377,7 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
       .pipe(
         concatMap((v) =>
           this.studio
-            .createProject({
+            .raiseRequest({
               title: v.title,
               topic: buildStoryTopic(b, v, facts),
               language: this.language,
@@ -389,13 +390,8 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
               characterIds: [],
             })
             .pipe(
-              switchMap((project) =>
-                this.studio.generateScript(project.id).pipe(
-                  map(() => ({ created: true, scripted: true })),
-                  catchError(() => of({ created: true, scripted: false })),
-                ),
-              ),
-              catchError(() => of({ created: false, scripted: false })),
+              map(() => true),
+              catchError(() => of(false)),
             ),
         ),
         toArray(),
@@ -403,18 +399,18 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
       )
       .subscribe((results) => {
-        const created = results.filter((r) => r.created).length;
-        const scripted = results.filter((r) => r.scripted).length;
-        if (!created) {
-          this.notifications.error('No story could be created. Nothing was saved.');
+        const raised = results.filter(Boolean).length;
+        if (!raised) {
+          this.notifications.error('No request could be raised. Nothing was saved.');
           return;
         }
-        const stories = `${created} ${created === 1 ? 'story' : 'stories'}`;
-        if (scripted === created) {
-          this.notifications.success(`${stories} created, with a script each.`);
-        } else {
-          this.notifications.info(`${stories} created, ${scripted} with a script. Open the others to write theirs.`);
-        }
+        const requests = `${raised} ${raised === 1 ? 'request' : 'requests'}`;
+        const missed = results.length - raised;
+        this.notifications.success(
+          missed
+            ? `${requests} raised, ${missed} could not be. The platform team will write the script and make the video, and you will be told when it is ready.`
+            : `${requests} raised. The platform team will write the script and make the video, and you will be told when it is ready.`,
+        );
         void this.router.navigate(['/content-studio/stories']);
       });
   }

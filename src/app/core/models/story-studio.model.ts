@@ -167,6 +167,55 @@ export interface StoryKnowledge {
   message: string | null;
 }
 
+/** Where a tenant's request for a video stands. The API sends the name. */
+export type StoryVideoRequestStatus = 'Raised' | 'ScriptReady' | 'VideoReady';
+
+export const STORY_VIDEO_REQUEST_STATUS_LABELS: Record<StoryVideoRequestStatus, string> = {
+  Raised: 'Requested',
+  ScriptReady: 'Script written',
+  VideoReady: 'Video ready',
+};
+
+/** One of the tenant's own requests (StoryVideoRequestDto). */
+export interface StoryVideoRequest {
+  id: string;
+  projectId: string;
+  title: string;
+  status: StoryVideoRequestStatus;
+  raisedAtUtc: string;
+  scriptGeneratedAtUtc: string | null;
+  videoUrl: string | null;
+  videoReadyAtUtc: string | null;
+}
+
+/** One request in the platform admin's list, across every tenant. */
+export interface PlatformStoryVideoRequestRow {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  projectId: string;
+  title: string;
+  language: string;
+  targetSeconds: number;
+  status: StoryVideoRequestStatus;
+  raisedAtUtc: string;
+  scriptGeneratedAtUtc: string | null;
+  videoReadyAtUtc: string | null;
+}
+
+/** A request opened by the platform admin: the brief, the script so far, and the video if there is one. */
+export interface PlatformStoryVideoRequestDetail extends PlatformStoryVideoRequestRow {
+  topic: string;
+  audience: string | null;
+  callToAction: string | null;
+  script: StoryScriptVersion | null;
+  videoUrl: string | null;
+  videoFileName: string | null;
+  videoSource: string | null;
+  /** False until a real video engine is switched on: the admin can only upload for now. */
+  canGenerateVideo: boolean;
+}
+
 /** What the tenant told the studio about one problem; variations are written from it. */
 export interface StoryVariationRequest {
   problem: string;

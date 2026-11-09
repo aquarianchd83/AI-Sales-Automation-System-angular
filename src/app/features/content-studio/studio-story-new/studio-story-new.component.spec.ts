@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
-import { SceneVideoProviderKind, StoryKnowledge, StoryProject, StoryVariation } from '../../../core/models/story-studio.model';
+import { SceneVideoProviderKind, StoryKnowledge, StoryVariation, StoryVideoRequest } from '../../../core/models/story-studio.model';
 import { TenantProfile } from '../../../core/models/tenant-profile.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
@@ -66,14 +66,13 @@ describe('StudioStoryNewComponent', () => {
   };
 
   function render(k: StoryKnowledge = knowledge(), p: TenantProfile | null = profile()): void {
-    api = jasmine.createSpyObj('StoryStudioService', ['getKnowledge', 'suggestVariations', 'createProject', 'generateScript']);
+    api = jasmine.createSpyObj('StoryStudioService', ['getKnowledge', 'suggestVariations', 'raiseRequest']);
     profiles = jasmine.createSpyObj('TenantProfileService', ['getProfile', 'updateBusinessProfile']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
     api.getKnowledge.and.returnValue(of(k));
     profiles.getProfile.and.returnValue(p ? of(p) : throwError(() => new Error('no profile')));
     api.suggestVariations.and.returnValue(of([1, 2, 3, 4, 5, 6].map(variation)));
-    api.createProject.and.callFake((body) => of({ id: 'p-' + body.title, title: body.title } as unknown as StoryProject));
-    api.generateScript.and.returnValue(of({ id: 'v1', isSimulated: true } as any));
+    api.raiseRequest.and.callFake((body) => of({ id: 'r-' + body.title, projectId: 'p-' + body.title, title: body.title, status: 'Raised' } as unknown as StoryVideoRequest));
 
     TestBed.configureTestingModule({
       declarations: [StudioStoryNewComponent],
@@ -274,7 +273,18 @@ describe('StudioStoryNewComponent', () => {
       expect(comp.callToAction).toBe('Join our webinar');
     });
 
-    it('turns each ticked variation into its own story with its own script, then goes back to the list', () => {
+    it('has "Raise the request" at the bottom of the page, after the variations', () => {
+      render();
+
+      const bar = q('[data-testid="raise-bar"]') as HTMLElement;
+      expect(bar).not.toBeNull();
+      expect(text(q('[data-testid="raise-request"]'))).toContain('Raise the request');
+      const variations = q('[data-testid="step-variations"]') as HTMLElement;
+      expect(variations.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(q('[data-testid="write-scripts"]')).toBeNull();
+    });
+
+    it('raises one request per ticked variation, with the whole brief, then goes back to the list', () => {
       readyToGenerate();
       comp.targetSeconds = 20;
       comp.language = 'Hindi';
@@ -283,10 +293,10 @@ describe('StudioStoryNewComponent', () => {
       click('[data-variation="3"]');
       expect(text(q('[data-testid="picked-count"]'))).toBe('2 selected');
 
-      click('[data-testid="write-scripts"]');
+      click('[data-testid="raise-request"]');
 
-      expect(api.createProject).toHaveBeenCalledTimes(2);
-      const first = api.createProject.calls.argsFor(0)[0];
+      expect(api.raiseRequest).toHaveBeenCalledTimes(2);
+      const first = api.raiseRequest.calls.argsFor(0)[0];
       expect(first.title).toBe('Title 1');
       expect(first.audience).toBe('Small business owners');
       expect(first.moral).toBe('Book a free demo');
@@ -299,40 +309,49 @@ describe('StudioStoryNewComponent', () => {
       expect(first.topic).toContain('Business facts to follow as instructions');
       expect(first.topic).toContain('Offers: Current offer: 10% discount');
       expect(first.topic).not.toContain('Problems: Problems our product solves');
-      expect(api.createProject.calls.argsFor(1)[0].title).toBe('Title 4');
-      expect(api.generateScript.calls.allArgs()).toEqual([['p-Title 1'], ['p-Title 4']]);
-      expect(notify.success).toHaveBeenCalledWith('2 stories created, with a script each.');
+      expect(api.raiseRequest.calls.argsFor(1)[0].title).toBe('Title 4');
+      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('2 requests raised.'));
       expect(navigate).toHaveBeenCalledWith(['/content-studio/stories']);
     });
 
-    it('asks for at least one tick and creates nothing without it', () => {
+    it('asks for at least one tick and raises nothing without it', () => {
       readyToGenerate();
       click('[data-testid="generate"]');
-      click('[data-testid="write-scripts"]');
+      click('[data-testid="raise-request"]');
 
       expect(q('[data-testid="pick-error"]')).not.toBeNull();
-      expect(api.createProject).not.toHaveBeenCalled();
+      expect(api.raiseRequest).not.toHaveBeenCalled();
     });
 
-    it('keeps a story whose script failed, and says how many have one', () => {
+    it('asks for the variations first when none were generated', () => {
       readyToGenerate();
-      api.generateScript.and.returnValue(throwError(() => new Error('quota')));
+      click('[data-testid="raise-request"]');
+
+      expect(q('[data-testid="pick-error"]')).not.toBeNull();
+      expect(api.raiseRequest).not.toHaveBeenCalled();
+    });
+
+    it('says how many could not be raised, and still goes back when some were', () => {
+      readyToGenerate();
+      api.raiseRequest.and.callFake((body) =>
+        body.title === 'Title 2' ? throwError(() => new Error('down')) : of({ id: 'r', projectId: 'p', title: body.title, status: 'Raised' } as unknown as StoryVideoRequest));
       click('[data-testid="generate"]');
+      click('[data-variation="0"]');
       click('[data-variation="1"]');
 
-      click('[data-testid="write-scripts"]');
+      click('[data-testid="raise-request"]');
 
-      expect(notify.info).toHaveBeenCalledWith('1 story created, 0 with a script. Open the others to write theirs.');
+      expect(notify.success).toHaveBeenCalledWith(jasmine.stringContaining('1 request raised, 1 could not be.'));
       expect(navigate).toHaveBeenCalledWith(['/content-studio/stories']);
     });
 
-    it('stays on the page when no story could be created', () => {
+    it('stays on the page when no request could be raised', () => {
       readyToGenerate();
-      api.createProject.and.returnValue(throwError(() => new Error('down')));
+      api.raiseRequest.and.returnValue(throwError(() => new Error('down')));
       click('[data-testid="generate"]');
       click('[data-variation="0"]');
 
-      click('[data-testid="write-scripts"]');
+      click('[data-testid="raise-request"]');
 
       expect(notify.error).toHaveBeenCalled();
       expect(navigate).not.toHaveBeenCalled();

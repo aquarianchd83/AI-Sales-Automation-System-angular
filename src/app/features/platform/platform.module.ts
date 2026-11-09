@@ -33,6 +33,7 @@ import { PlatformRefundReviewDialogComponent } from './platform-refund-review-di
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
 import { PlatformTicketsComponent } from './platform-tickets/platform-tickets.component';
 import { PlatformStudioQuestionnairesComponent } from './platform-studio-questionnaires/platform-studio-questionnaires.component';
+import { PlatformVideoRequestsComponent } from './platform-video-requests/platform-video-requests.component';
 import { PlatformTenantConfigOverridesDialogComponent } from './platform-tenant-config-overrides-dialog/platform-tenant-config-overrides-dialog.component';
 import { PlatformTenantProviderComponent } from './platform-tenant-provider/platform-tenant-provider.component';
 import { PlatformTenantDetailComponent } from './platform-tenant-detail/platform-tenant-detail.component';
@@ -103,6 +104,8 @@ const routes: Routes = [
       { path: 'logs', component: PlatformLogsComponent },
       { path: 'knowledge', component: PlatformKnowledgeComponent },
   { path: 'studio-questionnaires', component: PlatformStudioQuestionnairesComponent },
+      // Videos tenants asked for in the Story studio: the admin writes the script and uploads the video.
+      { path: 'video-requests', component: PlatformVideoRequestsComponent },
       { path: 'announcements', component: PlatformAnnouncementListComponent },
       // What tenants were told, by mode (in-app, email, WhatsApp) and delivery status.
       { path: 'tenant-notifications', component: PlatformTenantNotificationsComponent },
@@ -165,6 +168,7 @@ const routes: Routes = [
     PlatformKnowledgeDeprecateDialogComponent,
     PlatformAnnouncementListComponent,
     PlatformAnnouncementFormDialogComponent,
+    PlatformVideoRequestsComponent,
   ],
   imports: [SharedModule, RouterModule.forChild(routes)],
 })

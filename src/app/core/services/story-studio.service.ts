@@ -12,6 +12,7 @@ import {
   StoryCharacter,
   StoryIdea,
   StoryVariation,
+  StoryVideoRequest,
   StoryVariationRequest,
   StoryKnowledge,
   StoryCheck,
@@ -167,6 +168,16 @@ export class StoryStudioService {
   /** Five or six takes on one problem, written from the brief the tenant filled in. */
   suggestVariations(body: StoryVariationRequest): Observable<StoryVariation[]> {
     return this.http.post<StoryVariation[]>(`${this.baseUrl}/variations`, body);
+  }
+
+  /** Raises a request for a video: the story is made from the brief and the platform team takes it from there. Nothing is charged here. */
+  raiseRequest(body: CreateStoryProjectBody): Observable<StoryVideoRequest> {
+    return this.http.post<StoryVideoRequest>(`${this.baseUrl}/requests`, body);
+  }
+
+  /** The tenant's own requests, with where each stands and the video link once there is one. */
+  listRequests(): Observable<StoryVideoRequest[]> {
+    return this.http.get<StoryVideoRequest[]>(`${this.baseUrl}/requests`);
   }
 
   /** Where clips can come from right now; Veo is off until the platform operator switches it on. */
