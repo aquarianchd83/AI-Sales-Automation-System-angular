@@ -154,6 +154,8 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     this.creating = this.isNewPage && !this.laterSteps;
     if (this.isNewPage) {
       // Only the facts are needed here; the list of stories belongs to the page this one came from.
+      // `loading` starts true and only the list load clears it, which this page skips: without this the bar never stops.
+      this.loading = false;
       this.loadKnowledge();
       return;
     }

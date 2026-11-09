@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
@@ -559,6 +559,18 @@ describe('StudioStoriesComponent', () => {
 
       expect(navigate).toHaveBeenCalledWith(['/content-studio/stories/new']);
       expect(root().querySelector('[data-testid="ideas-card"]')).toBeNull();
+    });
+
+    it('on its own page, the progress bar stops once the page is up (it does not wait for a list it never loads)', () => {
+      renderSimple();
+      (TestBed.inject(ActivatedRoute).snapshot as any).data = { newStory: true };
+      const c = fixture.componentInstance;
+      c.loading = true; // as it is when the page first opens
+      c.ngOnInit();
+      fixture.detectChanges();
+
+      expect(c.loading).toBeFalse();
+      expect(root().querySelector('mat-progress-bar')).toBeNull();
     });
 
     it('on its own page, shows the fields and a way back to the stories, and not the list', () => {
