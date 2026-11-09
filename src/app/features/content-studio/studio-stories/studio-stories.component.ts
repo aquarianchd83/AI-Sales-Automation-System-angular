@@ -1,5 +1,4 @@
-import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { EMPTY, Subject, forkJoin, interval } from 'rxjs';
@@ -58,9 +57,6 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   readonly jobStatus = StoryJobStatus;
   readonly sceneStatusLabels = STORY_SCENE_STATUS_LABELS;
   readonly languages = ['Hinglish', 'Hindi', 'English'];
-
-  @ViewChild('newStoryDialog', { static: true }) newStoryDialog!: TemplateRef<unknown>;
-  private newStoryRef: MatDialogRef<unknown> | null = null;
 
   /** Credits each story's script has used so far (charged less refunded), by project id. Missing until the activity list answers. */
   charges: Record<string, number> = {};
@@ -146,7 +142,6 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     private readonly notifications: NotificationService,
     private readonly fb: FormBuilder,
     private readonly sanitizer: DomSanitizer,
-    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -262,7 +257,6 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
         this.projects = [project, ...this.projects];
         this.creating = false;
         this.ideas = [];
-        this.newStoryRef?.close();
         this.open(project);
       });
   }
@@ -278,13 +272,6 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   startNew(): void {
     this.ideas = [];
     this.creating = true;
-    if (!this.laterSteps) {
-      this.newStoryRef = this.dialog.open(this.newStoryDialog, { width: '760px', maxWidth: '95vw', maxHeight: '90vh' });
-      this.newStoryRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe(() => {
-        this.creating = false;
-        this.newStoryRef = null;
-      });
-    }
     this.selected = null;
     this.script = null;
     this.draft = null;
@@ -292,7 +279,6 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   }
 
   closeNew(): void {
-    this.newStoryRef?.close();
     this.creating = false;
   }
 

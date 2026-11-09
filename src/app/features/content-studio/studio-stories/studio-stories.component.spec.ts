@@ -1,4 +1,3 @@
-import { ApplicationRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -112,14 +111,10 @@ describe('StudioStoriesComponent', () => {
     return m;
   }
 
-  // The New story dialog renders in the overlay, outside the fixture: look there while it is open.
-  const root = () => (document.querySelector('.cdk-overlay-container .new-story-dialog') ? document.body : (fixture.nativeElement as HTMLElement));
+  const root = () => fixture.nativeElement as HTMLElement;
   const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
   const click = (selector: string) => {
     (root().querySelector(selector) as HTMLElement).click();
-    fixture.detectChanges();
-    // The dialog's own view hangs off the application, not the fixture.
-    TestBed.inject(ApplicationRef).tick();
     fixture.detectChanges();
   };
 
@@ -545,7 +540,6 @@ describe('StudioStoriesComponent', () => {
       expect(box().value).toBe('Find potential customers.');
       comp.selectedProblemIndex = 1;
       fixture.detectChanges();
-      TestBed.inject(ApplicationRef).tick();
       expect(box().value).toBe('Classify leads as hot, warm and cold.');
     });
 

@@ -1,64 +1,4 @@
 <div class="page">
-  <!-- New story: the facts, an idea, and the language, in a modal. Accepting an idea starts the script. -->
-  <ng-template #newStoryDialog>
-    <h2 mat-dialog-title>New story</h2>
-    <mat-dialog-content>
-      <div class="new-story-dialog" data-testid="ideas-card">
-        <h3>1. What we know about your business</h3>
-        <ng-container *ngIf="knowledge as k">
-          <div class="notice" *ngIf="!k.isReady" data-testid="no-facts">
-            <p>{{ k.message }}</p>
-            <div class="actions">
-              <a mat-stroked-button routerLink="/content-studio/questionnaire">Business Questionnaire</a>
-              <a mat-stroked-button routerLink="/content-studio/facts">Business Facts</a>
-            </div>
-          </div>
-          <ng-container *ngIf="k.isReady">
-            <p class="small" data-testid="facts-count">
-              {{ k.verifiedFacts }} verified {{ k.verifiedFacts === 1 ? 'fact' : 'facts' }} about your business. The video is written only from these.
-            </p>
-            <div class="problem-picker" *ngIf="problems.length" data-testid="problem-picker">
-              <mat-form-field appearance="outline" class="problem-select">
-                <mat-label>Problem your business solves</mat-label>
-                <mat-select [(ngModel)]="selectedProblemIndex" [ngModelOptions]="{ standalone: true }" data-testid="problem-select">
-                  <mat-option *ngFor="let p of problems; let n = index" [value]="n">{{ p.title }}</mat-option>
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="problem-summary">
-                <mat-label>Summary</mat-label>
-                <textarea matInput rows="3" readonly [value]="selectedProblem?.summary ?? ''" data-testid="problem-summary"></textarea>
-              </mat-form-field>
-            </div>
-            <p class="muted small" *ngIf="!problems.length" data-testid="no-problems">No problems are recorded in your business facts yet.</p>
-          </ng-container>
-        </ng-container>
-
-        <h3>2. Pick a video idea</h3>
-        <p class="muted small">Each idea is one problem your customers have that your business solves. The AI suggests them from the facts above.</p>
-        <div class="actions">
-          <mat-form-field appearance="outline" class="lang">
-            <mat-label>Language of the video</mat-label>
-            <mat-select [(ngModel)]="ideaLanguage" [ngModelOptions]="{ standalone: true }">
-              <mat-option *ngFor="let l of languages" [value]="l">{{ l }}</mat-option>
-            </mat-select>
-          </mat-form-field>
-          <button mat-flat-button color="primary" (click)="suggestIdeas()" [disabled]="busy || loadingIdeas || !knowledge?.isReady" data-testid="suggest-ideas">
-            <mat-icon>lightbulb</mat-icon>
-            {{ ideas.length ? 'Suggest other ideas' : 'Suggest ideas' }}
-          </button>
-          <button mat-button (click)="closeNew()">Cancel</button>
-        </div>
-
-        <div class="idea" *ngFor="let i of ideas; let n = index" [attr.data-idea]="n">
-          <strong>{{ i.title }}</strong>
-          <p class="small"><span class="muted">Problem:</span> {{ i.problem }}</p>
-          <p class="small"><span class="muted">How you solve it:</span> {{ i.solution }}</p>
-          <button mat-stroked-button (click)="useIdea(i)" [disabled]="busy" [attr.data-use-idea]="n">Write a script for this</button>
-        </div>
-      </div>
-    </mat-dialog-content>
-  </ng-template>
-
   <app-page-header
     title="Story studio"
     subtitle="Turn what your business has already told us into a short video about the problem your product solves. Write the script and approve it: nothing is made or paid for yet."
@@ -81,6 +21,62 @@
   </mat-card>
 
   <div class="split">
+    <!-- New story: the facts, an idea, and the language, right on the page. Accepting an idea starts the script. -->
+    <mat-card class="section-card" *ngIf="creating && !laterSteps" data-testid="ideas-card">
+      <h2 class="card-title">New story</h2>
+      <h3>1. What we know about your business</h3>
+      <ng-container *ngIf="knowledge as k">
+        <div class="notice" *ngIf="!k.isReady" data-testid="no-facts">
+          <p>{{ k.message }}</p>
+          <div class="actions">
+            <a mat-stroked-button routerLink="/content-studio/questionnaire">Business Questionnaire</a>
+            <a mat-stroked-button routerLink="/content-studio/facts">Business Facts</a>
+          </div>
+        </div>
+        <ng-container *ngIf="k.isReady">
+          <p class="small" data-testid="facts-count">
+            {{ k.verifiedFacts }} verified {{ k.verifiedFacts === 1 ? 'fact' : 'facts' }} about your business. The video is written only from these.
+          </p>
+          <div class="problem-picker" *ngIf="problems.length" data-testid="problem-picker">
+            <mat-form-field appearance="outline" class="problem-select">
+              <mat-label>Problem your business solves</mat-label>
+              <mat-select [(ngModel)]="selectedProblemIndex" [ngModelOptions]="{ standalone: true }" data-testid="problem-select">
+                <mat-option *ngFor="let p of problems; let n = index" [value]="n">{{ p.title }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="problem-summary">
+              <mat-label>Summary</mat-label>
+              <textarea matInput rows="3" readonly [value]="selectedProblem?.summary ?? ''" data-testid="problem-summary"></textarea>
+            </mat-form-field>
+          </div>
+          <p class="muted small" *ngIf="!problems.length" data-testid="no-problems">No problems are recorded in your business facts yet.</p>
+        </ng-container>
+      </ng-container>
+
+      <h3>2. Pick a video idea</h3>
+      <p class="muted small">Each idea is one problem your customers have that your business solves. The AI suggests them from the facts above.</p>
+      <div class="actions">
+        <mat-form-field appearance="outline" class="lang">
+          <mat-label>Language of the video</mat-label>
+          <mat-select [(ngModel)]="ideaLanguage" [ngModelOptions]="{ standalone: true }">
+            <mat-option *ngFor="let l of languages" [value]="l">{{ l }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button mat-flat-button color="primary" (click)="suggestIdeas()" [disabled]="busy || loadingIdeas || !knowledge?.isReady" data-testid="suggest-ideas">
+          <mat-icon>lightbulb</mat-icon>
+          {{ ideas.length ? 'Suggest other ideas' : 'Suggest ideas' }}
+        </button>
+        <button mat-button (click)="closeNew()">Cancel</button>
+      </div>
+
+      <div class="idea" *ngFor="let i of ideas; let n = index" [attr.data-idea]="n">
+        <strong>{{ i.title }}</strong>
+        <p class="small"><span class="muted">Problem:</span> {{ i.problem }}</p>
+        <p class="small"><span class="muted">How you solve it:</span> {{ i.solution }}</p>
+        <button mat-stroked-button (click)="useIdea(i)" [disabled]="busy" [attr.data-use-idea]="n">Write a script for this</button>
+      </div>
+    </mat-card>
+
     <!-- The list of stories, full width. Pick a row to open it below. -->
     <mat-card class="list-card" aria-label="Your stories">
       <p class="muted empty" *ngIf="!loading && !projects.length">No stories yet. Start one with "New story".</p>
