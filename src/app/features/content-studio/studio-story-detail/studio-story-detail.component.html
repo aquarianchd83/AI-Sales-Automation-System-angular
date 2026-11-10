@@ -70,16 +70,7 @@
       </div>
     </mat-card>
 
-    <mat-card class="section-card" data-testid="script-card">
-      <h3>Script</h3>
-      <pre class="text" *ngIf="r.scriptText; else noScript" data-testid="script">{{ r.scriptText }}</pre>
-      <ng-template #noScript>
-        <p class="muted small" data-testid="no-script">
-          {{ r.status === 'Rejected' ? 'No script was written.' : 'The platform team has not written the script yet. You will see it here.' }}
-        </p>
-      </ng-template>
-    </mat-card>
-
+ 
     <mat-card class="section-card" data-testid="brief-card">
       <h3>What you asked for</h3>
       <pre class="text" data-testid="brief">{{ r.topic }}</pre>

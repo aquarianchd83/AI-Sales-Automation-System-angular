@@ -58,20 +58,19 @@ describe('StudioStoryDetailComponent', () => {
     expect(q('[data-testid="summary"]')).toBeNull();
   });
 
-  it('promises a refund while the video is still being made, and says the script is not written yet', () => {
+  it('promises a refund while the video is still being made', () => {
     render();
 
     expect(text(q('[data-testid="promise"]'))).toContain('If the video is not created, the credits you prepaid are refunded in full.');
-    expect(text(q('[data-testid="no-script"]'))).toContain('has not written the script yet');
     expect(q('[data-testid="video"]')).toBeNull();
   });
 
-  it('shows the script once the platform team has written it', () => {
+  it('shows where it stands once the platform team has written the script, but not the script itself', () => {
     render(request({ status: 'ScriptReady', scriptText: 'Scene 1: Still searching for leads?' }));
 
     expect(text(q('[data-testid="status"]'))).toBe('Script written');
-    expect(text(q('[data-testid="script"]'))).toBe('Scene 1: Still searching for leads?');
-    expect(q('[data-testid="no-script"]')).toBeNull();
+    expect(q('[data-testid="script-card"]')).toBeNull();
+    expect(q('[data-testid="script"]')).toBeNull();
   });
 
   it('shows the reason, on the page, when the credits were refunded', () => {
