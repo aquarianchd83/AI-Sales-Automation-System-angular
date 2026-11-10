@@ -1,6 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { PageEvent } from '@angular/material/paginator';
+import { Router } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, startWith, switchMap, takeUntil } from 'rxjs/operators';
 
@@ -13,14 +15,11 @@ import {
 } from '../../../core/models/story-studio.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformStoryVideoRequestQuery, PlatformStoryVideoRequestService } from '../../../core/services/platform-story-video-request.service';
-
-/** The video the tenant gets: uploaded by the platform admin, or (later) made by the system from the script. */
-export type VideoChoice = 'upload' | 'generate';
+import { PlatformRefundVideoDialogComponent, PlatformRefundVideoDialogData } from '../platform-refund-video-dialog/platform-refund-video-dialog.component';
 
 /**
- * Every tenant's request for a Story studio video. The tenant already paid the video's price when raising it. The platform admin opens one, has the script
- * written (not charged again) and then either uploads the finished video or - once a real engine is switched on - has the system make it from the script. A video, however it came,
- * is stored under the tenant's folder, its link recorded on the request, and the tenant told in-app.
+ * Every tenant's request for a Story studio video, as a grid. The tenant already paid the video's price when raising it. A row opens the request on its
+ * own page (script, video, refund); the Refund button on a row refunds it without leaving the grid: a dialog asks for the reason, which the tenant reads.
  */
 @Component({
   selector: 'app-platform-video-requests',
@@ -31,26 +30,12 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
   readonly displayedColumns = ['raised', 'tenant', 'story', 'status', 'prepaid', 'length', 'actions'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusLabels = STORY_VIDEO_REQUEST_STATUS_LABELS;
-  readonly statuses: StoryVideoRequestStatus[] = ['Raised', 'ScriptReady', 'VideoReady'];
+  readonly statuses: StoryVideoRequestStatus[] = ['Raised', 'ScriptReady', 'VideoReady', 'Rejected'];
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
   readonly statusControl = new FormControl<StoryVideoRequestStatus | ''>('', { nonNullable: true });
 
   page: PagedResult<PlatformStoryVideoRequestRow> = emptyPage<PlatformStoryVideoRequestRow>();
   loading = true;
-
-  selected: PlatformStoryVideoRequestDetail | null = null;
-  loadingDetail = false;
-  /** The admin clicked "Generate script" and has not yet confirmed it. */
-  confirmingScript = false;
-  decliningOpen = false;
-  declineReason = '';
-  declineError = '';
-  declining = false;
-  writingScript = false;
-  uploading = false;
-  videoChoice: VideoChoice = 'upload';
-  chosenFile: File | null = null;
-  fileError = '';
 
   private query: PlatformStoryVideoRequestQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
@@ -59,6 +44,8 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
   constructor(
     private readonly requests: PlatformStoryVideoRequestService,
     private readonly notifications: NotificationService,
+    private readonly dialog: MatDialog,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -101,143 +88,32 @@ export class PlatformVideoRequestsComponent implements OnInit, OnDestroy {
     return this.statusLabels[status] ?? status;
   }
 
+  /** A row opens the request on its own page. */
+  open(row: PlatformStoryVideoRequestRow): void {
+    void this.router.navigate(['/platform/video-requests', row.id]);
+  }
+
   /** A request that is still waiting and was not refunded yet: the admin can refund it when the video cannot be made. */
   canRefund(row: { status: StoryVideoRequestStatus }): boolean {
     return row.status === 'Raised' || row.status === 'ScriptReady';
   }
 
-  /** The Refund button of a row: opens the request with the refund form ready (the reason is asked for before anything is returned). */
+  /** The Refund button of a row: opens the refund dialog for that request, without opening the request's page. */
   refund(row: PlatformStoryVideoRequestRow, event: Event): void {
     event.stopPropagation();
-    this.open(row, true);
-  }
-
-  open(row: PlatformStoryVideoRequestRow, startRefund = false): void {
-    this.loadingDetail = true;
-    this.confirmingScript = false;
-    this.decliningOpen = false;
-    this.declineReason = '';
-    this.declineError = '';
-    this.chosenFile = null;
-    this.fileError = '';
-    this.requests
-      .get(row.id)
-      .pipe(finalize(() => (this.loadingDetail = false)), takeUntil(this.destroy$))
+    this.dialog
+      .open<PlatformRefundVideoDialogComponent, PlatformRefundVideoDialogData, PlatformStoryVideoRequestDetail | null>(PlatformRefundVideoDialogComponent, {
+        width: '520px',
+        maxWidth: '95vw',
+        data: { requestId: row.id, title: row.title, tenantName: row.tenantName, prepaidCredits: row.prepaidCredits },
+      })
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
       .subscribe((detail) => {
-        this.selected = detail;
-        this.decliningOpen = startRefund && this.canRefund(detail);
-      });
-  }
-
-  close(): void {
-    this.selected = null;
-    this.confirmingScript = false;
-  }
-
-  // ----- the script -----
-
-  askToWriteScript(): void {
-    this.confirmingScript = true;
-  }
-
-  cancelScript(): void {
-    this.confirmingScript = false;
-  }
-
-  writeScript(): void {
-    const current = this.selected;
-    if (!current || this.writingScript) {
-      return;
-    }
-    this.writingScript = true;
-    this.requests
-      .generateScript(current.id)
-      .pipe(finalize(() => ((this.writingScript = false), (this.confirmingScript = false))), takeUntil(this.destroy$))
-      .subscribe((detail) => {
-        this.selected = detail;
-        this.notifications.success('Script written. The tenant is not charged again: the video price covers it.');
-        this.reload$.next();
-      });
-  }
-
-  // ----- declining -----
-
-  openDecline(): void {
-    this.decliningOpen = true;
-    this.declineError = '';
-  }
-
-  cancelDecline(): void {
-    this.decliningOpen = false;
-    this.declineReason = '';
-    this.declineError = '';
-  }
-
-  /** The video cannot be made: refunds the tenant's prepaid credits and says why. */
-  decline(): void {
-    const current = this.selected;
-    if (!current || this.declining) {
-      return;
-    }
-    const reason = this.declineReason.trim();
-    if (!reason) {
-      this.declineError = 'Say why: the tenant is told.';
-      return;
-    }
-    this.declining = true;
-    this.requests
-      .reject(current.id, reason)
-      .pipe(finalize(() => (this.declining = false)), takeUntil(this.destroy$))
-      .subscribe((detail) => {
-        this.selected = detail;
-        this.decliningOpen = false;
-        this.declineReason = '';
+        if (!detail) {
+          return;
+        }
         this.notifications.success('Credits refunded. The tenant has been told.');
-        this.reload$.next();
-      });
-  }
-
-  /** The script as plain lines for reading: who says what, scene by scene. */
-  get scriptLines(): { scene: number; speaker: string; text: string }[] {
-    const scenes = this.selected?.script?.script?.scenes ?? [];
-    return scenes.flatMap((s) => (s.dialogue ?? []).map((d) => ({ scene: s.index, speaker: d.speaker, text: d.text })));
-  }
-
-  // ----- the video -----
-
-  chooseFile(input: HTMLInputElement): void {
-    const file = input.files?.[0] ?? null;
-    this.fileError = '';
-    this.chosenFile = null;
-    if (!file) {
-      return;
-    }
-    if (!file.type.startsWith('video/')) {
-      this.fileError = 'Choose a video file (MP4, WebM or MOV).';
-      return;
-    }
-    this.chosenFile = file;
-  }
-
-  upload(input: HTMLInputElement): void {
-    const current = this.selected;
-    if (!current || this.uploading) {
-      return;
-    }
-    if (!this.chosenFile) {
-      this.fileError = 'Choose a video file first.';
-      return;
-    }
-    const file = this.chosenFile;
-    this.uploading = true;
-    this.requests
-      .uploadVideo(current.id, file)
-      .pipe(finalize(() => (this.uploading = false)), takeUntil(this.destroy$))
-      .subscribe((detail) => {
-        this.selected = detail;
-        this.chosenFile = null;
-        input.value = '';
-        this.notifications.success('Video uploaded. The tenant has been told.');
         this.reload$.next();
       });
   }

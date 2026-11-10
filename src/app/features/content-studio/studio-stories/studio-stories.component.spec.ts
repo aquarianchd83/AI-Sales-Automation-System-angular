@@ -180,12 +180,25 @@ describe('StudioStoriesComponent', () => {
     expect(link.getAttribute('target')).toBe('_blank');
   });
 
-  it('leaves the script of a requested story to the platform team: no write button, and a note saying so', () => {
+  it('opens a requested story on its own page, not in the panel under the grid', () => {
     render([project()], [request({ status: 'Raised' })]);
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
     click('[data-project="p1"]');
 
-    expect(q('[data-testid="generate"]')).toBeNull();
-    expect(text(q('[data-testid="requested-note"]'))).toContain('platform team');
+    expect(navigate).toHaveBeenCalledWith(['/content-studio/stories', 'q1']);   // the request's id
+    expect(fixture.componentInstance.selected).toBeNull();
+    expect(q('[data-testid="script-card"]')).toBeNull();
+  });
+
+  it('still opens a story that was never requested in the panel', () => {
+    render([project()], []);
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+    click('[data-project="p1"]');
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.selected?.id).toBe('p1');
   });
 
   describe('download and clone', () => {
@@ -260,16 +273,17 @@ describe('StudioStoriesComponent', () => {
     expect(text(q('[data-testid="refund-note"]'))).toContain('refunded in full if the video is not created');
   });
 
-  it('shows a refunded request as Refunded, with the reason and the credits refunded', () => {
+  it('shows a refunded request as Refunded, with the reason right in the grid', () => {
     render([project()], [request({ status: 'Rejected', rejectedReason: 'The video engine could not make this one.' })]);
+
     expect(text(q('[data-project="p1"] [data-status]'))).toBe('Refunded');
+    expect(text(q('[data-reason="p1"]'))).toBe('Reason: The video engine could not make this one.');
+  });
 
-    click('[data-project="p1"]');
+  it('shows no reason under a request that was not refunded', () => {
+    render([project()], [request({ status: 'Raised' })]);
 
-    expect(text(q('[data-testid="declined-note"]'))).toContain('The video engine could not make this one.');
-    expect(text(q('[data-testid="declined-note"]'))).toContain('refunded');
-    expect(q('[data-testid="requested-note"]')).toBeNull();
-    expect(q('[data-testid="generate"]')).toBeNull();
+    expect(q('[data-reason="p1"]')).toBeNull();
   });
 
   it('still lets a story that was never requested write its own script', () => {
@@ -277,7 +291,6 @@ describe('StudioStoriesComponent', () => {
     click('[data-project="p1"]');
 
     expect(q('[data-testid="generate"]')).not.toBeNull();
-    expect(q('[data-testid="requested-note"]')).toBeNull();
   });
 
   it('shows the stories in a full-width grid: title, status, language, credit and video', () => {

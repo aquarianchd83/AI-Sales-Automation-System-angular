@@ -32,9 +32,9 @@ export class PlatformStoryVideoRequestService {
     return this.http.get<PlatformStoryVideoRequestDetail>(`${this.baseUrl}/${id}`);
   }
 
-  /** Writes the script for the tenant. Not charged again: the video's price, taken when the request was raised, covers it. */
-  generateScript(id: string): Observable<PlatformStoryVideoRequestDetail> {
-    return this.http.post<PlatformStoryVideoRequestDetail>(`${this.baseUrl}/${id}/script`, {});
+  /** Saves the script the admin wrote, as plain text (changeable until the video is attached). The tenant is not charged: the video's price covers it. */
+  saveScript(id: string, text: string): Observable<PlatformStoryVideoRequestDetail> {
+    return this.http.put<PlatformStoryVideoRequestDetail>(`${this.baseUrl}/${id}/script`, { text });
   }
 
   /** The video cannot be made: the credits go back to the tenant, who is told why (the reason is required). */

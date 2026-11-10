@@ -212,12 +212,35 @@ export interface PlatformStoryVideoRequestRow {
   creditsRefunded: number | null;
 }
 
+/** One of the tenant's own requests in full (StoryVideoRequestDetailDto): where it stands, what was asked for, the script once written, and the video. */
+export interface StoryVideoRequestDetail {
+  id: string;
+  projectId: string;
+  title: string;
+  language: string;
+  targetSeconds: number;
+  status: StoryVideoRequestStatus;
+  raisedAtUtc: string;
+  scriptGeneratedAtUtc: string | null;
+  videoReadyAtUtc: string | null;
+  topic: string;
+  audience: string | null;
+  callToAction: string | null;
+  scriptText: string | null;
+  videoUrl: string | null;
+  videoFileName: string | null;
+  rejectedReason: string | null;
+  prepaidCredits: number | null;
+  creditsRefunded: number | null;
+}
+
 /** A request opened by the platform admin: the brief, the script so far, and the video if there is one. */
 export interface PlatformStoryVideoRequestDetail extends PlatformStoryVideoRequestRow {
   topic: string;
   audience: string | null;
   callToAction: string | null;
-  script: StoryScriptVersion | null;
+  /** The script the platform admin wrote, as plain text. */
+  scriptText: string | null;
   videoUrl: string | null;
   videoFileName: string | null;
   videoSource: string | null;

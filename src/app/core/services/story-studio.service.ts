@@ -12,6 +12,7 @@ import {
   StoryCharacter,
   StoryIdea,
   StoryVideoRequest,
+  StoryVideoRequestDetail,
   StoryKnowledge,
   StoryCheck,
   StoryPlatform,
@@ -176,6 +177,11 @@ export class StoryStudioService {
   /** Raises a request for a video: the story is made from the brief and the platform team takes it from there. Nothing is charged here. */
   raiseRequest(body: CreateStoryProjectBody): Observable<StoryVideoRequest> {
     return this.http.post<StoryVideoRequest>(`${this.baseUrl}/requests`, body);
+  }
+
+  /** One of the tenant's own requests in full, for its page. */
+  getRequest(requestId: string): Observable<StoryVideoRequestDetail> {
+    return this.http.get<StoryVideoRequestDetail>(`${this.baseUrl}/requests/${requestId}`);
   }
 
   /** The tenant's own requests, with where each stands and the video link once there is one. */

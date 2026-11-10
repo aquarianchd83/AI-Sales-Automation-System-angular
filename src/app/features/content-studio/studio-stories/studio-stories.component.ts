@@ -225,6 +225,16 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** A row: a requested story opens on its own page (its status, script and video); a story that was never requested opens in the panel below. */
+  openRow(p: StoryProject): void {
+    const request = this.requestFor(p.id);
+    if (request) {
+      void this.router.navigate(['/content-studio/stories', request.id]);
+      return;
+    }
+    this.open(p);
+  }
+
   /** Starts a new story from this one: the New story page opens with the same answers, to change and raise as a new request. */
   clone(p: StoryProject, event: Event): void {
     event.stopPropagation();
