@@ -1,0 +1,124 @@
+<div class="page">
+  <div class="back-row">
+    <a mat-stroked-button routerLink="/platform/video-requests" data-testid="back-to-requests">
+      <mat-icon>arrow_back</mat-icon>
+      Back to video requests
+    </a>
+  </div>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="detail-card" *ngIf="notFound" data-testid="not-found">
+    <p>That request could not be found.</p>
+  </mat-card>
+
+  <ng-container *ngIf="request as r">
+    <mat-card class="detail-card" data-testid="request-detail">
+      <div class="detail-head">
+        <div>
+          <h2>{{ r.title }}</h2>
+          <div class="muted">{{ r.tenantName }} · {{ r.language }} · {{ r.targetSeconds }}s · raised {{ r.raisedAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}</div>
+        </div>
+        <span
+          class="status-chip"
+          data-testid="status"
+          [class.status-chip--opted-in]="r.status === 'VideoReady'"
+          [class.status-chip--scheduled]="r.status === 'Raised'"
+          [class.status-chip--inactive]="r.status === 'ScriptReady' || r.status === 'Rejected'"
+        >
+          {{ statusLabel(r.status) }}
+        </span>
+      </div>
+
+      <p class="small" *ngIf="r.prepaidCredits !== null" data-testid="paid">
+        <span class="muted">Prepaid by the tenant:</span> {{ r.prepaidCredits | number: '1.0-2' }} credits{{ r.creditsRefunded && r.creditsRefunded > 0 ? ' (refunded)' : '' }}
+      </p>
+      <div class="declined" *ngIf="r.status === 'Rejected'" data-testid="declined">
+        <mat-icon>block</mat-icon>
+        <span>Refunded: {{ r.rejectedReason }}</span>
+      </div>
+
+      <h3>What the tenant asked for</h3>
+      <pre class="brief" data-testid="brief">{{ r.topic }}</pre>
+      <p class="small"><span class="muted">Target audience:</span> {{ r.audience || 'Not given' }}</p>
+      <p class="small"><span class="muted">Call to action:</span> {{ r.callToAction || 'Not given' }}</p>
+    </mat-card>
+
+    <mat-card class="detail-card" data-testid="script-card">
+      <h3>Script</h3>
+      <ng-container *ngIf="canEditScript; else readOnlyScript">
+        <mat-form-field appearance="outline" class="wide" subscriptSizing="dynamic">
+          <mat-label>Script</mat-label>
+          <textarea
+            matInput
+            rows="12"
+            [maxlength]="maxScript"
+            [(ngModel)]="scriptText"
+            (ngModelChange)="scriptError = ''"
+            placeholder="Write or paste the script here, as plain text."
+            data-testid="script-text"
+          ></textarea>
+          <mat-hint align="end">{{ scriptText.length | number }} / {{ maxScript | number }}</mat-hint>
+        </mat-form-field>
+        <p class="error small" *ngIf="scriptError" data-testid="script-error">{{ scriptError }}</p>
+        <div class="actions">
+          <button mat-flat-button color="primary" type="button" (click)="saveScript()" [disabled]="savingScript" data-testid="save-script">
+            <mat-icon>save</mat-icon>
+            Save script
+          </button>
+          <span class="muted small" *ngIf="r.scriptGeneratedAtUtc && !scriptChanged" data-testid="script-saved">
+            Saved {{ r.scriptGeneratedAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}. The tenant can read it.
+          </span>
+          <span class="muted small" *ngIf="scriptChanged && scriptText.trim()" data-testid="script-unsaved">Not saved yet.</span>
+        </div>
+      </ng-container>
+      <ng-template #readOnlyScript>
+        <pre class="brief" *ngIf="r.scriptText; else noScript" data-testid="script-readonly">{{ r.scriptText }}</pre>
+        <ng-template #noScript><p class="muted small" data-testid="no-script">No script was written.</p></ng-template>
+      </ng-template>
+    </mat-card>
+
+    <mat-card class="detail-card" data-testid="video-card" *ngIf="r.status !== 'Rejected'">
+      <h3>Video</h3>
+      <mat-radio-group class="choices" [(ngModel)]="videoChoice" data-testid="video-choice">
+        <mat-radio-button value="upload">Upload a video</mat-radio-button>
+        <mat-radio-button value="generate" [disabled]="!r.canGenerateVideo" data-testid="choice-generate">
+          Let the system make it from the script
+        </mat-radio-button>
+      </mat-radio-group>
+      <p class="muted small" *ngIf="!r.canGenerateVideo" data-testid="generate-unavailable">
+        The system cannot make the video yet: a video engine has not been switched on. Upload the finished video for now.
+      </p>
+
+      <div class="upload" *ngIf="videoChoice === 'upload'">
+        <input #file type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v" (change)="chooseFile(file)" data-testid="video-file" />
+        <button mat-flat-button color="primary" type="button" (click)="upload(file)" [disabled]="uploading" data-testid="upload-video">
+          <mat-icon>cloud_upload</mat-icon>
+          {{ r.videoUrl ? 'Replace the video' : 'Upload video' }}
+        </button>
+        <span class="small" *ngIf="uploading">Uploading to the tenant's folder…</span>
+      </div>
+      <p class="error small" *ngIf="fileError" data-testid="file-error">{{ fileError }}</p>
+
+      <div class="video-ready" *ngIf="r.videoUrl" data-testid="video-ready">
+        <mat-icon>check_circle</mat-icon>
+        <span>
+          Video ready{{ r.videoFileName ? ': ' + r.videoFileName : '' }}.
+          <a [href]="r.videoUrl" target="_blank" rel="noopener" data-testid="video-link">Open the video</a>
+          <span class="muted"> · {{ r.videoReadyAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}. The tenant has been told.</span>
+        </span>
+      </div>
+    </mat-card>
+
+    <mat-card class="detail-card" *ngIf="canRefund" data-testid="refund-card">
+      <h3>Cannot make this video?</h3>
+      <p class="muted small">Refund the prepaid credits. You give the reason, and the tenant reads it.</p>
+      <div class="actions">
+        <button mat-stroked-button color="warn" type="button" (click)="openRefundDialog()" data-testid="refund-open">
+          <mat-icon>block</mat-icon>
+          Refund the prepaid credits
+        </button>
+      </div>
+    </mat-card>
+  </ng-container>
+</div>

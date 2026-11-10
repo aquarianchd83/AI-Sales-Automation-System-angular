@@ -159,6 +159,7 @@ describe('ShellComponent sidenav', () => {
       'forward_to_inboxTenant Notifications',
       'menu_bookKnowledge Base', // platform knowledge: stays
       'quizStudio Questionnaires',
+      'movieVideo Requests',
       'paymentsPackage',
       'data_usageUsage & Quotas',
       'account_balance_walletCredit Costs & Payers',

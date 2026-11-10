@@ -86,14 +86,14 @@ describe('PlatformServiceMarginsComponent', () => {
   it('lists every service credits are spent on, with a margin column for each credit pack', () => {
     const { rows, root, packCells } = render();
 
-    expect(rows().length).toBe(7);
+    expect(rows().length).toBe(6);
     expect(text(rows()[0])).toContain('AI conversation');
     expect(text(rows()[1])).toContain('Discover customers');
     expect(text(rows()[2])).toContain('WhatsApp message');
-    expect(text(rows()[3])).toContain('Content Studio generation');
-    expect(text(rows()[4])).toContain('Content Studio video render');
-    expect(text(rows()[5])).toContain('Product knowledge: reading sources');
-    expect(text(rows()[6])).toContain('Product knowledge: drafting and answering');
+    expect(text(rows()[3])).toContain('Content Studio video render');
+    expect(text(rows()[4])).toContain('Product knowledge: reading sources');
+    expect(text(rows()[5])).toContain('Product knowledge: drafting and answering');
+    expect(root.textContent).not.toContain('Content Studio generation');
     expect(text(rows()[0].querySelector('[data-testid=cost]'))).toBe('₹ 0.50');
 
     const heads = Array.from(root.querySelectorAll('th.pack-head')).map((h) => text(h));
@@ -111,21 +111,20 @@ describe('PlatformServiceMarginsComponent', () => {
     expect(text(big.querySelector('[data-testid=margin-percent]'))).toBe('50%');
   });
 
-  it('offers a box for the cost of Content Studio, and nowhere else', () => {
+  it('offers a box for the cost of a Content Studio video, and nowhere else', () => {
     const { rows } = render();
 
     expect(rows()[3].querySelector('[data-testid=cost-input]')).not.toBeNull();
-    expect(rows()[4].querySelector('[data-testid=cost-input]')).not.toBeNull();
-    [0, 1, 2, 5, 6].forEach((i) => expect(rows()[i].querySelector('[data-testid=cost-input]')).toBeNull());
+    [0, 1, 2, 4, 5].forEach((i) => expect(rows()[i].querySelector('[data-testid=cost-input]')).toBeNull());
   });
 
   it('works out the margin of Content Studio as the cost is typed, without saving', () => {
     const { rows, packCells, type, api, fixture } = render();
 
     // A video render draws 10 credits: Rs 20 on the small pack, Rs 10 on the big one, against a typed Rs 8.
-    type(rows()[4].querySelector('[data-testid=cost-input]') as HTMLInputElement, '8');
+    type(rows()[3].querySelector('[data-testid=cost-input]') as HTMLInputElement, '8');
 
-    const [small, big] = packCells(rows()[4]);
+    const [small, big] = packCells(rows()[3]);
     expect(text(small.querySelector('[data-testid=margin-percent]'))).toBe('60%');
     expect(text(small.querySelector('[data-testid=margin-inr]'))).toBe('Margin ₹ 12.00');
     expect(text(big.querySelector('[data-testid=margin-percent]'))).toBe('20%');
@@ -133,15 +132,15 @@ describe('PlatformServiceMarginsComponent', () => {
     expect(fixture.componentInstance.dirty).toBeTrue();
 
     // A cost above the charge is a loss on the pack it exceeds.
-    type(rows()[4].querySelector('[data-testid=cost-input]') as HTMLInputElement, '15');
+    type(rows()[3].querySelector('[data-testid=cost-input]') as HTMLInputElement, '15');
     expect(text(big.querySelector('[data-testid=margin-inr]'))).toBe('Loss ₹ 5.00');
-    expect(text(rows()[4].querySelector('[data-testid=loss]'))).toContain('500 credits');
+    expect(text(rows()[3].querySelector('[data-testid=loss]'))).toContain('500 credits');
   });
 
   it('saves the typed cost, and clears one that was emptied', () => {
     const { root, rows, type, api, fixture } = render();
 
-    type(rows()[4].querySelector('[data-testid=cost-input]') as HTMLInputElement, '8');
+    type(rows()[3].querySelector('[data-testid=cost-input]') as HTMLInputElement, '8');
     (root.querySelector('[data-testid=save]') as HTMLButtonElement).click();
     fixture.detectChanges();
 
@@ -154,7 +153,7 @@ describe('PlatformServiceMarginsComponent', () => {
   it('shows the charge of a service whose cost is not tracked, with no margin', () => {
     const { rows, packCells } = render();
 
-    const video = rows()[4];
+    const video = rows()[3];
     expect(text(video)).toContain('Not tracked');
     const [small, big] = packCells(video);
     expect(text(small.querySelector('[data-testid=charge]'))).toBe('Charge ₹ 20.00');
@@ -168,7 +167,7 @@ describe('PlatformServiceMarginsComponent', () => {
     const { rows, packCells } = render();
 
     // Reading draws 5 credits: Rs 10 on the small pack against a Rs 4 cost, Rs 5 on the big one.
-    const [small, big] = packCells(rows()[5]);
+    const [small, big] = packCells(rows()[4]);
     expect(text(small.querySelector('[data-testid=margin-percent]'))).toBe('60%');
     expect(text(big.querySelector('[data-testid=margin-percent]'))).toBe('20%');
   });

@@ -1,0 +1,238 @@
+<div class="page">
+  <app-page-header
+    title="New story"
+    subtitle="Pick a problem, tell us about it, and raise a request: the platform team writes the script and makes the video. Videos run 20 to 30 seconds."
+  >
+    <a mat-stroked-button routerLink="/content-studio/stories" data-testid="back-to-stories">
+      <mat-icon>arrow_back</mat-icon>
+      Back to stories
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading || raising"></mat-progress-bar>
+
+  <!-- What the video costs, up front: the platform's price for a video (Credit costs: Content Studio video render). -->
+  <div class="cost-top" *ngIf="!loading" data-testid="cost-top">
+    <app-credit-cost [scenarios]="[4]" prefix="This video costs"></app-credit-cost>
+    <span class="muted small">Prepaid from your credits when you raise the request. If the video is not created, the credits are refunded in full.</span>
+  </div>
+
+  <p class="clone-note" *ngIf="clonedFrom" data-testid="clone-note">
+    <mat-icon>content_copy</mat-icon>
+    <span>Copied from "{{ clonedFrom }}". Change anything, then raise the request: it is a new video, so it is charged as one.</span>
+  </p>
+
+  <ng-container *ngIf="!loading">
+    <!-- No verified facts: nothing true to write from. -->
+    <mat-card class="section-card notice" *ngIf="!knowledge?.isReady" data-testid="no-facts">
+      <p>{{ knowledge?.message || 'The studio could not read your business facts. Try again in a moment.' }}</p>
+      <div class="actions">
+        <a mat-stroked-button routerLink="/content-studio/questionnaire">Business Questionnaire</a>
+        <a mat-stroked-button routerLink="/content-studio/facts">Business Facts</a>
+      </div>
+    </mat-card>
+
+    <ng-container *ngIf="knowledge?.isReady">
+      <!-- 1. the problem -->
+      <mat-card class="section-card" data-testid="step-problem">
+        <h3><span class="num">1</span> Pick a problem to make videos about</h3>
+        <ng-container *ngIf="problems.length; else noProblems">
+          <mat-form-field appearance="outline" class="wide">
+            <mat-label>Problem your business solves</mat-label>
+            <mat-select [value]="selectedProblemIndex" (selectionChange)="pickProblem($event.value)" data-testid="problem-select">
+              <mat-option *ngFor="let p of problems; let n = index" [value]="n">{{ p.title }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="wide">
+            <mat-label>Summary</mat-label>
+            <textarea matInput rows="2" readonly [value]="selectedProblem?.summary ?? ''" data-testid="problem-summary"></textarea>
+          </mat-form-field>
+        </ng-container>
+        <ng-template #noProblems>
+          <p class="muted small" data-testid="no-problems">No problems are recorded in your business facts yet. Add them in Business Facts, under the category Problems.</p>
+        </ng-template>
+      </mat-card>
+
+      <ng-container *ngIf="problems.length">
+        <!-- 2. about this problem -->
+        <mat-card class="section-card form-card" data-testid="step-details">
+          <header class="card-head">
+            <h3><span class="num">2</span> Tell us about this problem</h3>
+            <div class="meter">
+              <span class="small" data-testid="filled-count">{{ filled }} of 8 filled</span>
+              <mat-progress-bar mode="determinate" [value]="filledPercent"></mat-progress-bar>
+            </div>
+          </header>
+
+          <!-- Sector: the one answer that is confirmed rather than typed. -->
+          <section class="sector" [class.ok]="sectorConfirmed" data-testid="sector">
+            <div class="sector-head">
+              <span class="block-title">Sector</span>
+              <span class="badge" data-testid="sector-badge">{{ sectorBadge }}</span>
+            </div>
+            <div class="sector-pick">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+                <mat-label>Sector this problem belongs to</mat-label>
+                <mat-select [(ngModel)]="sectorChoice" (selectionChange)="sectorChanged()" data-testid="sector-select">
+                  <mat-option *ngFor="let s of sectorOptions" [value]="s">{{ s }}</mat-option>
+                  <mat-option [value]="OTHER">Other (type your own)</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <button
+                mat-stroked-button
+                type="button"
+                *ngIf="sector && !sectorDiffers && !sectorAcceptedAsIs && sectorDecision === 'none'"
+                (click)="acceptSector()"
+                data-testid="sector-accept"
+              >
+                <mat-icon>check</mat-icon>
+                Looks right
+              </button>
+            </div>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide" *ngIf="sectorChoice === OTHER">
+              <mat-label>Describe the sector</mat-label>
+              <input matInput [(ngModel)]="sectorOther" (ngModelChange)="sectorChanged()" data-testid="sector-other" />
+            </mat-form-field>
+
+            <div class="ask" *ngIf="sectorDiffers && sectorDecision === 'none'" data-testid="sector-ask">
+              <p>{{ sectorQuestion }}</p>
+              <div class="actions">
+                <button mat-flat-button color="primary" type="button" (click)="updateProfileSector()" [disabled]="savingProfile" data-testid="sector-update-profile">
+                  Yes, update my profile
+                </button>
+                <button mat-stroked-button type="button" (click)="useSectorForStoryOnly()" [disabled]="savingProfile" data-testid="sector-story-only">
+                  No, only this story
+                </button>
+              </div>
+            </div>
+            <p class="sector-note" [class.success]="sectorConfirmed" data-testid="sector-message">{{ sectorMessage }}</p>
+          </section>
+
+          <p class="lead">Filled in from your business facts where we can. Fix anything that is off, or choose Other to type your own.</p>
+
+          <section class="block">
+            <h4 class="block-title">The problem</h4>
+            <div class="fields">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="span-2">
+                <mat-label>Business problem</mat-label>
+                <textarea matInput rows="2" [(ngModel)]="businessProblem" data-testid="f-problem"></textarea>
+                <mat-hint>What problem does the business solve?</mat-hint>
+              </mat-form-field>
+
+              <div class="field">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Target audience</mat-label>
+                  <mat-select [(ngModel)]="audienceChoice" data-testid="f-audience">
+                    <mat-option *ngFor="let a of audienceOptions" [value]="a">{{ a }}</mat-option>
+                    <mat-option [value]="OTHER">Other (type your own)</mat-option>
+                  </mat-select>
+                  <mat-hint>Who experiences this problem?</mat-hint>
+                </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" *ngIf="audienceChoice === OTHER">
+                  <mat-label>Describe the audience</mat-label>
+                  <input matInput [(ngModel)]="audienceOther" data-testid="f-audience-other" />
+                </mat-form-field>
+              </div>
+
+              <div class="field">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Solution</mat-label>
+                  <mat-select [(ngModel)]="solutionChoice" data-testid="f-solution">
+                    <mat-option *ngFor="let s of solutionOptions" [value]="s">{{ s }}</mat-option>
+                    <mat-option [value]="OTHER">Other (type your own)</mat-option>
+                  </mat-select>
+                  <mat-hint>How does the product solve it?</mat-hint>
+                </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" *ngIf="solutionChoice === OTHER">
+                  <mat-label>Describe the solution</mat-label>
+                  <input matInput [(ngModel)]="solutionOther" data-testid="f-solution-other" />
+                </mat-form-field>
+              </div>
+            </div>
+          </section>
+
+          <section class="block">
+            <h4 class="block-title">What you offer</h4>
+            <div class="fields fields--3">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Key capabilities</mat-label>
+                <textarea matInput rows="3" [(ngModel)]="capabilities" data-testid="f-capabilities"></textarea>
+                <mat-hint>What can the product actually do?</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Business benefits</mat-label>
+                <textarea matInput rows="3" [(ngModel)]="benefits" data-testid="f-benefits"></textarea>
+                <mat-hint>What practical benefit does it offer?</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Differentiator</mat-label>
+                <textarea matInput rows="3" [(ngModel)]="differentiator" data-testid="f-differentiator"></textarea>
+                <mat-hint>Why choose this solution?</mat-hint>
+              </mat-form-field>
+            </div>
+          </section>
+
+          <section class="block">
+            <h4 class="block-title">The video</h4>
+            <div class="fields fields--3">
+              <div class="field">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Call to action</mat-label>
+                  <mat-select [(ngModel)]="ctaChoice" data-testid="f-cta">
+                    <mat-option *ngFor="let c of ctaOptions" [value]="c">{{ c }}</mat-option>
+                    <mat-option [value]="OTHER">Other (type your own)</mat-option>
+                  </mat-select>
+                  <mat-hint>What should the viewer do next?</mat-hint>
+                </mat-form-field>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" *ngIf="ctaChoice === OTHER">
+                  <mat-label>Describe the call to action</mat-label>
+                  <input matInput [(ngModel)]="ctaOther" data-testid="f-cta-other" />
+                </mat-form-field>
+              </div>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Length</mat-label>
+                <mat-select [(ngModel)]="targetSeconds" data-testid="f-length">
+                  <mat-option *ngFor="let s of lengths" [value]="s">{{ s }} seconds</mat-option>
+                </mat-select>
+                <mat-hint>How long the video runs.</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Language</mat-label>
+                <mat-select [(ngModel)]="language" data-testid="f-language">
+                  <mat-option *ngFor="let l of languages" [value]="l">{{ l }}</mat-option>
+                </mat-select>
+                <mat-hint>The language of the spoken lines.</mat-hint>
+              </mat-form-field>
+            </div>
+          </section>
+
+          <footer class="card-foot">
+            <div class="flow small">
+              <span class="muted">Video flow</span>
+              <span class="chip">Problem</span>→<span class="chip">Solution</span>→<span class="chip">How it works</span>→<span class="chip">Business benefit</span>→<span class="chip">CTA</span>
+            </div>
+            <span class="muted small">Your other business facts (hours, offers, customers) are added as instructions.</span>
+          </footer>
+        </mat-card>
+
+        <!-- The end of the page: hand it to the platform team. -->
+        <div class="raise-bar" data-testid="raise-bar">
+          <p class="error small" *ngIf="sectorError" data-testid="sector-error">Confirm the sector first.</p>
+          <p class="error small" *ngIf="problemError" data-testid="problem-error">Describe the problem first.</p>
+          <div class="raise-actions">
+            <app-credit-cost [scenarios]="[4]" prefix="This video costs" data-testid="raise-cost"></app-credit-cost>
+            <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="raising" data-testid="raise-request">
+              <mat-icon>send</mat-icon>
+              Raise the request
+            </button>
+          </div>
+          <p class="promise small" data-testid="refund-promise">
+            <mat-icon>verified_user</mat-icon>
+            <span>If the video is not created, the credits you prepay are refunded in full.</span>
+          </p>
+          <p class="muted small">The platform team writes the script and makes the video. You will be told here when it is ready.</p>
+        </div>
+      </ng-container>
+    </ng-container>
+  </ng-container>
+</div>

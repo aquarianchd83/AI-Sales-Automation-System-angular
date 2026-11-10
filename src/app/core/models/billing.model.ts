@@ -407,6 +407,10 @@ export enum TenantNotificationKind {
   ConsentPageSetupRequired = 21,
   /** A customer agreed a demo, visit or similar with your AI assistant: be ready for it. */
   NextStepBooked = 22,
+  /** The platform team attached the video you asked for in the Story studio. */
+  StoryVideoReady = 23,
+  /** The platform team could not make the video you asked for: the credits were refunded, and the notice says why. */
+  StoryVideoRejected = 24,
 }
 
 export interface TenantNotification {
@@ -469,6 +473,8 @@ export const NOTIFICATION_KIND_LABELS: Record<TenantNotificationKind, string> = 
   [TenantNotificationKind.AccountLocked]: 'Account locked after wrong passwords',
   [TenantNotificationKind.ConsentPageSetupRequired]: 'WhatsApp Consent Page setup required',
   [TenantNotificationKind.NextStepBooked]: 'Customer booked a demo or visit',
+  [TenantNotificationKind.StoryVideoReady]: 'Your requested video is ready',
+  [TenantNotificationKind.StoryVideoRejected]: 'Your credits were refunded for a video',
 };
 
 /** True for the alerts that mean something has stopped or is about to — drawn in a warning colour. */
@@ -500,6 +506,9 @@ export function tenantNotificationRoute(kind: TenantNotificationKind): string {
       return '/consent-page-settings';
     case TenantNotificationKind.NextStepBooked:
       return '/conversations';
+    case TenantNotificationKind.StoryVideoReady:
+    case TenantNotificationKind.StoryVideoRejected:
+      return '/content-studio/stories';
     case TenantNotificationKind.JobStarted:
     case TenantNotificationKind.JobCompleted:
       return '/tenant-settings/jobs';

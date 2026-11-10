@@ -11,6 +11,8 @@ import {
   SceneVideoProviderKind,
   StoryCharacter,
   StoryIdea,
+  StoryVideoRequest,
+  StoryVideoRequestDetail,
   StoryKnowledge,
   StoryCheck,
   StoryPlatform,
@@ -160,6 +162,31 @@ export class StoryStudioService {
   /** Video ideas drawn from the verified facts by the AI provider chosen for the Story script. */
   suggestIdeas(language: string): Observable<StoryIdea[]> {
     return this.http.post<StoryIdea[]>(`${this.baseUrl}/ideas`, { language });
+  }
+
+  /** One story, for cloning it. */
+  getProject(projectId: string): Observable<StoryProject> {
+    return this.http.get<StoryProject>(`${this.baseUrl}/projects/${projectId}`);
+  }
+
+  /** The finished video of one of the tenant's requests as a file (the request carries the sign-in, so it cannot be a plain link). */
+  downloadRequestVideo(requestId: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/requests/${requestId}/video`, { responseType: 'blob' });
+  }
+
+  /** Raises a request for a video: the story is made from the brief and the platform team takes it from there. Nothing is charged here. */
+  raiseRequest(body: CreateStoryProjectBody): Observable<StoryVideoRequest> {
+    return this.http.post<StoryVideoRequest>(`${this.baseUrl}/requests`, body);
+  }
+
+  /** One of the tenant's own requests in full, for its page. */
+  getRequest(requestId: string): Observable<StoryVideoRequestDetail> {
+    return this.http.get<StoryVideoRequestDetail>(`${this.baseUrl}/requests/${requestId}`);
+  }
+
+  /** The tenant's own requests, with where each stands and the video link once there is one. */
+  listRequests(): Observable<StoryVideoRequest[]> {
+    return this.http.get<StoryVideoRequest[]>(`${this.baseUrl}/requests`);
   }
 
   /** Where clips can come from right now; Veo is off until the platform operator switches it on. */

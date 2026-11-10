@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { finalize, takeUntil } from 'rxjs/operators';
 
+import { CreditScenario } from '../../../core/models/credit-payer.model';
 import { ServiceMarginByPack, ServiceMarginPack, ServiceMarginRow, ServiceMargins, creditsPerUnitFor, onPack, previewRow } from '../../../core/models/service-margin.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PlatformServiceMarginService } from '../../../core/services/platform-service-margin.service';
@@ -138,7 +139,9 @@ export class PlatformServiceMarginsComponent implements OnInit, OnDestroy {
       this.rows = [];
       return;
     }
-    this.rows = this.data.rows.map((row) => {
+    // The per-step Content Studio generation row is not shown: what a studio video costs is the video render row. Its saved cost and credits still
+    // travel with the form (see `save`), so hiding the row never changes them.
+    this.rows = this.data.rows.filter((row) => row.scenario !== CreditScenario.ContentStudioGeneration).map((row) => {
       const typed = this.creditsControl(row)?.value;
       return previewRow(row, this.data!.packs, typed == null || Number.isNaN(typed) ? row.creditsCharged : typed, row.costEditable ? this.typedCost(row) : undefined);
     });

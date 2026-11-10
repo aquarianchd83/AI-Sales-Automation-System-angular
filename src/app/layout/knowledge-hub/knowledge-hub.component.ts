@@ -57,9 +57,10 @@ export class KnowledgeHubComponent implements OnInit {
     });
   }
 
-  /** The Studio's charge history shares the /content-studio module but is not a knowledge screen, so it renders without the list. */
+  /** The Studio's charge history and the Story studio share the /content-studio module but are not knowledge screens, so they render without the list. */
   get showList(): boolean {
-    return this.router.url.split(/[?#]/)[0] !== '/content-studio';
+    const path = this.router.url.split(/[?#]/)[0];
+    return path !== '/content-studio' && path !== '/content-studio/stories' && !path.startsWith('/content-studio/stories/');
   }
 
   visibleItems(): HubItem[] {

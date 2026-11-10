@@ -167,6 +167,88 @@ export interface StoryKnowledge {
   message: string | null;
 }
 
+/** Where a tenant's request for a video stands. The API sends the name. */
+export type StoryVideoRequestStatus = 'Raised' | 'ScriptReady' | 'VideoReady' | 'Rejected';
+
+export const STORY_VIDEO_REQUEST_STATUS_LABELS: Record<StoryVideoRequestStatus, string> = {
+  Raised: 'Requested',
+  ScriptReady: 'Script written',
+  VideoReady: 'Video ready',
+  Rejected: 'Refunded',
+};
+
+/** One of the tenant's own requests (StoryVideoRequestDto). */
+export interface StoryVideoRequest {
+  id: string;
+  projectId: string;
+  title: string;
+  status: StoryVideoRequestStatus;
+  raisedAtUtc: string;
+  scriptGeneratedAtUtc: string | null;
+  videoUrl: string | null;
+  videoReadyAtUtc: string | null;
+  /** Why the platform team could not make the video (the credits were refunded). */
+  rejectedReason: string | null;
+  /** The credits taken when the request was raised, and how many of them went back. */
+  prepaidCredits: number | null;
+  creditsRefunded: number | null;
+}
+
+/** One request in the platform admin's list, across every tenant. */
+export interface PlatformStoryVideoRequestRow {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  projectId: string;
+  title: string;
+  language: string;
+  targetSeconds: number;
+  status: StoryVideoRequestStatus;
+  raisedAtUtc: string;
+  scriptGeneratedAtUtc: string | null;
+  videoReadyAtUtc: string | null;
+  /** The credits the tenant prepaid, and how many of them were refunded. */
+  prepaidCredits: number | null;
+  creditsRefunded: number | null;
+}
+
+/** One of the tenant's own requests in full (StoryVideoRequestDetailDto): where it stands, what was asked for, the script once written, and the video. */
+export interface StoryVideoRequestDetail {
+  id: string;
+  projectId: string;
+  title: string;
+  language: string;
+  targetSeconds: number;
+  status: StoryVideoRequestStatus;
+  raisedAtUtc: string;
+  scriptGeneratedAtUtc: string | null;
+  videoReadyAtUtc: string | null;
+  topic: string;
+  audience: string | null;
+  callToAction: string | null;
+  scriptText: string | null;
+  videoUrl: string | null;
+  videoFileName: string | null;
+  rejectedReason: string | null;
+  prepaidCredits: number | null;
+  creditsRefunded: number | null;
+}
+
+/** A request opened by the platform admin: the brief, the script so far, and the video if there is one. */
+export interface PlatformStoryVideoRequestDetail extends PlatformStoryVideoRequestRow {
+  topic: string;
+  audience: string | null;
+  callToAction: string | null;
+  /** The script the platform admin wrote, as plain text. */
+  scriptText: string | null;
+  videoUrl: string | null;
+  videoFileName: string | null;
+  videoSource: string | null;
+  /** False until a real video engine is switched on: the admin can only upload for now. */
+  canGenerateVideo: boolean;
+  rejectedReason: string | null;
+}
+
 /** A video idea: one real customer problem the business solves, and how. */
 export interface StoryIdea {
   title: string;

@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
@@ -18,7 +19,10 @@ import {
   StoryScriptVersion,
 } from '../../../core/models/story-studio.model';
 import { NotificationService } from '../../../core/services/notification.service';
+import { StoryVideoRequest } from '../../../core/models/story-studio.model';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
+import { ContentStudioService } from '../../../core/services/content-studio.service';
+import { StudioActivityKind } from '../../../core/models/content-studio.model';
 import { SharedModule } from '../../../shared/shared.module';
 import { StudioStoriesComponent } from './studio-stories.component';
 
@@ -99,6 +103,15 @@ const script = (simulated: boolean): StoryScriptVersion => {
 describe('StudioStoriesComponent', () => {
   let fixture: ComponentFixture<StudioStoriesComponent>;
   let api: jasmine.SpyObj<StoryStudioService>;
+  let metering: jasmine.SpyObj<ContentStudioService>;
+
+  /** Studio-credit activity: the script of p1 cost 3 credits and 1 came back; one more step belongs to another story. */
+  function meteringSpy(): jasmine.SpyObj<ContentStudioService> {
+    const m = jasmine.createSpyObj<ContentStudioService>('ContentStudioService', ['getActivity']);
+    const row = (referenceId: string | null, netUnits: number) => ({ referenceType: 'StoryProject', referenceId, netUnits, kind: StudioActivityKind.StoryScript } as any);
+    m.getActivity.and.returnValue(of({ items: [row('p1', 2), row('p1', 1), row('other', 5)], totalCount: 3, page: 1, pageSize: 100, totalPages: 1 }));
+    return m;
+  }
 
   const root = () => fixture.nativeElement as HTMLElement;
   const text = (el: Element | null | undefined) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
@@ -107,12 +120,13 @@ describe('StudioStoriesComponent', () => {
     fixture.detectChanges();
   };
 
-  function render(projects: StoryProject[] = [project()]): void {
+  function render(projects: StoryProject[] = [project()], requests: StoryVideoRequest[] = []): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter', 'listRequests', 'downloadRequestVideo',
     ]);
     api.listProjects.and.returnValue(of(projects));
+    api.listRequests.and.returnValue(of(requests));
     api.listCharacters.and.returnValue(of([character('c1', 'Guru Ji'), character('c2', 'Sunita', { approvedReferenceId: 'r1' })]));
     api.listScenes.and.returnValue(of([]));
     api.listRenders.and.returnValue(of([]));
@@ -128,6 +142,7 @@ describe('StudioStoriesComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: StoryStudioService, useValue: api },
+        { provide: ContentStudioService, useValue: (metering = meteringSpy()) },
         { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error']) },
       ],
     });
@@ -141,6 +156,148 @@ describe('StudioStoriesComponent', () => {
     render();
     expect(text(root().querySelector('[data-project="p1"]'))).toContain('Guru Ji');
     expect(text(root().querySelector('[data-project="p1"]'))).toContain('Drafting script');
+  });
+
+  const q = (selector: string) => root().querySelector(selector) as HTMLElement | null;
+
+  const request = (over: Partial<StoryVideoRequest> = {}): StoryVideoRequest => ({
+    id: 'q1', projectId: 'p1', title: 'Guru Ji', status: 'Raised', raisedAtUtc: '2026-11-09T09:00:00Z', scriptGeneratedAtUtc: null, videoUrl: null, videoReadyAtUtc: null, rejectedReason: null, prepaidCredits: null, creditsRefunded: null, ...over,
+  });
+
+  it('shows where a requested story stands instead of its own status, and no video link until there is one', () => {
+    render([project()], [request({ status: 'Raised' })]);
+
+    expect(text(q('[data-project="p1"] [data-status]'))).toBe('Requested');
+    expect(q('[data-video="p1"]')).toBeNull();
+  });
+
+  it('links to the video once the platform team has attached it', () => {
+    render([project()], [request({ status: 'VideoReady', videoUrl: 'https://bucket.example/t/guru.mp4', videoReadyAtUtc: '2026-11-10T09:00:00Z' })]);
+
+    expect(text(q('[data-project="p1"] [data-status]'))).toBe('Video ready');
+    const link = q('[data-video="p1"]') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('https://bucket.example/t/guru.mp4');
+    expect(link.getAttribute('target')).toBe('_blank');
+  });
+
+  it('opens a requested story on its own page, not in the panel under the grid', () => {
+    render([project()], [request({ status: 'Raised' })]);
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+    click('[data-project="p1"]');
+
+    expect(navigate).toHaveBeenCalledWith(['/content-studio/stories', 'q1']);   // the request's id
+    expect(fixture.componentInstance.selected).toBeNull();
+    expect(q('[data-testid="script-card"]')).toBeNull();
+  });
+
+  it('still opens a story that was never requested in the panel', () => {
+    render([project()], []);
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+    click('[data-project="p1"]');
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.selected?.id).toBe('p1');
+  });
+
+  describe('download and clone', () => {
+    const ready = () => request({ status: 'VideoReady', videoUrl: 'https://bucket.example/t/guru.mp4', videoReadyAtUtc: '2026-11-10T09:00:00Z', prepaidCredits: 1500, creditsRefunded: 0 });
+
+    it('offers Download beside Watch video only once the video is ready', () => {
+      render([project()], [request({ status: 'Raised' })]);
+      expect(q('[data-download="p1"]')).toBeNull();
+
+      TestBed.resetTestingModule();
+      render([project()], [ready()]);
+      expect(text(q('[data-download="p1"]'))).toContain('Download');
+      expect(q('[data-video="p1"]')).not.toBeNull();
+    });
+
+    it('downloads the video of that request as a file named after the story, without opening the story', () => {
+      render([project()], [ready()]);
+      api.downloadRequestVideo.and.returnValue(of(new Blob(['abc'], { type: 'video/webm' })));
+      spyOn(URL, 'createObjectURL').and.returnValue('blob:video');
+      spyOn(URL, 'revokeObjectURL');
+      let saved: HTMLAnchorElement | null = null;
+      spyOn(HTMLAnchorElement.prototype, 'click').and.callFake(function (this: HTMLAnchorElement) {
+        saved = this;
+      });
+
+      click('[data-download="p1"]');
+
+      expect(api.downloadRequestVideo).toHaveBeenCalledOnceWith('q1');
+      expect(saved).not.toBeNull();
+      expect(saved!.download).toBe('Guru Ji.webm');
+      expect(fixture.componentInstance.selected).toBeNull();
+    });
+
+    it('clones a story: opens New story with that story to copy from, without opening the story', () => {
+      render([project()], [ready()]);
+      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+      click('[data-clone="p1"]');
+
+      expect(navigate).toHaveBeenCalledWith(['/content-studio/stories/new'], { queryParams: { clone: 'p1' } });
+      expect(fixture.componentInstance.selected).toBeNull();
+    });
+
+    it('offers Clone on every story, requested or not', () => {
+      render([project(), project({ id: 'p2', title: 'Another' })], []);
+
+      expect(q('[data-clone="p1"]')).not.toBeNull();
+      expect(q('[data-clone="p2"]')).not.toBeNull();
+    });
+  });
+
+  it('shows the credits prepaid for a requested video as its charge, and says when they were refunded', () => {
+    render([project()], [request({ status: 'Raised', prepaidCredits: 1500, creditsRefunded: 0 })]);
+    expect(text(q('[data-charge="p1"]'))).toBe('1,500 credits');
+  });
+
+  it('says when the credits prepaid for a video were refunded', () => {
+    render([project()], [request({ status: 'Rejected', prepaidCredits: 1500, creditsRefunded: 1500, rejectedReason: 'Could not be made.' })]);
+
+    expect(text(q('[data-charge="p1"]'))).toBe('1,500 credits (refunded)');
+  });
+
+  it('shows no refund note until there is a request', () => {
+    render([project()], []);
+
+    expect(q('[data-testid="refund-note"]')).toBeNull();
+  });
+
+  it('tells the tenant that prepaid credits are refunded when the video is not created, once there is a request', () => {
+    render([project()], [request({ status: 'Raised', prepaidCredits: 1500, creditsRefunded: 0 })]);
+
+    expect(text(q('[data-testid="refund-note"]'))).toContain('refunded in full if the video is not created');
+  });
+
+  it('shows a refunded request as Refunded, with the reason right in the grid', () => {
+    render([project()], [request({ status: 'Rejected', rejectedReason: 'The video engine could not make this one.' })]);
+
+    expect(text(q('[data-project="p1"] [data-status]'))).toBe('Refunded');
+    expect(text(q('[data-reason="p1"]'))).toBe('Reason: The video engine could not make this one.');
+  });
+
+  it('shows no reason under a request that was not refunded', () => {
+    render([project()], [request({ status: 'Raised' })]);
+
+    expect(q('[data-reason="p1"]')).toBeNull();
+  });
+
+  it('still lets a story that was never requested write its own script', () => {
+    render([project()], []);
+    click('[data-project="p1"]');
+
+    expect(q('[data-testid="generate"]')).not.toBeNull();
+  });
+
+  it('shows the stories in a full-width grid: title, status, language, credit and video', () => {
+    render();
+    const heads = Array.from(root().querySelectorAll('[data-testid="stories-grid"] th')).map((th) => text(th));
+    expect(heads).toEqual(['Title', 'Status', 'Language', 'Credit', 'Video', '']);
+    expect(text(root().querySelector('[data-charge="p1"]'))).toBe('3 credits');
   });
 
   it('starts a new story with the character library and no way to continue without a title and topic', () => {
@@ -475,25 +632,25 @@ describe('StudioStoriesComponent', () => {
     });
   });
 
-  describe('the simple flow: what we know, an idea, a script', () => {
-    const idea = { title: 'Wardrobe in 10 days', problem: 'Waiting weeks for a wardrobe', solution: 'We deliver in 10 days', factIds: ['f1'] };
-
+  describe('the simple flow: a story is written from the facts, and stops at the approved script', () => {
     function renderSimple(knowledge = { isReady: true, verifiedFacts: 2, facts: [{ id: 'f1', category: 'Services', subject: 'Wardrobes', statement: 'We deliver custom wardrobes in 10 days.' }], message: null as string | null }): void {
       render();
       TestBed.resetTestingModule();
       api = jasmine.createSpyObj('StoryStudioService', [
         'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript', 'getCostEstimate',
-        'listScenes', 'listRenders', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'getPublishPack',
+        'listScenes', 'listRenders', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'getPublishPack', 'listRequests',
       ]);
       api.listProjects.and.returnValue(of([]));
+      api.listRequests.and.returnValue(of([]));
       api.listCharacters.and.returnValue(of([]));
       api.getKnowledge.and.returnValue(of(knowledge));
-      api.suggestIdeas.and.returnValue(of([idea]));
+      api.getUsage.and.returnValue(of({ lines: [], totalUsd: 0, budgetUsd: null, wastedOnFailedUsd: 0 }));
       TestBed.configureTestingModule({
         declarations: [StudioStoriesComponent],
         imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
         providers: [
           { provide: StoryStudioService, useValue: api },
+          { provide: ContentStudioService, useValue: (metering = meteringSpy()) },
           { provide: NotificationService, useValue: jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']) },
         ],
       });
@@ -501,48 +658,13 @@ describe('StudioStoriesComponent', () => {
       fixture.detectChanges();
     }
 
-    it('starts with what the studio knows, and no cast, video source or cost on the page', () => {
+    it('sends New story to a page of its own instead of opening the fields here', () => {
       renderSimple();
+      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
       click('[data-testid="new-story"]');
 
-      expect(text(root().querySelector('[data-testid="facts-count"]'))).toContain('2 verified facts');
-      expect(root().querySelector('[data-testid="brief"]')).toBeNull();
-      expect(root().textContent).not.toContain('The cast');
-      expect(root().textContent).not.toContain('Where the clips come from');
-      expect(api.listScenes).not.toHaveBeenCalled();
-      expect(api.getDiagnostics).not.toHaveBeenCalled();
-    });
-
-    it('stops with a plain message and links to the questionnaire when there are no verified facts', () => {
-      renderSimple({ isReady: false, verifiedFacts: 0, facts: [], message: 'You have no verified business facts yet.' });
-      click('[data-testid="new-story"]');
-
-      expect(text(root().querySelector('[data-testid="no-facts"]'))).toContain('no verified business facts');
-      expect(Array.from(root().querySelectorAll('[data-testid="no-facts"] a')).map((a) => a.getAttribute('href'))).toEqual([
-        '/content-studio/questionnaire', '/content-studio/facts',
-      ]);
-      expect((root().querySelector('[data-testid="suggest-ideas"]') as HTMLButtonElement).disabled).toBeTrue();
-    });
-
-    it('suggests ideas in the chosen language and starts a story from one, with no cast and no paid source', () => {
-      renderSimple();
-      api.createProject.and.returnValue(of(project({ id: 'p9', characterIds: [] })));
-      click('[data-testid="new-story"]');
-      fixture.componentInstance.ideaLanguage = 'Hindi';
-
-      click('[data-testid="suggest-ideas"]');
-      expect(api.suggestIdeas).toHaveBeenCalledWith('Hindi');
-      expect(text(root().querySelector('[data-idea="0"]'))).toContain('Waiting weeks for a wardrobe');
-
-      click('[data-use-idea="0"]');
-      const body = api.createProject.calls.mostRecent().args[0];
-      expect(body.title).toBe('Wardrobe in 10 days');
-      expect(body.topic).toContain('Waiting weeks for a wardrobe');
-      expect(body.topic).toContain('We deliver in 10 days');
-      expect(body.language).toBe('Hindi');
-      expect(body.characterIds).toEqual([]);
-      expect(body.videoProvider).toBe(SceneVideoProviderKind.Simulator);
-      expect(fixture.componentInstance.selected?.id).toBe('p9');
+      expect(navigate).toHaveBeenCalledWith(['/content-studio/stories/new']);
+      expect(root().querySelector('[data-testid="ideas-card"]')).toBeNull();
     });
 
     function openWithScript(claims: { scene: number; order: number; speaker: string; text: string; supported: boolean; isRisky: boolean; reason: string }[]): void {

@@ -1,0 +1,81 @@
+<div class="page">
+  <app-page-header title="Story" subtitle="Where your video request stands, what you asked for, and the video once it is ready.">
+    <a mat-stroked-button routerLink="/content-studio/stories" data-testid="back-to-stories">
+      <mat-icon>arrow_back</mat-icon>
+      Back to stories
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card class="section-card" *ngIf="notFound" data-testid="not-found">
+    <p>That story could not be found.</p>
+  </mat-card>
+
+  <ng-container *ngIf="request as r">
+    <mat-card class="section-card" data-testid="summary">
+      <div class="head">
+        <div>
+          <h2>{{ r.title }}</h2>
+          <div class="muted small">{{ r.language }} · {{ r.targetSeconds }}s · raised {{ r.raisedAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}</div>
+        </div>
+        <span
+          class="status-chip"
+          data-testid="status"
+          [class.status-chip--opted-in]="r.status === 'VideoReady'"
+          [class.status-chip--scheduled]="r.status === 'Raised'"
+          [class.status-chip--inactive]="r.status === 'ScriptReady' || r.status === 'Rejected'"
+        >
+          {{ statusLabel(r.status) }}
+        </span>
+      </div>
+
+      <p class="small" *ngIf="r.prepaidCredits !== null" data-testid="credits">
+        <span class="muted">Credits prepaid:</span> {{ r.prepaidCredits | number: '1.0-2' }}{{ refunded ? ' (refunded)' : '' }}
+      </p>
+
+      <div class="refunded" *ngIf="r.status === 'Rejected'" data-testid="refunded">
+        <mat-icon>verified_user</mat-icon>
+        <div>
+          <strong>Your credits were refunded.</strong>
+          <div data-testid="refund-reason">Reason: {{ r.rejectedReason }}</div>
+        </div>
+      </div>
+
+      <p class="promise small" *ngIf="r.status === 'Raised' || r.status === 'ScriptReady'" data-testid="promise">
+        <mat-icon>verified_user</mat-icon>
+        <span>If the video is not created, the credits you prepaid are refunded in full.</span>
+      </p>
+
+      <div class="actions">
+        <button mat-stroked-button type="button" (click)="clone()" data-testid="clone">
+          <mat-icon>content_copy</mat-icon>
+          Clone
+        </button>
+      </div>
+    </mat-card>
+
+    <mat-card class="section-card" *ngIf="r.videoUrl" data-testid="video">
+      <h3>Video</h3>
+      <div class="actions">
+        <a mat-flat-button color="primary" [href]="r.videoUrl" target="_blank" rel="noopener" data-testid="watch">
+          <mat-icon>play_arrow</mat-icon>
+          Watch video
+        </a>
+        <button mat-stroked-button type="button" (click)="download()" data-testid="download">
+          <mat-icon>download</mat-icon>
+          Download
+        </button>
+        <span class="muted small" *ngIf="r.videoReadyAtUtc">Ready {{ r.videoReadyAtUtc | zonedDate: 'dd MMM yyyy, HH:mm' }}</span>
+      </div>
+    </mat-card>
+
+ 
+    <mat-card class="section-card" data-testid="brief-card">
+      <h3>What you asked for</h3>
+      <pre class="text" data-testid="brief">{{ r.topic }}</pre>
+      <p class="small"><span class="muted">Target audience:</span> {{ r.audience || 'Not given' }}</p>
+      <p class="small"><span class="muted">Call to action:</span> {{ r.callToAction || 'Not given' }}</p>
+    </mat-card>
+  </ng-container>
+</div>

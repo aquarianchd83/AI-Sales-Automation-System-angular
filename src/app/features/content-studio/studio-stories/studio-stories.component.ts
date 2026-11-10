@@ -1,14 +1,16 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { Subject, forkJoin, interval } from 'rxjs';
-import { debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { EMPTY, Subject, forkJoin, interval } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
 
 import {
   CinematicScript,
   SCENE_VIDEO_PROVIDER_HINTS,
   SCENE_VIDEO_PROVIDER_LABELS,
   STORY_PLATFORM_LABELS,
+  STORY_VIDEO_REQUEST_STATUS_LABELS,
   STORY_PROJECT_STATUS_LABELS,
   STORY_SCENE_STATUS_LABELS,
   SceneVideoProviderKind,
@@ -19,8 +21,6 @@ import {
   StoryPublishPack,
   StoryClipScene,
   StoryCostEstimate,
-  StoryIdea,
-  StoryKnowledge,
   StoryJobStatus,
   StoryProject,
   StoryProjectStatus,
@@ -28,8 +28,12 @@ import {
   StorySceneStatus,
   StoryScriptVersion,
   StoryUsage,
+  StoryVideoRequest,
   VideoSource,
 } from '../../../core/models/story-studio.model';
+import { StudioActivityKind } from '../../../core/models/content-studio.model';
+import { ContentStudioService } from '../../../core/services/content-studio.service';
+import { formatUnits } from '../../../core/models/billing.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
 
@@ -55,16 +59,17 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   readonly sceneStatusLabels = STORY_SCENE_STATUS_LABELS;
   readonly languages = ['Hinglish', 'Hindi', 'English'];
 
+  /** Credits each story's script has used so far (charged less refunded), by project id. Missing until the activity list answers. */
+  charges: Record<string, number> = {};
+
+  /** The tenant's requests for a video, by story. A story with one is written and made by the platform team, not here. */
+  requests: Record<string, StoryVideoRequest> = {};
+
   /**
    * The later steps (characters, Veo clips, voice, the finished video, sharing) are built but not switched on: a story stops at the approved script
    * until we decide how to go on. Everything below that is for those steps is behind this flag.
    */
   laterSteps = false;
-
-  knowledge: StoryKnowledge | null = null;
-  ideas: StoryIdea[] = [];
-  ideaLanguage = 'Hinglish';
-  loadingIdeas = false;
 
   projects: StoryProject[] = [];
   characters: StoryCharacter[] = [];
@@ -124,14 +129,15 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly studio: StoryStudioService,
+    private readonly metering: ContentStudioService,
     private readonly notifications: NotificationService,
     private readonly fb: FormBuilder,
     private readonly sanitizer: DomSanitizer,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
     this.loadAll();
-    this.loadKnowledge();
     if (this.laterSteps) {
       this.loadChecks();
     }
@@ -161,55 +167,107 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       .subscribe(({ projects, characters }) => {
         this.projects = projects;
         this.characters = characters;
+        this.loadCharges(projects);
+        this.loadRequests();
       });
+  }
+
+  /** Sums the studio-credit activity that points at each story (its script writes), net of refunds. */
+  private loadCharges(projects: StoryProject[]): void {
+    if (!projects.length) {
+      return;
+    }
+    this.metering
+      .getActivity({ kind: StudioActivityKind.StoryScript, page: 1, pageSize: 100 })
+      .pipe(catchError(() => EMPTY), takeUntil(this.destroy$))
+      .subscribe((result) => {
+        const totals: Record<string, number> = {};
+        for (const p of projects) {
+          totals[p.id] = 0;
+        }
+        for (const a of result.items) {
+          const id = (a.referenceId ?? '').toLowerCase();
+          if (a.referenceType === 'StoryProject' && id in totals) {
+            totals[id] += a.netUnits;
+          }
+        }
+        this.charges = totals;
+      });
+  }
+
+  private loadRequests(): void {
+    this.studio
+      .listRequests()
+      .pipe(catchError(() => EMPTY), takeUntil(this.destroy$))
+      .subscribe((list) => {
+        this.requests = Object.fromEntries(list.map((r) => [r.projectId, r]));
+      });
+  }
+
+  /** Saves the finished video of a requested story. */
+  downloadRequestVideo(p: StoryProject, event: Event): void {
+    event.stopPropagation();
+    const request = this.requestFor(p.id);
+    if (!request?.videoUrl) {
+      return;
+    }
+    this.studio
+      .downloadRequestVideo(request.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((blob) => {
+        const extension = blob.type === 'video/webm' ? '.webm' : blob.type === 'video/quicktime' ? '.mov' : '.mp4';
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${p.title}${extension}`;
+        link.click();
+        URL.revokeObjectURL(url);
+      });
+  }
+
+  /** A row: a requested story opens on its own page (its status, script and video); a story that was never requested opens in the panel below. */
+  openRow(p: StoryProject): void {
+    const request = this.requestFor(p.id);
+    if (request) {
+      void this.router.navigate(['/content-studio/stories', request.id]);
+      return;
+    }
+    this.open(p);
+  }
+
+  /** Starts a new story from this one: the New story page opens with the same answers, to change and raise as a new request. */
+  clone(p: StoryProject, event: Event): void {
+    event.stopPropagation();
+    void this.router.navigate(['/content-studio/stories/new'], { queryParams: { clone: p.id } });
+  }
+
+  requestFor(id: string | undefined | null): StoryVideoRequest | undefined {
+    return id ? this.requests[id] : undefined;
+  }
+
+  /** What the grid says a story is: where its request stands, or its own status when it was never requested. */
+  rowStatus(p: StoryProject): string {
+    const request = this.requestFor(p.id);
+    return request ? STORY_VIDEO_REQUEST_STATUS_LABELS[request.status] : this.statusLabels[p.status];
+  }
+
+  get hasRequests(): boolean {
+    return Object.keys(this.requests).length > 0;
+  }
+
+  /** What a story cost: for a requested video the credits prepaid (and "refunded" when they went back); otherwise "2 credits", or "0" for none. */
+  chargeLabel(id: string): string {
+    const prepaid = this.requests[id]?.prepaidCredits;
+    if (prepaid != null) {
+      const refunded = (this.requests[id]?.creditsRefunded ?? 0) > 0;
+      return `${formatUnits(prepaid)} ${prepaid === 1 ? 'credit' : 'credits'}${refunded ? ' (refunded)' : ''}`;
+    }
+    const v = this.charges[id];
+    return v === undefined ? '' : v === 0 ? '0' : `${formatUnits(v)} ${v === 1 ? 'credit' : 'credits'}`;
   }
 
   private loadCharacters(): void {
     this.studio.listCharacters(this.search.value).pipe(takeUntil(this.destroy$)).subscribe((c) => (this.characters = c));
-  }
-
-  private loadKnowledge(): void {
-    this.studio.getKnowledge().pipe(takeUntil(this.destroy$)).subscribe((k) => (this.knowledge = k));
-  }
-
-  /** Step 1: ideas drawn from the verified facts. Test data when the Story script runs on the simulator. */
-  suggestIdeas(): void {
-    if (this.busy || this.loadingIdeas || !this.knowledge?.isReady) {
-      return;
-    }
-    this.loadingIdeas = true;
-    this.studio
-      .suggestIdeas(this.ideaLanguage)
-      .pipe(finalize(() => (this.loadingIdeas = false)), takeUntil(this.destroy$))
-      .subscribe((ideas) => (this.ideas = ideas));
-  }
-
-  /** Starts a story from an idea: its problem and how the business solves it become the topic. No cast, no paid source: just the script next. */
-  useIdea(idea: StoryIdea): void {
-    if (this.busy) {
-      return;
-    }
-    this.busy = true;
-    this.studio
-      .createProject({
-        title: idea.title,
-        topic: `Problem: ${idea.problem}\nHow we solve it: ${idea.solution}`,
-        language: this.ideaLanguage,
-        style: null,
-        audience: null,
-        moral: null,
-        targetSeconds: 30,
-        videoProvider: SceneVideoProviderKind.Simulator,
-        budgetUsd: null,
-        characterIds: [],
-      })
-      .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
-      .subscribe((project) => {
-        this.projects = [project, ...this.projects];
-        this.creating = false;
-        this.ideas = [];
-        this.open(project);
-      });
   }
 
   claimFor(scene: number, index: number): ScriptClaim | undefined {
@@ -221,7 +279,10 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   }
 
   startNew(): void {
-    this.ideas = [];
+    if (!this.laterSteps) {
+      void this.router.navigate(['/content-studio/stories/new']);
+      return;
+    }
     this.creating = true;
     this.selected = null;
     this.script = null;

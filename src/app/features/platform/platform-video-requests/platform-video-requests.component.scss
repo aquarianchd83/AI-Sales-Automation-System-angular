@@ -1,0 +1,160 @@
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.filter-search {
+  min-width: 260px;
+  flex: 1 1 260px;
+}
+
+.filter-select {
+  min-width: 170px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.note {
+  padding: 0 16px 8px;
+  margin: 0;
+}
+
+.request-row {
+  cursor: pointer;
+
+  &:hover,
+  &.active {
+    background: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.detail-card {
+  margin-top: 16px;
+  padding: 20px 24px;
+
+  h4 {
+    margin: 20px 0 8px;
+  }
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+
+  > div {
+    flex: 1;
+  }
+
+  h3 {
+    margin: 0 0 2px;
+  }
+}
+
+.brief {
+  white-space: pre-wrap;
+  margin: 0 0 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.04);
+  font: inherit;
+  font-size: 13px;
+}
+
+.small {
+  font-size: 13px;
+}
+
+.muted {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.error {
+  color: #c62828;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.confirm {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(178, 106, 0, 0.5);
+  background: rgba(178, 106, 0, 0.08);
+
+  p {
+    margin: 0 0 8px;
+  }
+}
+
+.lines {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upload {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.video-ready {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(46, 125, 50, 0.1);
+
+  mat-icon {
+    color: #2e7d32;
+  }
+}
+
+.declined {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(198, 40, 40, 0.08);
+  color: #b71c1c;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.refunded-tag {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.actions-cell {
+  text-align: right;
+  white-space: nowrap;
+}

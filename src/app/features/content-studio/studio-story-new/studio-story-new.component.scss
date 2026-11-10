@@ -1,0 +1,288 @@
+.section-card {
+  margin-bottom: 16px;
+  padding: 24px 28px;
+}
+
+h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(25, 118, 210, 0.12);
+  color: #1565c0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.wide {
+  width: 100%;
+}
+
+.small {
+  font-size: 13px;
+}
+
+.muted {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.error {
+  color: #c62828;
+  margin: 8px 0 0;
+}
+
+.success {
+  color: #2e7d32;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notice {
+  border-left: 4px solid #b26a00;
+  background: rgba(178, 106, 0, 0.08);
+
+  p {
+    margin: 0 0 8px;
+  }
+}
+
+// ---- the details form: a header with progress, then titled blocks on one even grid ----
+
+.form-card {
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.lead {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.block {
+  margin: 0 0 24px;
+}
+
+.block-title {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 24px;
+  align-items: start;
+
+  .span-2 {
+    grid-column: 1 / -1;
+  }
+}
+
+.fields--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .fields,
+  .fields--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sector {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-left: 4px solid #b26a00;
+  background: rgba(0, 0, 0, 0.02);
+
+  &.ok {
+    border-left-color: #2e7d32;
+  }
+}
+
+.sector-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  .block-title {
+    margin: 0;
+  }
+}
+
+.sector-pick {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+
+  .grow {
+    flex: 1;
+  }
+}
+
+.sector-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.6);
+
+  &.success {
+    color: #2e7d32;
+  }
+}
+
+.badge {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.ask {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid rgba(178, 106, 0, 0.5);
+
+  p {
+    margin: 0 0 10px;
+  }
+}
+
+.card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 24px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.flow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.chip {
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: rgba(25, 118, 210, 0.1);
+  color: #1565c0;
+}
+
+.clone-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(25, 118, 210, 0.08);
+  color: #1565c0;
+  font-size: 13px;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.cost-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+
+.raise-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.promise {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #2e7d32;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.raise-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 0 0 24px;
+
+  p {
+    margin: 0;
+  }
+}
