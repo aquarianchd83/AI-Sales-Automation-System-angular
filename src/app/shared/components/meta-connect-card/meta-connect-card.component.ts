@@ -3,7 +3,7 @@ import { finalize } from 'rxjs/operators';
 
 import { MetaIssue, MetaIssueAction, MetaSignupClientConfig, MetaSignupResult, MetaSignupStep } from '../../../core/models/meta-signup.model';
 import { TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
-import { MetaSignupService } from '../../../core/services/meta-signup.service';
+import { MetaSignupService, MetaSignupTimeoutError } from '../../../core/services/meta-signup.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
 /** Where a tenant finishes a verification Meta asks for (business verification, number verification, account status). */
@@ -180,8 +180,24 @@ export class MetaConnectCardComponent implements OnInit {
             .pipe(finalize(() => (this.working = null)))
             .subscribe({ next: (r) => this.apply(r, true), error: () => undefined });
         },
-        () => {
+        (error) => {
           this.working = null;
+          if (error instanceof MetaSignupTimeoutError) {
+            this.localIssue = {
+              code: 'signup_timeout',
+              step: 'authorization',
+              title: 'Meta did not finish the sign-up',
+              message:
+                "Meta's sign-up window did not report back, so nothing was connected. This usually means Meta has not yet approved this app to onboard customers " +
+                '(for example the business is not verified, or WhatsApp access is not approved). Close the Meta window and try again; if it keeps happening, ' +
+                'contact support.',
+              primaryAction: 'Retry',
+              secondaryAction: null,
+              retryable: true,
+              reference: null,
+            };
+            return;
+          }
           this.localIssue = {
             code: 'sdk_unavailable',
             step: 'authorization',

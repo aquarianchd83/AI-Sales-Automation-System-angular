@@ -5,7 +5,7 @@ import { of } from 'rxjs';
 
 import { CompleteMetaSignupRequest, MetaIssue, MetaSignupClientConfig, MetaSignupResult } from '../../../core/models/meta-signup.model';
 import { TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
-import { MetaSignupService } from '../../../core/services/meta-signup.service';
+import { MetaSignupService, MetaSignupTimeoutError } from '../../../core/services/meta-signup.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { SharedModule } from '../../shared.module';
 import { MetaConnectCardComponent } from './meta-connect-card.component';
@@ -137,6 +137,21 @@ describe('MetaConnectCardComponent', () => {
     expect(alert).toContain('Reconnect with Meta');
     expect(el().textContent).toContain('Action required');
     expect(button('Reconnect with Meta')).toBeTruthy();
+  });
+
+  it('stops waiting and explains it when Meta never reports back, instead of hanging', async () => {
+    create(null);
+    service.launch.and.returnValue(Promise.reject(new MetaSignupTimeoutError()));
+
+    button('Connect with Meta')!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(service.complete).not.toHaveBeenCalled();
+    const alert = el().querySelector('[role=alert]')!.textContent!;
+    expect(alert).toContain('Meta did not finish the sign-up');
+    expect(alert).toContain('not yet approved');
+    expect(button('Connect with Meta')!.hasAttribute('disabled')).toBeFalse();
   });
 
   it('retries from the saved state, without a new Meta sign-in', () => {
