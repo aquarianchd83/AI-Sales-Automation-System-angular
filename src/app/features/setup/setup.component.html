@@ -1,0 +1,63 @@
+<div class="login-page">
+  <mat-card class="login-card">
+    <div class="login-brand">
+      <mat-icon color="primary">admin_panel_settings</mat-icon>
+      <div>
+        <h1>Platform setup</h1>
+        <p class="muted">Create the first platform super admin</p>
+      </div>
+    </div>
+
+    <p *ngIf="statusFailed" class="muted">Could not reach the server. Check that the API is running.</p>
+
+    <ng-container *ngIf="status as s">
+      <div *ngIf="!s.setupRequired">
+        <p>Setup is already complete — a platform super admin exists.</p>
+        <a mat-flat-button color="primary" routerLink="/login">Go to sign in</a>
+      </div>
+
+      <div *ngIf="s.setupRequired && !s.setupEnabled">
+        <p>Setup is switched off on this server. Set <code>Setup:BootstrapKey</code> (environment variable
+          <code>Setup__BootstrapKey</code>), restart the API and reload this page.</p>
+      </div>
+
+      <form *ngIf="s.setupRequired && s.setupEnabled" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <mat-form-field class="full-width">
+          <mat-label>Full name</mat-label>
+          <input matInput formControlName="fullName" autocomplete="name" placeholder="Platform Admin" />
+          <mat-error>Your name is required.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="username" />
+          <mat-error *ngIf="form.controls.email.hasError('required')">Email is required.</mat-error>
+          <mat-error *ngIf="form.controls.email.hasError('email')">Enter a valid email address.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput [type]="hidePassword ? 'password' : 'text'" formControlName="password" autocomplete="new-password" />
+          <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword"
+            [attr.aria-label]="hidePassword ? 'Show password' : 'Hide password'">
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-hint>8+ characters with upper, lower, number and symbol.</mat-hint>
+          <mat-error>Password is required (at least 8 characters).</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="full-width">
+          <mat-label>Setup key</mat-label>
+          <input matInput type="password" formControlName="bootstrapKey" autocomplete="off" />
+          <mat-hint>The server's Setup:BootstrapKey.</mat-hint>
+          <mat-error>The setup key is required.</mat-error>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" class="full-width submit" type="submit" [disabled]="submitting || done">
+          <mat-spinner *ngIf="submitting" diameter="18"></mat-spinner>
+          <span>{{ submitting ? 'Creating…' : 'Create super admin' }}</span>
+        </button>
+      </form>
+    </ng-container>
+  </mat-card>
+</div>

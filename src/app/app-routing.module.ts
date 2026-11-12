@@ -19,6 +19,12 @@ const routes: Routes = [
       import('./features/auth/auth.module').then((m) => m.AuthModule),
   },
   {
+    // First-run platform setup (creates the first platform super admin). No guard: nobody can sign in yet. The API
+    // enforces everything - the Setup:BootstrapKey, and it closes once a super admin exists.
+    path: 'setup',
+    loadChildren: () => import('./features/setup/setup.module').then((m) => m.SetupModule),
+  },
+  {
     // Sign-in recovery: no guard at all - these pages are for people who cannot sign in. The API puts the short
     // /reset-password and /verify-email paths in its emails, so those redirect here (query parameters are kept).
     path: 'recover',

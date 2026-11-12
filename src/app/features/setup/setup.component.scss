@@ -1,0 +1,59 @@
+// Same layout as login.component.scss — the two are visually one flow, just two forms.
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 15% 10%, rgba(20, 184, 166, 0.35), transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(99, 102, 241, 0.35), transparent 45%),
+    #0f172a;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 432px;
+  padding: 36px 32px;
+  border: 0;
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(2, 6, 23, 0.45) !important;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 12px;
+  }
+
+  mat-icon {
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+  }
+}
+
+.submit {
+  margin-top: 8px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.hint {
+  margin: 20px 0 0;
+  font-size: 12px;
+  text-align: center;
+}
