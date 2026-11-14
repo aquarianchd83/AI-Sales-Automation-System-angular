@@ -183,6 +183,7 @@ describe('ShellComponent sidenav', () => {
       'ads_clickMeta Ads',
       'receipt_longLogs',
       'historyAudit Log',
+      'storageDatabase Size',
       'personMy Profile',
       'lock_resetChange Password',
     ]);
