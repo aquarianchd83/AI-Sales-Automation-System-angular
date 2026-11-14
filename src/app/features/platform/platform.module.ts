@@ -18,6 +18,7 @@ import { PlatformTenantNotificationsComponent } from './platform-tenant-notifica
 import { PlatformTenantPaymentsComponent } from './platform-tenant-payments/platform-tenant-payments.component';
 import { PlatformJobScheduleDialogComponent } from './platform-job-schedule-dialog/platform-job-schedule-dialog.component';
 import { PlatformJobsComponent } from './platform-jobs/platform-jobs.component';
+import { PlatformDatabaseSizeComponent } from './platform-database-size/platform-database-size.component';
 import { PlatformEmbeddingSettingsComponent } from './platform-embedding-settings/platform-embedding-settings.component';
 import { PlatformKnowledgeComponent } from './platform-knowledge/platform-knowledge.component';
 import { PlatformKnowledgeDeprecateDialogComponent } from './platform-knowledge-deprecate-dialog/platform-knowledge-deprecate-dialog.component';
@@ -91,6 +92,7 @@ const routes: Routes = [
       { path: 'tickets', component: PlatformTicketsComponent },
       { path: 'whatsapp-connections', component: PlatformWhatsAppConnectionsComponent },
       { path: 'jobs', component: PlatformJobsComponent },
+      { path: 'database-size', component: PlatformDatabaseSizeComponent },
       { path: 'aws-settings', component: PlatformAwsSettingsComponent },
       { path: 'delivery-settings', component: PlatformDeliverySettingsComponent },
       { path: 'integration-settings', component: PlatformIntegrationSettingsComponent },
@@ -151,6 +153,7 @@ const routes: Routes = [
     PlatformQuotaAdjustDialogComponent,
     PlatformWhatsAppConnectionsComponent,
     PlatformJobsComponent,
+    PlatformDatabaseSizeComponent,
     PlatformJobScheduleDialogComponent,
     PlatformAwsSettingsComponent,
     PlatformDeliverySettingsComponent,

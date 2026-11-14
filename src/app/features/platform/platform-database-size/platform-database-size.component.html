@@ -1,0 +1,187 @@
+<div class="page">
+  <app-page-header
+    title="Database size"
+    subtitle="How full the database is and which tables take the space. Platform operators are emailed once it reaches the alert level."
+  >
+    <button mat-stroked-button type="button" [disabled]="loading" (click)="load()">
+      <mat-icon>refresh</mat-icon>
+      {{ loading ? 'Refreshing…' : 'Refresh' }}
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar *ngIf="loading && !data" mode="indeterminate"></mat-progress-bar>
+
+  <ng-container *ngIf="data as d">
+    <div class="alert-banner" role="note">
+      <mat-icon>notifications_active</mat-icon>
+      <div>
+        When the database reaches <strong>{{ d.thresholdPercent }}%</strong> of its quota, an alert is sent
+        <ng-container *ngIf="d.alertEmails.length; else noEmail">
+          by <strong>email</strong> to <strong>{{ d.alertEmails.join(', ') }}</strong></ng-container
+        ><ng-template #noEmail>by email (<strong>no email address on file</strong>)</ng-template>
+        and
+        <ng-container *ngIf="d.alertPhones.length; else noPhone">
+          by <strong>WhatsApp</strong> to <strong>{{ d.alertPhones.join(', ') }}</strong></ng-container
+        ><ng-template #noPhone>by WhatsApp (<strong>no number on file</strong>)</ng-template>
+        , once a day while it stays above that level. Change them under
+        <a routerLink="/account/profile">My Profile</a>.
+      </div>
+    </div>
+
+    <mat-card class="summary-card"[class.over]="d.overThreshold">
+      <ng-container *ngIf="d.percentUsed !== null && d.capacityMb !== null; else noCapacity">
+        <div class="summary-head">
+          <span class="percent">{{ d.percentUsed | number: '1.0-1' }}%</span>
+          <span class="muted">{{ formatMb(d.usedMb) }} of {{ formatMb(d.capacityMb) }} used</span>
+          <span class="badge" *ngIf="d.overThreshold">Over {{ d.thresholdPercent }}% alert level</span>
+        </div>
+        <mat-progress-bar mode="determinate" [value]="d.percentUsed" [color]="barColor"></mat-progress-bar>
+        <p class="muted note">
+          Alert level {{ d.thresholdPercent }}% ·
+          {{ d.monitorEnabled ? 'daily check on (05:00 UTC)' : 'daily check is switched off' }} · measured
+          {{ d.measuredAtUtc | zonedDate: 'medium' }}
+        </p>
+      </ng-container>
+      <ng-template #noCapacity>
+        <div class="summary-head">
+          <span class="percent">{{ formatMb(d.usedMb) }}</span>
+          <span class="muted">used</span>
+        </div>
+        <p class="muted note">
+          No size limit is configured or detectable, so there is nothing to measure against and no alert will fire. Set
+          <code>DatabaseSizeMonitor:CapacityMb</code> on the server.
+        </p>
+      </ng-template>
+    </mat-card>
+
+    <mat-card class="quota-card">
+      <h3>Database quota</h3>
+      <p class="muted">
+        The size the database is allowed to grow to. Leave it empty to use the limit the server reports itself (Azure SQL, or a size-capped
+        SQL Server file); if there is none, no alert can fire.
+      </p>
+      <form class="quota-form" [formGroup]="quotaForm" (ngSubmit)="saveQuota()">
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Quota (GB)</mat-label>
+          <input matInput type="number" min="0" step="0.5" formControlName="quotaGb" placeholder="e.g. 10" />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            aria-label="Clear quota"
+            *ngIf="quotaForm.controls.quotaGb.value"
+            (click)="clearQuota()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+          <mat-error>Enter 0 or more.</mat-error>
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>Alert at (% of quota)</mat-label>
+          <input matInput type="number" min="1" max="100" formControlName="thresholdPercent" />
+          <mat-error>Enter 1 to 100.</mat-error>
+        </mat-form-field>
+        <div class="cleanup">
+          <mat-slide-toggle formControlName="autoCleanup">Free space automatically at the alert level</mat-slide-toggle>
+          <mat-form-field subscriptSizing="dynamic" *ngIf="quotaForm.controls.autoCleanup.value">
+            <mat-label>Keep last (days)</mat-label>
+            <input matInput type="number" min="7" formControlName="cleanupRetentionDays" />
+            <mat-error>At least 7 days.</mat-error>
+          </mat-form-field>
+          <p class="muted">
+            You decide which tables it may erase from. Only rows older than the days above are deleted, and only from the tables ticked
+            below. Customers, payments and billing records can never be selected.
+          </p>
+
+          <ul class="table-picker" *ngIf="quotaForm.controls.autoCleanup.value">
+            <li *ngFor="let t of d.cleanableTables" [class.business]="t.isBusinessData">
+              <mat-checkbox [checked]="isTableSelected(t.key)" (change)="toggleTable(t, $event.checked)">
+                <span class="pick-label">{{ t.label }}</span>
+                <span class="pick-badge" *ngIf="t.isBusinessData">Customer data</span>
+                <span
+                  class="pick-frees"
+                  *ngIf="freesLabel(t.key) as frees"
+                  [class.none]="previewFor(t.key)?.eligibleRows === 0"
+                  [matTooltip]="freesTooltip(t.key)"
+                  >{{ frees }}</span
+                >
+              </mat-checkbox>
+              <span class="pick-desc muted">
+                {{ t.description }}
+                <ng-container *ngIf="isTableSelected(t.key)"> Keeps the last {{ keepDaysFor(t) }} days.</ng-container>
+              </span>
+            </li>
+          </ul>
+          <p class="frees-total" *ngIf="preview && quotaForm.controls.autoCleanup.value">
+            <mat-icon>cleaning_services</mat-icon>
+            <span *ngIf="selectedTotals.rows > 0; else nothingToFree">
+              The selected tables would free about <strong>{{ selectedTotals.percent | number: '1.0-1' }}%</strong>
+              {{ preview.percentIsOfQuota ? 'of the quota' : 'of the space in use' }} (~{{ formatMb(selectedTotals.mb) }},
+              {{ selectedTotals.rows | number }} rows)<ng-container *ngIf="d.percentUsed !== null && preview.percentIsOfQuota">
+                — usage {{ d.percentUsed | number: '1.0-1' }}% → about
+                {{ max0(d.percentUsed - selectedTotals.percent) | number: '1.0-1' }}%</ng-container
+              >.
+            </span>
+            <ng-template #nothingToFree>No row in the selected tables is old enough to erase right now.</ng-template>
+          </p>
+          <p class="warn-note" *ngIf="quotaForm.controls.autoCleanup.value && businessDataSelected">
+            <mat-icon>warning</mat-icon>
+            Customer messages are selected. Deleted messages cannot be recovered and are no longer available as billing evidence.
+          </p>
+        </div>
+        <button mat-flat-button color="primary" type="submit" [disabled]="quotaForm.invalid || quotaForm.pristine || saving">
+          {{ saving ? 'Saving…' : 'Save' }}
+        </button>
+      </form>
+    </mat-card>
+
+    <mat-card class="history-card">
+      <h3>Erased by automatic clean-up</h3>
+      <p class="muted" *ngIf="!d.cleanups.length">
+        Nothing has been erased yet. When the database reaches the alert level
+        <ng-container *ngIf="d.autoCleanup; else cleanupOff">
+          the tables you selected are cleaned and listed here.</ng-container
+        ><ng-template #cleanupOff>and automatic clean-up is switched on, the tables erased are listed here.</ng-template>
+      </p>
+      <div class="run" *ngFor="let run of d.cleanups">
+        <div class="run-head">
+          <strong>{{ run.runAtUtc | zonedDate: 'medium' }}</strong>
+          <span class="muted">
+            {{ run.totalRows | number }} rows erased · database {{ formatMb(run.usedMbBefore) }} → {{ formatMb(run.usedMbAfter) }} (was
+            {{ run.percentUsedBefore | number: '1.0-1' }}% full) · kept last {{ run.keepDays }} days
+          </span>
+        </div>
+        <div class="run-tables">
+          <span class="erased" *ngFor="let t of run.tables"> {{ t.label }} <b>{{ t.rowsDeleted | number }}</b> </span>
+        </div>
+      </div>
+    </mat-card>
+
+    <mat-card class="table-card">
+      <table mat-table [dataSource]="d.tables">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Table</th>
+          <td mat-cell *matCellDef="let t">{{ t.name }}</td>
+        </ng-container>
+        <ng-container matColumnDef="rows">
+          <th mat-header-cell *matHeaderCellDef class="num">Rows</th>
+          <td mat-cell *matCellDef="let t" class="num">{{ t.rows | number }}</td>
+        </ng-container>
+        <ng-container matColumnDef="size">
+          <th mat-header-cell *matHeaderCellDef class="num">Size</th>
+          <td mat-cell *matCellDef="let t" class="num">{{ formatMb(t.sizeMb) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="share">
+          <th mat-header-cell *matHeaderCellDef>Share of used space</th>
+          <td mat-cell *matCellDef="let t" class="share">
+            <mat-progress-bar mode="determinate" [value]="t.percentOfUsed"></mat-progress-bar>
+            <span>{{ t.percentOfUsed | number: '1.0-1' }}%</span>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+      <p class="muted empty" *ngIf="!d.tables.length">No tables found.</p>
+    </mat-card>
+  </ng-container>
+</div>

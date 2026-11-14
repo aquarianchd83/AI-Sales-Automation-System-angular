@@ -892,7 +892,8 @@ export type PlatformNotificationKind =
   | 'RefundRequested'
   | 'RefundFailed'
   | 'PlanRenewalFailed'
-  | 'ConfigurationNeeded';
+  | 'ConfigurationNeeded'
+  | 'DatabaseCapacity';
 export type PlatformNotificationSeverity = 'Info' | 'Warning' | 'Critical';
 
 /** An alert for the platform operators — a tenant's background job that keeps failing, or has recovered. */
@@ -917,6 +918,8 @@ export function platformNotificationRoute(n: Pick<PlatformNotification, 'kind' |
       return '/platform/refunds';
     case 'ConfigurationNeeded':
       return '/platform/tickets';
+    case 'DatabaseCapacity':
+      return '/platform/database-size';
     case 'TenantSignedUp':
     case 'PlanRenewalFailed':
       return n.tenantId ? `/platform/tenants/${n.tenantId}` : '/platform/tenants';
@@ -1374,4 +1377,75 @@ export interface UpdateTenantNotificationEmailRequest {
 export interface TenantNotificationEmail {
   billingAlertEmail: string | null;
   ownerEmail: string | null;
+}
+
+// Database size (GET /platform/database-size)
+export interface DatabaseTableSize {
+  name: string;
+  rows: number;
+  sizeMb: number;
+  percentOfUsed: number;
+}
+
+/** capacityMb / percentUsed are null when the server has no capacity limit configured or detectable. */
+export interface DatabaseSize {
+  usedMb: number;
+  capacityMb: number | null;
+  percentUsed: number | null;
+  thresholdPercent: number;
+  overThreshold: boolean;
+  monitorEnabled: boolean;
+  measuredAtUtc: string;
+  tables: DatabaseTableSize[];
+  /** The quota the operator saved, in MB. 0 = none saved; the server then detects one, if it can. */
+  configuredCapacityMb: number;
+  /** Where an alert would go right now: each platform operator's alert email and urgent-alert WhatsApp number from their profile. */
+  alertEmails: string[];
+  alertPhones: string[];
+  /** Delete expendable data (not business records) when the alert level is reached. */
+  autoCleanup: boolean;
+  cleanupRetentionDays: number;
+  /** Every table the owner may allow the clean-up to erase from, and whether each is allowed now. */
+  cleanableTables: CleanableTable[];
+  /** The most recent automatic clean-up runs, newest first. */
+  cleanups: CleanupRun[];
+}
+
+export interface CleanableTable {
+  key: string;
+  label: string;
+  description: string;
+  /** Customer records rather than logs - off by default and shown with a warning. */
+  isBusinessData: boolean;
+  /** The clean-up never keeps fewer days than this for the table. */
+  floorDays: number;
+  selected: boolean;
+}
+
+/** What clearing one table would free right now (GET /platform/database-size/cleanup-preview) - an estimate, nothing is deleted. */
+export interface CleanupPreviewItem {
+  key: string;
+  eligibleRows: number;
+  totalRows: number;
+  tableMb: number;
+  estimatedFreedMb: number;
+  estimatedFreedPercent: number;
+  keepDays: number;
+}
+
+export interface CleanupPreview {
+  tables: CleanupPreviewItem[];
+  /** True when the percentages are shares of the quota; false when there is no quota and they are shares of the space in use. */
+  percentIsOfQuota: boolean;
+}
+
+export interface CleanupRun {
+  runId: string;
+  runAtUtc: string;
+  keepDays: number;
+  percentUsedBefore: number;
+  usedMbBefore: number;
+  usedMbAfter: number;
+  totalRows: number;
+  tables: { key: string; label: string; rowsDeleted: number }[];
 }
