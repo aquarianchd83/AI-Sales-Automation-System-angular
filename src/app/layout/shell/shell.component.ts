@@ -258,6 +258,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Logs', icon: 'receipt_long', route: '/platform/logs', roles: [] },
         { label: 'Audit Log', icon: 'history', route: '/platform/audit-log', roles: [] },
+        { label: 'Database Size', icon: 'storage', route: '/platform/database-size', roles: [] },
       ],
     },
     {
