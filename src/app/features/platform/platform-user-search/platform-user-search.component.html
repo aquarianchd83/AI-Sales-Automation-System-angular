@@ -6,7 +6,11 @@
         <input matInput [formControl]="searchControl" placeholder="e.g. bob@" />
         <mat-icon matPrefix>search</mat-icon>
       </mat-form-field>
-      <span class="muted">"Which org is this email in?" — a support lookup, not a full user list.</span>
+      <button mat-stroked-button type="button" *ngIf="tenantId" (click)="clearTenantFilter()">
+        <mat-icon>close</mat-icon>
+        Users of {{ tenantName || (results[0]?.tenantName) || 'this tenant' }}
+      </button>
+      <span class="muted" *ngIf="!tenantId">"Which org is this email in?" — a support lookup, not a full user list.</span>
     </div>
 
     <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -59,7 +63,7 @@
 
     <div class="empty-state" *ngIf="!loading && searched && !results.length">
       <mat-icon class="empty-icon">person_search</mat-icon>
-      <p>No accounts match that search.</p>
+      <p>{{ tenantId ? 'This tenant has no matching users.' : 'No accounts match that search.' }}</p>
     </div>
 
     <div class="empty-state" *ngIf="!loading && !searched">
