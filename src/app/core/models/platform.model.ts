@@ -104,6 +104,12 @@ export interface PlatformTenantListItem {
   trialEndsAtUtc: string | null;
 }
 
+/** Outcome of resending the owner's verification email. */
+export interface ResendVerificationResult {
+  sent: boolean;
+  reason: string | null;
+}
+
 /** PlatformTenantDetailDto. maxMessagesPerMonth/subscriptionStatus/currentPeriodEndUtc are null
  * when the tenant has no active plan yet (still on trial, or between plans). */
 export interface PlatformTenantDetail {
@@ -115,6 +121,8 @@ export interface PlatformTenantDetail {
   trialEndsAtUtc: string | null;
   ownerUserId: string | null;
   ownerEmail: string | null;
+  /** False until the owner clicks the link emailed to them; the operator can resend it. */
+  ownerEmailConfirmed?: boolean;
   /** Where the tenant's own notices are emailed. Null means they go to the owner's address. */
   billingAlertEmail?: string | null;
   userCount: number;
