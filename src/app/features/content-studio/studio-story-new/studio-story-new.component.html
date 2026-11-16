@@ -22,6 +22,11 @@
     <span>Copied from "{{ clonedFrom }}". Change anything, then raise the request: it is a new video, so it is charged as one.</span>
   </p>
 
+  <p class="clone-note" *ngIf="draftId" data-testid="draft-note">
+    <mat-icon>edit_note</mat-icon>
+    <span>This is a saved draft. Fill in the rest and raise the request, or save it again to keep your changes.</span>
+  </p>
+
   <ng-container *ngIf="!loading">
     <!-- No verified facts: nothing true to write from. -->
     <mat-card class="section-card notice" *ngIf="!knowledge?.isReady" data-testid="no-facts">
@@ -221,7 +226,11 @@
           <p class="error small" *ngIf="problemError" data-testid="problem-error">Describe the problem first.</p>
           <div class="raise-actions">
             <app-credit-cost [scenarios]="[4]" prefix="This video costs" data-testid="raise-cost"></app-credit-cost>
-            <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="raising" data-testid="raise-request">
+            <button mat-stroked-button type="button" (click)="saveDraft()" [disabled]="savingDraft || raising" data-testid="save-draft" title="Keep what you have filled in so far. Nothing is charged.">
+              <mat-icon>save</mat-icon>
+              {{ draftId ? 'Update draft' : 'Save draft' }}
+            </button>
+            <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="raising || savingDraft" data-testid="raise-request">
               <mat-icon>send</mat-icon>
               Raise the request
             </button>

@@ -64,13 +64,16 @@ describe('StudioStoryNewComponent', () => {
     fixture.detectChanges();
   };
 
-  function render(k: StoryKnowledge = knowledge(), p: TenantProfile | null = profile(), clone: { id: string; source: StoryProject | 'fails' } | null = null): void {
-    api = jasmine.createSpyObj('StoryStudioService', ['getKnowledge', 'raiseRequest', 'getProject']);
+  function render(k: StoryKnowledge = knowledge(), p: TenantProfile | null = profile(), clone: { id: string; source: StoryProject | 'fails' } | null = null, asDraft = false): void {
+    api = jasmine.createSpyObj('StoryStudioService', ['getKnowledge', 'raiseRequest', 'getProject', 'createProject', 'updateDraft', 'deleteProject']);
     profiles = jasmine.createSpyObj('TenantProfileService', ['getProfile', 'updateBusinessProfile']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
     api.getKnowledge.and.returnValue(of(k));
     profiles.getProfile.and.returnValue(p ? of(p) : throwError(() => new Error('no profile')));
     api.getProject.and.returnValue(clone?.source === 'fails' || !clone ? throwError(() => new Error('gone')) : of(clone.source));
+    api.createProject.and.callFake((body) => of({ id: 'd1', title: body.title, topic: body.topic, status: 0 } as unknown as StoryProject));
+    api.updateDraft.and.callFake((id, body) => of({ id, title: body.title, topic: body.topic, status: 0 } as unknown as StoryProject));
+    api.deleteProject.and.returnValue(of(undefined));
     api.raiseRequest.and.callFake((body) => of({ id: 'r-' + body.title, projectId: 'p-' + body.title, title: body.title, status: 'Raised' } as unknown as StoryVideoRequest));
 
     TestBed.configureTestingModule({
@@ -80,7 +83,7 @@ describe('StudioStoryNewComponent', () => {
         { provide: StoryStudioService, useValue: api },
         { provide: TenantProfileService, useValue: profiles },
         { provide: NotificationService, useValue: notify },
-        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(clone ? { clone: clone.id } : {}) } } },
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap(clone ? (asDraft ? { draft: clone.id } : { clone: clone.id }) : {}) } } },
       ],
     });
     navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
@@ -426,6 +429,59 @@ describe('StudioStoryNewComponent', () => {
       expect(navigate).not.toHaveBeenCalled();
       expect(notify.success).not.toHaveBeenCalled();
       expect(comp.raising).toBeFalse();
+    });
+  });
+
+  describe('saving a draft', () => {
+    it('saves a half-filled story without confirming the sector, charging or raising anything', () => {
+      render();
+      comp.businessProblem = '';
+
+      click('[data-testid="save-draft"]');
+
+      expect(api.createProject).toHaveBeenCalledTimes(1);
+      expect(api.createProject.calls.mostRecent().args[0].title).toBe('AI Lead Discovery');
+      expect(api.raiseRequest).not.toHaveBeenCalled();
+      expect(comp.draftId).toBe('d1');
+      expect(notify.success).toHaveBeenCalled();
+      expect(text(q('[data-testid="draft-note"]'))).toContain('saved draft');
+    });
+
+    it('updates the same draft when saved again, instead of making another', () => {
+      render();
+      click('[data-testid="save-draft"]');
+      comp.benefits = 'Faster replies';
+
+      click('[data-testid="save-draft"]');
+
+      expect(api.createProject).toHaveBeenCalledTimes(1);
+      expect(api.updateDraft).toHaveBeenCalledWith('d1', jasmine.objectContaining({ topic: jasmine.stringContaining('Faster replies') }));
+    });
+
+    it('reopens a saved draft with its answers, as the draft itself rather than a copy', () => {
+      const topic = 'Sector: Real estate\nProblem: Slow follow-ups\nTarget audience: Small business owners\nSolution: AI Sales Agent\nBusiness benefits: Faster replies';
+      const draft = { id: 'd9', title: 'AI Sales Agent', topic, language: 'Hindi', targetSeconds: 20, audience: null, moral: null } as unknown as StoryProject;
+
+      render(knowledge(), profile(), { id: 'd9', source: draft }, true);
+
+      expect(comp.draftId).toBe('d9');
+      expect(comp.clonedFrom).toBeNull();
+      expect(comp.businessProblem).toBe('Slow follow-ups');
+      expect(comp.benefits).toBe('Faster replies');
+      expect(comp.language).toBe('Hindi');
+      expect(q('[data-testid="clone-note"]')).toBeNull();
+    });
+
+    it('removes the draft once its request has been raised', () => {
+      const draft = { id: 'd9', title: 'AI Sales Agent', topic: 'Sector: Real estate', language: 'Hinglish', targetSeconds: 30 } as unknown as StoryProject;
+      render(knowledge(), profile(), { id: 'd9', source: draft }, true);
+      comp.sectorChoice = 'Real estate';
+      comp.acceptSector();
+
+      comp.raise();
+
+      expect(api.raiseRequest).toHaveBeenCalled();
+      expect(api.deleteProject).toHaveBeenCalledWith('d9');
     });
   });
 });

@@ -73,6 +73,16 @@ export class StoryStudioService {
     return this.http.post<StoryProject>(`${this.baseUrl}/projects`, body);
   }
 
+  /** Saves a story that was never requested (a draft) with whatever is filled in so far. */
+  updateDraft(projectId: string, body: CreateStoryProjectBody): Observable<StoryProject> {
+    return this.http.put<StoryProject>(`${this.baseUrl}/projects/${projectId}`, body);
+  }
+
+  /** Deletes a draft, a declined request or a finished video with everything under it; the server refuses one still being made. */
+  deleteProject(projectId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/projects/${projectId}`);
+  }
+
   setVideoProvider(projectId: string, provider: SceneVideoProviderKind): Observable<StoryProject> {
     return this.http.put<StoryProject>(`${this.baseUrl}/projects/${projectId}/video-provider`, { provider });
   }

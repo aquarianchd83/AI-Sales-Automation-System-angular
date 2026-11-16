@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, finalize, takeUntil } from 'rxjs/operators';
 
-import { SceneVideoProviderKind, StoryKnowledge, StoryProject } from '../../../core/models/story-studio.model';
+import { CreateStoryProjectBody, SceneVideoProviderKind, StoryKnowledge, StoryProject } from '../../../core/models/story-studio.model';
 import { INDUSTRY_SUGGESTIONS, TenantProfile, UpdateTenantBusinessProfileRequest } from '../../../core/models/tenant-profile.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
@@ -36,6 +36,10 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
 
   loading = true;
   knowledge: StoryKnowledge | null = null;
+
+  /** The saved draft this page is editing, once there is one: opened from the list, or created by the first "Save draft". */
+  draftId: string | null = null;
+  savingDraft = false;
   profile: TenantProfile | null = null;
 
   // 1. the problem
@@ -88,7 +92,8 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const cloneId = this.route.snapshot.queryParamMap?.get('clone') ?? null;
+    const draft = this.route.snapshot.queryParamMap?.get('draft') ?? null;
+    const cloneId = draft ?? this.route.snapshot.queryParamMap?.get('clone') ?? null;
     forkJoin({
       knowledge: this.studio.getKnowledge().pipe(catchError(() => of(null))),
       profile: this.profiles.getProfile().pipe(catchError(() => of(null))),
@@ -101,6 +106,11 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
         this.setUp();
         if (source) {
           this.applyClone(source);
+          if (draft) {
+            // Not a copy: this is the saved draft itself, so saving again updates it.
+            this.draftId = source.id;
+            this.clonedFrom = null;
+          }
         }
       });
   }
@@ -357,7 +367,46 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
     };
   }
 
-  // ---------- the request ----------
+  // ---------- saving and the request ----------
+
+  private storyBody(): CreateStoryProjectBody {
+    const b = this.brief;
+    return {
+      title: this.selectedProblem?.title ?? (b.problem.slice(0, 100) || 'Untitled story'),
+      topic: buildStoryTopic(b, this.knowledge?.facts ?? []),
+      language: this.language,
+      style: null,
+      audience: b.audience || null,
+      moral: b.callToAction || null,
+      targetSeconds: this.targetSeconds,
+      videoProvider: SceneVideoProviderKind.Simulator,
+      budgetUsd: null,
+      characterIds: [],
+    };
+  }
+
+  /**
+   * Saves what is filled in so far as a draft, however little: nothing is charged and nothing is sent to the platform team. The page stays open; the
+   * draft is reopened from the stories list, where it can also be deleted. Saving again updates the same draft.
+   */
+  saveDraft(): void {
+    if (this.savingDraft || this.raising) {
+      return;
+    }
+    this.savingDraft = true;
+    const body = this.storyBody();
+    const save = this.draftId ? this.studio.updateDraft(this.draftId, body) : this.studio.createProject(body);
+    save.pipe(finalize(() => (this.savingDraft = false)), takeUntil(this.destroy$)).subscribe({
+      next: (project) => {
+        this.draftId = project.id;
+        // Reloading the page (or coming back to the link) resumes this draft rather than starting a blank story.
+        void this.router.navigate([], { queryParams: { draft: project.id, clone: null }, queryParamsHandling: 'merge', replaceUrl: true });
+        this.notifications.success('Draft saved. Open it from Story studio to carry on.');
+      },
+      // The error interceptor already shows the server's message.
+      error: () => undefined,
+    });
+  }
 
   /** Raises the request for this problem: the platform team writes the script and makes the video; then back to the list. */
   raise(): void {
@@ -369,25 +418,18 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
     if (this.sectorError || this.problemError) {
       return;
     }
-    const b = this.brief;
     this.raising = true;
     this.studio
-      .raiseRequest({
-        title: this.selectedProblem?.title ?? b.problem.slice(0, 100),
-        topic: buildStoryTopic(b, this.knowledge?.facts ?? []),
-        language: this.language,
-        style: null,
-        audience: b.audience || null,
-        moral: b.callToAction || null,
-        targetSeconds: this.targetSeconds,
-        videoProvider: SceneVideoProviderKind.Simulator,
-        budgetUsd: null,
-        characterIds: [],
-      })
+      .raiseRequest(this.storyBody())
       .pipe(finalize(() => (this.raising = false)), takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.notifications.success('Request raised. The platform team will write the script and make the video, and you will be told when it is ready.');
+          // The request made its own story from this brief, so the draft it came from is done with. A draft that cannot be removed is only left in the list.
+          const draftId = this.draftId;
+          if (draftId) {
+            this.studio.deleteProject(draftId).pipe(catchError(() => of(null))).subscribe();
+          }
           void this.router.navigate(['/content-studio/stories']);
         },
         // The error interceptor already shows the server's message (for example, not enough credits): nothing was charged or saved.
