@@ -5,6 +5,10 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   AiTransaction,
+  AutoPayAvailability,
+  AutoPayCheckout,
+  AutoPayInvoice,
+  AutoPaySubscription,
   BillingAlertSettings,
   BillingCapabilities,
   CreditPack,
@@ -222,5 +226,36 @@ export class BillingService {
 
   cancelRefundRequest(id: string): Observable<RefundRequest> {
     return this.http.post<RefundRequest>(`${this.baseUrl}/refund-requests/${id}/cancel`, {});
+  }
+
+  // ----- UPI AutoPay: the plan paid for automatically each month through a Razorpay mandate -----
+
+  /** Whether this tenant pays for plans through AutoPay - decides which button a paid plan gets. */
+  getAutoPayAvailability(): Observable<AutoPayAvailability> {
+    return this.http.get<AutoPayAvailability>(`${this.baseUrl}/autopay/availability`);
+  }
+
+  /** Starts a mandate for the plan and returns Razorpay's page to authorise it on. Only the plan is sent: the amount is the server's. */
+  startAutoPayCheckout(planId: string): Observable<AutoPayCheckout> {
+    return this.http.post<AutoPayCheckout>(`${this.baseUrl}/autopay/checkout`, { planId });
+  }
+
+  /** The tenant's mandate that matters now; null when it never started one (the server answers 204). */
+  getAutoPaySubscription(): Observable<AutoPaySubscription | null> {
+    return this.http.get<AutoPaySubscription | null>(`${this.baseUrl}/autopay/subscription`);
+  }
+
+  /** Has the server ask Razorpay where the mandate stands. What "did it go through?" must use - never the fact that the tenant came back. */
+  refreshAutoPaySubscription(id: string): Observable<AutoPaySubscription> {
+    return this.http.post<AutoPaySubscription>(`${this.baseUrl}/autopay/subscriptions/${id}/refresh`, {});
+  }
+
+  /** Stops the mandate: at the end of the period already paid for, or now. Paid-for access is kept either way. */
+  cancelAutoPaySubscription(id: string, cancelAtCycleEnd: boolean): Observable<AutoPaySubscription> {
+    return this.http.post<AutoPaySubscription>(`${this.baseUrl}/autopay/subscriptions/${id}/cancel`, { cancelAtCycleEnd });
+  }
+
+  getAutoPayInvoices(id: string): Observable<AutoPayInvoice[]> {
+    return this.http.get<AutoPayInvoice[]>(`${this.baseUrl}/autopay/subscriptions/${id}/invoices`);
   }
 }

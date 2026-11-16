@@ -37,6 +37,8 @@ describe('BillingListComponent tax', () => {
       getQuota: () => of([]),
       getPaymentHistory: () => of(payments),
       getCapabilities: () => of({ refundRequestsEnabled: false }),
+      getAutoPayAvailability: () => of({ available: false, reason: null, mode: null }),
+      getAutoPaySubscription: () => of(null),
       getRefundRequests: () => of([]),
     };
 

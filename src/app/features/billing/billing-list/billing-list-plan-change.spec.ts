@@ -22,6 +22,8 @@ describe('BillingListComponent changing plan', () => {
       getQuota: () => of([]),
       getPaymentHistory: () => of([]),
       getCapabilities: () => of({ refundRequestsEnabled: false }),
+      getAutoPayAvailability: () => of({ available: false, reason: null, mode: null }),
+      getAutoPaySubscription: () => of(null),
       getRefundRequests: () => of([]),
     };
     TestBed.configureTestingModule({
@@ -58,6 +60,8 @@ describe('BillingListComponent changing plan', () => {
       getQuota: () => of([]),
       getPaymentHistory: () => of([]),
       getCapabilities: () => of({ refundRequestsEnabled: false }),
+      getAutoPayAvailability: () => of({ available: false, reason: null, mode: null }),
+      getAutoPaySubscription: () => of(null),
       getRefundRequests: () => of([]),
       choosePlan: () => of({ planId: 'pro', planName: 'pro', status: 'Active', currentPeriodStartUtc: null, currentPeriodEndUtc: null }),
     };

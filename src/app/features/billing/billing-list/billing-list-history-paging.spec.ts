@@ -22,6 +22,8 @@ describe('BillingListComponent history paging', () => {
       getQuota: () => of([]),
       getPaymentHistory: () => of(Array.from({ length: payments }, (_, i) => payment(i + 1))),
       getCapabilities: () => of({ refundRequestsEnabled: true }),
+      getAutoPayAvailability: () => of({ available: false, reason: null, mode: null }),
+      getAutoPaySubscription: () => of(null),
       getRefundRequests: () => of(Array.from({ length: refunds }, (_, i) => refund(i + 1))),
     };
     TestBed.configureTestingModule({

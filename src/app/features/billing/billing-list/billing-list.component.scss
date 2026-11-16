@@ -167,3 +167,98 @@
   justify-content: center;
   padding: 8px 0;
 }
+
+// ----- UPI AutoPay -----
+
+.plan-autopay {
+  margin-top: 8px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.mandate-card {
+  margin-bottom: 16px;
+  padding: 16px;
+
+  &--problem {
+    border-left: 4px solid #c62828;
+  }
+
+  h3 {
+    margin: 2px 0 0;
+  }
+}
+
+.mandate-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mandate-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 13px;
+
+  mat-icon {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  &--problem {
+    color: #c62828;
+  }
+}
+
+.mandate-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  margin: 16px 0 0;
+
+  dt {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font-size: 14px;
+  }
+}
+
+.mandate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+
+  .spacer {
+    flex: 1 1 auto;
+  }
+}
+
+.invoice-list {
+  margin-top: 12px;
+}
+
+.payment-reference,
+.payment-failure {
+  display: block;
+  font-size: 12px;
+}
+
+.payment-failure {
+  color: #c62828;
+}
+
+.payment-amount.failed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
