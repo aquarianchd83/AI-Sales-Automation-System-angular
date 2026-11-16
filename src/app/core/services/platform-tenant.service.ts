@@ -9,6 +9,7 @@ import {
   ImpersonationSession,
   OverrideTenantPlanRequest,
   PlatformTenantDetail,
+  ResendVerificationResult,
   PlatformTenantListItem,
   PlatformTenantQuery,
   TenantNotificationEmail,
@@ -44,6 +45,11 @@ export class PlatformTenantService {
    * choosing their own. */
   create(request: CreatePlatformTenantRequest): Observable<PlatformTenantDetail> {
     return this.http.post<PlatformTenantDetail>(this.baseUrl, request);
+  }
+
+  /** Emails the tenant owner a fresh link to verify their address. */
+  resendVerification(id: string): Observable<ResendVerificationResult> {
+    return this.http.post<ResendVerificationResult>(`${this.baseUrl}/${id}/resend-verification`, {});
   }
 
   suspend(id: string): Observable<void> {

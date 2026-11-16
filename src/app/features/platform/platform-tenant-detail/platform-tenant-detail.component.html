@@ -35,7 +35,13 @@
           <dt>Status</dt>
           <dd>{{ statusLabels[tenant.status] }}</dd>
           <dt>Owner</dt>
-          <dd>{{ tenant.ownerEmail || '—' }}</dd>
+          <dd data-testid="owner-email">
+            {{ tenant.ownerEmail || '—' }}
+            <ng-container *ngIf="tenant.ownerEmail">
+              <span class="role-chip" *ngIf="tenant.ownerEmailConfirmed === false" data-testid="owner-unverified">Not verified</span>
+              <span class="muted" *ngIf="tenant.ownerEmailConfirmed !== false">Verified</span>
+            </ng-container>
+          </dd>
           <dt>Notices go to</dt>
           <dd data-testid="effective-email">{{ effectiveNotificationEmail || '—' }}{{ tenant.billingAlertEmail ? '' : ' (owner)' }}</dd>
           <dt>Users</dt>
@@ -354,6 +360,17 @@
           <button mat-flat-button color="primary" type="button" [disabled]="impersonating" (click)="impersonate()">
             <mat-icon>visibility</mat-icon>
             Impersonate
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            *ngIf="tenant.ownerEmail"
+            data-testid="resend-verification"
+            [disabled]="resendingVerification || tenant.ownerEmailConfirmed === true"
+            (click)="resendVerification()"
+          >
+            <mat-icon>mark_email_read</mat-icon>
+            {{ tenant.ownerEmailConfirmed === true ? 'Email verified' : 'Send verification email' }}
           </button>
           <button
             mat-stroked-button

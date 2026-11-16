@@ -68,6 +68,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   regions: RegionOption[] = [];
   loading = true;
   impersonating = false;
+  resendingVerification = false;
   savingPlan = false;
   savingTimezone = false;
   savingCountry = false;
@@ -270,6 +271,23 @@ export class PlatformTenantDetailComponent implements OnInit {
         if (purged) {
           this.notify.success(`${name} and all its data were deleted.`);
           void this.router.navigate(['/platform/tenants']);
+        }
+      });
+  }
+
+  resendVerification(): void {
+    if (this.resendingVerification) {
+      return;
+    }
+    this.resendingVerification = true;
+    this.tenants
+      .resendVerification(this.tenantId)
+      .pipe(finalize(() => (this.resendingVerification = false)))
+      .subscribe((result) => {
+        if (result.sent) {
+          this.notify.success(`Verification email sent to ${this.tenant?.ownerEmail ?? 'the owner'}.`);
+        } else {
+          this.notify.error(result.reason ?? 'The verification email could not be sent.');
         }
       });
   }
