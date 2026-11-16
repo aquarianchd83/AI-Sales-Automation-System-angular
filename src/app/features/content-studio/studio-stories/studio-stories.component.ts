@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { EMPTY, Subject, forkJoin, interval } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, takeUntil } from 'rxjs/operators';
@@ -36,6 +37,7 @@ import { ContentStudioService } from '../../../core/services/content-studio.serv
 import { formatUnits } from '../../../core/models/billing.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /**
  * The cinematic story studio on one page: the project list on the left, and on the right either the brief for a new story
@@ -97,6 +99,8 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
   flagging: string | null = null;
   flagReason = '';
 
+  /** True once the tenant's requests are known: until then a story cannot be told from a saved draft. */
+  requestsLoaded = false;
   loading = true;
   busy = false;
   showNewCharacter = false;
@@ -134,6 +138,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
     private readonly fb: FormBuilder,
     private readonly sanitizer: DomSanitizer,
     private readonly router: Router,
+    private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit(): void {
@@ -201,6 +206,7 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       .pipe(catchError(() => EMPTY), takeUntil(this.destroy$))
       .subscribe((list) => {
         this.requests = Object.fromEntries(list.map((r) => [r.projectId, r]));
+        this.requestsLoaded = true;
       });
   }
 
@@ -232,7 +238,68 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
       void this.router.navigate(['/content-studio/stories', request.id]);
       return;
     }
+    // With the later steps switched on a draft is still worked in the panel below; otherwise it is carried on in the New story page.
+    if (!this.laterSteps && this.isSavedDraft(p)) {
+      void this.router.navigate(['/content-studio/stories/new'], { queryParams: { draft: p.id } });
+      return;
+    }
     this.open(p);
+  }
+
+  /** A story the tenant saved without raising it: still a draft, with no script written and no request behind it (an older story with a script opens in the panel). Unknown until the requests have loaded. */
+  isSavedDraft(p: StoryProject): boolean {
+    return this.requestsLoaded && p.status === StoryProjectStatus.Draft && !p.currentScriptVersionId && !this.requestFor(p.id);
+  }
+
+  /** Any story except one whose video the platform team is still making (the server refuses that too). */
+  canDelete(p: StoryProject): boolean {
+    if (!this.requestsLoaded) {
+      return false;
+    }
+    const status = this.requestFor(p.id)?.status;
+    return status !== 'Raised' && status !== 'ScriptReady' && p.status !== StoryProjectStatus.Generating;
+  }
+
+  /** Asks first, then deletes the story with its request and video; the row goes from the list in place. */
+  deleteStory(p: StoryProject, event: Event): void {
+    event.stopPropagation();
+    if (this.busy || !this.canDelete(p)) {
+      return;
+    }
+    const finished = !!this.requestFor(p.id)?.videoUrl;
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: `Delete "${p.title}"?`,
+          message: finished
+            ? 'The story and its finished video are deleted for good. Download the video first if you still need it. The credits already spent on it are not refunded.'
+            : 'The story is deleted for good. Nothing is charged or refunded for it.',
+          confirmLabel: 'Delete',
+        },
+        width: '460px',
+      })
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+        this.busy = true;
+        this.studio
+          .deleteProject(p.id)
+          .pipe(finalize(() => (this.busy = false)), takeUntil(this.destroy$))
+          .subscribe({
+            next: () => {
+              this.projects = this.projects.filter((x) => x.id !== p.id);
+              if (this.selected?.id === p.id) {
+                this.selected = null;
+              }
+              this.notifications.success('Story deleted.');
+            },
+            // The error interceptor already shows the server's message (for example, the video is still being made).
+            error: () => undefined,
+          });
+      });
   }
 
   /** Starts a new story from this one: the New story page opens with the same answers, to change and raise as a new request. */

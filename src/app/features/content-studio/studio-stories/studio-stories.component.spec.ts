@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
@@ -123,7 +124,7 @@ describe('StudioStoriesComponent', () => {
   function render(projects: StoryProject[] = [project()], requests: StoryVideoRequest[] = []): void {
     api = jasmine.createSpyObj('StoryStudioService', [
       'listProjects', 'listCharacters', 'createProject', 'getScript', 'generateScript', 'saveScript', 'approveScript',
-      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter', 'listRequests', 'downloadRequestVideo',
+      'getCostEstimate', 'setVideoProvider', 'listScenes', 'generateClips', 'regenerateScene', 'uploadClip', 'flagScene', 'listRenders', 'startRender', 'downloadVideo', 'downloadClip', 'generateCharacters', 'editDialogue', 'approveVideo', 'getUsage', 'getDiagnostics', 'getVideoSources', 'getKnowledge', 'suggestIdeas', 'addVoiceOver', 'getPublishPack', 'recordPublication', 'createCharacter', 'uploadReference', 'approveReference', 'archiveCharacter', 'listRequests', 'downloadRequestVideo', 'deleteProject',
     ]);
     api.listProjects.and.returnValue(of(projects));
     api.listRequests.and.returnValue(of(requests));
@@ -247,6 +248,55 @@ describe('StudioStoriesComponent', () => {
 
       expect(q('[data-clone="p1"]')).not.toBeNull();
       expect(q('[data-clone="p2"]')).not.toBeNull();
+    });
+
+    describe('deleting and reopening', () => {
+      const confirm = (answer: boolean) =>
+        spyOn(TestBed.inject(MatDialog), 'open').and.returnValue({ afterClosed: () => of(answer) } as any);
+
+      it('deletes a saved draft after asking, and drops its row', () => {
+        render([project(), project({ id: 'p2', title: 'Another' })], []);
+        api.deleteProject.and.returnValue(of(undefined));
+        confirm(true);
+
+        click('[data-delete="p1"]');
+
+        expect(api.deleteProject).toHaveBeenCalledOnceWith('p1');
+        expect(q('[data-project="p1"]')).toBeNull();
+        expect(q('[data-project="p2"]')).not.toBeNull();
+      });
+
+      it('keeps the story when the delete is not confirmed', () => {
+        render();
+        confirm(false);
+
+        click('[data-delete="p1"]');
+
+        expect(api.deleteProject).not.toHaveBeenCalled();
+        expect(q('[data-project="p1"]')).not.toBeNull();
+      });
+
+      it('offers no Delete while the platform team is still making the video', () => {
+        render([project(), project({ id: 'p2', title: 'Scripted' }), project({ id: 'p3', title: 'Done' })], [
+          request({ id: 'q1', projectId: 'p1', status: 'Raised' }),
+          request({ id: 'q2', projectId: 'p2', status: 'ScriptReady' }),
+          request({ id: 'q3', projectId: 'p3', status: 'VideoReady', videoUrl: 'https://v/1.mp4' }),
+        ]);
+
+        expect(q('[data-delete="p1"]')).toBeNull();
+        expect(q('[data-delete="p2"]')).toBeNull();
+        expect(q('[data-delete="p3"]')).not.toBeNull();
+      });
+
+      it('opens a saved draft on the New story page to carry on', () => {
+        render();
+        fixture.componentInstance.laterSteps = false;
+        const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+        click('[data-project="p1"]');
+
+        expect(navigate).toHaveBeenCalledWith(['/content-studio/stories/new'], { queryParams: { draft: 'p1' } });
+      });
     });
   });
 

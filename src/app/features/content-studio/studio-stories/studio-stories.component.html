@@ -66,6 +66,19 @@
                 <mat-icon>content_copy</mat-icon>
                 Clone
               </button>
+              <button
+                mat-stroked-button
+                color="warn"
+                type="button"
+                *ngIf="canDelete(p)"
+                (click)="deleteStory(p, $event)"
+                [disabled]="busy"
+                [attr.data-delete]="p.id"
+                title="Delete this story"
+              >
+                <mat-icon>delete</mat-icon>
+                Delete
+              </button>
             </td>
           </tr>
         </tbody>
