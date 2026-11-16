@@ -54,4 +54,6 @@ export const CATEGORIES_WITH_OWN_SCREEN = [
   'MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'WhatsApp', 'ContentStudio', 'Integrations',
   // The WhatsApp Provider screen sets which provider is active and its pilot tenants, and the QR bridge's address and key: no panel of their own on General.
   'WhatsAppProvider', 'WhatsAppBridge',
+  // The Database Size screen edits the capacity, threshold and clean-up settings.
+  'DatabaseSizeMonitor',
 ];
