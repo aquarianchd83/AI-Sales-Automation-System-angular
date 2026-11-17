@@ -34,6 +34,12 @@ const routes: Routes = [
   { path: 'reset-password', redirectTo: 'recover/reset-password', pathMatch: 'full' },
   { path: 'verify-email', redirectTo: 'recover/verify-email', pathMatch: 'full' },
   {
+    // Public privacy policy: static content, no guard, outside ShellComponent. Linked from Meta app settings.
+    path: 'privacy',
+    loadChildren: () => import('./features/privacy/privacy.module').then((m) => m.PrivacyModule),
+  },
+  { path: 'privacy-policy', redirectTo: 'privacy', pathMatch: 'full' },
+  {
     // What a customer reaches from the link in the SMS. No guard of any kind: the customer has no account, and the secret in the
     // link is the whole credential. Outside ShellComponent, so none of the app's chrome (menus, tenant data) is on it.
     path: 'consent/:token',
