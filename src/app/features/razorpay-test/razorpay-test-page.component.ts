@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, NonNullableFormBuilder, Validators } from '@angular/forms';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { Subscription, forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
@@ -64,6 +65,7 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
   loading = true;
   loadFailed = false;
   savingKeys = false;
+  savingAutoPay = false;
   testingKeys = false;
   keyTest: RazorpayCheckResult | null = null;
   paying = false;
@@ -169,6 +171,41 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
           // ErrorInterceptor toasts it.
         },
       });
+  }
+
+  /** Turns UPI AutoPay for tenants on or off. The toggle shows the answer the server gave, so a refusal puts it back. */
+  toggleAutoPay(change: MatSlideToggleChange): void {
+    if (this.savingAutoPay) {
+      change.source.checked = !change.checked;
+      return;
+    }
+    this.savingAutoPay = true;
+    this.api
+      .setAutoPay(change.checked)
+      .pipe(finalize(() => (this.savingAutoPay = false)))
+      .subscribe({
+        next: (settings) => {
+          // Only the settings the page shows - not applySettings, which would clear key edits the operator has typed but not saved.
+          this.settings = settings;
+          this.notify.success(settings.autoPayEnabled ? 'UPI AutoPay is on for tenants billed in rupees.' : 'UPI AutoPay is off.');
+        },
+        error: () => {
+          // ErrorInterceptor toasts the reason (e.g. keys not saved yet); put the toggle back where it was.
+          change.source.checked = !change.checked;
+        },
+      });
+  }
+
+  /** What is still missing before AutoPay can work, for the card. Empty when nothing is. */
+  get autoPayMissing(): string[] {
+    const missing: string[] = [];
+    if (!this.settings?.isConfigured) {
+      missing.push('the key id and key secret');
+    }
+    if (!this.settings?.hasWebhookSecret) {
+      missing.push('the webhook secret');
+    }
+    return missing;
   }
 
   /** Tests what is on screen; a blank secret tests the stored one. */

@@ -9,6 +9,10 @@ export interface RazorpaySettings {
   isConfigured: boolean;
   /** Path of the webhook endpoint on the API, e.g. /api/v1/webhooks/razorpay. */
   webhookPath: string;
+  /** Whether tenants billed in rupees pay for a plan through UPI AutoPay. */
+  autoPayEnabled: boolean;
+  /** On AND able to work: the keys and the webhook secret are saved. On but not ready means tenants still see the old buttons. */
+  autoPayReady: boolean;
 }
 
 /** Secrets: null keeps the stored one, '' clears it, anything else replaces it. */

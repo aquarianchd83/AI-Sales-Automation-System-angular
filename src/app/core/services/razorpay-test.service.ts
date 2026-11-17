@@ -30,6 +30,11 @@ export class RazorpayTestService {
     return this.http.put<RazorpaySettings>(`${this.baseUrl}/settings`, request);
   }
 
+  /** Switches UPI AutoPay on or off for tenants. The server refuses to turn it on before the keys and webhook secret are saved (409). */
+  setAutoPay(enabled: boolean): Observable<RazorpaySettings> {
+    return this.http.put<RazorpaySettings>(`${this.baseUrl}/autopay`, { enabled });
+  }
+
   /** Checks a key pair against Razorpay, saved or not. A null secret tests the stored one. */
   testKeys(keyId: string, keySecret: string | null): Observable<RazorpayCheckResult> {
     return this.http.post<RazorpayCheckResult>(`${this.baseUrl}/settings/test`, { keyId, keySecret });
