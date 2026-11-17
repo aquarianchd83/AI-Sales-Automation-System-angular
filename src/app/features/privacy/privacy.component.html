@@ -1,0 +1,87 @@
+<main class="privacy-page">
+  <article class="privacy-card">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: {{ lastUpdated }}</p>
+
+    <p>
+      {{ productName }} is a sales automation platform that helps businesses ("tenants") talk to their customers on WhatsApp and SMS,
+      manage leads, bookings and campaigns, and create marketing content. This page explains how the app uses, discloses and manages user data.
+    </p>
+
+    <h2>1. Who is responsible for the data</h2>
+    <p>
+      Each business that uses {{ productName }} decides why and how its customers' data is processed; for that data the business is the
+      controller and {{ productName }} acts as its processor. For the account data of the business's own staff (name, email, sign-in
+      details), {{ productName }} is the controller.
+    </p>
+
+    <h2>2. Data we collect</h2>
+    <ul>
+      <li><strong>Account data:</strong> name, email address, role, hashed password, and sign-in activity of staff users.</li>
+      <li><strong>Business data:</strong> business profile, product and service knowledge, message templates, bookings, packages and settings.</li>
+      <li><strong>Customer and lead data:</strong> name, phone number, email, tags, consent status, and conversation history (WhatsApp and SMS messages and media) that the business holds about its customers.</li>
+      <li><strong>Billing data:</strong> plan, credit usage and payment records. Card and UPI details are entered with our payment provider and are never stored by us.</li>
+      <li><strong>Connected-account data:</strong> when a business connects WhatsApp Business or Meta (Facebook/Instagram) accounts, we receive the identifiers, access tokens and data those platforms permit, such as phone number details, messages, lead-form submissions and ad performance.</li>
+      <li><strong>Usage and technical data:</strong> audit-log entries, IP address, browser type, and analytics about how the app is used.</li>
+    </ul>
+
+    <h2>3. How we use data</h2>
+    <ul>
+      <li>To provide the service: sending and receiving messages, managing leads, bookings, campaigns and reports.</li>
+      <li>To generate content and replies with AI features, only when a business uses them.</li>
+      <li>To process payments, meter credits and prevent abuse or fraud.</li>
+      <li>To secure accounts, keep audit logs, troubleshoot and improve the product.</li>
+      <li>To send service messages such as verification and password-reset emails.</li>
+    </ul>
+    <p>We do not sell personal data, and we do not use customers' messages to build advertising profiles.</p>
+
+    <h2>4. Consent and messaging</h2>
+    <p>
+      Businesses may only message customers who have agreed to be contacted. {{ productName }} provides a consent link that customers
+      receive by SMS, records their choice, and honours opt-outs. A customer can withdraw consent at any time through that link or by
+      telling the business directly.
+    </p>
+
+    <h2>5. Who we share data with</h2>
+    <p>We share data only with service providers needed to run the product, and only as far as necessary:</p>
+    <ul>
+      <li><strong>Meta Platforms</strong> (WhatsApp Business Platform, Facebook and Instagram) to send and receive messages and to run ads and lead forms.</li>
+      <li><strong>AI providers</strong> (for text, image and video generation) which receive the prompts and content a user submits to an AI feature.</li>
+      <li><strong>Payment provider</strong> (Razorpay) to process payments.</li>
+      <li><strong>SMS and email delivery providers</strong> to deliver messages and system emails.</li>
+      <li><strong>Analytics providers</strong> (Google Analytics, Microsoft Clarity) to understand product usage.</li>
+      <li><strong>Hosting and infrastructure providers</strong> that store and process data on our behalf.</li>
+    </ul>
+    <p>We may also disclose data when required by law or to protect rights, safety and the security of the service.</p>
+
+    <h2>6. Data storage, security and retention</h2>
+    <p>
+      Data is stored in access-controlled databases and transmitted over encrypted connections. Each business's data is isolated from other
+      businesses, access is role-based, and sensitive actions are audit-logged. We keep data for as long as the account is active and as
+      needed to meet legal obligations; after an account is closed, data is deleted or anonymised within a reasonable period.
+    </p>
+
+    <h2>7. Your rights and data deletion</h2>
+    <p>
+      You may ask to access, correct, export or delete your personal data, and to withdraw consent. If your data is held by a business that
+      uses {{ productName }}, please contact that business first; we will assist it in responding. To request deletion of data we hold, email
+      <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a> with the phone number or email address concerned, and we will respond
+      within 30 days.
+    </p>
+
+    <h2>8. Cookies and similar technologies</h2>
+    <p>
+      We use browser storage to keep you signed in and remember preferences, and analytics cookies to measure usage. You can block cookies
+      in your browser settings, though some features may not work.
+    </p>
+
+    <h2>9. Children</h2>
+    <p>{{ productName }} is intended for businesses and is not directed to anyone under 18. We do not knowingly collect children's data.</p>
+
+    <h2>10. Changes to this policy</h2>
+    <p>We may update this policy; the date above shows the latest revision. Material changes will be announced in the app.</p>
+
+    <h2>11. Contact</h2>
+    <p>Questions about privacy: <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a>.</p>
+  </article>
+</main>
