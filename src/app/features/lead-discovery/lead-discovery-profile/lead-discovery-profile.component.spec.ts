@@ -144,6 +144,53 @@ describe('LeadDiscoveryProfileComponent', () => {
     expect(component.form.controls.consentSmsEnabled.value).toBeTrue();
   });
 
+  describe('consent SMS without an Auto-Campaign', () => {
+    const warning = () => (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[data-test="consent-needs-campaign"]');
+
+    it('says no SMS will be sent the moment the consent SMS is on while Auto-Campaign is off', () => {
+      create(profile);
+      expect(warning()).toBeNull();
+
+      component.form.controls.consentSmsEnabled.setValue(true);
+      fixture.detectChanges();
+
+      expect(warning()?.textContent).toContain('no consent SMS will be sent');
+      expect(warning()?.textContent).toContain('turn on');
+    });
+
+    it('is there from the start for a profile saved in that state - the one that sent nothing', () => {
+      create({ ...profile, consentSmsEnabled: true, autoCampaignEnabled: false });
+
+      expect(warning()).not.toBeNull();
+    });
+
+    it('goes away once Auto-Campaign is on', () => {
+      create({ ...profile, consentSmsEnabled: true, autoCampaignEnabled: false });
+
+      component.form.controls.autoCampaignEnabled.setValue(true);
+      fixture.detectChanges();
+
+      expect(warning()).toBeNull();
+    });
+
+    it('is not shown while the consent SMS is off, whatever Auto-Campaign is', () => {
+      create({ ...profile, consentSmsEnabled: false, autoCampaignEnabled: false });
+      expect(warning()).toBeNull();
+
+      component.form.controls.autoCampaignEnabled.setValue(true);
+      fixture.detectChanges();
+      expect(warning()).toBeNull();
+    });
+
+    it('does not stop the profile being saved - it is a warning, not a rule', () => {
+      create({ ...profile, consentSmsEnabled: true, autoCampaignEnabled: false });
+
+      component.save();
+
+      expect(service.saveProfile).toHaveBeenCalledWith(jasmine.objectContaining({ consentSmsEnabled: true, autoCampaignEnabled: false }));
+    });
+  });
+
   it('saves the DND check switch', () => {
     create(profile);
     component.form.controls.dndCheckEnabled.setValue(true);

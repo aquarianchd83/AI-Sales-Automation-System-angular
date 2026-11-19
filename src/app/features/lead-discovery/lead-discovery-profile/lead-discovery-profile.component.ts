@@ -272,6 +272,12 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     return this.form.controls.autoCampaignEnabled.value && !this.form.controls.sourceCampaignId.value;
   }
 
+  /** The consent SMS is texted to the customers an Auto-Campaign takes, so with it on and no Auto-Campaign nothing is ever sent. Shown the
+   * moment the two are in that state, rather than after a run that sent nothing. */
+  get consentSmsWithoutCampaign(): boolean {
+    return this.form.controls.consentSmsEnabled.value && !this.form.controls.autoCampaignEnabled.value;
+  }
+
   /** Same gating as sourceCampaignMissing - one field, so feedback the moment it's needed rather than
    * waiting for a save attempt. */
   get startTimeMissing(): boolean {

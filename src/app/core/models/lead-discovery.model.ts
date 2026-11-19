@@ -167,6 +167,13 @@ export interface LeadDiscoveryRun {
   executionId: string | null;
   costPerLeadUsd: number;
   costPerLeadLocal: number;
+  /** The web-search part of estimatedCostLocal; null on a run from before the split was recorded. */
+  searchCostLocal?: number | null;
+  /** The token part of estimatedCostLocal (the total less searches); null when the split was not recorded. */
+  tokensCostLocal?: number | null;
+  /** What the research said about the run, in the agent's own words - which rules it ran into, why it found fewer than asked for or none.
+   * One line per round. Null when it gave none, or on a run from before it was recorded. */
+  researchNote?: string | null;
 }
 
 /** costPerLeadUsd is zero when the period saved no leads. */

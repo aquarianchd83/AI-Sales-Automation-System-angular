@@ -102,6 +102,31 @@ export interface LeadDiscoveryExecutionCustomer {
   consentSmsNote?: string | null;
   /** True when no SMS went because the consent SMS switch in the discovery profile is Off - the screen links to where it is turned on. */
   consentSmsNeedsSetting?: boolean;
+  /** What became of this candidate: Saved, Lead only, Duplicate, Rejected, Not needed (qualified, but the batch was already full), Failed, Pending or Skipped. */
+  outcome?: string;
+  /** What the discovery agent reported about this candidate, whatever became of it. Absent on a row from before candidates were kept. */
+  candidate?: LeadDiscoveryCandidateDetails | null;
+}
+
+/** The agent's own, unverified claim about one candidate - a phone or email shown here may be exactly what the rules rejected. */
+export interface LeadDiscoveryCandidateDetails {
+  businessType: string;
+  contactPerson: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  phone: string | null;
+  /** The page the agent says showed the phone number. */
+  phoneSourceUrl: string | null;
+  email: string | null;
+  website: string | null;
+  /** The page the business was found on. */
+  sourceUrl: string;
+  /** False for a chain, franchise or branch; null when the agent could not tell. */
+  isIndependentBusiness: boolean | null;
+  isPermanentlyClosed: boolean | null;
+  leadScore: number;
+  scoreRationale: string | null;
 }
 
 /**
@@ -294,6 +319,9 @@ export interface LeadDiscoveryExecutionDetail {
   currencyCode: string;
   currencySymbol: string;
   verificationCounts: LeadDiscoveryVerificationCounts;
+  /** The credits this execution actually took from the wallet, net of any refund - what the tenant pays, unlike the research's estimated
+   * cost, which is not charged. Zero when nothing was saved. */
+  creditsCharged?: number;
 }
 
 /** LeadDiscoveryRetryQueuedDto — a manual retry was queued; it runs as a new execution. */
@@ -348,4 +376,68 @@ export function leadDiscoveryStatusChipClass(status: string): string {
       // Pending, Skipped, and anything not otherwise recognised — a neutral "not applicable" tone.
       return 'status-chip status-chip--inactive';
   }
+}
+
+/** What became of a candidate a run considered, as the "candidates considered" popup groups them. */
+export type CandidateOutcome = 'Saved' | 'Lead only' | 'Duplicate' | 'Rejected' | 'Not needed' | 'Failed' | 'Pending' | 'Skipped';
+
+/** The API sends `outcome` on every row; this derives it from the status for a response that predates the field. */
+export function candidateOutcome(row: LeadDiscoveryExecutionCustomer): CandidateOutcome {
+  if (row.outcome) {
+    return row.outcome as CandidateOutcome;
+  }
+  switch (row.status) {
+    case 'Created':
+      return 'Saved';
+    case 'Duplicate':
+      return 'Duplicate';
+    case 'Failed':
+      return 'Failed';
+    case 'Pending':
+    case 'Processing':
+      return 'Pending';
+    default:
+      if (row.isInvalid) {
+        // Kept as a discovered lead without a customer (no usable number, or the DND check refused it) - the run counts it as saved.
+        return row.discoveredLeadId ? 'Lead only' : 'Rejected';
+      }
+      return 'Skipped';
+  }
+}
+
+export function candidateOutcomeChipClass(outcome: string): string {
+  switch (outcome) {
+    case 'Saved':
+      return 'status-chip status-chip--opted-in';
+    case 'Rejected':
+    case 'Failed':
+      return 'status-chip status-chip--opted-out';
+    case 'Duplicate':
+    case 'Lead only':
+      return 'status-chip status-chip--pending';
+    case 'Pending':
+      return 'status-chip status-chip--scheduled';
+    default:
+      // Not needed, Skipped: nothing went wrong, nothing happened.
+      return 'status-chip status-chip--inactive';
+  }
+}
+
+/** The order the outcomes are listed in, and what each means - shown as the popup's summary and filter. */
+export const CANDIDATE_OUTCOMES: readonly { value: CandidateOutcome; hint: string }[] = [
+  { value: 'Saved', hint: 'Became a customer. This is what is charged.' },
+  { value: 'Lead only', hint: 'Kept as a discovered lead, but no customer was created (no usable number, or the DND check refused it). Not charged.' },
+  { value: 'Duplicate', hint: 'Already a customer or a discovered lead. Not charged.' },
+  { value: 'Rejected', hint: 'Failed a rule of the profile, so it was not kept. Not charged.' },
+  { value: 'Not needed', hint: 'Qualified, but the batch was already full. Not saved, not charged.' },
+  { value: 'Failed', hint: 'Could not be saved. A retry tries again.' },
+  { value: 'Pending', hint: 'Not processed yet.' },
+  { value: 'Skipped', hint: 'Already created by an earlier execution.' },
+];
+
+/** How many candidates ended in each outcome (only outcomes that occur). */
+export function countCandidateOutcomes(rows: readonly LeadDiscoveryExecutionCustomer[]): { outcome: CandidateOutcome; count: number }[] {
+  return CANDIDATE_OUTCOMES.map((o) => ({ outcome: o.value, count: rows.filter((r) => candidateOutcome(r) === o.value).length })).filter(
+    (c) => c.count > 0
+  );
 }

@@ -5,6 +5,7 @@ import { roleGuard } from '../../core/guards/auth.guard';
 import { TENANT_ADMIN_ROLES } from '../../core/models/user.model';
 import { SharedModule } from '../../shared/shared.module';
 import { AutoCampaignHistoryListComponent } from './auto-campaign-history-list/auto-campaign-history-list.component';
+import { CandidatesConsideredDialogComponent } from './candidates-considered-dialog/candidates-considered-dialog.component';
 import { DiscoveredLeadDetailDialogComponent } from './discovered-lead-detail-dialog/discovered-lead-detail-dialog.component';
 import { DiscoveredLeadListComponent } from './discovered-lead-list/discovered-lead-list.component';
 import { DiscoveryRunListComponent } from './discovery-run-list/discovery-run-list.component';
@@ -53,6 +54,7 @@ const routes: Routes = [
   declarations: [
     DiscoveredLeadListComponent,
     DiscoveredLeadDetailDialogComponent,
+    CandidatesConsideredDialogComponent,
     LeadDiscoveryProfileComponent,
     DiscoveryRunListComponent,
     AutoCampaignHistoryListComponent,

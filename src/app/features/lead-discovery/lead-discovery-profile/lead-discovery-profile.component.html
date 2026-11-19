@@ -439,11 +439,19 @@
           <div class="switch-row">
             <div>
               <strong>Send WhatsApp consent SMS</strong>
-              <span>Texts each customer the campaign takes: "Hi, [your business] here. Chat with us on WhatsApp: [your WhatsApp link]". Their consent is recorded only when they message you first on WhatsApp; the SMS or a click alone is not consent. Needs your WhatsApp number to be set up. Off: no SMS is sent.</span>
+              <span>Texts each customer your Auto-Campaign takes (so Auto-Campaign must be on): "Hi, [your business] here. Chat with us on WhatsApp: [your WhatsApp link]". Their consent is recorded only when they message you first on WhatsApp; the SMS or a click alone is not consent. Needs your WhatsApp number to be set up. Off: no SMS is sent.</span>
             </div>
             <mat-slide-toggle formControlName="consentSmsEnabled" aria-label="Send WhatsApp consent SMS"></mat-slide-toggle>
           </div>
         </div>
+
+        <p class="field-message field-message--warn" *ngIf="consentSmsWithoutCampaign" role="status" data-test="consent-needs-campaign">
+          <mat-icon>warning_amber</mat-icon>
+          <span>
+            Auto-Campaign is off, so <strong>no consent SMS will be sent</strong>. The SMS goes to the customers a campaign takes — turn on
+            Auto-Campaign above and choose a campaign.
+          </span>
+        </p>
       </mat-card>
 
       <!-- Volume -->
