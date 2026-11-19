@@ -1,0 +1,118 @@
+.intro {
+  margin: 0 0 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  &--active {
+    border-color: currentColor;
+    background: rgba(0, 0, 0, 0.06);
+  }
+}
+
+.unrecorded,
+.empty {
+  margin: 0 0 12px;
+}
+
+.table-scroll {
+  max-height: 55vh;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.expand-cell {
+  width: 48px;
+  padding-right: 0;
+}
+
+.sub {
+  font-size: 12px;
+}
+
+.note {
+  min-width: 200px;
+  overflow-wrap: anywhere;
+}
+
+.candidate-row--clickable {
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
+}
+
+.candidate-row--open {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* The details row is always in the table (so Material can lay it out) but takes no room until its candidate is opened. */
+.detail-row {
+  height: 0;
+}
+
+.detail-cell {
+  padding: 0;
+  border-bottom-width: 0;
+}
+
+.detail-row--open .detail-cell {
+  padding: 4px 16px 16px 64px;
+  border-bottom-width: 1px;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 8px 0 0;
+
+  dt {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.54);
+  }
+
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.source {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.rationale {
+  margin-left: 6px;
+}
+
+.reported {
+  margin: 12px 0 0;
+  font-size: 12px;
+}

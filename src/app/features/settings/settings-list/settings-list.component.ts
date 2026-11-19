@@ -31,7 +31,11 @@ interface CategoryPanel {
 const HIDDEN_CATEGORIES = ['MediaStorage', 'App', 'Email', 'Sms', 'PlatformWhatsApp', 'Razorpay', 'WhatsApp'];
 
 /** Panel headings for a category's own keys on the grouped screens. */
-const CATEGORY_LABELS: Record<string, string> = { AiProviders: 'General', MetaAds: 'Meta Ads', Ai: 'AI', ContentStudio: 'Content Studio' };
+const CATEGORY_LABELS: Record<string, string> = { AiProviders: 'General', MetaAds: 'Meta Ads', Ai: 'AI', ContentStudio: 'Content Studio', Discovery: 'Discovery' };
+
+/** Categories shown as one panel whatever their key shape. Discovery's keys live under LeadDiscovery: and LeadDiscovery:Agent:, which the
+ * sub-group split would turn into a separate "Agent" card for three of the seven limits - they are one set of controls on one run. */
+const SINGLE_PANEL = ['Discovery'];
 
 /** Categories whose own (two-part) keys are not shown on the grouped screen - only their sub-group panels are. */
 const NO_OWN_PANEL = ['AiProviders'];
@@ -125,6 +129,9 @@ export class SettingsListComponent implements OnInit {
       return [{ name: category.category, hint: '', items: category.items }];
     }
     const own = CATEGORY_LABELS[category.category] ?? category.category;
+    if (SINGLE_PANEL.includes(category.category)) {
+      return [{ name: own, hint: '', items: category.items }];
+    }
     const groups = new Map<string, SettingItem[]>();
     for (const item of category.items) {
       const parts = item.key.split(':');

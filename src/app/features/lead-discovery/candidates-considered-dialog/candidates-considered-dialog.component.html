@@ -1,0 +1,153 @@
+<h2 mat-dialog-title>Candidates considered ({{ data.considered }})</h2>
+
+<mat-dialog-content>
+  <p class="muted intro">
+    Every business this run looked at, and what became of it. Only the ones that became customers are charged.
+    <ng-container *ngIf="anyDetails">Open a row to see what the search found about it.</ng-container>
+  </p>
+
+  <div class="chips" *ngIf="counts.length">
+    <button
+      *ngFor="let c of counts"
+      type="button"
+      class="chip-button"
+      [class.chip-button--active]="isSelected(c.outcome)"
+      [matTooltip]="hint(c.outcome)"
+      [attr.aria-pressed]="isSelected(c.outcome)"
+      (click)="select(c.outcome)"
+    >
+      <span [class]="chipClass(c.outcome)">{{ c.outcome }}</span>
+      <strong>{{ c.count }}</strong>
+    </button>
+  </div>
+
+  <p class="muted unrecorded" *ngIf="unrecorded > 0">
+    {{ unrecorded }} more {{ unrecorded === 1 ? 'candidate was' : 'candidates were' }} counted for this run but not recorded one by one —
+    runs from before every candidate was recorded only kept the saved, duplicate and rejected ones.
+  </p>
+
+  <p class="muted empty" *ngIf="data.rows.length === 0">No individual candidates were recorded for this execution.</p>
+
+  <div class="table-scroll" *ngIf="data.rows.length > 0">
+    <table mat-table multiTemplateDataRows [dataSource]="shown">
+      <ng-container matColumnDef="expand">
+        <th mat-header-cell *matHeaderCellDef aria-label="Details"></th>
+        <td mat-cell *matCellDef="let row" class="expand-cell">
+          <button
+            *ngIf="row.candidate"
+            mat-icon-button
+            type="button"
+            class="expand-button"
+            [attr.aria-expanded]="isOpen(row)"
+            [attr.aria-label]="(isOpen(row) ? 'Hide' : 'Show') + ' details of ' + row.customerName"
+            (click)="toggle(row); $event.stopPropagation()"
+          >
+            <mat-icon>{{ isOpen(row) ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="business">
+        <th mat-header-cell *matHeaderCellDef>Business</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.customerName }}
+          <div class="muted sub" *ngIf="row.candidate?.businessType">{{ row.candidate.businessType }}</div>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="location">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let row">{{ location(row) || '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="phone">
+        <th mat-header-cell *matHeaderCellDef>Phone</th>
+        <td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="score">
+        <th mat-header-cell *matHeaderCellDef>Score</th>
+        <td mat-cell *matCellDef="let row">
+          <span *ngIf="row.candidate; else noScore" [class]="scoreClass(row.candidate.leadScore)">{{ row.candidate.leadScore }}</span>
+          <ng-template #noScore>—</ng-template>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="outcome">
+        <th mat-header-cell *matHeaderCellDef>Outcome</th>
+        <td mat-cell *matCellDef="let row" [matTooltip]="hint(outcome(row))">
+          <span [class]="chipClass(outcome(row))">{{ outcome(row) }}</span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="note">
+        <th mat-header-cell *matHeaderCellDef>Why</th>
+        <td mat-cell *matCellDef="let row" class="note">{{ row.errorMessage || (outcome(row) === 'Saved' ? 'Saved as a customer.' : '—') }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="detail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="columns.length" class="detail-cell">
+          <dl class="details" *ngIf="isOpen(row)" data-test="candidate-details">
+            <dt>Business type</dt>
+            <dd>{{ row.candidate.businessType || '—' }}</dd>
+
+            <dt>Contact person</dt>
+            <dd>{{ row.candidate.contactPerson || '—' }}</dd>
+
+            <dt>Address</dt>
+            <dd>{{ row.candidate.address || '—' }}</dd>
+
+            <dt>Phone</dt>
+            <dd>
+              {{ row.candidate.phone || '—' }}
+              <div class="source" *ngIf="row.candidate.phone && row.candidate.phoneSourceUrl">
+                Found on
+                <a *ngIf="isSafeLink(row.candidate.phoneSourceUrl); else plainPhoneSource" [href]="row.candidate.phoneSourceUrl" target="_blank" rel="noopener noreferrer">{{ shortUrl(row.candidate.phoneSourceUrl) }}</a>
+                <ng-template #plainPhoneSource>{{ row.candidate.phoneSourceUrl }}</ng-template>
+              </div>
+            </dd>
+
+            <dt>Email</dt>
+            <dd>{{ row.candidate.email || '—' }}</dd>
+
+            <dt>Website</dt>
+            <dd>
+              <a *ngIf="isSafeLink(row.candidate.website); else plainWebsite" [href]="row.candidate.website" target="_blank" rel="noopener noreferrer">{{ shortUrl(row.candidate.website) }}</a>
+              <ng-template #plainWebsite>{{ row.candidate.website || '—' }}</ng-template>
+            </dd>
+
+            <dt>Found on</dt>
+            <dd>
+              <a *ngIf="isSafeLink(row.candidate.sourceUrl); else plainSource" [href]="row.candidate.sourceUrl" target="_blank" rel="noopener noreferrer">{{ shortUrl(row.candidate.sourceUrl) }}</a>
+              <ng-template #plainSource>{{ row.candidate.sourceUrl || '—' }}</ng-template>
+            </dd>
+
+            <dt>Independent</dt>
+            <dd>{{ yesNo(row.candidate.isIndependentBusiness) }}</dd>
+
+            <dt>Permanently closed</dt>
+            <dd>{{ yesNo(row.candidate.isPermanentlyClosed) }}</dd>
+
+            <dt>Score</dt>
+            <dd>
+              <span [class]="scoreClass(row.candidate.leadScore)">{{ row.candidate.leadScore }}</span>
+              <span class="rationale" *ngIf="row.candidate.scoreRationale"> {{ row.candidate.scoreRationale }}</span>
+            </dd>
+          </dl>
+          <p class="muted reported" *ngIf="isOpen(row)">
+            This is what the search reported. It was checked against the pages it read before a phone or email was accepted.
+          </p>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: columns"
+        class="candidate-row"
+        [class.candidate-row--clickable]="row.candidate"
+        [class.candidate-row--open]="isOpen(row)"
+        (click)="toggle(row)"
+      ></tr>
+      <tr mat-row *matRowDef="let row; columns: detailColumns" class="detail-row" [class.detail-row--open]="isOpen(row)"></tr>
+    </table>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close type="button">Close</button>
+</mat-dialog-actions>

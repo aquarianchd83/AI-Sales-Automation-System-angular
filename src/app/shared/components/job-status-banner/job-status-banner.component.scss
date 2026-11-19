@@ -1,0 +1,65 @@
+/* The same note a page uses for a notice (see the consent note on Lead discovery): inset, rounded, small text, an icon in front. Blue while the
+   job runs, green once it has finished. */
+.job-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+
+  &--running {
+    background: #e3f2fd;
+    color: #0d47a1;
+
+    .job-status-icon {
+      animation: job-status-spin 1.6s linear infinite;
+    }
+  }
+
+  &--finished {
+    background: #e6f4ea;
+    color: #1e7e34;
+  }
+}
+
+.job-status-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.job-status-text {
+  flex: 1;
+  padding-top: 1px;
+}
+
+/* A small button so the banner does not grow taller than a line of text with it. */
+.job-status-dismiss {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: -4px -8px -4px 0;
+  padding: 4px;
+  color: inherit;
+
+  .mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+@keyframes job-status-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .job-status--running .job-status-icon {
+    animation: none;
+  }
+}

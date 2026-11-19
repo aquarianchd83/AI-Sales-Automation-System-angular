@@ -1,7 +1,7 @@
 <div class="page">
   <a mat-button routerLink=".." class="back-link">
     <mat-icon>arrow_back</mat-icon>
-    Lead discovery history
+    Lead Discovery
   </a>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -65,30 +65,34 @@
     <p class="muted" *ngIf="d.execution.nextRetryInfo">{{ d.execution.nextRetryInfo }}</p>
 
     <div class="stat-grid">
-      <mat-card class="stat">
-        <span class="stat-value">{{ d.execution.customersDiscovered }}</span>
-        <span class="stat-label">Found</span>
-      </mat-card>
-      <mat-card class="stat">
-        <span class="stat-value">{{ d.execution.customersCreated }}</span>
-        <span class="stat-label">Created</span>
-      </mat-card>
-      <mat-card class="stat">
-        <span class="stat-value">{{ d.execution.customersDuplicate }}</span>
-        <span class="stat-label">Duplicate</span>
-      </mat-card>
-      <mat-card class="stat">
-        <span class="stat-value">{{ d.execution.customersSkipped }}</span>
-        <span class="stat-label">Skipped</span>
-      </mat-card>
-      <mat-card class="stat">
-        <span class="stat-value">{{ d.execution.customersInvalid }}</span>
-        <span class="stat-label">Invalid</span>
-      </mat-card>
-      <mat-card class="stat">
-        <span class="stat-value" [class.warn-text]="d.execution.customersFailed">{{ d.execution.customersFailed }}</span>
-        <span class="stat-label">Failed</span>
-      </mat-card>
+      <ng-container *ngTemplateOutlet="tile; context: { count: d.execution.customersDiscovered, label: 'Found', key: 'found', filter: allOutcomes }"></ng-container>
+      <ng-container *ngTemplateOutlet="tile; context: { count: d.execution.customersCreated, label: 'Created', key: 'created', filter: createdOutcomes }"></ng-container>
+      <ng-container *ngTemplateOutlet="tile; context: { count: d.execution.customersDuplicate, label: 'Duplicate', key: 'duplicate', filter: duplicateOutcomes }"></ng-container>
+      <ng-container *ngTemplateOutlet="tile; context: { count: d.execution.customersSkipped, label: 'Skipped', key: 'skipped', filter: skippedOutcomes }"></ng-container>
+      <ng-container *ngTemplateOutlet="tile; context: { count: d.execution.customersInvalid, label: 'Invalid', key: 'invalid', filter: invalidOutcomes }"></ng-container>
+      <ng-container *ngTemplateOutlet="tile; context: { count: d.execution.customersFailed, label: 'Failed', key: 'failed', filter: failedOutcomes, warn: true }"></ng-container>
+
+      <!-- A tile opens the candidates it counts; a zero has none to open, so it is plain text. -->
+      <ng-template #tile let-count="count" let-label="label" let-key="key" let-filter="filter" let-warn="warn">
+        <mat-card class="stat" [ngClass]="'stat--' + key" [class.stat--zero]="!(count > 0)">
+          <button
+            *ngIf="count > 0; else plainTile"
+            type="button"
+            class="stat-button"
+            [attr.data-test]="'tile-' + key"
+            [matTooltip]="'See the ' + label.toLowerCase() + ' candidates'"
+            [attr.aria-label]="count + ' ' + label.toLowerCase() + ' - see the candidates'"
+            (click)="showCandidates(d, filter)"
+          >
+            <span class="stat-value" [class.warn-text]="warn">{{ count }}</span>
+            <span class="stat-label">{{ label }}</span>
+          </button>
+          <ng-template #plainTile>
+            <span class="stat-value">{{ count }}</span>
+            <span class="stat-label">{{ label }}</span>
+          </ng-template>
+        </mat-card>
+      </ng-template>
     </div>
 
     <div class="stat-grid dnd-stats" *ngIf="dndChecked(d)" aria-label="DND check results">
@@ -137,25 +141,80 @@
       </mat-card>
 
       <mat-card class="detail-card">
-        <h2>Amount Spent</h2>
+        <h2>Cost of this run</h2>
         <p class="muted" *ngIf="!d.research">
           No AI research was recorded for this execution — a retry resumes stored candidates rather than
           researching again, or this run was skipped before it started.
         </p>
         <dl *ngIf="d.research as r">
-          <dt>Spent</dt>
-          <dd>
+          <dt>Charged to you</dt>
+          <dd data-test="credits-charged">
+            <strong>{{ credits(d) | number: '1.0-2' }} credits</strong>
+            <div class="muted sub" *ngIf="credits(d) === 0">Nothing was charged. Only saved leads are charged, and none were saved.</div>
+            <div class="muted sub" *ngIf="credits(d) > 0">Only the leads that were saved are charged. Rejected, duplicate and not-needed candidates are not.</div>
+          </dd>
+          <dt>Search cost</dt>
+          <dd data-test="search-cost">
             <strong>{{ formatCharge(r.estimatedCostLocal, d.currencySymbol) }}</strong>
-            <span class="muted"> · {{ formatCharge(r.costPerLeadLocal, d.currencySymbol) }}/lead</span>
+            <span class="muted">
+              · an estimate of the AI searching, not charged to you<ng-container *ngIf="r.leadsSaved > 0"> · {{ formatCharge(r.costPerLeadLocal, d.currencySymbol) }}/lead</ng-container>
+            </span>
+            <div class="muted sub" data-test="cost-split" *ngIf="r.tokensCostLocal != null && r.searchCostLocal != null">
+              {{ formatCharge(r.tokensCostLocal, d.currencySymbol) }} for reading and writing +
+              {{ formatCharge(r.searchCostLocal, d.currencySymbol) }} for {{ r.webSearches }} web {{ r.webSearches === 1 ? 'search' : 'searches' }}
+            </div>
           </dd>
           <dt>Model</dt>
           <dd><code>{{ r.model }}</code></dd>
-          <dt>Rounds</dt>
-          <dd>{{ r.rounds }}</dd>
+          <dt>Work done</dt>
+          <dd data-test="work-done">
+            {{ r.rounds }} {{ r.rounds === 1 ? 'round' : 'rounds' }} ·
+            {{ r.webSearches }} web {{ r.webSearches === 1 ? 'search' : 'searches' }} ·
+            {{ r.webFetches }} {{ r.webFetches === 1 ? 'page' : 'pages' }} read
+            <div class="muted sub">
+              {{ r.inputTokens + r.cacheReadTokens + r.cacheWriteTokens | number }} tokens in ({{ r.cacheReadTokens | number }} cached) ·
+              {{ r.outputTokens | number }} out
+            </div>
+          </dd>
           <dt>Candidates</dt>
           <dd>
-            {{ r.candidatesConsidered }} considered ·
-            {{ r.leadsSaved }} saved · {{ r.duplicates }} duplicate · {{ r.rejected }} rejected
+            <button
+              *ngIf="r.candidatesConsidered > 0; else plainConsidered"
+              type="button"
+              class="link-button link-button--considered"
+              data-test="candidates-considered"
+              matTooltip="See every candidate this run considered and what became of it"
+              (click)="showCandidates(d)"
+            >{{ r.candidatesConsidered }} considered</button>
+            <ng-template #plainConsidered>{{ r.candidatesConsidered }} considered</ng-template>
+            ·
+            <ng-container *ngTemplateOutlet="figure; context: { $implicit: r.leadsSaved, label: 'saved', key: 'saved', filter: savedOutcomes }"></ng-container>
+            ·
+            <ng-container *ngTemplateOutlet="figure; context: { $implicit: r.duplicates, label: 'duplicate', key: 'duplicate', filter: duplicateOutcomes }"></ng-container>
+            ·
+            <ng-container *ngTemplateOutlet="figure; context: { $implicit: r.rejected, label: 'rejected', key: 'rejected', filter: rejectedOutcomes }"></ng-container>
+            <ng-container *ngIf="notNeeded(r) > 0">
+              ·
+              <ng-container *ngTemplateOutlet="figure; context: { $implicit: notNeeded(r), label: 'not needed', key: 'not-needed', filter: notNeededOutcomes }"></ng-container>
+            </ng-container>
+            <!-- A figure opens the candidates behind it; a zero has none to open, so it stays plain text. -->
+            <ng-template #figure let-count let-label="label" let-key="key" let-filter="filter">
+              <button
+                *ngIf="count > 0; else plainFigure"
+                type="button"
+                class="link-button"
+                [ngClass]="'link-button--' + key"
+                [attr.data-test]="'candidates-' + key"
+                [matTooltip]="'See the ' + label + ' candidates'"
+                (click)="showCandidates(d, filter)"
+              >{{ count }} {{ label }}</button>
+              <ng-template #plainFigure>{{ count }} {{ label }}</ng-template>
+            </ng-template>
+          </dd>
+          <dt>What the search said</dt>
+          <dd class="research-note" data-test="research-note">
+            <ng-container *ngIf="r.researchNote; else noNote">{{ r.researchNote }}</ng-container>
+            <ng-template #noNote><span class="muted">No explanation was recorded for this run.</span></ng-template>
           </dd>
         </dl>
       </mat-card>
@@ -218,8 +277,8 @@
                     <span class="sms-line sms-note">
                       <mat-icon class="sms-icon sms-icon--not-sent" aria-label="Not sent">close</mat-icon>
                       <span>
-                        {{ row.consentSmsNote || 'Not sent' }}
-                        <a *ngIf="row.consentSmsNeedsSetting" class="sms-link" routerLink="/lead-discovery/profile" matTooltip="Open the discovery profile to turn the consent SMS on">Discovery profile</a>
+                        <strong class="sms-headline" *ngIf="smsHead(row)">{{ smsHead(row) }}</strong>{{ smsRest(row) }}
+                        <a *ngIf="row.consentSmsNeedsSetting" class="sms-link" routerLink="/lead-discovery/profile" matTooltip="Open the discovery profile to fix this">Discovery profile</a>
                       </span>
                     </span>
                   </ng-template>

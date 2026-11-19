@@ -30,6 +30,8 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
   readonly verificationChip = verificationChipClass;
   readonly verificationText = verificationLabel;
   readonly adminRoles = TENANT_ADMIN_ROLES;
+  /** The job whose start and finish the banner above the list reports. */
+  readonly jobTypes = ['lead-discovery'];
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
   readonly minScoreControl = new FormControl<number | null>(null);
@@ -89,6 +91,11 @@ export class DiscoveredLeadListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** The lead-discovery job just finished: fetch what it found, in place. */
+  refresh(): void {
+    this.reload$.next();
   }
 
   onPage(event: PageEvent): void {

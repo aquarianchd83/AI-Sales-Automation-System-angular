@@ -18,8 +18,10 @@ import {
   verificationChipClass,
   verificationLabel,
 } from '../../../core/models/lead-discovery-history.model';
+import { LeadDiscoveryRun } from '../../../core/models/lead-discovery.model';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { CandidatesConsideredDialogComponent, CandidatesConsideredDialogData } from '../candidates-considered-dialog/candidates-considered-dialog.component';
 import { CustomerHistoryDialogComponent } from '../../../shared/components/customer-history-dialog/customer-history-dialog.component';
 
 /** One lead discovery execution in full: customer outcome counts, per-customer results, template
@@ -78,6 +80,50 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
     const displayName = row.crmCustomerName || row.customerName;
     const data = row.customerId ? { customerId: row.customerId, displayName } : { displayName, events: rowHistoryEvents(row) };
     this.dialog.open(CustomerHistoryDialogComponent, { data, width: '560px' });
+  }
+
+  /** The bold lead-in of a consent SMS note, when it names a missing setting; empty when the note has none. Separate strings, not one object, so
+   * the template compares them by value on every check. */
+  smsHead(row: LeadDiscoveryExecutionCustomer): string {
+    const head = row.consentSmsHeadline ?? '';
+    return head && (row.consentSmsNote ?? '').startsWith(head) ? head : '';
+  }
+
+  /** The rest of the note after its bold lead-in: what to do about it. A row with no note still says it was not sent. */
+  smsRest(row: LeadDiscoveryExecutionCustomer): string {
+    return (row.consentSmsNote || 'Not sent').slice(this.smsHead(row).length);
+  }
+
+  /** The credits this execution took from the wallet; zero for a response that does not say. */
+  credits(d: LeadDiscoveryExecutionDetail): number {
+    return d.creditsCharged ?? 0;
+  }
+
+  /** Candidates the run considered that qualified but were not needed because the batch was already full - what the "considered" figure
+   * has beyond saved, duplicate and rejected. */
+  notNeeded(r: LeadDiscoveryRun): number {
+    return Math.max(0, r.candidatesConsidered - r.leadsSaved - r.duplicates - r.rejected);
+  }
+
+  /** The outcomes each tile at the top opens. They are the rows each tile counts: Skipped is a row that was not saved but not rejected
+   * (not needed, or created by an earlier execution); Invalid is a row that was not saved as a customer (rejected, or kept only as a lead). */
+  readonly allOutcomes: string[] = [];
+  readonly createdOutcomes = ['Saved'];
+  readonly skippedOutcomes = ['Not needed', 'Skipped'];
+  readonly invalidOutcomes = ['Rejected', 'Lead only'];
+  readonly failedOutcomes = ['Failed'];
+
+  /** The outcomes each figure on the "Candidates" line opens. "Saved" is the run's own figure: customers created plus leads kept without one. */
+  readonly savedOutcomes = ['Saved', 'Lead only'];
+  readonly duplicateOutcomes = ['Duplicate'];
+  readonly rejectedOutcomes = ['Rejected'];
+  readonly notNeededOutcomes = ['Not needed'];
+
+  /** Opens the list of the candidates this run considered, with what became of each - built from the rows already loaded. With no
+   * filter every candidate is listed; a figure on the page passes the outcomes behind it. */
+  showCandidates(d: LeadDiscoveryExecutionDetail, filter: string[] = []): void {
+    const data: CandidatesConsideredDialogData = { considered: d.research?.candidatesConsidered ?? d.customers.length, rows: d.customers, filter };
+    this.dialog.open(CandidatesConsideredDialogComponent, { data, width: '860px', maxWidth: '95vw' });
   }
 
   ngOnInit(): void {

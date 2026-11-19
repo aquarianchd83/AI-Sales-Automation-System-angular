@@ -48,11 +48,98 @@
   margin-bottom: 16px;
 }
 
+/*
+ * One color per outcome, shared by the tiles at the top and the figures on the Candidates line: blue for everything found, green for what
+ * was saved, amber for duplicates, grey for what was left out, red for what was rejected or failed. They are the app's status-chip colors
+ * (styles.scss), as [foreground, tint].
+ */
+$tone-found: #1565c0, #e3f2fd;
+$tone-created: #1e7e34, #e6f4ea;
+$tone-duplicate: #a15c00, #fff4e5;
+$tone-skipped: #546e7a, #eceff1;
+$tone-invalid: #b3261e, #fdecea;
+
+$tones: (
+  found: $tone-found,
+  created: $tone-created,
+  duplicate: $tone-duplicate,
+  skipped: $tone-skipped,
+  invalid: $tone-invalid,
+  failed: $tone-invalid,
+);
+
+/* The figures on the Candidates line use the tile of the same meaning. */
+$figure-tones: (
+  considered: $tone-found,
+  saved: $tone-created,
+  duplicate: $tone-duplicate,
+  rejected: $tone-invalid,
+  not-needed: $tone-skipped,
+);
+
+@each $name, $tone in $tones {
+  .stat--#{$name} {
+    background-color: nth($tone, 2);
+    border-left: 4px solid nth($tone, 1);
+
+    .stat-value {
+      color: nth($tone, 1);
+    }
+  }
+}
+
+@each $name, $tone in $figure-tones {
+  .link-button--#{$name} {
+    color: nth($tone, 1);
+  }
+}
+
+/* A tile at zero has nothing to show, so it steps back and the tiles with something in them stand out. */
+.stat--zero {
+  background-color: #f6f7f8;
+  border-left-color: #cfd8dc;
+
+  .stat-value {
+    color: rgba(0, 0, 0, 0.38);
+  }
+}
+
 .stat {
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 14px 16px;
+}
+
+/* A tile that opens the candidates behind it: the whole card is the button, so the click target is the tile and not just the number. */
+.stat-button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: calc(100% + 28px);
+  margin: -14px -16px -14px -12px;
+  padding: 14px 16px 14px 12px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+
+    .stat-value {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+  }
 }
 
 .stat-value {
@@ -172,4 +259,33 @@ table {
 .sms-link {
   margin-left: 4px;
   white-space: nowrap;
+}
+
+/* A figure that opens more detail - styled like the page's links, but a button, since it opens a popup rather than navigating. */
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--mdc-text-button-label-text-color, #5b3bbd);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+/* The agent's explanation, one line per round. */
+.research-note {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }

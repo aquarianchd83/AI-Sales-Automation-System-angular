@@ -1,6 +1,6 @@
 <div class="page">
   <app-page-header
-    title="Lead discovery history"
+    title="Lead Discovery"
     subtitle="Every execution, grouped by processing date."
   >
     <app-credit-cost [scenarios]="[2]"></app-credit-cost>
@@ -32,6 +32,14 @@
       Discovery profile
     </a>
   </app-page-header>
+
+  <!-- The lead-discovery job has started, or has finished: said here the moment it happens, and the executions below refresh by themselves. -->
+  <app-job-status-banner
+    label="Lead discovery"
+    [jobTypes]="jobTypes"
+    finishedHint="The new execution is listed below."
+    (finished)="refresh()"
+  ></app-job-status-banner>
 
   <mat-card class="table-card">
     <div class="filters">
