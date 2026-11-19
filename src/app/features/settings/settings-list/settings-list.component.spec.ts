@@ -69,6 +69,60 @@ describe('SettingsListComponent', () => {
     expect(panelsFor({})).toEqual(['AiProviders', 'Campaigns', 'Retention']);
   });
 
+  describe('Discovery panel', () => {
+    const item = (key: string) => ({ key, value: '6', isSecret: false, isList: false, description: 'A limit.' });
+    const keys = [
+      'LeadDiscovery:MaxRounds',
+      'LeadDiscovery:CandidateHeadroomFactor',
+      'LeadDiscovery:InitialRejectionRatePercent',
+      'LeadDiscovery:MaxCandidatesPerRound',
+      'LeadDiscovery:MaxKnownBusinessesInPrompt',
+      'LeadDiscovery:Agent:MaxTurns',
+      'LeadDiscovery:Agent:MaxSearchesPerRound',
+      'LeadDiscovery:Agent:MaxFetchesPerRound',
+    ];
+
+    function open(categories: string[]) {
+      TestBed.configureTestingModule({
+        declarations: [SettingsListComponent],
+        imports: [SharedModule, NoopAnimationsModule],
+        providers: [
+          { provide: SettingsService, useValue: { getAll: () => of([{ category: 'Discovery', items: keys.map(item) }, category('Campaigns')]) } },
+          { provide: ActivatedRoute, useValue: { snapshot: { data: { title: 'Tenant Settings', categories } } } },
+          { provide: PlatformAiProvidersService, useValue: insightsStub() },
+        ],
+      });
+      const fixture = TestBed.createComponent(SettingsListComponent);
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('is one panel called Discovery holding all eight limits - the Agent ones are not split into a card of their own', () => {
+      const fixture = open(['Campaigns', 'Discovery']);
+
+      const discovery = fixture.componentInstance.panels.find((p) => p.category.category === 'Discovery')!;
+      expect(discovery.groups.length).toBe(1);
+      expect(discovery.groups[0].name).toBe('Discovery');
+      expect(discovery.groups[0].items.map((i) => i.key)).toEqual(keys);
+    });
+
+    it('shows every limit as an editable row on the screen', () => {
+      const fixture = open(['Discovery']);
+
+      const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+      for (const key of keys) {
+        expect(text).toContain(key);
+      }
+      expect(text).not.toContain('Connection details for Agent');
+    });
+
+    it('is not on a screen that lists other categories only', () => {
+      const fixture = open(['Campaigns']);
+
+      expect(fixture.componentInstance.panels.map((p) => p.category.category)).toEqual(['Campaigns']);
+    });
+  });
+
   it('renders one card per provider on the AI Providers screen, with no General card', () => {
     const item = (key: string) => ({ key, value: 'v', isSecret: false, isList: false, description: null });
     TestBed.configureTestingModule({
