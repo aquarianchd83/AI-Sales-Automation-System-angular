@@ -214,6 +214,9 @@
     </div>
   </mat-card>
 
+  <!-- AI Providers only: which model each group of tasks runs on, per provider. -->
+  <app-ai-task-models *ngIf="!loading && canVerify"></app-ai-task-models>
+
   <ng-container *ngIf="!loading && grouped">
     <ng-container *ngFor="let panel of panels">
       <ng-container *ngTemplateOutlet="panelForm; context: { $implicit: panel }"></ng-container>

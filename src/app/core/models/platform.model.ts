@@ -1222,6 +1222,48 @@ export interface AiPolicy {
   scenarios: string[];
 }
 
+/** One model that can be chosen for a group on one provider, with its price on the AI Provider Charges page (null when it has none). */
+export interface AiTaskModelOption {
+  model: string;
+  hasPrice: boolean;
+  inputPer1M: number | null;
+  outputPer1M: number | null;
+}
+
+/** One provider's column of a task group: what it runs on today and what can be chosen. selected is null for "Same as chat model". */
+export interface AiTaskModelCell {
+  provider: AiProviderId;
+  providerLabel: string;
+  /** The provider is on and has a key, so a choice made for it can take effect. */
+  available: boolean;
+  chatModel: string;
+  selected: string | null;
+  effectiveModel: string;
+  hasPrice: boolean;
+  inputPer1M: number | null;
+  outputPer1M: number | null;
+  options: AiTaskModelOption[];
+}
+
+export interface AiTaskModelGroup {
+  key: string;
+  title: string;
+  description: string;
+  tasks: string[];
+  providers: AiTaskModelCell[];
+}
+
+export interface AiTaskModels {
+  groups: AiTaskModelGroup[];
+}
+
+/** model '' (or null) puts the group back on the provider's chat model. */
+export interface AiTaskModelChoice {
+  group: string;
+  provider: AiProviderId;
+  model: string | null;
+}
+
 export interface AiProvidersOverview {
   providers: AiProviderInsight[];
   policy: AiPolicy;

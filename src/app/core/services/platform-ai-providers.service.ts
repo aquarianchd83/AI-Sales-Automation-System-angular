@@ -10,6 +10,8 @@ import {
   AiProviderId,
   AiProviderInsight,
   AiProvidersOverview,
+  AiTaskModelChoice,
+  AiTaskModels,
   UpdateAiPolicyRequest,
 } from '../models/platform.model';
 
@@ -32,6 +34,16 @@ export class PlatformAiProvidersService {
 
   updatePolicy(request: UpdateAiPolicyRequest): Observable<AiPolicy> {
     return this.http.put<AiPolicy>(`${this.baseUrl}/policy`, request);
+  }
+
+  /** "Model by task": the model each group of tasks runs on, per provider, with prices from the charges page. */
+  taskModels(): Observable<AiTaskModels> {
+    return this.http.get<AiTaskModels>(`${this.baseUrl}/task-models`);
+  }
+
+  /** Saves only the choices sent; a blank model puts that group back on the provider's chat model. */
+  updateTaskModels(choices: AiTaskModelChoice[]): Observable<AiTaskModels> {
+    return this.http.put<AiTaskModels>(`${this.baseUrl}/task-models`, { choices });
   }
 
   executions(page: number, pageSize: number): Observable<PagedResult<AiExecution>> {

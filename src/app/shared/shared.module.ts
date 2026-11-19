@@ -8,6 +8,7 @@ import { CreditCostComponent } from './components/credit-cost/credit-cost.compon
 import { StateSelectComponent } from './components/state-select/state-select.component';
 import { PageHeaderComponent } from './components/page-header/page-header.component';
 import { JobStatusBannerComponent } from './components/job-status-banner/job-status-banner.component';
+import { AiTaskModelsComponent } from './components/ai-task-models/ai-task-models.component';
 import { ModuleFlowsButtonComponent } from './components/module-flows/module-flows-button.component';
 import { ModuleFlowsDialogComponent } from './components/module-flows/module-flows-dialog.component';
 import { HasRoleDirective } from './directives/has-role.directive';
@@ -30,6 +31,7 @@ const DECLARATIONS = [
   CreditCostComponent,
   PageHeaderComponent,
   JobStatusBannerComponent,
+  AiTaskModelsComponent,
   StateSelectComponent,
   HasRoleDirective,
   InViewportDirective,
