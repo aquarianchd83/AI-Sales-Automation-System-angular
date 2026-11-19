@@ -1,8 +1,8 @@
 <mat-card class="task-models" data-testid="task-models">
   <h3 class="title">Model by task</h3>
   <p class="muted hint">
-    Each group of tasks can run on its own model. Leave it on "Same as chat model" to keep today's behavior. Prices come from <strong>Model token prices</strong> on the
-    Configuration page. Lead discovery has its own model, set on the server.
+    Each group of tasks can run on its own model. Leave it on its default to keep today's behavior. Prices come from <strong>Model token prices</strong> on the
+    Configuration page; lead discovery is priced in its own table there.
   </p>
 
   <p class="muted" *ngIf="loading">Loading…</p>
@@ -32,7 +32,7 @@
               [value]="valueOf(group, cell)"
               (change)="pick(group, cell, $any($event.target).value)"
             >
-              <option [value]="sameAsChat" [selected]="valueOf(group, cell) === sameAsChat">{{ sameLabel(cell) }}</option>
+              <option *ngIf="group.allowDefault" [value]="sameAsChat" [selected]="valueOf(group, cell) === sameAsChat">{{ sameLabel(group, cell) }}</option>
               <option *ngFor="let option of cell.options" [value]="option.model" [selected]="valueOf(group, cell) === option.model">
                 {{ option.model }}{{ option.hasPrice ? '' : ' (no price)' }}
               </option>

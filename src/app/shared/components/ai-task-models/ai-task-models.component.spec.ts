@@ -35,8 +35,8 @@ const cell = (provider: 'Anthropic' | 'OpenAI' | 'Google', extra: Partial<AiTask
 
 const page = (overrides: Partial<Record<string, Partial<AiTaskModelCell>>> = {}): AiTaskModels => ({
   groups: [
-    { key: 'CustomerReplies', title: 'Customer replies', description: 'Fast and cheap.', tasks: ['Replying to customers in WhatsApp'], providers: [cell('Anthropic', overrides['Anthropic']), cell('OpenAI'), cell('Google', { available: false, ...overrides['Google'] })] },
-    { key: 'ProductKnowledge', title: 'Product knowledge', description: 'Accurate.', tasks: ['Document and PDF analysis'], providers: [cell('Anthropic'), cell('OpenAI'), cell('Google', { available: false })] },
+    { key: 'CustomerReplies', title: 'Customer replies', description: 'Fast and cheap.', tasks: ['Replying to customers in WhatsApp'], defaultLabel: 'Same as chat model', allowDefault: true, providers: [cell('Anthropic', overrides['Anthropic']), cell('OpenAI'), cell('Google', { available: false, ...overrides['Google'] })] },
+    { key: 'ProductKnowledge', title: 'Product knowledge', description: 'Accurate.', tasks: ['Document and PDF analysis'], defaultLabel: 'Same as chat model', allowDefault: true, providers: [cell('Anthropic'), cell('OpenAI'), cell('Google', { available: false })] },
   ],
 });
 
@@ -91,6 +91,17 @@ describe('AiTaskModelsComponent', () => {
     const s = select('CustomerReplies', 'Anthropic');
     expect(s.value).toBe('');
     expect(s.options[0].textContent).toContain('Same as chat model (claude-haiku-4-5)');
+  });
+
+  it('offers lead discovery no blank entry, and shows the model it runs on', () => {
+    const lead = page();
+    lead.groups.push({ key: 'LeadDiscovery', title: 'Lead discovery', description: 'Web search.', tasks: ['Finding new businesses'], defaultLabel: 'Default', allowDefault: false, providers: [cell('Anthropic', { chatModel: 'claude-haiku-4-5-20251001' }), cell('OpenAI'), cell('Google', { available: false })] });
+    create(lead);
+
+    const leadSelect = select('LeadDiscovery', 'Anthropic');
+    expect(Array.from(leadSelect.options).map((o) => o.value)).not.toContain('');
+    expect(leadSelect.value).toBe('claude-haiku-4-5');
+    expect(select('CustomerReplies', 'Anthropic').options[0].textContent).toContain('Same as chat model (claude-haiku-4-5)');
   });
 
   it('shows the saved choice and its price', () => {

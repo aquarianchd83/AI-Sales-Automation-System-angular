@@ -1250,6 +1250,10 @@ export interface AiTaskModelGroup {
   title: string;
   description: string;
   tasks: string[];
+  /** What "nothing chosen" is called: "Same as chat model", or "Default" for lead discovery. */
+  defaultLabel: string;
+  /** False when the group always has a model saved (lead discovery): no blank entry is offered. */
+  allowDefault: boolean;
   providers: AiTaskModelCell[];
 }
 

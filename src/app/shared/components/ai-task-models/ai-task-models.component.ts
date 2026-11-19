@@ -41,13 +41,15 @@ export class AiTaskModelsComponent implements OnInit {
 
   /** What a select shows: the pending pick, else what is saved ('' for "Same as chat model"). */
   valueOf(group: AiTaskModelGroup, cell: AiTaskModelCell): string {
-    return this.draft.get(this.keyOf(group, cell)) ?? cell.selected ?? SAME_AS_CHAT;
+    const picked = this.draft.get(this.keyOf(group, cell)) ?? cell.selected;
+    // A group with no blank entry always shows a real model, even before one has been saved.
+    return picked ?? (group.allowDefault ? SAME_AS_CHAT : cell.effectiveModel);
   }
 
   pick(group: AiTaskModelGroup, cell: AiTaskModelCell, model: string): void {
     const key = this.keyOf(group, cell);
     // Choosing what is already saved is no change.
-    if (model === (cell.selected ?? SAME_AS_CHAT)) {
+    if (model === (cell.selected ?? (group.allowDefault ? SAME_AS_CHAT : cell.effectiveModel))) {
       this.draft.delete(key);
     } else {
       this.draft.set(key, model);
@@ -62,9 +64,9 @@ export class AiTaskModelsComponent implements OnInit {
     return { model, hasPrice: option?.hasPrice ?? false, inputPer1M: option?.inputPer1M ?? null, outputPer1M: option?.outputPer1M ?? null };
   }
 
-  /** The "Same as chat model" entry names the model it stands for, so the operator sees what "same" means. */
-  sameLabel(cell: AiTaskModelCell): string {
-    return `Same as chat model (${cell.chatModel || 'not set'})`;
+  /** The default entry ("Same as chat model", or "Default" for lead discovery) names the model it stands for, so the operator sees what "same" means. */
+  sameLabel(group: AiTaskModelGroup, cell: AiTaskModelCell): string {
+    return `${group.defaultLabel} (${cell.chatModel || 'not set'})`;
   }
 
   /** Every model that has no price among the current picks - listed above the save button so it is not missed. */
