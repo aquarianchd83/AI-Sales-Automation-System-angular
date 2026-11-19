@@ -61,6 +61,10 @@ export interface LeadDiscoveryExecutionSummary {
   nextRetryInfo: string | null;
   canRetry: boolean;
   estimatedCostLocal: number;
+  /** The AI provider that did the research (OpenAI, Anthropic, Simulated...), read from the run's model; null when the execution did no research. */
+  aiProvider?: string | null;
+  /** The model the run used, e.g. gpt-5-mini. */
+  aiModel?: string | null;
   currencyCode: string;
   currencySymbol: string;
 }
