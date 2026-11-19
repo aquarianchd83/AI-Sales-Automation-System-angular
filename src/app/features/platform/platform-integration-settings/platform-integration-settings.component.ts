@@ -134,7 +134,7 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
       key: 'discoveryLead',
       apiName: 'DiscoveryLead',
       title: 'Discovery lead',
-      description: 'The discovery agent that runs the searches and finds new customers. Claude or ChatGPT can do this.',
+      description: 'The discovery agent that runs the searches and finds new customers. Claude, ChatGPT or Gemini can do this.',
       simulatorNote: 'Sample businesses are produced instead of searching the web.',
     },
     {
