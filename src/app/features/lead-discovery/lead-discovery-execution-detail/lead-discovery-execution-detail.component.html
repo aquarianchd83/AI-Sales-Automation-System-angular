@@ -1,7 +1,7 @@
 <div class="page">
   <a mat-button routerLink=".." class="back-link">
     <mat-icon>arrow_back</mat-icon>
-    Lead discovery history
+    Lead Discovery
   </a>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
@@ -277,8 +277,8 @@
                     <span class="sms-line sms-note">
                       <mat-icon class="sms-icon sms-icon--not-sent" aria-label="Not sent">close</mat-icon>
                       <span>
-                        {{ row.consentSmsNote || 'Not sent' }}
-                        <a *ngIf="row.consentSmsNeedsSetting" class="sms-link" routerLink="/lead-discovery/profile" matTooltip="Open the discovery profile to check the consent SMS and Auto-Campaign settings">Discovery profile</a>
+                        <strong class="sms-headline" *ngIf="smsHead(row)">{{ smsHead(row) }}</strong>{{ smsRest(row) }}
+                        <a *ngIf="row.consentSmsNeedsSetting" class="sms-link" routerLink="/lead-discovery/profile" matTooltip="Open the discovery profile to fix this">Discovery profile</a>
                       </span>
                     </span>
                   </ng-template>

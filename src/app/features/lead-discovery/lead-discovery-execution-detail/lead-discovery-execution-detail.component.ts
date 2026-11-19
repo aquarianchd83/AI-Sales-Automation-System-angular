@@ -82,6 +82,18 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
     this.dialog.open(CustomerHistoryDialogComponent, { data, width: '560px' });
   }
 
+  /** The bold lead-in of a consent SMS note, when it names a missing setting; empty when the note has none. Separate strings, not one object, so
+   * the template compares them by value on every check. */
+  smsHead(row: LeadDiscoveryExecutionCustomer): string {
+    const head = row.consentSmsHeadline ?? '';
+    return head && (row.consentSmsNote ?? '').startsWith(head) ? head : '';
+  }
+
+  /** The rest of the note after its bold lead-in: what to do about it. A row with no note still says it was not sent. */
+  smsRest(row: LeadDiscoveryExecutionCustomer): string {
+    return (row.consentSmsNote || 'Not sent').slice(this.smsHead(row).length);
+  }
+
   /** The credits this execution took from the wallet; zero for a response that does not say. */
   credits(d: LeadDiscoveryExecutionDetail): number {
     return d.creditsCharged ?? 0;

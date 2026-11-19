@@ -307,6 +307,68 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
       expect(cells[0].contains(links[0])).toBeTrue();
     });
 
+    describe('the two settings that stop a consent SMS', () => {
+      const cell = () => (fixture.nativeElement as HTMLElement).querySelector('td.mat-column-consentSms') as HTMLElement;
+      /** The note's own text: the cell also holds the cross icon, whose ligature name ("close") is text too. */
+      const flat = () => cell().querySelector('.sms-note > span')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+
+      const AUTO_HEAD = 'Not added to a campaign: Auto-Campaign is not configured.';
+      const AUTO_NOTE = AUTO_HEAD + ' Turn on Auto-Campaign and choose a campaign in the discovery profile.';
+      const OFF_HEAD = 'SMS consent is not configured.';
+      const OFF_NOTE = OFF_HEAD + ' Turn on "Send WhatsApp consent SMS" in the discovery profile to send it.';
+
+      it('with no Auto-Campaign says in bold that the customer was not added to a campaign, then what to do, and links to the discovery profile', () => {
+        createWithCounts([row({ id: 'r1', consentSmsNote: AUTO_NOTE, consentSmsHeadline: AUTO_HEAD, consentSmsNeedsSetting: true })]);
+
+        const bold = cell().querySelector('strong.sms-headline');
+        expect(bold?.textContent?.trim()).toBe(AUTO_HEAD);
+        expect(flat()).toBe(AUTO_NOTE + ' Discovery profile');
+        expect(flat()).toContain('Turn on Auto-Campaign and choose a campaign in the discovery profile.');
+
+        const link = cell().querySelector<HTMLAnchorElement>('a.sms-link')!;
+        expect(link.getAttribute('href')).toBe('/lead-discovery/profile');
+        expect(link.textContent).toContain('Discovery profile');
+      });
+
+      it('with an Auto-Campaign but the consent SMS not set up says in bold that SMS consent is not configured, and links to where it is set', () => {
+        createWithCounts([row({ id: 'r1', consentSmsNote: OFF_NOTE, consentSmsHeadline: OFF_HEAD, consentSmsNeedsSetting: true })]);
+
+        expect(cell().querySelector('strong.sms-headline')?.textContent?.trim()).toBe(OFF_HEAD);
+        expect(flat()).toBe(OFF_NOTE + ' Discovery profile');
+        expect(flat()).not.toContain('Auto-Campaign is not configured');
+        expect(cell().querySelector<HTMLAnchorElement>('a.sms-link')?.getAttribute('href')).toBe('/lead-discovery/profile');
+      });
+
+      it('shows only the lead-in in bold, not the instruction after it', () => {
+        createWithCounts([row({ id: 'r1', consentSmsNote: AUTO_NOTE, consentSmsHeadline: AUTO_HEAD, consentSmsNeedsSetting: true })]);
+
+        const boldText = Array.from(cell().querySelectorAll('strong')).map((s) => s.textContent?.trim()).join('');
+        expect(boldText).toBe(AUTO_HEAD);
+      });
+
+      it('shows a note with no lead-in as plain text, without a bold part', () => {
+        createWithCounts([row({ id: 'r1', consentSmsNote: 'Not sent: the SMS provider turned the number away.' })]);
+
+        expect(cell().querySelector('strong')).toBeNull();
+        expect(flat()).toContain('Not sent: the SMS provider turned the number away.');
+        expect(cell().querySelector('a.sms-link')).toBeNull();   // not a setting the discovery profile fixes
+      });
+
+      it('does not bold anything the note does not actually start with', () => {
+        createWithCounts([row({ id: 'r1', consentSmsNote: 'Something else entirely.', consentSmsHeadline: AUTO_HEAD })]);
+
+        expect(cell().querySelector('strong')).toBeNull();
+        expect(flat()).toBe('Something else entirely.');
+      });
+
+      it('still says a row was not sent when an older execution gave no note at all', () => {
+        createWithCounts([row({ id: 'r1', customerId: null, status: 'Skipped', verificationStatus: 'NotChecked' })]);
+
+        expect(flat()).toContain('Not sent');
+        expect(cell().querySelector('strong')).toBeNull();
+      });
+    });
+
     it('shows a tick for an SMS that was sent, a cross for one that failed, and when the customer answered', () => {
       createWithCounts([
         row({ id: 'r1', consentSmsStatus: 'Delivered', consentRecordedAtUtc: '2026-10-15T06:30:00Z' }),

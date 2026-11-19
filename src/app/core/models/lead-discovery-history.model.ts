@@ -100,6 +100,8 @@ export interface LeadDiscoveryExecutionCustomer {
   consentRecordedAtUtc?: string | null;
   /** Why no SMS went to this row, in words ("Not sent: ..."), so the Consent SMS column is never a bare dash. Null when an SMS was sent. */
   consentSmsNote?: string | null;
+  /** The first sentence of the note when it names a missing setting ("Not added to a campaign: Auto-Campaign is not configured."), shown in bold ahead of the rest. */
+  consentSmsHeadline?: string | null;
   /** True when no SMS went because the consent SMS switch in the discovery profile is Off - the screen links to where it is turned on. */
   consentSmsNeedsSetting?: boolean;
   /** What became of this candidate: Saved, Lead only, Duplicate, Rejected, Not needed (qualified, but the batch was already full), Failed, Pending or Skipped. */
