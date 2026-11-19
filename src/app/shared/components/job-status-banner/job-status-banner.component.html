@@ -1,0 +1,19 @@
+<div
+  *ngIf="state !== 'idle'"
+  class="job-status"
+  [class.job-status--running]="state === 'running'"
+  [class.job-status--finished]="state === 'finished'"
+  role="status"
+  aria-live="polite"
+  data-testid="job-status-banner"
+>
+  <mat-icon class="job-status-icon">{{ state === 'running' ? 'sync' : 'check_circle' }}</mat-icon>
+  <span class="job-status-text">
+    <strong>{{ label }} {{ state === 'running' ? 'started' : 'completed' }}.</strong>
+    <ng-container *ngIf="state === 'running'"> It is running for your account - this page updates by itself when it finishes.</ng-container>
+    <ng-container *ngIf="state === 'finished'"> {{ finishedHint || 'It has finished running.' }}</ng-container>
+  </span>
+  <button mat-icon-button type="button" class="job-status-dismiss" aria-label="Dismiss" matTooltip="Dismiss" data-testid="job-status-dismiss" (click)="dismiss()">
+    <mat-icon>close</mat-icon>
+  </button>
+</div>

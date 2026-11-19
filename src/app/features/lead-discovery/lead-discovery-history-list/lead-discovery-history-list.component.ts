@@ -63,7 +63,12 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
 
   private pageIndex = 1;
   private pageSize = DEFAULT_PAGE_SIZE;
+  /** The job whose start and finish the banner above the list reports. */
+  readonly jobTypes = [LEAD_DISCOVERY_JOB_TYPE];
+
   private readonly reload$ = new Subject<void>();
+  /** Ends the Run-now polling: the job said it finished, so there is nothing left to wait for. */
+  private readonly stopPolling$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -75,6 +80,12 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
     private readonly route: ActivatedRoute,
     private readonly dialog: MatDialog
   ) {}
+
+  /** The lead-discovery job just finished: fetch its execution, in place. */
+  refresh(): void {
+    this.stopPolling$.next();
+    this.reload$.next();
+  }
 
   ngOnInit(): void {
     this.billing
@@ -165,7 +176,7 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
    * without the tenant reloading the page. */
   private pollForNewExecution(): void {
     timer(RUN_NOW_POLL_INTERVAL_MS, RUN_NOW_POLL_INTERVAL_MS)
-      .pipe(take(RUN_NOW_POLL_ATTEMPTS), takeUntil(this.destroy$))
+      .pipe(take(RUN_NOW_POLL_ATTEMPTS), takeUntil(this.stopPolling$), takeUntil(this.destroy$))
       .subscribe(() => this.reload$.next());
   }
 

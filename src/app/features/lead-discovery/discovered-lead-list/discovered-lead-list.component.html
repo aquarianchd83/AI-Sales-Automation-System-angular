@@ -9,6 +9,14 @@
     </ng-container>
   </app-page-header>
 
+  <!-- The lead-discovery job has started, or has finished: said here the moment it happens, and the list below refreshes by itself. -->
+  <app-job-status-banner
+    label="Lead discovery"
+    [jobTypes]="jobTypes"
+    finishedHint="The list below shows the latest leads."
+    (finished)="refresh()"
+  ></app-job-status-banner>
+
   <div class="consent-note" role="note">
     <mat-icon>info</mat-icon>
     <span>

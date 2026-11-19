@@ -282,6 +282,22 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     discardPeriodicTasks();
   }));
 
+  it('stops polling once the job reports it finished - one refetch for the finish, then nothing more', fakeAsync(() => {
+    tenantJobs.trigger.and.returnValue(of({ recurringJobId: 'lead-discovery', backgroundJobId: 'job-1' }));
+    create([]);
+    (Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Run now')
+    ) as HTMLButtonElement).click();
+    tick(5000);
+
+    const before = service.getHistory.calls.count();
+    component.refresh(); // what the banner's (finished) does
+    expect(service.getHistory.calls.count()).toBe(before + 1);
+
+    tick(30000);
+    expect(service.getHistory.calls.count()).toBe(before + 1);
+  }));
+
   it('does not poll after a failed run now', fakeAsync(() => {
     tenantJobs.trigger.and.returnValue(throwError(() => ({ error: { message: 'Lead discovery is disabled.' } })));
     create([]);

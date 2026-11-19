@@ -7,6 +7,7 @@ import { ConfirmDialogComponent } from './components/confirm-dialog/confirm-dial
 import { CreditCostComponent } from './components/credit-cost/credit-cost.component';
 import { StateSelectComponent } from './components/state-select/state-select.component';
 import { PageHeaderComponent } from './components/page-header/page-header.component';
+import { JobStatusBannerComponent } from './components/job-status-banner/job-status-banner.component';
 import { ModuleFlowsButtonComponent } from './components/module-flows/module-flows-button.component';
 import { ModuleFlowsDialogComponent } from './components/module-flows/module-flows-dialog.component';
 import { HasRoleDirective } from './directives/has-role.directive';
@@ -28,6 +29,7 @@ const DECLARATIONS = [
   ConfirmDialogComponent,
   CreditCostComponent,
   PageHeaderComponent,
+  JobStatusBannerComponent,
   StateSelectComponent,
   HasRoleDirective,
   InViewportDirective,

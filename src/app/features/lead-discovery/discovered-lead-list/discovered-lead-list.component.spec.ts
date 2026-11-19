@@ -2,10 +2,12 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { MatDialog } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, NEVER, Subject, of } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 import { DiscoveredLead } from '../../../core/models/lead-discovery.model';
 import { AuthService } from '../../../core/services/auth.service';
+import { NotificationHubService } from '../../../core/services/notification-hub.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { DiscoveredLeadListComponent } from './discovered-lead-list.component';
@@ -154,6 +156,56 @@ describe('DiscoveredLeadListComponent', () => {
       create([passed]);
       component.verificationControl.setValue('Pending');
       expect(component.isFiltered).toBeTrue();
+    });
+  });
+
+  describe('job banner', () => {
+    let started$: Subject<string>;
+    let finished$: Subject<string>;
+
+    beforeEach(() => {
+      started$ = new Subject<string>();
+      finished$ = new Subject<string>();
+      TestBed.overrideProvider(NotificationHubService, {
+        useValue: {
+          jobStarted: (types?: string[]) => started$.pipe(filter((t) => !types || types.includes(t))),
+          jobFinished: (types?: string[]) => finished$.pipe(filter((t) => !types || types.includes(t))),
+          notificationReceived$: NEVER,
+        },
+      });
+    });
+
+    it('says the job started, without refetching', () => {
+      create([lead]);
+      service.getLeads.calls.reset();
+
+      started$.next('lead-discovery');
+      fixture.detectChanges();
+
+      expect(text()).toContain('Lead discovery started.');
+      expect(service.getLeads).not.toHaveBeenCalled();
+    });
+
+    it('says the job completed and refetches the list by itself', () => {
+      create([lead]);
+      service.getLeads.calls.reset();
+
+      finished$.next('lead-discovery');
+      fixture.detectChanges();
+
+      expect(text()).toContain('Lead discovery completed.');
+      expect(service.getLeads).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores another job finishing', () => {
+      create([lead]);
+      service.getLeads.calls.reset();
+
+      finished$.next('campaign-sends');
+      fixture.detectChanges();
+
+      expect(text()).not.toContain('Lead discovery completed.');
+      expect(service.getLeads).not.toHaveBeenCalled();
     });
   });
 });
