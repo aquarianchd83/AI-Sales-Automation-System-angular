@@ -1,5 +1,7 @@
+import { Location } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 
 import { AI_MODEL_TYPES, AiProviderModel } from '../../../core/models/platform.model';
 import { AiProviderModelService } from '../../../core/services/ai-provider-model.service';
@@ -28,8 +30,24 @@ export class PlatformAiProviderModelsComponent implements OnInit {
   constructor(
     private readonly modelService: AiProviderModelService,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly location: Location,
+    private readonly router: Router
   ) {}
+
+  /** Whether there is a page to go back to (false when this page was the first one opened in the tab). */
+  hasHistory(): boolean {
+    return window.history.length > 1;
+  }
+
+  /** Back to the page the operator came from (AI Providers links here); opened directly, there is none, so it goes to AI Providers. */
+  goBack(): void {
+    if (this.hasHistory()) {
+      this.location.back();
+    } else {
+      void this.router.navigateByUrl('/settings/ai-providers');
+    }
+  }
 
   ngOnInit(): void {
     this.load();

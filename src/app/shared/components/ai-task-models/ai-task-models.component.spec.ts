@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { RouterTestingModule } from '@angular/router/testing';
 import { of, throwError } from 'rxjs';
 
 import { AiTaskModelCell, AiTaskModels } from '../../../core/models/platform.model';
@@ -68,12 +69,28 @@ describe('AiTaskModelsComponent', () => {
     api = jasmine.createSpyObj('PlatformAiProvidersService', ['taskModels', 'updateTaskModels']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error', 'info']);
     TestBed.configureTestingModule({
-      imports: [SharedModule, NoopAnimationsModule],
+      imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: PlatformAiProvidersService, useValue: api },
         { provide: NotificationService, useValue: notify },
       ],
     });
+  });
+
+  it('links to AI Provider Models, where the models offered here are kept', () => {
+    create();
+
+    const link = el().querySelector('[data-testid="models-link"]') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('/platform/ai-provider-models');
+    expect(link.textContent).toContain('AI Provider Models');
+  });
+
+  it('links to AI Provider Charges, where the prices it shows are kept', () => {
+    create();
+
+    const link = el().querySelector('[data-testid="charges-link"]') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('/platform/ai-charges');
+    expect(link.textContent).toContain('AI Provider Charges');
   });
 
   it('lists every task group with a column per provider', () => {

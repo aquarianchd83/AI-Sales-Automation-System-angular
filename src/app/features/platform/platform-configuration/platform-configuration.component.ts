@@ -1,6 +1,7 @@
+import { Location } from '@angular/common';
 import { Component, OnInit, Optional } from '@angular/core';
 import { AbstractControl, FormArray, FormGroup, NonNullableFormBuilder, ValidationErrors, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import {
@@ -108,6 +109,8 @@ export class PlatformConfigurationComponent implements OnInit {
     private readonly platformBilling: PlatformBillingService,
     private readonly systemSettings: SettingsService,
     private readonly modelCatalogue: AiProviderModelService,
+    private readonly location: Location,
+    private readonly router: Router,
     @Optional() route: ActivatedRoute | null
   ) {
     this.sections = (route?.snapshot?.data?.['sections'] as string[] | undefined) ?? null;
@@ -156,6 +159,20 @@ export class PlatformConfigurationComponent implements OnInit {
 
   get taxCountries(): FormArray<FormGroup> {
     return this.form.controls.taxCountries;
+  }
+
+  /** Whether there is a page to go back to (false when this page was the first one opened in the tab). */
+  hasHistory(): boolean {
+    return window.history.length > 1;
+  }
+
+  /** Back to the page the operator came from (the Model by task panel links here); opened directly, there is none, so it goes to AI Providers. */
+  goBack(): void {
+    if (this.hasHistory()) {
+      this.location.back();
+    } else {
+      void this.router.navigateByUrl('/settings/ai-providers');
+    }
   }
 
   ngOnInit(): void {

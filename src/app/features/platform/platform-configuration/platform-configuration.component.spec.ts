@@ -1,4 +1,5 @@
-import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
@@ -266,6 +267,34 @@ describe('PlatformConfigurationComponent', () => {
     const { component } = render();
 
     expect(component.leadModelOptions()).toEqual(['gemini-2.5-flash', 'gpt-5', 'gpt-5-mini']);
+  });
+
+  it('has a Back button on the AI Provider Charges screen that returns to the previous page, and none on General', () => {
+    const charges = render(config(), ['whatsapp', 'lead', 'ai']);
+    const back = charges.root.querySelector('[data-testid="back-button"]') as HTMLButtonElement;
+    spyOn(charges.component, 'hasHistory').and.returnValue(true);
+    expect(back).not.toBeNull();
+    const goBack = spyOn(TestBed.inject(Location), 'back');
+
+    back.click();
+
+    expect(goBack).toHaveBeenCalled();
+  });
+
+  it('opened directly, Back goes to AI Providers instead', () => {
+    const { component } = render(config(), ['ai']);
+    spyOn(component, 'hasHistory').and.returnValue(false);
+    const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+
+    component.goBack();
+
+    expect(navigate).toHaveBeenCalledWith('/settings/ai-providers');
+  });
+
+  it('shows no Back button on the General configuration screen', () => {
+    const { root } = render();
+
+    expect(root.querySelector('[data-testid="back-button"]')).toBeNull();
   });
 
   it('has no default model to choose on either panel', () => {

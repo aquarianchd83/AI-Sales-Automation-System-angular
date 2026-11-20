@@ -1,4 +1,9 @@
 <div class="page">
+  <button mat-button type="button" class="back-link" *ngIf="show('ai')" (click)="goBack()" data-testid="back-button">
+    <mat-icon>arrow_back</mat-icon>
+    Back
+  </button>
+
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
   <mat-card *ngIf="loadFailed" class="config-card">

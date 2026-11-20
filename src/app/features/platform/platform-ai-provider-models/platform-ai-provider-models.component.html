@@ -1,4 +1,9 @@
 <div class="page">
+  <button mat-button type="button" class="back-link" (click)="goBack()" data-testid="back-button">
+    <mat-icon>arrow_back</mat-icon>
+    Back
+  </button>
+
   <app-page-header title="AI Provider Models" subtitle="Models offered by Google, Anthropic, OpenAI and other AI providers.">
     <button mat-stroked-button type="button" (click)="compare()" [disabled]="!models.length">
       <mat-icon>compare_arrows</mat-icon>
