@@ -640,13 +640,9 @@ export interface ChargesConfig {
     webSearchPerThousand: number;
     default: LeadDiscoveryModelRates;
     models: LeadDiscoveryModelRates[];
-    /** The model the platform runs; a run on a model with no row is priced at this one. Null = none chosen. */
-    defaultModel: string | null;
   };
   ai: {
     models: AiModelRates[];
-    /** "Provider:model", one of models. An interaction on a model with no row is priced at this one. Null = none chosen. */
-    defaultModel: string | null;
   };
 }
 

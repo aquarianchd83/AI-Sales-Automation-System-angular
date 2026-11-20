@@ -78,7 +78,8 @@ export class AiTaskModelsComponent implements OnInit {
           continue;
         }
         const shown = this.shown(group, cell);
-        if (!shown.hasPrice) {
+        // A group with no model at all (lead discovery before one is chosen) has nothing to price.
+        if (shown.model && !shown.hasPrice) {
           missing.add(`${cell.providerLabel} ${shown.model}`);
         }
       }

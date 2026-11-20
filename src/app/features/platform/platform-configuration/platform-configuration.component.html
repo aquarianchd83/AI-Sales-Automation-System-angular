@@ -283,7 +283,7 @@
       
       <p class="muted">
         A discovery run is charged for the tokens the model used plus web searches. Token prices are per million tokens.
-        You use one model at a time: mark it as the default and any run on a model with no row of its own is priced at its rates.
+        A run on a model with no row of its own is priced at the fallback row. The model a run really uses is chosen on the AI Providers page.
       </p>
 
       <div class="field-grid">
@@ -295,10 +295,10 @@
       </div>
 
       <div class="rate-table rate-table--lead">
-        <div class="rate-head"><span>Model</span><span>Input</span><span>Output</span><span>Cache read</span><span>Cache write</span><span>Default</span><span></span></div>
+        <div class="rate-head"><span>Model</span><span>Input</span><span>Output</span><span>Cache read</span><span>Cache write</span><span></span></div>
 
         <div class="rate-row" [formGroup]="form.controls.leadDefault">
-          <span class="rate-name">Fallback (no default chosen)</span>
+          <span class="rate-name">Fallback (a model with no row)</span>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.05" formControlName="inputPerMillion" aria-label="Default input rate" /></mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.05" formControlName="outputPerMillion" aria-label="Default output rate" /></mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.05" formControlName="cacheReadPerMillion" aria-label="Default cache read rate" /></mat-form-field>
@@ -316,18 +316,6 @@
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.05" formControlName="outputPerMillion" aria-label="Output rate" /></mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.05" formControlName="cacheReadPerMillion" aria-label="Cache read rate" /></mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.05" formControlName="cacheWritePerMillion" aria-label="Cache write rate" /></mat-form-field>
-          <button
-            mat-icon-button
-            type="button"
-            class="default-toggle"
-            [class.is-default]="isDefault('lead', model)"
-            [disabled]="model.controls['model'].invalid"
-            [attr.aria-pressed]="isDefault('lead', model)"
-            [attr.aria-label]="isDefault('lead', model) ? 'Default model - click to clear' : 'Set as default model'"
-            (click)="toggleDefault('lead', model)"
-          >
-            <mat-icon>{{ isDefault('lead', model) ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
-          </button>
           <button mat-icon-button type="button" *ngIf="isNew(model)" aria-label="Remove model" (click)="removeNew(leadModels, i)"><mat-icon>close</mat-icon></button>
           <span *ngIf="!isNew(model)"></span>
         </div>
@@ -344,11 +332,11 @@
       
       <p class="muted">
         A conversational reply is priced from the model that wrote it and its token counts, per 1,000 tokens. A model with
-        no row of its own is priced at the default model. You use one model at a time: mark it as the default. With no default, such a model is counted as free.
+        no row of its own is counted as free, so add every model you use. The model replies run on is chosen on the AI Providers page.
       </p>
 
       <div class="rate-table rate-table--ai">
-        <div class="rate-head"><span>Model</span><span>Prompt</span><span>Completion</span><span>Default</span><span></span></div>
+        <div class="rate-head"><span>Model</span><span>Prompt</span><span>Completion</span><span></span></div>
         <div class="rate-row" *ngFor="let model of aiModels.controls; let i = index" [formGroup]="model">
           <span class="rate-name" *ngIf="!isNew(model)">{{ model.controls['model'].value }}</span>
           <mat-form-field subscriptSizing="dynamic" *ngIf="isNew(model)">
@@ -357,18 +345,6 @@
           </mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.0001" formControlName="promptPer1K" aria-label="Prompt rate" /></mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.0001" formControlName="completionPer1K" aria-label="Completion rate" /></mat-form-field>
-          <button
-            mat-icon-button
-            type="button"
-            class="default-toggle"
-            [class.is-default]="isDefault('ai', model)"
-            [disabled]="model.controls['model'].invalid"
-            [attr.aria-pressed]="isDefault('ai', model)"
-            [attr.aria-label]="isDefault('ai', model) ? 'Default model - click to clear' : 'Set as default model'"
-            (click)="toggleDefault('ai', model)"
-          >
-            <mat-icon>{{ isDefault('ai', model) ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
-          </button>
           <button mat-icon-button type="button" *ngIf="isNew(model)" aria-label="Remove model" (click)="removeNew(aiModels, i)"><mat-icon>close</mat-icon></button>
           <span *ngIf="!isNew(model)"></span>
         </div>

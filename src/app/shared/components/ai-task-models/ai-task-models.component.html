@@ -32,14 +32,18 @@
               [value]="valueOf(group, cell)"
               (change)="pick(group, cell, $any($event.target).value)"
             >
+              <option *ngIf="!group.allowDefault && !cell.effectiveModel" value="" disabled selected>Choose a model</option>
               <option *ngIf="group.allowDefault" [value]="sameAsChat" [selected]="valueOf(group, cell) === sameAsChat">{{ sameLabel(group, cell) }}</option>
               <option *ngFor="let option of cell.options" [value]="option.model" [selected]="valueOf(group, cell) === option.model">
                 {{ option.model }}{{ option.hasPrice ? '' : ' (no price)' }}
               </option>
             </select>
             <div class="price small" *ngIf="shown(group, cell) as s">
+              <ng-container *ngIf="s.model; else nothingChosen">
               <ng-container *ngIf="s.hasPrice; else noPrice">$ {{ s.inputPer1M }} / $ {{ s.outputPer1M }} per 1M tokens</ng-container>
               <ng-template #noPrice><span class="warn">No price for {{ s.model }}</span></ng-template>
+              </ng-container>
+              <ng-template #nothingChosen><span class="warn" *ngIf="cell.available">No model chosen: lead discovery is skipped until one is.</span></ng-template>
             </div>
             <div class="muted small" *ngIf="!cell.available">Off or no key, so this has no effect yet.</div>
           </td>

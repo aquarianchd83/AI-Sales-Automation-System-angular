@@ -104,6 +104,20 @@ describe('AiTaskModelsComponent', () => {
     expect(select('CustomerReplies', 'Anthropic').options[0].textContent).toContain('Same as chat model (claude-haiku-4-5)');
   });
 
+  it('says so when no lead discovery model is chosen yet, instead of showing a price for nothing', () => {
+    const lead = page();
+    lead.groups.push({
+      key: 'LeadDiscovery', title: 'Lead discovery', description: 'Web search.', tasks: ['Finding new businesses'], defaultLabel: 'Default', allowDefault: false,
+      providers: [cell('Anthropic', { chatModel: '', effectiveModel: '', hasPrice: false, inputPer1M: null, outputPer1M: null }), cell('OpenAI'), cell('Google', { available: false })],
+    });
+    create(lead);
+
+    const claude = el().querySelector('[data-group="LeadDiscovery"] [data-provider="Anthropic"]')!;
+    expect(claude.textContent).toContain('No model chosen');
+    expect(claude.querySelector('select')!.options[0].textContent).toContain('Choose a model');
+    expect(el().querySelector('[data-testid="task-models-unpriced"]')?.textContent ?? '').not.toContain('Claude  ');
+  });
+
   it('shows the saved choice and its price', () => {
     create(page({ Anthropic: { selected: 'claude-sonnet-5', effectiveModel: 'claude-sonnet-5' } }));
 
