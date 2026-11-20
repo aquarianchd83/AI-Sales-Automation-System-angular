@@ -117,6 +117,14 @@ export interface Payment {
   totalLocal?: number;
   taxLines?: TaxLine[];
   amountInr?: number;
+  /** "Succeeded" or "Failed". A failed row is an attempt the gateway could not complete: nothing was paid. Absent on old rows, which all succeeded. */
+  status?: string;
+  /** upi, card ... as the gateway reported it. */
+  paymentMethod?: string | null;
+  failureReason?: string | null;
+  /** The gateway's own references, for a payment made through one. */
+  transactionId?: string | null;
+  invoiceId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -573,4 +581,109 @@ export interface RefundRequest {
   failureReason: string | null;
   createdAt: string;
   reviewedAtUtc: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// UPI AutoPay: paying for a plan automatically each month through a Razorpay mandate.
+// Every status here comes from the server, which takes it from Razorpay - never from the browser.
+// ---------------------------------------------------------------------------
+
+/** Whether this tenant pays for plans through AutoPay, and if not, why. */
+export interface AutoPayAvailability {
+  available: boolean;
+  reason: string | null;
+  /** "test" or "live" - which Razorpay keys the platform is using. */
+  mode: string | null;
+}
+
+/** What the screen shows for a mandate. */
+export type AutoPayStatus =
+  | 'PendingAuthorization'
+  | 'PaymentPending'
+  | 'Active'
+  | 'PastDue'
+  | 'Halted'
+  | 'Paused'
+  | 'CancellationScheduled'
+  | 'Cancelled'
+  | 'Expired';
+
+export const AUTOPAY_STATUS_LABELS: Record<AutoPayStatus, string> = {
+  PendingAuthorization: 'Pending authorization',
+  PaymentPending: 'Payment pending',
+  Active: 'Active',
+  PastDue: 'Past due',
+  Halted: 'Halted',
+  Paused: 'Paused',
+  CancellationScheduled: 'Cancellation scheduled',
+  Cancelled: 'Cancelled',
+  Expired: 'Expired',
+};
+
+/** What a checkout returns: where the tenant authorises the mandate. Getting this back is not a payment. */
+export interface AutoPayCheckout {
+  id: string;
+  subscriptionId: string;
+  status: AutoPayStatus;
+  authorizationUrl: string;
+  keyId: string;
+  mode: string;
+  /** The monthly debit in paise, tax included. */
+  amountMinor: number;
+  currency: string;
+  planName: string;
+}
+
+/** One mandate as the tenant sees it. */
+export interface AutoPaySubscription {
+  id: string;
+  subscriptionId: string;
+  planId: string;
+  planName: string;
+  status: AutoPayStatus;
+  /** Razorpay's own state, for support. */
+  gatewayStatus: string;
+  /** The monthly debit in rupees, tax included. */
+  amount: number;
+  currencyCode: string;
+  billingFrequency: string;
+  currentPeriodStartUtc: string | null;
+  currentPeriodEndUtc: string | null;
+  /** When Razorpay next debits; null when it will not renew. */
+  nextRenewalUtc: string | null;
+  autoRenew: boolean;
+  cancelAtCycleEnd: boolean;
+  cancelledAtUtc: string | null;
+  paymentMethod: string | null;
+  /** Where to authorise it - set only while it waits for that. */
+  authorizationUrl: string | null;
+  mode: string;
+  createdAt: string;
+}
+
+/** One invoice Razorpay raised for a billing cycle. */
+export interface AutoPayInvoice {
+  invoiceId: string;
+  invoiceNumber: string | null;
+  /** Razorpay's own: draft, issued, partially_paid, paid, expired, cancelled. */
+  status: string;
+  amount: number;
+  amountPaid: number;
+  currencyCode: string;
+  issuedAtUtc: string | null;
+  paidAtUtc: string | null;
+  periodStartUtc: string | null;
+  periodEndUtc: string | null;
+  transactionId: string | null;
+  url: string | null;
+}
+
+/** The mandate is still on its way to being confirmed: worth asking the server again. */
+export function autoPayIsWaiting(status: AutoPayStatus): boolean {
+  return status === 'PendingAuthorization' || status === 'PaymentPending';
+}
+
+/** The mandate is authorised and not finished - another one cannot be started beside it. */
+export function autoPayIsRunning(status: AutoPayStatus): boolean {
+  return status !== 'PendingAuthorization' && status !== 'Cancelled' && status !== 'Expired';
 }

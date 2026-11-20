@@ -17,6 +17,7 @@ describe('BillingListComponent inside onboarding', () => {
   function render(embedded: boolean): HTMLElement {
     billing = jasmine.createSpyObj<BillingService>('BillingService', [
       'getPlans', 'getSubscription', 'getPaymentHistory', 'getCapabilities', 'getRefundRequests', 'getQuota',
+      'getAutoPayAvailability', 'getAutoPaySubscription',
     ]);
     billing.getPlans.and.returnValue(of([
       {
@@ -32,6 +33,8 @@ describe('BillingListComponent inside onboarding', () => {
     ]));
     billing.getPaymentHistory.and.returnValue(of([]));
     billing.getCapabilities.and.returnValue(of({ refundRequestsEnabled: true }));
+    billing.getAutoPayAvailability.and.returnValue(of({ available: false, reason: null, mode: null }));
+    billing.getAutoPaySubscription.and.returnValue(of(null));
     billing.getRefundRequests.and.returnValue(of([
       {
         id: 'r', tenantId: 't', tenantName: 'Acme', paymentDescription: 'x', reason: 'x', eligibleAmountCents: 1,

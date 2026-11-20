@@ -25,6 +25,100 @@
     </div>
   </mat-card>
 
+  <mat-card class="mandate-card" *ngIf="mandate as m" [class.mandate-card--problem]="mandateChip(m.status) === 'problem'">
+    <div class="mandate-head">
+      <div>
+        <span class="muted">Automatic payment (UPI AutoPay)</span>
+        <h3>{{ m.planName }}</h3>
+      </div>
+      <span
+        class="status-chip mandate-status"
+        [class.status-chip--opted-in]="mandateChip(m.status) === 'ok'"
+        [class.status-chip--pending]="mandateChip(m.status) === 'waiting'"
+        [class.status-chip--opted-out]="mandateChip(m.status) === 'problem'"
+        [class.status-chip--inactive]="mandateChip(m.status) === 'off'"
+      >
+        {{ autoPayStatusLabels[m.status] }}
+      </span>
+    </div>
+
+    <p class="mandate-notice" *ngIf="mandateNotice(m) as notice" [class.mandate-notice--problem]="mandateChip(m.status) === 'problem'">
+      <mat-icon>{{ mandateChip(m.status) === 'problem' ? 'error_outline' : 'info' }}</mat-icon>
+      <span>{{ notice }}</span>
+    </p>
+
+    <dl class="mandate-facts">
+      <div>
+        <dt>Amount</dt>
+        <dd>{{ mandateAmount(m) }}</dd>
+      </div>
+      <div *ngIf="m.nextRenewalUtc">
+        <dt>Next payment</dt>
+        <dd>{{ m.nextRenewalUtc | zonedDate: 'mediumDate' }}</dd>
+      </div>
+      <div *ngIf="!m.nextRenewalUtc && m.currentPeriodEndUtc">
+        <dt>Paid until</dt>
+        <dd>{{ m.currentPeriodEndUtc | zonedDate: 'mediumDate' }}</dd>
+      </div>
+      <div>
+        <dt>Auto-renewal</dt>
+        <dd>{{ m.autoRenew ? 'On' : 'Off' }}</dd>
+      </div>
+      <div *ngIf="m.paymentMethod">
+        <dt>Paid by</dt>
+        <dd>{{ m.paymentMethod | uppercase }}</dd>
+      </div>
+      <div *ngIf="m.mode === 'test'">
+        <dt>Mode</dt>
+        <dd>Test - no real money moves</dd>
+      </div>
+    </dl>
+
+    <div class="mandate-actions">
+      <button mat-flat-button color="primary" type="button" *ngIf="m.authorizationUrl" (click)="openAuthorization(m.authorizationUrl)">
+        <mat-icon>open_in_new</mat-icon>
+        Authorize on Razorpay
+      </button>
+      <button mat-stroked-button type="button" *ngIf="mandateWaiting" [disabled]="checkingMandate" (click)="checkMandate()">
+        {{ checkingMandate ? 'Checking…' : 'Check status' }}
+      </button>
+      <button mat-stroked-button type="button" *ngIf="!embedded && m.status !== 'PendingAuthorization'" [disabled]="loadingInvoices" (click)="toggleInvoices()">
+        {{ invoices ? 'Hide invoices' : loadingInvoices ? 'Loading…' : 'Invoices' }}
+      </button>
+      <span class="spacer"></span>
+      <button
+        mat-button
+        color="warn"
+        type="button"
+        *ngIf="m.status !== 'Cancelled' && m.status !== 'Expired' && m.status !== 'CancellationScheduled'"
+        [disabled]="cancellingMandate"
+        (click)="cancelMandate()"
+      >
+        {{ m.status === 'PendingAuthorization' ? 'Cancel request' : 'Cancel automatic payment' }}
+      </button>
+    </div>
+
+    <div class="payment-list invoice-list" *ngIf="invoices">
+      <div class="payment-row" *ngFor="let invoice of invoices">
+        <span class="muted payment-date">{{ (invoice.paidAtUtc || invoice.issuedAtUtc) | zonedDate: 'mediumDate' }}</span>
+        <span class="payment-name">
+          {{ invoice.invoiceNumber || invoice.invoiceId }}
+          <small class="muted" *ngIf="invoice.periodStartUtc && invoice.periodEndUtc">
+            · {{ invoice.periodStartUtc | zonedDate: 'mediumDate' }} – {{ invoice.periodEndUtc | zonedDate: 'mediumDate' }}
+          </small>
+        </span>
+        <span class="payment-amount">₹{{ invoice.amount | number: '1.2-2' }}</span>
+        <span class="status-chip" [class.status-chip--opted-in]="invoice.status === 'paid'" [class.status-chip--pending]="invoice.status !== 'paid'">
+          {{ invoice.status | titlecase }}
+        </span>
+        <span class="payment-action">
+          <a mat-button *ngIf="invoice.url" [href]="invoice.url" target="_blank" rel="noopener">Open invoice</a>
+        </span>
+      </div>
+      <p class="muted" *ngIf="!invoices.length">No invoices yet.</p>
+    </div>
+  </mat-card>
+
   <mat-progress-bar mode="indeterminate" *ngIf="loadingPlans"></mat-progress-bar>
 
   <div class="plan-grid" *ngIf="!loadingPlans">
@@ -52,17 +146,12 @@
         color="primary"
         class="full-width"
         type="button"
-        [disabled]="isCurrentPlan(plan) || !!switchingPlanId"
+        [disabled]="planButtonDisabled(plan)"
         (click)="choosePlan(plan)"
       >
-        {{
-          isCurrentPlan(plan)
-            ? 'Current plan'
-            : switchingPlanId === plan.id
-            ? 'Switching…'
-            : actionLabel(plan)
-        }}
+        {{ planButtonLabel(plan) }}
       </button>
+      <div class="muted plan-autopay" *ngIf="usesAutoPay(plan) && !isCurrentPlan(plan)">Paid automatically each month by UPI AutoPay.</div>
     </mat-card>
   </div>
 
@@ -80,8 +169,13 @@
       <div class="payment-list" *ngIf="paymentHistory.length">
         <div class="payment-row" *ngFor="let payment of visiblePayments">
           <span class="muted payment-date">{{ payment.paidAtUtc | zonedDate: 'mediumDate' }}</span>
-          <span class="payment-name">{{ payment.planName }}</span>
-          <span class="payment-amount" [class.refund]="payment.kind === 'Refund'">{{ formatPayment(payment) }}<small class="muted payment-tax" *ngIf="paymentTax(payment) as tax"> {{ tax }}</small></span>
+          <span class="payment-name">
+            {{ payment.planName }}
+            <small class="muted payment-reference" *ngIf="paymentReference(payment) as reference">{{ reference }}</small>
+            <small class="payment-failure" *ngIf="paymentFailed(payment)">Failed<ng-container *ngIf="payment.failureReason">: {{ payment.failureReason }}</ng-container></small>
+          </span>
+          <span class="status-chip status-chip--opted-out" *ngIf="paymentFailed(payment)">Failed</span>
+          <span class="payment-amount" [class.refund]="payment.kind === 'Refund'" [class.failed]="paymentFailed(payment)">{{ formatPayment(payment) }}<small class="muted payment-tax" *ngIf="paymentTax(payment) as tax"> {{ tax }}</small></span>
           <span class="payment-action">
             <button mat-button type="button" *ngIf="canRequestRefund(payment)" (click)="requestRefund(payment)">Request refund</button>
           </span>

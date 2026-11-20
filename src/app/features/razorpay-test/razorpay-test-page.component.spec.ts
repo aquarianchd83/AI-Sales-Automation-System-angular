@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { Subject, of, throwError } from 'rxjs';
 
 import { RazorpayCheckout, RazorpayOrder, RazorpaySettings } from '../../core/models/razorpay.model';
@@ -18,6 +19,8 @@ const settings = (over: Partial<RazorpaySettings> = {}): RazorpaySettings => ({
   webhookSecretHint: '••••9876',
   isConfigured: true,
   webhookPath: '/api/v1/webhooks/razorpay',
+  autoPayEnabled: false,
+  autoPayReady: false,
   ...over,
 });
 
@@ -56,7 +59,7 @@ describe('RazorpayTestPageComponent', () => {
 
   const create = (s: RazorpaySettings = settings(), orders: RazorpayOrder[] = []) => {
     api = jasmine.createSpyObj('RazorpayTestService', [
-      'getSettings', 'saveSettings', 'testKeys', 'createOrder', 'verify', 'reportFailure', 'refund', 'getOrders', 'getWebhookEvents',
+      'getSettings', 'saveSettings', 'setAutoPay', 'testKeys', 'createOrder', 'verify', 'reportFailure', 'refund', 'getOrders', 'getWebhookEvents',
     ]);
     api.getSettings.and.returnValue(of(s));
     api.getOrders.and.returnValue(of(orders));
@@ -215,6 +218,89 @@ describe('RazorpayTestPageComponent', () => {
     component.startRefund(component.orders[0]);
     component.confirmRefund();
     expect(api.refund.calls.mostRecent().args[1]).toBeNull();
+  });
+
+  describe('the UPI AutoPay switch', () => {
+    const toggle = (fixture: { nativeElement: unknown }) =>
+      (fixture.nativeElement as HTMLElement).querySelector('#autopay-card mat-slide-toggle') as HTMLElement;
+    const change = (checked: boolean) => ({ checked, source: { checked } } as unknown as MatSlideToggleChange);
+
+    it('is shown on the page, off by default', () => {
+      const { fixture, text } = create();
+
+      expect(toggle(fixture)).not.toBeNull();
+      expect(text()).toContain('Bill tenants through UPI AutoPay');
+      expect(toggle(fixture).classList.contains('mat-mdc-slide-toggle-checked')).toBeFalse();
+    });
+
+    it('turns on through the server and shows what the server answered', () => {
+      const { fixture, component, text } = create();
+      api.setAutoPay.and.returnValue(of(settings({ autoPayEnabled: true, autoPayReady: true })));
+
+      component.toggleAutoPay(change(true));
+      fixture.detectChanges();
+
+      expect(api.setAutoPay).toHaveBeenCalledOnceWith(true);
+      expect(component.settings?.autoPayEnabled).toBeTrue();
+      expect(notify.success).toHaveBeenCalledWith('UPI AutoPay is on for tenants billed in rupees.');
+      expect(text()).toContain('on');
+    });
+
+    it('puts the toggle back when the server refuses, and does not claim it is on', () => {
+      const { component } = create(settings({ isConfigured: false, hasKeySecret: false }));
+      api.setAutoPay.and.returnValue(throwError(() => new Error('Save the Razorpay key id and key secret first.')));
+      const event = change(true);
+
+      component.toggleAutoPay(event);
+
+      expect(event.source.checked).toBeFalse();
+      expect(component.settings?.autoPayEnabled).toBeFalse();
+      expect(notify.success).not.toHaveBeenCalled();
+    });
+
+    it('turns off again', () => {
+      const { component } = create(settings({ autoPayEnabled: true, autoPayReady: true }));
+      api.setAutoPay.and.returnValue(of(settings()));
+
+      component.toggleAutoPay(change(false));
+
+      expect(api.setAutoPay).toHaveBeenCalledOnceWith(false);
+      expect(component.settings?.autoPayEnabled).toBeFalse();
+      expect(notify.success).toHaveBeenCalledWith('UPI AutoPay is off.');
+    });
+
+    it('says what is missing before it can work', () => {
+      const { fixture, component, text } = create(settings({ isConfigured: false, hasKeySecret: false, hasWebhookSecret: false }));
+      fixture.detectChanges();
+
+      expect(component.autoPayMissing).toEqual(['the key id and key secret', 'the webhook secret']);
+      expect(text()).toContain('Save the key id and key secret and the webhook secret first');
+    });
+
+    it('says tenants still see the old buttons when it is on but not ready', () => {
+      const { text } = create(settings({ hasWebhookSecret: false, autoPayEnabled: true, autoPayReady: false }));
+
+      expect(text()).toContain('on - not ready');
+      expect(text()).toContain('tenants still see the old buttons');
+    });
+
+    it('warns that live keys charge real money', () => {
+      const { text } = create(settings({ keyId: 'rzp_live_ILgsfZCZoFIKMb', mode: 'live', autoPayEnabled: true, autoPayReady: true }));
+
+      expect(text()).toContain('tenants who subscribe will be charged real money');
+    });
+
+    it('leaves keys typed but not yet saved alone when the switch is used', () => {
+      const { component } = create();
+      component.keysForm.patchValue({ keySecret: 'typed-but-not-saved' });
+      component.keysForm.markAsDirty();
+      api.setAutoPay.and.returnValue(of(settings({ autoPayEnabled: true, autoPayReady: true })));
+
+      component.toggleAutoPay(change(true));
+
+      expect(component.keysForm.controls.keySecret.value).toBe('typed-but-not-saved');
+      expect(component.keysForm.dirty).toBeTrue();
+    });
   });
 
   it('lists orders and webhook events', () => {

@@ -68,12 +68,46 @@
         </div>
 
         <div class="webhook">
-          <div class="muted">Webhook URL - add it in Razorpay Dashboard &gt; Webhooks with the secret above (events: payment.*, order.paid, refund.*):</div>
+          <div class="muted">Webhook URL - add it in Razorpay Dashboard &gt; Webhooks with the secret above (events: payment.*, order.paid, refund.*, subscription.*):</div>
           <div class="webhook-row">
             <code class="webhook-url">{{ webhookUrl }}</code>
             <button mat-icon-button type="button" matTooltip="Copy" aria-label="Copy webhook URL" (click)="copyWebhookUrl()"><mat-icon>content_copy</mat-icon></button>
           </div>
           <div class="muted small" *ngIf="!settings?.hasWebhookSecret">No webhook secret is saved yet, so webhooks are refused.</div>
+        </div>
+      </mat-card>
+
+      <!-- UPI AutoPay switch -->
+      <mat-card class="rz-card" id="autopay-card">
+        <div class="card-title">
+          <h2>Tenant billing: UPI AutoPay</h2>
+          <span class="mode" [class.mode--live]="settings?.autoPayReady" *ngIf="settings?.autoPayEnabled">{{ settings?.autoPayReady ? 'on' : 'on - not ready' }}</span>
+        </div>
+        <p class="muted">
+          When on, a tenant billed in rupees subscribes to a paid plan by approving a UPI mandate on Razorpay, and Razorpay then takes each month's payment.
+          When off, plans are chosen as before, without a real payment.
+        </p>
+
+        <mat-slide-toggle
+          class="autopay-toggle"
+          [checked]="!!settings?.autoPayEnabled"
+          [disabled]="savingAutoPay"
+          (change)="toggleAutoPay($event)"
+          aria-label="Bill tenants through UPI AutoPay"
+        >
+          Bill tenants through UPI AutoPay
+        </mat-slide-toggle>
+
+        <div class="result result--fail autopay-missing" *ngIf="autoPayMissing.length" role="status">
+          <mat-icon>info</mat-icon>
+          <strong>Save {{ autoPayMissing.join(' and ') }} first{{ settings?.autoPayEnabled ? ' - until then tenants still see the old buttons' : '' }}.</strong>
+        </div>
+        <div class="result autopay-live" *ngIf="settings?.autoPayReady && settings?.mode === 'live'" role="status">
+          <mat-icon>warning</mat-icon>
+          <strong>Live keys: tenants who subscribe will be charged real money.</strong>
+        </div>
+        <div class="muted small">
+          In the Razorpay Dashboard, Subscriptions must be enabled (with UPI for them), and the webhook above must include the subscription.* events.
         </div>
       </mat-card>
 
