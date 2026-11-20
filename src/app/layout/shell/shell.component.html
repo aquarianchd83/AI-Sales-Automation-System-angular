@@ -57,7 +57,7 @@
         type="button"
         mat-icon-button
         aria-label="Toggle navigation"
-        *ngIf="!onboardingActive"
+        *ngIf="!onboardingActive && !onOnboardingPage"
         (click)="drawer.toggle()"
       >
         <mat-icon>menu</mat-icon>
@@ -70,6 +70,18 @@
       </div>
 
       <span class="spacer"></span>
+
+      <button
+        *ngIf="setupInProgress && !onOnboardingPage"
+        type="button"
+        class="setup-chip"
+        [matTooltip]="setupTooltip"
+        matTooltipClass="setup-tooltip"
+        aria-label="Setup in progress - open onboarding"
+        routerLink="/onboarding"
+      >
+        <mat-icon class="setup-icon">contrast</mat-icon>
+      </button>
 
       <ng-container *ngIf="showWallet && { value: walletBalance$ | async } as wallet">
         <ng-container *ngIf="wallet.value !== null">
@@ -108,7 +120,7 @@
         </ng-container>
       </ng-container>
 
-      <ng-container *ngIf="showBillingBell && !onboardingActive">
+      <ng-container *ngIf="showBillingBell && !onboardingActive && !onOnboardingPage">
         <button mat-icon-button type="button" class="bell" #billingTrigger="matMenuTrigger" [matMenuTriggerFor]="alertsMenu" aria-label="Billing alerts">
           <mat-icon>{{ unreadBillingCount ? 'notifications_active' : 'notifications_none' }}</mat-icon>
           <span class="bell-count" *ngIf="unreadBillingCount">{{ unreadBillingCount > 9 ? '9+' : unreadBillingCount }}</span>

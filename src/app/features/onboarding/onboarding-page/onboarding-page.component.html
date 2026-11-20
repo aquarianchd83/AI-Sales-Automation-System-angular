@@ -3,7 +3,7 @@
     <div class="hero-text">
       <span class="eyebrow">Welcome</span>
       <h1>Complete Your Application Setup</h1>
-      <ng-container *ngIf="status && !status.isCompleted">
+      <ng-container *ngIf="status && !allDone">
         <p class="summary">
           <strong>{{ doneCount }} of {{ stepCount }} steps done.</strong>
           <span class="todo" *ngIf="todo.length">
@@ -33,7 +33,7 @@
   </mat-card>
 
   <!-- All done -->
-  <mat-card class="done" *ngIf="status?.isCompleted">
+  <mat-card class="done" *ngIf="allDone">
     <mat-icon class="done-icon">celebration</mat-icon>
     <h2>Your setup is complete</h2>
     <p class="muted">Everything is in place. Your full workspace is now open.</p>
@@ -43,7 +43,7 @@
     </button>
   </mat-card>
 
-  <div class="layout" *ngIf="status && !status.isCompleted">
+  <div class="layout" *ngIf="status && !allDone">
     <mat-card class="steps">
       <ol>
         <li
