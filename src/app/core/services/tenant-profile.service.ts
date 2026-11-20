@@ -4,10 +4,8 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
-  KeywordSuggestions,
   RefineDescriptionRequest,
   RefinedDescription,
-  SuggestKeywordsRequest,
   TenantProfile,
   UpdateTenantBusinessProfileRequest,
   UpdateTenantCountryRequest,
@@ -31,14 +29,9 @@ export class TenantProfileService {
     return this.http.put<TenantProfile>(this.baseUrl, request);
   }
 
-  /** Domain keywords for an industry - from the tenant's own AI when it has one, else common terms. Saves nothing. */
   /** Nothing is saved: the screen shows the result and the tenant decides whether to use it. */
   refineDescription(request: RefineDescriptionRequest): Observable<RefinedDescription> {
     return this.http.post<RefinedDescription>(`${this.baseUrl}/description-refinement`, request);
-  }
-
-  suggestKeywords(request: SuggestKeywordsRequest): Observable<KeywordSuggestions> {
-    return this.http.post<KeywordSuggestions>(`${this.baseUrl}/keyword-suggestions`, request);
   }
 
   updateTimezone(timezone: string): Observable<TenantProfile> {

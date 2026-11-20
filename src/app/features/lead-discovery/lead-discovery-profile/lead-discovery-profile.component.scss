@@ -381,6 +381,13 @@ mat-icon[matPrefix] {
   }
 }
 
+// "Polish Content using AI", above the description.
+.polish-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
 // AI suggest, above the keywords.
 .suggest-row {
   display: flex;

@@ -1,7 +1,5 @@
-import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormControl, Validators } from '@angular/forms';
-import { MatChipInputEvent } from '@angular/material/chips';
+import { FormBuilder, Validators } from '@angular/forms';
 import { Observable, concat } from 'rxjs';
 import { finalize, last } from 'rxjs/operators';
 
@@ -11,10 +9,8 @@ import {
   PHONE_PATTERN,
   TENANT_PROFILE_LIMITS,
   TenantProfile,
-  KeywordSuggestions,
   UpdateTenantBusinessProfileRequest,
   WEBSITE_PATTERN,
-  addDomainKeywords,
   blankToNull,
 } from '../../core/models/tenant-profile.model';
 import { BillingService } from '../../core/services/billing.service';
@@ -26,7 +22,7 @@ const L = TENANT_PROFILE_LIMITS;
 
 /**
  * The tenant's own Business Profile — company and product names, industry, description, contact
- * details and domain keywords, plus the workspace timezone and country (moved here from Settings).
+ * details, plus the workspace timezone and country (moved here from Settings).
  *
  * One Save covers the whole page: the business fields go in a single PUT, and timezone/country are
  * sent to their own endpoints only when they changed, one after another so the last response is the
@@ -39,7 +35,6 @@ const L = TENANT_PROFILE_LIMITS;
 })
 export class BusinessProfileComponent implements OnInit {
   readonly limits = L;
-  readonly separatorKeysCodes = [ENTER, COMMA] as const;
 
   readonly form = this.fb.nonNullable.group({
     companyName: ['', [Validators.required, Validators.maxLength(L.companyName)]],
@@ -57,20 +52,6 @@ export class BusinessProfileComponent implements OnInit {
     countryCode: ['', Validators.required],
     stateCode: [''],
   });
-
-  readonly keywordInput = new FormControl('', { nonNullable: true });
-
-  keywords: string[] = [];
-  keywordError: string | null = null;
-
-  /** What "AI suggest" last returned, for the industry it was asked about; empty once added or dismissed. */
-  suggestions: string[] = [];
-  suggestionSource: KeywordSuggestions['source'] | null = null;
-  suggestedFor = '';
-  suggesting = false;
-
-  /** Set when the last request came back with nothing to offer. */
-  noSuggestions = false;
 
   loading = true;
   loadFailed = false;
@@ -117,7 +98,7 @@ export class BusinessProfileComponent implements OnInit {
   }
 
   get hasChanges(): boolean {
-    return this.form.dirty || !sameKeywords(this.keywords, this.saved?.domainKeywords ?? []);
+    return this.form.dirty;
   }
 
   get filteredIndustries(): string[] {
@@ -138,7 +119,6 @@ export class BusinessProfileComponent implements OnInit {
       v.websiteUrl,
       v.supportEmail,
       v.supportPhone,
-      this.keywords.length ? 'yes' : '',
     ];
     const done = checks.filter((value) => value.trim().length > 0).length;
     return { done, total: checks.length, percent: Math.round((done / checks.length) * 100) };
@@ -147,71 +127,6 @@ export class BusinessProfileComponent implements OnInit {
   initials(name: string): string {
     const parts = name.trim().split(/\s+/).filter(Boolean);
     return parts.length ? parts.slice(0, 2).map((p) => p[0].toUpperCase()).join('') : '?';
-  }
-
-  addKeyword(event: MatChipInputEvent): void {
-    this.addKeywords(event.value);
-    if (!this.keywordError) {
-      event.chipInput.clear();
-      this.keywordInput.setValue('');
-    }
-  }
-
-  /** Accepts one keyword or a pasted comma-separated list — see addDomainKeywords. */
-  addKeywords(raw: string): void {
-    const result = addDomainKeywords(this.keywords, raw);
-    this.keywords = result.keywords;
-    this.keywordError = result.error;
-  }
-
-  /** "AI suggest": keywords for the selected industry. Nothing is added until the tenant picks. */
-  suggestKeywords(): void {
-    const industry = this.form.controls.industry.value.trim();
-    if (!industry || this.suggesting) {
-      return;
-    }
-    this.suggesting = true;
-    this.noSuggestions = false;
-    this.profileService
-      .suggestKeywords({
-        industry,
-        industrySubcategory: blankToNull(this.form.controls.industrySubcategory.value),
-        businessDescription: blankToNull(this.form.controls.businessDescription.value),
-        existing: this.keywords,
-      })
-      .pipe(finalize(() => (this.suggesting = false)))
-      .subscribe({
-        next: (result) => {
-          this.suggestions = result.keywords;
-          this.suggestionSource = result.source;
-          this.suggestedFor = industry;
-          this.noSuggestions = result.keywords.length === 0;
-        },
-        error: () => undefined, // the error interceptor shows why
-      });
-  }
-
-  /** Adds one suggestion the way a typed keyword is added, and takes it off the list. */
-  addSuggestion(keyword: string): void {
-    this.addKeywords(keyword);
-    if (!this.keywordError) {
-      this.suggestions = this.suggestions.filter((s) => s !== keyword);
-    }
-  }
-
-  addAllSuggestions(): void {
-    this.addKeywords(this.suggestions.join(','));
-    this.suggestions = this.suggestions.filter((s) => !this.keywords.some((k) => k.toLowerCase() === s.toLowerCase()));
-  }
-
-  dismissSuggestions(): void {
-    this.suggestions = [];
-    this.noSuggestions = false;
-  }
-
-  removeKeyword(keyword: string): void {
-    this.keywords = this.keywords.filter((k) => k !== keyword);
-    this.keywordError = null;
   }
 
   discard(): void {
@@ -239,7 +154,8 @@ export class BusinessProfileComponent implements OnInit {
       websiteUrl: blankToNull(v.websiteUrl),
       supportEmail: blankToNull(v.supportEmail),
       supportPhone: blankToNull(v.supportPhone),
-      domainKeywords: this.keywords,
+      // No longer asked on this page - keep whatever is already stored.
+      domainKeywords: this.saved.domainKeywords,
       workingHours: blankToNull(v.workingHours),
       // Who to reach is gathered on the Lead Discovery profile, not here - keep whatever is already stored.
       targetAudience: this.saved.targetAudience ?? null,
@@ -285,12 +201,5 @@ export class BusinessProfileComponent implements OnInit {
       countryCode: profile.countryCode ?? '',
       stateCode: profile.stateCode ?? '',
     });
-    this.keywords = [...profile.domainKeywords];
-    this.keywordError = null;
-    this.keywordInput.setValue('');
   }
-}
-
-function sameKeywords(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((keyword, i) => keyword === b[i]);
 }

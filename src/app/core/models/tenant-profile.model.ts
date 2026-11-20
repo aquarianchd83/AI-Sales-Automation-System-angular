@@ -91,21 +91,6 @@ export const TARGET_CUSTOMER_TYPES = [
   { value: 'consumers', label: 'Individual consumers' },
 ];
 
-/** KeywordSuggestionsDto - `source` is "AI" when the tenant's AI provider wrote them, "Common terms" when they came from
- * the built-in list for well-known industries; the screen says which. */
-export interface KeywordSuggestions {
-  keywords: string[];
-  source: 'AI' | 'Common terms';
-}
-
-/** Body of POST /tenant-profile/keyword-suggestions. `existing` are never suggested again. */
-export interface SuggestKeywordsRequest {
-  industry: string;
-  industrySubcategory?: string | null;
-  businessDescription: string | null;
-  existing: string[];
-}
-
 /** RefinedDescriptionDto - `source` is "AI" when the tenant's AI provider rewrote the description and "Tidied" when it
  * could only be cleaned up (spacing and punctuation); the screen says which. */
 export interface RefinedDescription {
