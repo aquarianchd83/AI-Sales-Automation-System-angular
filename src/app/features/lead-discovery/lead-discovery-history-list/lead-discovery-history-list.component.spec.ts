@@ -112,6 +112,21 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(text()).toContain('₹35.28');
   });
 
+  it('shows which AI provider did the research for each execution, with the model under it', () => {
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ aiProvider: 'OpenAI', aiModel: 'gpt-5-mini' })] }]);
+
+    const cell = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="ai-provider"]')!;
+    expect(text()).toContain('AI provider');
+    expect(cell.textContent).toContain('OpenAI');
+    expect(cell.parentElement!.textContent).toContain('gpt-5-mini');
+  });
+
+  it('shows a dash, not a provider, for an execution that did no research', () => {
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ aiProvider: null, aiModel: null })] }]);
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="ai-provider"]')).toBeNull();
+  });
+
   it('shows how many credits are left in the header, not used/all, with Top up alongside it', () => {
     const balances: QuotaBalance[] = [{ quotaType: QuotaType.Credits, balance: 180, capacity: 1000, grants: [] }];
     billing.getQuota.and.returnValue(of(balances));

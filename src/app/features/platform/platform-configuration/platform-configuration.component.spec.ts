@@ -53,12 +53,11 @@ const config = (): PlatformConfiguration => ({
       ],
     },
     leadDiscovery: {
-      defaultModel: null,
       webSearchPerThousand: 10,
       default: { model: 'Default', inputPerMillion: 1, outputPerMillion: 5, cacheReadPerMillion: 0.1, cacheWritePerMillion: 1.25 },
       models: [{ model: 'claude-sonnet-5', inputPerMillion: 2, outputPerMillion: 10, cacheReadPerMillion: 0.2, cacheWritePerMillion: 2.5 }],
     },
-    ai: { defaultModel: null, models: [{ model: 'OpenAI:gpt-5-mini', promptPer1K: 0.00025, completionPer1K: 0.002 }] },
+    ai: { models: [{ model: 'OpenAI:gpt-5-mini', promptPer1K: 0.00025, completionPer1K: 0.002 }] },
   },
 });
 
@@ -239,51 +238,17 @@ describe('PlatformConfigurationComponent', () => {
     expect(save.calls.mostRecent().args[0].charges.ai.models[1]).toEqual({ model: 'Google:gemini-x', promptPer1K: 0.002, completionPer1K: 0.008 });
   });
 
-  it('starts with no default model chosen', () => {
-    const { component } = render();
+  it('has no default model to choose on either panel', () => {
+    const { root, component, save } = render();
 
-    expect(component.isDefault('lead', component.leadModels.at(0))).toBeFalse();
-    expect(component.isDefault('ai', component.aiModels.at(0))).toBeFalse();
-  });
-
-  it('marks the one model in use as the default for each, and sends it', () => {
-    const { component, save } = render();
-
-    component.toggleDefault('lead', component.leadModels.at(0));
-    component.toggleDefault('ai', component.aiModels.at(0));
-    expect(component.isDefault('lead', component.leadModels.at(0))).toBeTrue();
-    expect(component.form.pristine).toBeFalse();
+    expect(root.querySelector('.default-toggle')).toBeNull();
+    expect(root.textContent).not.toContain('Set as default model');
+    expect(Array.from(root.querySelectorAll('.rate-head')).some((head) => head.textContent!.includes('Default'))).toBeFalse();
 
     component.save();
-
     const sent: PlatformConfiguration = save.calls.mostRecent().args[0];
-    expect(sent.charges.leadDiscovery.defaultModel).toBe('claude-sonnet-5');
-    expect(sent.charges.ai.defaultModel).toBe('OpenAI:gpt-5-mini');
-  });
-
-  it('clears the default when its toggle is clicked again, and shows a stored default as chosen', () => {
-    const stored = config();
-    stored.charges.ai.defaultModel = 'OpenAI:gpt-5-mini';
-    const { component, save } = render(stored);
-
-    expect(component.isDefault('ai', component.aiModels.at(0))).toBeTrue();
-
-    component.toggleDefault('ai', component.aiModels.at(0));
-    component.save();
-
-    expect(save.calls.mostRecent().args[0].charges.ai.defaultModel).toBeNull();
-  });
-
-  it('drops the default when the new model row that held it is removed', () => {
-    const { component, save } = render();
-
-    component.addAiModel();
-    component.aiModels.at(1).patchValue({ model: 'Google:gemini-x' });
-    component.toggleDefault('ai', component.aiModels.at(1));
-    component.removeNew(component.aiModels, 1);
-    component.save();
-
-    expect(save.calls.mostRecent().args[0].charges.ai.defaultModel).toBeNull();
+    expect('defaultModel' in sent.charges.leadDiscovery).toBeFalse();
+    expect('defaultModel' in sent.charges.ai).toBeFalse();
   });
 
   it('lists every country with its on/off state', () => {

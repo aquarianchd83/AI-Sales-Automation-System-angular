@@ -98,7 +98,7 @@ mat-panel-description {
 
 .rate-table--lead .rate-head,
 .rate-table--lead .rate-row {
-  grid-template-columns: minmax(170px, 1.4fr) repeat(4, minmax(100px, 1fr)) 56px 40px;
+  grid-template-columns: minmax(170px, 1.4fr) repeat(4, minmax(100px, 1fr)) 40px;
   min-width: 800px;
 }
 
@@ -110,7 +110,7 @@ mat-panel-description {
 
 .rate-table--ai .rate-head,
 .rate-table--ai .rate-row {
-  grid-template-columns: minmax(200px, 1.6fr) repeat(2, minmax(110px, 1fr)) 56px 40px;
+  grid-template-columns: minmax(200px, 1.6fr) repeat(2, minmax(110px, 1fr)) 40px;
   min-width: 520px;
 }
 
@@ -128,10 +128,6 @@ mat-panel-description {
 .rate-name {
   font-weight: 500;
   overflow-wrap: anywhere;
-}
-
-.default-toggle.is-default {
-  color: var(--mat-sys-primary, #3f51b5);
 }
 
 .country-grid {

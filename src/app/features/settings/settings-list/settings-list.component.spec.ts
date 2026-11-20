@@ -39,8 +39,9 @@ const overview = (providers: AiProviderInsight[]): AiProvidersOverview => ({
 
 /** The insights service: returns no providers unless a test says otherwise. */
 const insightsStub = (providers: AiProviderInsight[] = []) => {
-  const spy = jasmine.createSpyObj<PlatformAiProvidersService>('PlatformAiProvidersService', ['get', 'benchmark']);
+  const spy = jasmine.createSpyObj<PlatformAiProvidersService>('PlatformAiProvidersService', ['get', 'benchmark', 'taskModels', 'updateTaskModels']);
   spy.get.and.returnValue(of(overview(providers)));
+  spy.taskModels.and.returnValue(of({ groups: [] }));
   return spy;
 };
 

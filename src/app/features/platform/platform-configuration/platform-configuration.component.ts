@@ -58,9 +58,7 @@ export class PlatformConfigurationComponent implements OnInit {
     webSearchPerThousand: [0, nonNegative],
     leadDefault: this.leadRates('Default'),
     leadModels: this.fb.array<FormGroup>([]),
-    leadDefaultModel: [''],
     aiModels: this.fb.array<FormGroup>([]),
-    aiDefaultModel: [''],
     // Tax is always added on top of a price; the state decides CGST + SGST versus IGST for India.
     supplierStateCode: ['MH', [Validators.required]],
     taxCountries: this.fb.array<FormGroup>([]),
@@ -284,29 +282,7 @@ export class PlatformConfigurationComponent implements OnInit {
     this.form.markAsDirty();
   }
 
-  /** Marks a model as the one the platform runs (its rates price any model with no row of its own); clicking the
-   * default again clears the choice. Only a model with a valid name can be chosen. */
-  toggleDefault(kind: 'lead' | 'ai', group: FormGroup): void {
-    const control = kind === 'lead' ? this.form.controls.leadDefaultModel : this.form.controls.aiDefaultModel;
-    const name = (group.controls['model'].value as string).trim();
-    control.setValue(control.value === name ? '' : name);
-    this.form.markAsDirty();
-  }
-
-  isDefault(kind: 'lead' | 'ai', group: FormGroup): boolean {
-    const chosen = kind === 'lead' ? this.form.controls.leadDefaultModel.value : this.form.controls.aiDefaultModel.value;
-    const name = (group.controls['model'].value as string).trim();
-    return !!name && chosen === name;
-  }
-
   removeNew(array: FormArray<FormGroup>, index: number): void {
-    const removed = (array.at(index).controls['model'].value as string).trim();
-    if (this.form.controls.leadDefaultModel.value === removed) {
-      this.form.controls.leadDefaultModel.setValue('');
-    }
-    if (this.form.controls.aiDefaultModel.value === removed) {
-      this.form.controls.aiDefaultModel.setValue('');
-    }
     array.removeAt(index);
     this.form.markAsDirty();
   }
@@ -373,8 +349,6 @@ export class PlatformConfigurationComponent implements OnInit {
       whatsAppDefault: charges.whatsApp.default,
       webSearchPerThousand: charges.leadDiscovery.webSearchPerThousand,
       leadDefault: charges.leadDiscovery.default,
-      leadDefaultModel: charges.leadDiscovery.defaultModel ?? '',
-      aiDefaultModel: charges.ai.defaultModel ?? '',
     });
 
     this.countries.clear();
@@ -504,7 +478,6 @@ export class PlatformConfigurationComponent implements OnInit {
           webSearchPerThousand: v.webSearchPerThousand,
           default: this.leadRow({ ...(v.leadDefault as LeadDiscoveryModelRates), model: 'Default' }),
           models: (v.leadModels as LeadDiscoveryModelRates[]).map((m) => this.leadRow(m)),
-          defaultModel: v.leadDefaultModel.trim() || null,
         },
         ai: {
           models: (v.aiModels as AiModelRates[]).map((m) => ({
@@ -512,7 +485,6 @@ export class PlatformConfigurationComponent implements OnInit {
             promptPer1K: m.promptPer1K,
             completionPer1K: m.completionPer1K,
           })),
-          defaultModel: v.aiDefaultModel.trim() || null,
         },
       },
     };
