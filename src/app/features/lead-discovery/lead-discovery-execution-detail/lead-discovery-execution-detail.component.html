@@ -150,8 +150,8 @@
           <dt>Charged to you</dt>
           <dd data-test="credits-charged">
             <strong>{{ credits(d) | number: '1.0-2' }} credits</strong>
-            <div class="muted sub" *ngIf="credits(d) === 0">Nothing was charged. Only saved leads are charged, and none were saved.</div>
-            <div class="muted sub" *ngIf="credits(d) > 0">Only the leads that were saved are charged. Rejected, duplicate and not-needed candidates are not.</div>
+            <div class="muted sub" *ngIf="credits(d) === 0">Nothing was charged. Saved leads and invalid candidates are charged, and there were none.</div>
+            <div class="muted sub" *ngIf="credits(d) > 0">Charged for each lead saved and each invalid candidate (rejected by the profile rules, or kept as a lead only). Duplicate and not-needed candidates are not charged.</div>
           </dd>
           <dt>Search cost</dt>
           <dd data-test="search-cost">

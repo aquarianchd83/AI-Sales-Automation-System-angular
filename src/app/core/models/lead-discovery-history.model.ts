@@ -432,9 +432,9 @@ export function candidateOutcomeChipClass(outcome: string): string {
 /** The order the outcomes are listed in, and what each means - shown as the popup's summary and filter. */
 export const CANDIDATE_OUTCOMES: readonly { value: CandidateOutcome; hint: string }[] = [
   { value: 'Saved', hint: 'Became a customer. This is what is charged.' },
-  { value: 'Lead only', hint: 'Kept as a discovered lead, but no customer was created (no usable number, or the DND check refused it). Not charged.' },
+  { value: 'Lead only', hint: 'Kept as a discovered lead, but no customer was created (no usable number, or the DND check refused it). Charged.' },
   { value: 'Duplicate', hint: 'Already a customer or a discovered lead. Not charged.' },
-  { value: 'Rejected', hint: 'Failed a rule of the profile, so it was not kept. Not charged.' },
+  { value: 'Rejected', hint: 'Failed a rule of the profile, so it was not kept. Charged.' },
   { value: 'Not needed', hint: 'Qualified, but the batch was already full. Kept for the next run, not charged.' },
   { value: 'Failed', hint: 'Could not be saved. A retry tries again.' },
   { value: 'Pending', hint: 'Not processed yet.' },
