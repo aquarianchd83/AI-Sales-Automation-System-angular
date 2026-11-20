@@ -1,0 +1,74 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit AI model' : 'Add AI model' }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate class="grid">
+    <mat-form-field>
+      <mat-label>Provider</mat-label>
+      <mat-select formControlName="providerChoice">
+        <mat-option *ngFor="let p of providerOptions" [value]="p">{{ p }}</mat-option>
+        <mat-option [value]="other">Other…</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="usingCustomProvider">
+      <mat-label>Provider name</mat-label>
+      <input matInput formControlName="customProvider" maxlength="50" />
+      <mat-error>Provider name is required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Model type</mat-label>
+      <mat-select formControlName="modelType">
+        <mat-option *ngFor="let t of modelTypes" [value]="t">{{ t }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Display name</mat-label>
+      <input matInput formControlName="displayName" maxlength="200" />
+      <mat-error>Display name is required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Model ID</mat-label>
+      <input matInput formControlName="modelId" maxlength="200" />
+      <mat-hint>Exact ID sent to the provider API</mat-hint>
+      <mat-error>Model ID is required.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Context window (tokens)</mat-label>
+      <input matInput type="number" min="1" formControlName="contextWindowTokens" />
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Max output tokens</mat-label>
+      <input matInput type="number" min="1" formControlName="maxOutputTokens" />
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Input price / 1M tokens ($)</mat-label>
+      <input matInput type="number" min="0" step="any" formControlName="inputPricePer1MUsd" />
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>Output price / 1M tokens ($)</mat-label>
+      <input matInput type="number" min="0" step="any" formControlName="outputPricePer1MUsd" />
+    </mat-form-field>
+
+    <mat-form-field class="span-2">
+      <mat-label>Description</mat-label>
+      <textarea matInput rows="2" formControlName="description" maxlength="1000"></textarea>
+    </mat-form-field>
+
+    <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
+    <mat-slide-toggle formControlName="isDefault">Default for this provider and type</mat-slide-toggle>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save model' }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,109 @@
+<div class="page">
+  <app-page-header title="AI Provider Models" subtitle="Models offered by Google, Anthropic, OpenAI and other AI providers.">
+    <button mat-flat-button color="primary" type="button" (click)="create()">
+      <mat-icon>add</mat-icon>
+      Add model
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="!loading">
+    <div class="filters">
+      <mat-form-field class="filter-search">
+        <mat-label>Search model name or ID</mat-label>
+        <input matInput [(ngModel)]="search" />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Provider</mat-label>
+        <mat-select [(ngModel)]="providerFilter">
+          <mat-option value="">All</mat-option>
+          <mat-option *ngFor="let p of providers" [value]="p">{{ p }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Type</mat-label>
+        <mat-select [(ngModel)]="typeFilter">
+          <mat-option value="">All</mat-option>
+          <mat-option value="Chat">Chat</mat-option>
+          <mat-option value="Embedding">Embedding</mat-option>
+          <mat-option value="Image">Image</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Status</mat-label>
+        <mat-select [(ngModel)]="statusFilter">
+          <mat-option value="">All</mat-option>
+          <mat-option value="active">Active</mat-option>
+          <mat-option value="inactive">Inactive</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div class="table-scroll" *ngIf="filtered.length">
+      <table mat-table [dataSource]="filtered" class="models-table">
+        <ng-container matColumnDef="provider">
+          <th mat-header-cell *matHeaderCellDef>Provider</th>
+          <td mat-cell *matCellDef="let m"><span class="provider-chip">{{ m.provider }}</span></td>
+        </ng-container>
+        <ng-container matColumnDef="model">
+          <th mat-header-cell *matHeaderCellDef>Model</th>
+          <td mat-cell *matCellDef="let m">
+            <strong>{{ m.displayName }}</strong>
+            <span class="default-chip" *ngIf="m.isDefault">Default</span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="modelId">
+          <th mat-header-cell *matHeaderCellDef>Model ID</th>
+          <td mat-cell *matCellDef="let m" class="mono">{{ m.modelId }}</td>
+        </ng-container>
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Type</th>
+          <td mat-cell *matCellDef="let m">{{ m.modelType }}</td>
+        </ng-container>
+        <ng-container matColumnDef="context">
+          <th mat-header-cell *matHeaderCellDef>Context</th>
+          <td mat-cell *matCellDef="let m">{{ formatTokens(m.contextWindowTokens) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="price">
+          <th mat-header-cell *matHeaderCellDef>Price / 1M (in / out)</th>
+          <td mat-cell *matCellDef="let m">
+            <ng-container *ngIf="m.inputPricePer1MUsd != null || m.outputPricePer1MUsd != null; else noPrice">
+              {{ m.inputPricePer1MUsd != null ? '$' + m.inputPricePer1MUsd : '–' }} /
+              {{ m.outputPricePer1MUsd != null ? '$' + m.outputPricePer1MUsd : '–' }}
+            </ng-container>
+            <ng-template #noPrice>–</ng-template>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="active">
+          <th mat-header-cell *matHeaderCellDef>Active</th>
+          <td mat-cell *matCellDef="let m">
+            <mat-slide-toggle [checked]="m.isActive" (change)="toggleActive(m)" [attr.aria-label]="'Toggle ' + m.displayName"></mat-slide-toggle>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created</th>
+          <td mat-cell *matCellDef="let m">{{ m.createdAt | zonedDate: 'medium' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let m">
+            <button mat-icon-button type="button" matTooltip="Edit" (click)="edit(m)"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button type="button" matTooltip="Delete" (click)="delete(m)"><mat-icon>delete</mat-icon></button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columns"></tr>
+        <tr mat-row *matRowDef="let row; columns: columns" [class.row--inactive]="!row.isActive"></tr>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="!filtered.length">
+      <mat-icon class="empty-icon">smart_toy</mat-icon>
+      <p>{{ models.length ? 'No models match the filters.' : 'No models yet. Add the first one.' }}</p>
+    </div>
+
+    <div class="footer muted" *ngIf="filtered.length">Showing {{ filtered.length }} of {{ models.length }} models</div>
+  </mat-card>
+</div>

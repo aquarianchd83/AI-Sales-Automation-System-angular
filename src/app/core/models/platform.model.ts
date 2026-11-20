@@ -1457,3 +1457,47 @@ export interface CleanupRun {
   totalRows: number;
   tables: { key: string; label: string; rowsDeleted: number }[];
 }
+
+// ---------------------------------------------------------------------------
+// AI provider models (GET/POST/PUT/DELETE /platform/ai-provider-models)
+// ---------------------------------------------------------------------------
+
+/** AiModelType - serialized by name. */
+export type AiModelType = 'Chat' | 'Embedding' | 'Image';
+
+export const AI_MODEL_TYPES: AiModelType[] = ['Chat', 'Embedding', 'Image'];
+
+/** Providers offered in the form's dropdown; the form also accepts any other name ("Other"). */
+export const AI_PROVIDER_NAMES = ['Google', 'Anthropic', 'OpenAI'];
+
+/** AiProviderModelDto. `createdAt` is UTC - show it with the zonedDate pipe. */
+export interface AiProviderModel {
+  id: string;
+  provider: string;
+  displayName: string;
+  modelId: string;
+  modelType: AiModelType;
+  contextWindowTokens: number | null;
+  maxOutputTokens: number | null;
+  inputPricePer1MUsd: number | null;
+  outputPricePer1MUsd: number | null;
+  description: string | null;
+  isActive: boolean;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+/** SaveAiProviderModelRequest - the same body for create and update. */
+export interface SaveAiProviderModelRequest {
+  provider: string;
+  displayName: string;
+  modelId: string;
+  modelType: AiModelType;
+  contextWindowTokens: number | null;
+  maxOutputTokens: number | null;
+  inputPricePer1MUsd: number | null;
+  outputPricePer1MUsd: number | null;
+  description: string | null;
+  isActive: boolean;
+  isDefault: boolean;
+}
