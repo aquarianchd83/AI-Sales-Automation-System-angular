@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { SharedModule } from '../../shared/shared.module';
 import { PlatformAiProviderModelFormDialogComponent } from './platform-ai-provider-model-form-dialog/platform-ai-provider-model-form-dialog.component';
+import { PlatformAiProviderModelCompareDialogComponent } from './platform-ai-provider-model-compare-dialog/platform-ai-provider-model-compare-dialog.component';
 import { PlatformAiProviderModelsComponent } from './platform-ai-provider-models/platform-ai-provider-models.component';
 import { PlatformAnnouncementFormDialogComponent } from './platform-announcement-form-dialog/platform-announcement-form-dialog.component';
 import { PlatformAnnouncementListComponent } from './platform-announcement-list/platform-announcement-list.component';
@@ -180,6 +181,7 @@ const routes: Routes = [
     PlatformAnnouncementFormDialogComponent,
     PlatformAiProviderModelsComponent,
     PlatformAiProviderModelFormDialogComponent,
+    PlatformAiProviderModelCompareDialogComponent,
     PlatformVideoRequestsComponent,
     PlatformVideoRequestDetailComponent,
     PlatformRefundVideoDialogComponent,

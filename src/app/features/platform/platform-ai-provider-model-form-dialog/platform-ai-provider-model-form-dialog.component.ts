@@ -3,7 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
 
-import { AI_MODEL_TYPES, AI_PROVIDER_NAMES, AiProviderModel } from '../../../core/models/platform.model';
+import { AI_MODEL_COST_TIERS, AI_MODEL_TASKS, AI_MODEL_TYPES, AI_PROVIDER_NAMES, AiProviderModel } from '../../../core/models/platform.model';
 import { AiProviderModelService } from '../../../core/services/ai-provider-model.service';
 import { NotificationService } from '../../../core/services/notification.service';
 
@@ -23,6 +23,8 @@ const OTHER = '__other__';
 export class PlatformAiProviderModelFormDialogComponent {
   readonly isEdit = !!this.data.model;
   readonly modelTypes = AI_MODEL_TYPES;
+  readonly costTiers = AI_MODEL_COST_TIERS;
+  readonly tasks = AI_MODEL_TASKS;
   readonly other = OTHER;
   readonly providerOptions = Array.from(new Set([...AI_PROVIDER_NAMES, ...(this.data.providers ?? []), ...(this.data.model ? [this.data.model.provider] : [])]));
   saving = false;
@@ -37,6 +39,8 @@ export class PlatformAiProviderModelFormDialogComponent {
     maxOutputTokens: [this.data.model?.maxOutputTokens ?? (null as number | null), [Validators.min(1)]],
     inputPricePer1MUsd: [this.data.model?.inputPricePer1MUsd ?? (null as number | null), [Validators.min(0)]],
     outputPricePer1MUsd: [this.data.model?.outputPricePer1MUsd ?? (null as number | null), [Validators.min(0)]],
+    costTier: [this.data.model?.costTier ?? ('Average' as AiProviderModel['costTier']), Validators.required],
+    bestFor: [this.data.model?.bestFor ?? ([] as string[])],
     description: [this.data.model?.description ?? '', [Validators.maxLength(1000)]],
     isActive: [this.data.model?.isActive ?? true],
     isDefault: [this.data.model?.isDefault ?? false],
@@ -74,6 +78,8 @@ export class PlatformAiProviderModelFormDialogComponent {
       maxOutputTokens: v.maxOutputTokens,
       inputPricePer1MUsd: v.inputPricePer1MUsd,
       outputPricePer1MUsd: v.outputPricePer1MUsd,
+      costTier: v.costTier as AiProviderModel['costTier'],
+      bestFor: v.bestFor,
       description: v.description.trim() || null,
       isActive: v.isActive,
       isDefault: v.isDefault,

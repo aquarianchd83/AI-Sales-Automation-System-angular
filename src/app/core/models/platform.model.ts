@@ -1509,6 +1509,29 @@ export type AiModelType = 'Chat' | 'Embedding' | 'Image';
 
 export const AI_MODEL_TYPES: AiModelType[] = ['Chat', 'Embedding', 'Image'];
 
+/** AiModelCostTier - serialized by name: how expensive a model is relative to the others. */
+export type AiModelCostTier = 'Cheap' | 'Average' | 'Expensive';
+
+export const AI_MODEL_COST_TIERS: AiModelCostTier[] = ['Cheap', 'Average', 'Expensive'];
+
+/** A task a model can be recommended for. The keys are the API's (AiModelTasks) and are stored on each model; only the labels are this screen's. */
+export interface AiModelTask {
+  key: string;
+  label: string;
+}
+
+export const AI_MODEL_TASKS: AiModelTask[] = [
+  { key: 'customer-replies', label: 'Customer WhatsApp replies' },
+  { key: 'business-keywords', label: 'Business keyword suggestions' },
+  { key: 'description-rewrite', label: 'Description rewrite' },
+  { key: 'discovery-keywords', label: 'Discovery keyword suggestions' },
+  { key: 'document-analysis', label: 'Product document analysis' },
+  { key: 'information-extraction', label: 'Information extraction' },
+  { key: 'scanned-pages', label: 'Scanned pages reading' },
+  { key: 'content-studio', label: 'Content studio' },
+  { key: 'discover-customers', label: 'Discover customers' },
+];
+
 /** Providers offered in the form's dropdown; the form also accepts any other name ("Other"). */
 export const AI_PROVIDER_NAMES = ['Google', 'Anthropic', 'OpenAI'];
 
@@ -1523,6 +1546,9 @@ export interface AiProviderModel {
   maxOutputTokens: number | null;
   inputPricePer1MUsd: number | null;
   outputPricePer1MUsd: number | null;
+  costTier: AiModelCostTier;
+  /** Keys of the tasks this model is the recommended pick for (AI_MODEL_TASKS). */
+  bestFor: string[];
   description: string | null;
   isActive: boolean;
   isDefault: boolean;
@@ -1539,6 +1565,9 @@ export interface SaveAiProviderModelRequest {
   maxOutputTokens: number | null;
   inputPricePer1MUsd: number | null;
   outputPricePer1MUsd: number | null;
+  costTier: AiModelCostTier;
+  /** Keys of the tasks this model is the recommended pick for (AI_MODEL_TASKS). */
+  bestFor: string[];
   description: string | null;
   isActive: boolean;
   isDefault: boolean;

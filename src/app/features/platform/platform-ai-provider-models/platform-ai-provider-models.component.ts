@@ -6,6 +6,7 @@ import { AiProviderModelService } from '../../../core/services/ai-provider-model
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PlatformAiProviderModelFormDialogComponent } from '../platform-ai-provider-model-form-dialog/platform-ai-provider-model-form-dialog.component';
+import { PlatformAiProviderModelCompareDialogComponent } from '../platform-ai-provider-model-compare-dialog/platform-ai-provider-model-compare-dialog.component';
 
 @Component({
   selector: 'app-platform-ai-provider-models',
@@ -13,7 +14,7 @@ import { PlatformAiProviderModelFormDialogComponent } from '../platform-ai-provi
   styleUrls: ['./platform-ai-provider-models.component.scss'],
 })
 export class PlatformAiProviderModelsComponent implements OnInit {
-  readonly columns = ['provider', 'model', 'modelId', 'type', 'context', 'price', 'active', 'createdAt', 'actions'];
+  readonly columns = ['provider', 'model', 'modelId', 'type', 'tier', 'context', 'price', 'active', 'createdAt', 'actions'];
 
   models: AiProviderModel[] = [];
   loading = true;
@@ -50,6 +51,10 @@ export class PlatformAiProviderModelsComponent implements OnInit {
     );
   }
 
+  compare(): void {
+    this.dialog.open(PlatformAiProviderModelCompareDialogComponent, { data: { models: this.models }, width: '1000px', maxWidth: '96vw' });
+  }
+
   create(): void {
     this.openForm();
   }
@@ -75,6 +80,8 @@ export class PlatformAiProviderModelsComponent implements OnInit {
       maxOutputTokens: model.maxOutputTokens,
       inputPricePer1MUsd: model.inputPricePer1MUsd,
       outputPricePer1MUsd: model.outputPricePer1MUsd,
+      costTier: model.costTier,
+      bestFor: model.bestFor,
       description: model.description,
       isActive: !model.isActive,
       isDefault: model.isDefault,
