@@ -1,9 +1,11 @@
-import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of } from 'rxjs';
 
-import { PlatformConfiguration } from '../../../core/models/platform.model';
+import { AiProviderModel, PlatformConfiguration } from '../../../core/models/platform.model';
+import { AiProviderModelService } from '../../../core/services/ai-provider-model.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { BillingService } from '../../../core/services/billing.service';
 import { PlatformBillingService } from '../../../core/services/platform-billing.service';
@@ -62,6 +64,22 @@ const config = (): PlatformConfiguration => ({
 });
 
 describe('PlatformConfigurationComponent', () => {
+  const catalogueModel = (provider: string, modelId: string, over: Partial<AiProviderModel> = {}): AiProviderModel => ({
+    id: modelId, provider, displayName: modelId, modelId, modelType: 'Chat', contextWindowTokens: null, maxOutputTokens: null,
+    inputPricePer1MUsd: null, outputPricePer1MUsd: null, costTier: 'Cheap', bestFor: [], description: null, isActive: true, isDefault: false,
+    createdAt: '2026-11-20T00:00:00Z', ...over,
+  });
+
+  /** What AI Provider Models holds: the models the price rows can be for. */
+  const CATALOGUE: AiProviderModel[] = [
+    catalogueModel('OpenAI', 'gpt-5-mini'),
+    catalogueModel('OpenAI', 'gpt-5'),
+    catalogueModel('Anthropic', 'claude-sonnet-5'),
+    catalogueModel('Google', 'gemini-2.5-flash'),
+    catalogueModel('Google', 'gemini-old', { isActive: false }),
+    catalogueModel('OpenAI', 'text-embedding-3-small', { modelType: 'Embedding' }),
+  ];
+
   /** A settings category as the API returns it, with one plain setting in it. */
   const category = (name: string) =>
     ({ category: name, items: [{ key: `${name}:Setting`, description: null, isSecret: false, hasValue: true, value: 'x', isList: false, options: null }] });
@@ -77,6 +95,7 @@ describe('PlatformConfigurationComponent', () => {
       imports: [SharedModule, NoopAnimationsModule],
       providers: [
         { provide: PlatformConfigurationService, useValue: { get, save } },
+        { provide: AiProviderModelService, useValue: { getAll: () => of(CATALOGUE) } },
         { provide: NotificationService, useValue: { success } },
         { provide: PlatformBillingService, useValue: { getPlanCostDefaults } },
         { provide: SettingsService, useValue: { getAll: () => of(systemCategories), getCategory: () => of({ category: 'Retention', items: [] }), update: () => of(undefined) } },
@@ -236,6 +255,46 @@ describe('PlatformConfigurationComponent', () => {
     component.save();
 
     expect(save.calls.mostRecent().args[0].charges.ai.models[1]).toEqual({ model: 'Google:gemini-x', promptPer1K: 0.002, completionPer1K: 0.008 });
+  });
+
+  it('offers a new AI price row only the active chat models in the catalogue that have no row yet, as Provider:model', () => {
+    const { component } = render();
+
+    expect(component.aiModelOptions()).toEqual(['Anthropic:claude-sonnet-5', 'Google:gemini-2.5-flash', 'OpenAI:gpt-5']);
+  });
+
+  it('offers a new lead discovery price row the catalogue\x27s chat models that have no row yet', () => {
+    const { component } = render();
+
+    expect(component.leadModelOptions()).toEqual(['gemini-2.5-flash', 'gpt-5', 'gpt-5-mini']);
+  });
+
+  it('has a Back button on the AI Provider Charges screen that returns to the previous page, and none on General', () => {
+    const charges = render(config(), ['whatsapp', 'lead', 'ai']);
+    const back = charges.root.querySelector('[data-testid="back-button"]') as HTMLButtonElement;
+    spyOn(charges.component, 'hasHistory').and.returnValue(true);
+    expect(back).not.toBeNull();
+    const goBack = spyOn(TestBed.inject(Location), 'back');
+
+    back.click();
+
+    expect(goBack).toHaveBeenCalled();
+  });
+
+  it('opened directly, Back goes to AI Providers instead', () => {
+    const { component } = render(config(), ['ai']);
+    spyOn(component, 'hasHistory').and.returnValue(false);
+    const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+
+    component.goBack();
+
+    expect(navigate).toHaveBeenCalledWith('/settings/ai-providers');
+  });
+
+  it('shows no Back button on the General configuration screen', () => {
+    const { root } = render();
+
+    expect(root.querySelector('[data-testid="back-button"]')).toBeNull();
   });
 
   it('has no default model to choose on either panel', () => {

@@ -1,0 +1,89 @@
+.intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.compare {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 10px 8px;
+    text-align: left;
+    vertical-align: top;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  th {
+    border-top: none;
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.7;
+  }
+}
+
+.task-col {
+  width: 24%;
+  font-size: 13px;
+}
+
+.pick {
+  margin-bottom: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.pick-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pick-price {
+  margin-left: 4px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.tier-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tier-cheap {
+  background: rgba(46, 125, 50, 0.14);
+}
+
+.tier-average {
+  background: rgba(237, 108, 2, 0.14);
+}
+
+.tier-expensive {
+  background: rgba(198, 40, 40, 0.14);
+}
+
+.legend .tier-chip {
+  margin-left: 4px;
+}
+
+.none {
+  opacity: 0.5;
+}
+
+.foot {
+  margin: 12px 0 0;
+  font-size: 12px;
+  opacity: 0.7;
+}

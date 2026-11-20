@@ -99,8 +99,22 @@
   margin-top: 16px;
 }
 
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .title {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 16px;
   font-weight: 500;
 }

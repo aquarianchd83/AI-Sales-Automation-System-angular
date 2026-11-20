@@ -179,7 +179,6 @@ describe('ShellComponent sidenav', () => {
       'forward_to_inboxSMTP/SMS Settings',
       'hubIntegrations',
       'scienceRazorpay Test',
-      'request_quoteAI Provider Charges',
       'ads_clickMeta Ads',
       'receipt_longLogs',
       'historyAudit Log',

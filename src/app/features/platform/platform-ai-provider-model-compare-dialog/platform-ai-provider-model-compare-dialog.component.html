@@ -1,0 +1,44 @@
+<h2 mat-dialog-title>Compare models by task</h2>
+
+<mat-dialog-content>
+  <div class="intro">
+    <span>The model each provider recommends for the task, from each model's "Best for" setting. Cheapest first.</span>
+    <span class="legend">
+      <span class="tier-chip tier-cheap">Cheap</span>
+      <span class="tier-chip tier-average">Average</span>
+      <span class="tier-chip tier-expensive">Expensive</span>
+    </span>
+  </div>
+
+  <table class="compare" *ngIf="providers.length; else empty">
+    <thead>
+      <tr>
+        <th class="task-col">Task</th>
+        <th *ngFor="let p of providers">{{ p }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of rows">
+        <td class="task-col">{{ row.label }}</td>
+        <td *ngFor="let cell of row.cells">
+          <div class="pick" *ngFor="let m of cell">
+            <span class="pick-name">{{ m.displayName }}</span>
+            <span class="tier-chip" [ngClass]="'tier-' + m.costTier.toLowerCase()">{{ m.costTier }}</span>
+            <span class="pick-price">{{ price(m) }}</span>
+          </div>
+          <span class="none" *ngIf="!cell.length">–</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ng-template #empty>
+    <p class="none">No active model has a "Best for" task yet. Edit a model and pick the tasks it suits.</p>
+  </ng-template>
+
+  <p class="foot">Prices are USD per 1M tokens (input / output).</p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>Close</button>
+</mat-dialog-actions>

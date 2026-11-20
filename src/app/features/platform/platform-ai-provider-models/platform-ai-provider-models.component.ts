@@ -1,11 +1,14 @@
+import { Location } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 
-import { AiProviderModel } from '../../../core/models/platform.model';
+import { AI_MODEL_TYPES, AiProviderModel } from '../../../core/models/platform.model';
 import { AiProviderModelService } from '../../../core/services/ai-provider-model.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { PlatformAiProviderModelFormDialogComponent } from '../platform-ai-provider-model-form-dialog/platform-ai-provider-model-form-dialog.component';
+import { PlatformAiProviderModelCompareDialogComponent } from '../platform-ai-provider-model-compare-dialog/platform-ai-provider-model-compare-dialog.component';
 
 @Component({
   selector: 'app-platform-ai-provider-models',
@@ -13,7 +16,8 @@ import { PlatformAiProviderModelFormDialogComponent } from '../platform-ai-provi
   styleUrls: ['./platform-ai-provider-models.component.scss'],
 })
 export class PlatformAiProviderModelsComponent implements OnInit {
-  readonly columns = ['provider', 'model', 'modelId', 'type', 'context', 'price', 'active', 'createdAt', 'actions'];
+  readonly modelTypes = AI_MODEL_TYPES;
+  readonly columns = ['provider', 'model', 'modelId', 'type', 'tier', 'context', 'price', 'active', 'createdAt', 'actions'];
 
   models: AiProviderModel[] = [];
   loading = true;
@@ -26,8 +30,24 @@ export class PlatformAiProviderModelsComponent implements OnInit {
   constructor(
     private readonly modelService: AiProviderModelService,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly location: Location,
+    private readonly router: Router
   ) {}
+
+  /** Whether there is a page to go back to (false when this page was the first one opened in the tab). */
+  hasHistory(): boolean {
+    return window.history.length > 1;
+  }
+
+  /** Back to the page the operator came from (AI Providers links here); opened directly, there is none, so it goes to AI Providers. */
+  goBack(): void {
+    if (this.hasHistory()) {
+      this.location.back();
+    } else {
+      void this.router.navigateByUrl('/settings/ai-providers');
+    }
+  }
 
   ngOnInit(): void {
     this.load();
@@ -48,6 +68,10 @@ export class PlatformAiProviderModelsComponent implements OnInit {
         (!this.statusFilter || (this.statusFilter === 'active') === m.isActive) &&
         (!term || m.displayName.toLowerCase().includes(term) || m.modelId.toLowerCase().includes(term))
     );
+  }
+
+  compare(): void {
+    this.dialog.open(PlatformAiProviderModelCompareDialogComponent, { data: { models: this.models }, width: '1000px', maxWidth: '96vw' });
   }
 
   create(): void {
@@ -75,6 +99,8 @@ export class PlatformAiProviderModelsComponent implements OnInit {
       maxOutputTokens: model.maxOutputTokens,
       inputPricePer1MUsd: model.inputPricePer1MUsd,
       outputPricePer1MUsd: model.outputPricePer1MUsd,
+      costTier: model.costTier,
+      bestFor: model.bestFor,
       description: model.description,
       isActive: !model.isActive,
       isDefault: model.isDefault,

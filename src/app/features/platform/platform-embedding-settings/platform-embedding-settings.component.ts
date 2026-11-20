@@ -59,6 +59,11 @@ export class PlatformEmbeddingSettingsComponent implements OnInit {
     this.load();
   }
 
+  /** The models the catalogue (AI Provider Models) offers for a model setting, with the one in use. */
+  modelOptions(key: string): string[] {
+    return this.items.get(key)?.options ?? [];
+  }
+
   /** "Key set (••••abcd)" hint for a secret, or null when none is stored. */
   keyHint(key: string): string | null {
     const item = this.items.get(key);

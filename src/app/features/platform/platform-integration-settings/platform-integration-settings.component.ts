@@ -335,6 +335,11 @@ export class PlatformIntegrationSettingsComponent implements OnInit {
     return (this.storyForm.controls[STORY_PREFIX + name] as FormControl<string> | undefined) ?? new FormControl<string>('', { nonNullable: true });
   }
 
+  /** The models the catalogue (AI Provider Models) offers for this setting, with the one in use, as the settings API lists them. */
+  storyOptions(name: string): string[] {
+    return this.storyItems[STORY_PREFIX + name]?.options ?? [];
+  }
+
   storyHint(name: string): string | null {
     return this.storyItems[STORY_PREFIX + name]?.description ?? null;
   }

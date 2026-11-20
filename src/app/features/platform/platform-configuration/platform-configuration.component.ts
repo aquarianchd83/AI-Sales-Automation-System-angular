@@ -1,6 +1,7 @@
+import { Location } from '@angular/common';
 import { Component, OnInit, Optional } from '@angular/core';
 import { AbstractControl, FormArray, FormGroup, NonNullableFormBuilder, ValidationErrors, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 
 import {
@@ -18,6 +19,8 @@ import { NotificationService } from '../../../core/services/notification.service
 import { SettingsService } from '../../../core/services/settings.service';
 import { CATEGORIES_WITH_OWN_SCREEN, SettingCategory, SettingItem } from '../../../core/models/settings.model';
 import { PlatformConfigurationService } from '../../../core/services/platform-configuration.service';
+import { AiProviderModel } from '../../../core/models/platform.model';
+import { AiProviderModelService } from '../../../core/services/ai-provider-model.service';
 
 /** The rate tables, shown on the AI Provider Charges screen instead of the main Configuration page. */
 const CHARGE_SECTIONS = ['whatsapp', 'lead', 'ai'];
@@ -105,6 +108,9 @@ export class PlatformConfigurationComponent implements OnInit {
     private readonly billing: BillingService,
     private readonly platformBilling: PlatformBillingService,
     private readonly systemSettings: SettingsService,
+    private readonly modelCatalogue: AiProviderModelService,
+    private readonly location: Location,
+    private readonly router: Router,
     @Optional() route: ActivatedRoute | null
   ) {
     this.sections = (route?.snapshot?.data?.['sections'] as string[] | undefined) ?? null;
@@ -155,7 +161,22 @@ export class PlatformConfigurationComponent implements OnInit {
     return this.form.controls.taxCountries;
   }
 
+  /** Whether there is a page to go back to (false when this page was the first one opened in the tab). */
+  hasHistory(): boolean {
+    return window.history.length > 1;
+  }
+
+  /** Back to the page the operator came from (the Model by task panel links here); opened directly, there is none, so it goes to AI Providers. */
+  goBack(): void {
+    if (this.hasHistory()) {
+      this.location.back();
+    } else {
+      void this.router.navigateByUrl('/settings/ai-providers');
+    }
+  }
+
   ngOnInit(): void {
+    this.modelCatalogue.getAll().subscribe({ next: (models) => (this.catalogueModels = models.filter((m) => m.isActive && m.modelType === 'Chat')), error: () => (this.catalogueModels = []) });
     this.billing.getStates('IN').subscribe({ next: (states) => (this.states = states), error: () => (this.states = []) });
     this.load();
     if (this.show('countries')) {
@@ -263,6 +284,21 @@ export class PlatformConfigurationComponent implements OnInit {
     for (const key of Object.keys(this.open)) {
       this.open[key] = expanded;
     }
+  }
+
+  /** The active chat models in AI Provider Models: what a new price row can be for. */
+  catalogueModels: AiProviderModel[] = [];
+
+  /** Models a new lead discovery price row can be for: the catalogue's, less those that already have a row. */
+  leadModelOptions(): string[] {
+    const taken = new Set(this.leadModels.controls.filter((g) => !this.isNew(g)).map((g) => String(g.controls['model'].value).toLowerCase()));
+    return Array.from(new Set(this.catalogueModels.map((m) => m.modelId))).filter((id) => !taken.has(id.toLowerCase())).sort();
+  }
+
+  /** Models a new AI conversation price row can be for, as Provider:model, less those that already have a row. */
+  aiModelOptions(): string[] {
+    const taken = new Set(this.aiModels.controls.filter((g) => !this.isNew(g)).map((g) => String(g.controls['model'].value).toLowerCase()));
+    return this.catalogueModels.map((m) => `${m.provider}:${m.modelId}`).filter((id) => !taken.has(id.toLowerCase())).sort();
   }
 
   addLeadModel(): void {

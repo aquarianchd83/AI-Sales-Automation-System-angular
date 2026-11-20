@@ -1,8 +1,20 @@
 <mat-card class="task-models" data-testid="task-models">
-  <h3 class="title">Model by task</h3>
+  <div class="head">
+    <h3 class="title">Model by task</h3>
+    <div class="links">
+      <a mat-stroked-button routerLink="/platform/ai-provider-models" data-testid="models-link">
+        <mat-icon>model_training</mat-icon>
+        AI Provider Models
+      </a>
+      <a mat-stroked-button routerLink="/platform/ai-charges" data-testid="charges-link">
+        <mat-icon>request_quote</mat-icon>
+        AI Provider Charges
+      </a>
+    </div>
+  </div>
   <p class="muted hint">
-    Each group of tasks can run on its own model. Leave it on its default to keep today's behavior. Prices come from <strong>Model token prices</strong> on the
-    Configuration page; lead discovery is priced in its own table there.
+    Each group of tasks can run on its own model. Leave it on its default to keep today's behavior. Prices come from <strong>AI Provider Charges</strong>;
+    lead discovery is priced in its own table there.
   </p>
 
   <p class="muted" *ngIf="loading">Loading…</p>

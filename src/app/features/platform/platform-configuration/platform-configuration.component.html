@@ -1,4 +1,9 @@
 <div class="page">
+  <button mat-button type="button" class="back-link" *ngIf="show('ai')" (click)="goBack()" data-testid="back-button">
+    <mat-icon>arrow_back</mat-icon>
+    Back
+  </button>
+
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
   <mat-card *ngIf="loadFailed" class="config-card">
@@ -310,7 +315,9 @@
         <div class="rate-row" *ngFor="let model of leadModels.controls; let i = index" [formGroup]="model">
           <span class="rate-name" *ngIf="!isNew(model)">{{ model.controls['model'].value }}</span>
           <mat-form-field subscriptSizing="dynamic" *ngIf="isNew(model)">
-            <input matInput formControlName="model" placeholder="claude-model-id" aria-label="Model id" autocomplete="off" />
+            <mat-select formControlName="model" aria-label="Model id" placeholder="Choose a model">
+              <mat-option *ngFor="let id of leadModelOptions()" [value]="id">{{ id }}</mat-option>
+            </mat-select>
           </mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.05" formControlName="inputPerMillion" aria-label="Input rate" /></mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.05" formControlName="outputPerMillion" aria-label="Output rate" /></mat-form-field>
@@ -340,8 +347,10 @@
         <div class="rate-row" *ngFor="let model of aiModels.controls; let i = index" [formGroup]="model">
           <span class="rate-name" *ngIf="!isNew(model)">{{ model.controls['model'].value }}</span>
           <mat-form-field subscriptSizing="dynamic" *ngIf="isNew(model)">
-            <input matInput formControlName="model" placeholder="Provider:model" aria-label="Model" autocomplete="off" />
-            <mat-error>Reads Provider:model, e.g. OpenAI:gpt-5-mini.</mat-error>
+            <mat-select formControlName="model" aria-label="Model" placeholder="Choose a model">
+              <mat-option *ngFor="let id of aiModelOptions()" [value]="id">{{ id }}</mat-option>
+            </mat-select>
+            <mat-hint *ngIf="!aiModelOptions().length">Add models under AI Provider Models first.</mat-hint>
           </mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.0001" formControlName="promptPer1K" aria-label="Prompt rate" /></mat-form-field>
           <mat-form-field subscriptSizing="dynamic"><input matInput type="number" min="0" step="0.0001" formControlName="completionPer1K" aria-label="Completion rate" /></mat-form-field>

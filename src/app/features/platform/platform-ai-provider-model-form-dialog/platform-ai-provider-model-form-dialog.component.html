@@ -56,9 +56,25 @@
       <input matInput type="number" min="0" step="any" formControlName="outputPricePer1MUsd" />
     </mat-form-field>
 
+    <mat-form-field>
+      <mat-label>Cost tier</mat-label>
+      <mat-select formControlName="costTier">
+        <mat-option *ngFor="let t of costTiers" [value]="t">{{ t }}</mat-option>
+      </mat-select>
+      <mat-hint>How expensive it is compared with other models</mat-hint>
+    </mat-form-field>
+
     <mat-form-field class="span-2">
-      <mat-label>Description</mat-label>
-      <textarea matInput rows="2" formControlName="description" maxlength="1000"></textarea>
+      <mat-label>Best for</mat-label>
+      <mat-select formControlName="bestFor" multiple>
+        <mat-option *ngFor="let t of tasks" [value]="t.key">{{ t.label }}</mat-option>
+      </mat-select>
+      <mat-hint>The tasks this model is the recommended pick for. Shown in Compare.</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="span-2">
+      <mat-label>Description - when to use this model</mat-label>
+      <textarea matInput rows="3" formControlName="description" maxlength="1000"></textarea>
     </mat-form-field>
 
     <mat-slide-toggle formControlName="isActive">Active</mat-slide-toggle>
