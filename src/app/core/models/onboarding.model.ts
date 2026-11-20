@@ -10,7 +10,7 @@ export type OnboardingStepState = 'Completed' | 'Current' | 'Pending' | 'Skipped
  * WhatsApp connection. A skipped step counts as out of the way (the next steps open, setup can finish) but is not
  * Completed. Once the Meta connection works, empty this list and delete the Skip button, `skipStep` and `applySkips`.
  */
-export const SKIPPABLE_STEP_KEYS: readonly string[] = ['whatsapp'];
+export const SKIPPABLE_STEP_KEYS: readonly string[] = ['whatsapp', 'knowledge-base'];
 
 /** OnboardingStepDto - one of the nine steps, in order. `route` is the tenant's real screen for the step. */
 export interface OnboardingStep {

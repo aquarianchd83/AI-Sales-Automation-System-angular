@@ -247,7 +247,13 @@
         </mat-menu>
       </ng-container>
 
-      <ng-container *ngIf="currentUser$ | async as user">
+      <!-- On the onboarding page the account menu is replaced by a lone way out. -->
+      <button mat-stroked-button type="button" class="onboarding-signout" *ngIf="onOnboardingPage" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Sign out
+      </button>
+
+      <ng-container *ngIf="!onOnboardingPage && (currentUser$ | async) as user">
         <button
           mat-button
           class="account-button"
@@ -304,7 +310,7 @@
     <div class="verify-banner" *ngIf="emailUnconfirmed$ | async" role="status">
       <mat-icon>mark_email_unread</mat-icon>
       <span *ngIf="!verificationResent">
-        <strong>Confirm your email address.</strong> We sent a link when you signed up - it lets you recover your account if you forget your password.
+        <strong>Confirm your email address.</strong> We sent a link to <strong>{{ (currentUser$ | async)?.email }}</strong> when you signed up - it lets you recover your account if you forget your password.
       </span>
       <span *ngIf="verificationResent">
         <strong>Sent.</strong> Check your inbox (and spam) for the confirmation link.

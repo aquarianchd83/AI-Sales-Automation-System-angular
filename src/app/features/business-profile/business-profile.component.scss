@@ -99,41 +99,6 @@ mat-icon[matPrefix] {
   color: rgba(0, 0, 0, 0.45);
 }
 
-.keyword-error,
-.empty-keywords {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 12px 0 0;
-  font-size: 13px;
-
-  mat-icon {
-    width: 18px;
-    height: 18px;
-    font-size: 18px;
-  }
-}
-
-.keyword-error {
-  color: #b3261e;
-}
-
-.empty-keywords {
-  color: rgba(0, 0, 0, 0.54);
-
-  mat-icon {
-    color: #e08600;
-  }
-
-  em {
-    font-style: normal;
-    padding: 1px 8px;
-    border-radius: 10px;
-    background: #f3e5f5;
-    color: #6a1b9a;
-  }
-}
-
 /* ---------- summary card ---------- */
 
 .summary {
@@ -280,82 +245,5 @@ mat-icon[matPrefix] {
 @media (max-width: 600px) {
   .field-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-// AI suggest, above the keyword box.
-.suggest-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.suggest-hint {
-  font-size: 13px;
-}
-
-.suggestions {
-  margin-bottom: 14px;
-  padding: 10px 14px 12px;
-  border-radius: 10px;
-  background: rgba(0, 121, 107, 0.07);
-}
-
-.suggestions-head {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-  font-size: 13px;
-}
-
-.suggestion-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.suggestion {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 12px 4px 6px;
-  border: 1px solid rgba(0, 121, 107, 0.4);
-  border-radius: 16px;
-  background: #fff;
-  color: #0f766e;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-
-  mat-icon {
-    width: 18px;
-    height: 18px;
-    font-size: 18px;
-  }
-
-  &:hover {
-    background: rgba(0, 121, 107, 0.12);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #0d9488;
-    outline-offset: 2px;
-  }
-}
-
-.no-suggestions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-
-  mat-icon {
-    width: 18px;
-    height: 18px;
-    font-size: 18px;
   }
 }

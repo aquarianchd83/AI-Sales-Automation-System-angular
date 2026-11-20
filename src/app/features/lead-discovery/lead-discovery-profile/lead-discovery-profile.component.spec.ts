@@ -61,7 +61,7 @@ describe('LeadDiscoveryProfileComponent', () => {
     campaigns = jasmine.createSpyObj('CampaignService', ['getPaged']);
     campaigns.getPaged.and.returnValue(of(emptyPage<Campaign>()));
     notify = jasmine.createSpyObj('NotificationService', ['success']);
-    tenantProfile = jasmine.createSpyObj('TenantProfileService', ['getProfile']);
+    tenantProfile = jasmine.createSpyObj('TenantProfileService', ['getProfile', 'refineDescription']);
     tenantProfile.getProfile.and.returnValue(of({ companyName: 'CIS', countryCode: 'IN' } as TenantProfile));
 
     TestBed.configureTestingModule({
@@ -88,6 +88,40 @@ describe('LeadDiscoveryProfileComponent', () => {
     expect(component.hasChanges).toBeFalse();
     expect(text()).toContain('Discovery is on');
     expect(text()).toContain('Your plan allows up to 25 per run.');
+  });
+
+  it('starts an empty description from the business profile, and leaves a written one alone', () => {
+    tenantProfile.getProfile.and.returnValue(
+      of({ companyName: 'CIS', countryCode: 'IN', businessDescription: 'We install rooftop solar.' } as TenantProfile)
+    );
+
+    create({ ...profile, description: null });
+    expect(component.form.getRawValue().description).toBe('We install rooftop solar.');
+
+    create({ ...profile, description: 'Homeowners with high bills' });
+    expect(component.form.getRawValue().description).toBe('Homeowners with high bills');
+  });
+
+  it('"Polish Content using AI" replaces the description with the polished version', () => {
+    tenantProfile.refineDescription.and.returnValue(of({ description: 'We build websites and software products.', source: 'AI' }));
+    create({ ...profile, description: 'it is software co which deals in develop website' });
+
+    const button = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.polish-row button'))[0];
+    expect(button.textContent).toContain('Polish Content using AI');
+    expect(button.disabled).toBeFalse();
+    button.click();
+    fixture.detectChanges();
+
+    expect(tenantProfile.refineDescription).toHaveBeenCalledOnceWith(
+      jasmine.objectContaining({ description: 'it is software co which deals in develop website' })
+    );
+    expect(component.form.getRawValue().description).toBe('We build websites and software products.');
+  });
+
+  it('"Polish Content using AI" is off while the description is empty', () => {
+    create({ ...profile, description: null });
+    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.polish-row button')!;
+    expect(button.disabled).toBeTrue();
   });
 
   it('saves the whole profile without Phone/Email in requiredFields', () => {

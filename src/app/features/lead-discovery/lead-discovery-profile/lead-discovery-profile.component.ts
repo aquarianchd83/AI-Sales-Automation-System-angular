@@ -155,9 +155,50 @@ export class LeadDiscoveryProfileComponent implements OnInit {
         this.countryCode = profile.countryCode;
         this.countryLabel = countryName(profile.countryCode);
         this.rebuildCities();
+        this.businessDescription = profile.businessDescription?.trim() ?? '';
+        this.industry = profile.industry ?? null;
+        this.industrySubcategory = profile.industrySubcategory ?? null;
+        this.prefillDescription();
       },
       error: () => undefined, // no country: locations are typed in instead
     });
+  }
+
+  /** The business profile's description: the starting point for this search's description until the tenant writes their own. */
+  private businessDescription = '';
+
+  private industry: string | null = null;
+  private industrySubcategory: string | null = null;
+
+  /** True while "Polish Content using AI" is waiting for the rewrite. */
+  polishing = false;
+
+  /** "Polish Content using AI": the description is replaced with a cleaner version of itself (kept within its limit). */
+  polishDescription(): void {
+    const control = this.form.controls.description;
+    const text = control.value.trim();
+    if (!text || this.polishing) {
+      return;
+    }
+    this.polishing = true;
+    this.tenantProfile
+      .refineDescription({ description: text, industry: this.industry, industrySubcategory: this.industrySubcategory })
+      .pipe(finalize(() => (this.polishing = false)))
+      .subscribe({
+        next: (result) => {
+          control.setValue(result.description.slice(0, L.description));
+          control.markAsDirty();
+          this.notify.success(result.source === 'AI' ? 'Description polished.' : 'Description tidied - AI was not available.');
+        },
+        error: () => undefined, // the error interceptor shows why
+      });
+  }
+
+  private prefillDescription(): void {
+    const control = this.form.controls.description;
+    if (this.businessDescription && !this.saved?.description?.trim() && !control.value.trim()) {
+      control.setValue(this.businessDescription.slice(0, L.description));
+    }
   }
 
   /** The dropdown is used once the country is known and has cities. */
@@ -519,6 +560,7 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     this.locationInput.setValue('');
     this.criterionInput.setValue('');
     this.rebuildCities();
+    this.prefillDescription();
   }
 }
 

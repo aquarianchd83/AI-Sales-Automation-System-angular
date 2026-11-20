@@ -74,13 +74,13 @@
               required
               rows="4"
               [maxlength]="limits.businessDescription"
-              placeholder="What you sell, who you sell to, and what makes you different."
+              placeholder="e.g. We are a Delhi-based company that designs and installs rooftop solar for homes. Founded in 2015, we serve homeowners and housing societies across NCR and handle everything from subsidy paperwork to maintenance."
             ></textarea>
             <mat-hint align="end">
               {{ form.controls.businessDescription.value.length | number }} / {{ limits.businessDescription | number }}
             </mat-hint>
             <mat-error>Business description is required.</mat-error>
-            <mat-hint>What you sell, who you sell to, and what makes you different.</mat-hint>
+            <mat-hint>Tell us about your company: what it does, how long it has been running, where it works and who it serves.</mat-hint>
           </mat-form-field>
         </div>
       </mat-card>
@@ -129,96 +129,6 @@
         </div>
       </mat-card>
 
-      <!-- Domain keywords -->
-      <mat-card class="section">
-        <div class="section-head">
-          <span class="section-icon tone-violet"><mat-icon>sell</mat-icon></span>
-          <div>
-            <h2>Domain keywords</h2>
-            <p>Products, services and topics your business deals in.</p>
-          </div>
-          <span class="spacer"></span>
-          <span class="count" [class.count--full]="keywords.length >= limits.maxKeywords">
-            {{ keywords.length }} / {{ limits.maxKeywords }}
-          </span>
-        </div>
-
-        <!-- AI suggest: keywords for the industry chosen above. Nothing is added until you pick. -->
-        <div class="suggest-row">
-          <button
-            mat-stroked-button
-            color="primary"
-            type="button"
-            (click)="suggestKeywords()"
-            [disabled]="!form.controls.industry.value.trim() || suggesting"
-            [matTooltip]="form.controls.industry.value.trim() ? '' : 'Choose an industry first'"
-          >
-            <mat-icon>auto_awesome</mat-icon>
-            {{ suggesting ? 'Suggesting…' : 'AI suggest' }}
-          </button>
-          <span class="muted suggest-hint">
-            {{ form.controls.industry.value.trim() ? 'Suggests keywords for ' + form.controls.industry.value.trim() + '.' : 'Choose an industry to get suggestions.' }}
-          </span>
-        </div>
-
-        <div class="suggestions" *ngIf="suggestions.length" role="region" aria-label="Suggested keywords">
-          <div class="suggestions-head">
-            <span>
-              <strong>Suggested for {{ suggestedFor }}</strong>
-              <span class="muted"> · {{ suggestionSource === 'AI' ? 'written by your AI assistant' : 'common terms for this industry' }}</span>
-            </span>
-            <span class="spacer"></span>
-            <button mat-button type="button" color="primary" (click)="addAllSuggestions()">Add all</button>
-            <button mat-icon-button type="button" aria-label="Dismiss suggestions" (click)="dismissSuggestions()">
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-          <div class="suggestion-chips">
-            <button
-              *ngFor="let suggestion of suggestions"
-              type="button"
-              class="suggestion"
-              [attr.aria-label]="'Add ' + suggestion"
-              (click)="addSuggestion(suggestion)"
-            >
-              <mat-icon>add</mat-icon>{{ suggestion }}
-            </button>
-          </div>
-        </div>
-        <p class="muted no-suggestions" *ngIf="noSuggestions" role="status">
-          <mat-icon>info</mat-icon>
-          Nothing to suggest for "{{ suggestedFor }}" yet - add your own below, or try a broader industry.
-        </p>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Add keywords</mat-label>
-          <mat-chip-grid #keywordGrid aria-label="Domain keywords">
-            <mat-chip-row *ngFor="let keyword of keywords" (removed)="removeKeyword(keyword)">
-              {{ keyword }}
-              <button matChipRemove type="button" [attr.aria-label]="'Remove ' + keyword">
-                <mat-icon>cancel</mat-icon>
-              </button>
-            </mat-chip-row>
-            <input
-              [formControl]="keywordInput"
-              placeholder="Type a keyword and press Enter"
-              [maxlength]="limits.keyword * 10"
-              [matChipInputFor]="keywordGrid"
-              [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
-              [matChipInputAddOnBlur]="true"
-              (matChipInputTokenEnd)="addKeyword($event)"
-            />
-          </mat-chip-grid>
-          <mat-hint>Type a keyword and press Enter. A comma works too, and so does pasting a comma-separated list.</mat-hint>
-        </mat-form-field>
-        <p class="keyword-error" *ngIf="keywordError" role="alert">
-          <mat-icon>error_outline</mat-icon>{{ keywordError }}
-        </p>
-        <p class="empty-keywords" *ngIf="!keywords.length && !keywordError">
-          <mat-icon>lightbulb</mat-icon>
-          For example: <em>solar panels</em>, <em>rooftop installation</em>, <em>net metering</em>.
-        </p>
-      </mat-card>
     </div>
 
     <aside class="side">

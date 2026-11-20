@@ -43,6 +43,20 @@
           <mat-hint>e.g. Eye clinic, Computer hardware distributor</mat-hint>
         </mat-form-field>
 
+        <div class="polish-row">
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            (click)="polishDescription()"
+            [disabled]="!form.controls.description.value.trim() || polishing"
+            [matTooltip]="form.controls.description.value.trim() ? 'Rewrites your description so it reads clearly' : 'Write a description first'"
+          >
+            <mat-icon>auto_fix_high</mat-icon>
+            {{ polishing ? 'Polishing…' : 'Polish Content using AI' }}
+          </button>
+        </div>
+
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Description</mat-label>
           <textarea
