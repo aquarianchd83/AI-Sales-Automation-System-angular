@@ -33,7 +33,11 @@
       <div class="grid">
         <mat-form-field class="field">
           <mat-label>OpenAI embedding model</mat-label>
-          <input matInput formControlName="openAiModel" placeholder="text-embedding-3-small" />
+          <mat-select formControlName="openAiModel">
+            <mat-option value="">Built-in default</mat-option>
+            <mat-option *ngFor="let m of modelOptions('AiProviders:OpenAI:EmbeddingModel')" [value]="m">{{ m }}</mat-option>
+          </mat-select>
+          <mat-hint>From AI Provider Models</mat-hint>
         </mat-form-field>
         <mat-form-field class="field">
           <mat-label>OpenAI API key</mat-label>
@@ -43,7 +47,11 @@
 
         <mat-form-field class="field">
           <mat-label>Google embedding model</mat-label>
-          <input matInput formControlName="googleModel" placeholder="text-embedding-004" />
+          <mat-select formControlName="googleModel">
+            <mat-option value="">Built-in default</mat-option>
+            <mat-option *ngFor="let m of modelOptions('AiProviders:Google:EmbeddingModel')" [value]="m">{{ m }}</mat-option>
+          </mat-select>
+          <mat-hint>From AI Provider Models</mat-hint>
         </mat-form-field>
         <mat-form-field class="field">
           <mat-label>Google API key</mat-label>

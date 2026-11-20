@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 
-import { AiProviderModel } from '../../../core/models/platform.model';
+import { AI_MODEL_TYPES, AiProviderModel } from '../../../core/models/platform.model';
 import { AiProviderModelService } from '../../../core/services/ai-provider-model.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -14,6 +14,7 @@ import { PlatformAiProviderModelCompareDialogComponent } from '../platform-ai-pr
   styleUrls: ['./platform-ai-provider-models.component.scss'],
 })
 export class PlatformAiProviderModelsComponent implements OnInit {
+  readonly modelTypes = AI_MODEL_TYPES;
   readonly columns = ['provider', 'model', 'modelId', 'type', 'tier', 'context', 'price', 'active', 'createdAt', 'actions'];
 
   models: AiProviderModel[] = [];

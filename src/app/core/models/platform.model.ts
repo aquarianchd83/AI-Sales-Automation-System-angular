@@ -1505,9 +1505,9 @@ export interface CleanupRun {
 // ---------------------------------------------------------------------------
 
 /** AiModelType - serialized by name. */
-export type AiModelType = 'Chat' | 'Embedding' | 'Image';
+export type AiModelType = 'Chat' | 'Embedding' | 'Image' | 'Speech' | 'Video';
 
-export const AI_MODEL_TYPES: AiModelType[] = ['Chat', 'Embedding', 'Image'];
+export const AI_MODEL_TYPES: AiModelType[] = ['Chat', 'Embedding', 'Image', 'Speech', 'Video'];
 
 /** AiModelCostTier - serialized by name: how expensive a model is relative to the others. */
 export type AiModelCostTier = 'Cheap' | 'Average' | 'Expensive';

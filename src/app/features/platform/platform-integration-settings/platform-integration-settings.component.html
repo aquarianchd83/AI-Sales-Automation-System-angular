@@ -263,7 +263,10 @@
           <div class="fields">
           <mat-form-field appearance="outline" class="field">
             <mat-label>Veo model</mat-label>
-            <input matInput [formControl]="storyControl('VeoModel')" [attr.data-story]="'VeoModel'" autocomplete="off" />
+            <mat-select [formControl]="storyControl('VeoModel')" [attr.data-story]="'VeoModel'">
+              <mat-option value="">Built-in default</mat-option>
+              <mat-option *ngFor="let m of storyOptions('VeoModel')" [value]="m">{{ m }}</mat-option>
+            </mat-select>
             <mat-hint *ngIf="storyHint('VeoModel') as hint">{{ hint }}</mat-hint>
           </mat-form-field>
           <mat-form-field appearance="outline" class="field">
@@ -305,7 +308,10 @@
           <div class="fields">
           <mat-form-field appearance="outline" class="field">
             <mat-label>Picture model</mat-label>
-            <input matInput [formControl]="storyControl('ImageModel')" [attr.data-story]="'ImageModel'" autocomplete="off" />
+            <mat-select [formControl]="storyControl('ImageModel')" [attr.data-story]="'ImageModel'">
+              <mat-option value="">Built-in default</mat-option>
+              <mat-option *ngFor="let m of storyOptions('ImageModel')" [value]="m">{{ m }}</mat-option>
+            </mat-select>
             <mat-hint *ngIf="storyHint('ImageModel') as hint">{{ hint }}</mat-hint>
           </mat-form-field>
           <mat-form-field appearance="outline" class="field">
@@ -315,7 +321,10 @@
           </mat-form-field>
           <mat-form-field appearance="outline" class="field">
             <mat-label>Speech model</mat-label>
-            <input matInput [formControl]="storyControl('SpeechModel')" [attr.data-story]="'SpeechModel'" autocomplete="off" />
+            <mat-select [formControl]="storyControl('SpeechModel')" [attr.data-story]="'SpeechModel'">
+              <mat-option value="">Built-in default</mat-option>
+              <mat-option *ngFor="let m of storyOptions('SpeechModel')" [value]="m">{{ m }}</mat-option>
+            </mat-select>
             <mat-hint *ngIf="storyHint('SpeechModel') as hint">{{ hint }}</mat-hint>
           </mat-form-field>
           <mat-form-field appearance="outline" class="field">

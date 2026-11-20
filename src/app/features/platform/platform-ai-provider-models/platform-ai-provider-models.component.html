@@ -30,9 +30,7 @@
         <mat-label>Type</mat-label>
         <mat-select [(ngModel)]="typeFilter">
           <mat-option value="">All</mat-option>
-          <mat-option value="Chat">Chat</mat-option>
-          <mat-option value="Embedding">Embedding</mat-option>
-          <mat-option value="Image">Image</mat-option>
+          <mat-option *ngFor="let t of modelTypes" [value]="t">{{ t }}</mat-option>
         </mat-select>
       </mat-form-field>
       <mat-form-field>
