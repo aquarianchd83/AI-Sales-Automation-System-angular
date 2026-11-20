@@ -600,7 +600,7 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
       open(run({ leadsSaved: 6 }), 9);
 
       expect(t('[data-test="credits-charged"]')).toContain('9 credits');
-      expect(t('[data-test="credits-charged"]')).toContain('Rejected, duplicate and not-needed candidates are not');
+      expect(t('[data-test="credits-charged"]')).toContain('Duplicate and not-needed candidates are not charged');
     });
 
     it('shows the search cost as an estimate that is not charged, split into reading and searching', () => {
