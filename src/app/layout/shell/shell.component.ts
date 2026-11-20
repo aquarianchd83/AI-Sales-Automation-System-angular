@@ -444,6 +444,20 @@ export class ShellComponent implements OnInit, OnDestroy {
     return !!this.onboarding && !this.onboarding.isCompleted;
   }
 
+  /** Setup is not finished: some step is not Completed (one on hold counts - the tenant can come back to it). Drives the spinner chip in the top bar. */
+  get setupInProgress(): boolean {
+    return !!this.onboarding && !this.onboardingActive && this.onboarding.steps.some((s) => s.state !== 'Completed');
+  }
+
+  /** What the spinner chip says on hover: the progress and what is still to do. */
+  get setupTooltip(): string {
+    if (!this.onboarding) {
+      return '';
+    }
+    const left = this.onboarding.steps.filter((s) => s.state !== 'Completed').map((s) => s.title);
+    return `Setup ${this.onboarding.progressPercent}% complete. Still to do: ${left.join(', ')}. Click to continue.`;
+  }
+
   get onboardingStep(): OnboardingStep | null {
     return currentStep(this.onboarding);
   }
@@ -511,7 +525,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   /** Whether the wallet figure sits in the toolbar: every tenant user sees it, but only an Admin can open the wallet page behind it. */
   get showWallet(): boolean {
-    return !this.isPlatformSuperAdmin && !this.onboardingActive;
+    return !this.isPlatformSuperAdmin && !this.onboardingActive && !this.onOnboardingPage;
   }
 
   get canOpenWallet(): boolean {
@@ -552,18 +566,32 @@ export class ShellComponent implements OnInit, OnDestroy {
           if (wasComplete && !this.router.url.startsWith('/onboarding')) {
             void this.router.navigate(['/onboarding']);
           }
+        } else if (this.onOnboardingPage) {
+          this.sidenavOpened = false;
         } else if (wasActive) {
           // Just finished: the full workspace opens up.
           this.sidenavOpened = !this.breakpoints.isMatched(Breakpoints.Handset);
         }
       });
       this.onOnboardingPage = this.router.url.startsWith('/onboarding');
+      if (this.onOnboardingPage) {
+        this.sidenavOpened = false;
+      }
       this.router.events
         .pipe(
           filter((e): e is NavigationEnd => e instanceof NavigationEnd),
           takeUntil(this.destroy$)
         )
-        .subscribe((e) => (this.onOnboardingPage = e.urlAfterRedirects.startsWith('/onboarding')));
+        .subscribe((e) => {
+          const wasOnPage = this.onOnboardingPage;
+          this.onOnboardingPage = e.urlAfterRedirects.startsWith('/onboarding');
+          // The onboarding page never shows the side navigation; leaving it brings it back (unless setup still blocks it).
+          if (this.onOnboardingPage) {
+            this.sidenavOpened = false;
+          } else if (wasOnPage && !this.onboardingActive) {
+            this.sidenavOpened = !this.breakpoints.isMatched(Breakpoints.Handset);
+          }
+        });
     }
 
     if (this.isImpersonating) {

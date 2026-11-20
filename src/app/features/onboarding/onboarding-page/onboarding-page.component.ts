@@ -126,7 +126,7 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
 
   /** TEMPORARY (see SKIPPABLE_STEP_KEYS): the step on screen can be put on hold. */
   get canSkip(): boolean {
-    return !!this.selected && this.selected.state === 'Current' && SKIPPABLE_STEP_KEYS.includes(this.selected.key);
+    return !!this.selected && (this.selected.state === 'Current' || this.selected.state === 'Skipped') && SKIPPABLE_STEP_KEYS.includes(this.selected.key);
   }
 
   /** TEMPORARY: puts the step on hold and moves on to the next one. */
@@ -140,7 +140,15 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
     const next = this.current;
     if (next) {
       this.select(next);
+    } else {
+      // Nothing left to do but the held step: open the workspace. The top bar's progress icon leads back here.
+      void this.router.navigate(['/dashboard']);
     }
+  }
+
+  /** Every step is actually Completed (a step on hold does not count). */
+  get allDone(): boolean {
+    return !!this.status && this.status.steps.every((s) => s.state === 'Completed');
   }
 
   previous(): void {
