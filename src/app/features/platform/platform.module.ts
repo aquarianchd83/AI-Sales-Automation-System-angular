@@ -2,6 +2,8 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { SharedModule } from '../../shared/shared.module';
+import { PlatformAiProviderModelFormDialogComponent } from './platform-ai-provider-model-form-dialog/platform-ai-provider-model-form-dialog.component';
+import { PlatformAiProviderModelsComponent } from './platform-ai-provider-models/platform-ai-provider-models.component';
 import { PlatformAnnouncementFormDialogComponent } from './platform-announcement-form-dialog/platform-announcement-form-dialog.component';
 import { PlatformAnnouncementListComponent } from './platform-announcement-list/platform-announcement-list.component';
 import { PlatformAwsSettingsComponent } from './platform-aws-settings/platform-aws-settings.component';
@@ -112,6 +114,7 @@ const routes: Routes = [
       { path: 'video-requests', component: PlatformVideoRequestsComponent },
       // One request on its own page: its script, video and refund.
       { path: 'video-requests/:id', component: PlatformVideoRequestDetailComponent },
+      { path: 'ai-provider-models', component: PlatformAiProviderModelsComponent },
       { path: 'announcements', component: PlatformAnnouncementListComponent },
       // What tenants were told, by mode (in-app, email, WhatsApp) and delivery status.
       { path: 'tenant-notifications', component: PlatformTenantNotificationsComponent },
@@ -175,6 +178,8 @@ const routes: Routes = [
     PlatformKnowledgeDeprecateDialogComponent,
     PlatformAnnouncementListComponent,
     PlatformAnnouncementFormDialogComponent,
+    PlatformAiProviderModelsComponent,
+    PlatformAiProviderModelFormDialogComponent,
     PlatformVideoRequestsComponent,
     PlatformVideoRequestDetailComponent,
     PlatformRefundVideoDialogComponent,
