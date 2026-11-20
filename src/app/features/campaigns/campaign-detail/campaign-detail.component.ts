@@ -67,8 +67,8 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   readonly audiencePageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly audienceSearchControl = new FormControl<string>('', { nonNullable: true });
 
-  /** Set from `?view=pipeline` so the preview can be linked to; anything else is Classic. */
-  view: CampaignDetailView = 'classic';
+  /** Pipeline is the default; `?view=classic` opens the classic audience list directly. */
+  view: CampaignDetailView = 'pipeline';
   campaign: Campaign | null = null;
   progress: CampaignProgress | null = null;
   loading = true;
@@ -96,7 +96,7 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.view = this.route.snapshot.queryParamMap.get('view') === 'pipeline' ? 'pipeline' : 'classic';
+    this.view = this.route.snapshot.queryParamMap.get('view') === 'classic' ? 'classic' : 'pipeline';
 
     // A campaign job just ran: this campaign's status, audience and progress (and, through progress, the
     // step delivery card) may have moved, so refetch in place instead of making the user reload.
@@ -164,7 +164,7 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
     this.view = view;
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { view: view === 'pipeline' ? 'pipeline' : null },
+      queryParams: { view: view === 'classic' ? 'classic' : null },
       queryParamsHandling: 'merge',
       replaceUrl: true,
     });

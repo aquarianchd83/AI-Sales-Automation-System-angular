@@ -115,8 +115,8 @@
         (change)="setView($event.value)"
         aria-label="Audience view"
       >
-        <mat-button-toggle value="classic">Classic view</mat-button-toggle>
         <mat-button-toggle value="pipeline">Pipeline view (preview)</mat-button-toggle>
+        <mat-button-toggle value="classic">Classic view</mat-button-toggle>
       </mat-button-toggle-group>
       <span class="muted view-switch-note" *ngIf="view === 'pipeline'">
         Preview: the audience list and progress counts are hidden here and unchanged in Classic view.
