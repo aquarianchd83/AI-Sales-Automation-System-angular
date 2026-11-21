@@ -36,11 +36,11 @@ const ORDER: RechargeCheckout = {
 
 /** Buying a pack, end to end at the screen: confirm, pay through Razorpay, and only refresh what's shown once the server says the credits are in. */
 describe('WalletComponent buying credits', () => {
-  function setup(options: { confirmed: boolean; orderFails?: boolean; outcome?: Observable<RazorpayPaymentOutcome> }) {
+  function setup(options: { confirmed: boolean; orderFails?: boolean; outcome?: Observable<RazorpayPaymentOutcome>; pack?: CreditPack }) {
     const billing = {
       getQuota: jasmine.createSpy('getQuota').and.returnValue(of([{ quotaType: QuotaType.Credits, balance: 500, capacity: 500, grants: [] }])),
       getWallet: jasmine.createSpy('getWallet').and.returnValue(of({ balance: 500, planCode: 'premium', planName: 'Premium', monthlyCredits: 100, monthStartUtc: '', features: [] })),
-      getCreditPacks: () => of([PACK]),
+      getCreditPacks: () => of([options.pack ?? PACK]),
       getSubscription: () => of({ planId: 'plan-1', planName: 'Premium', status: 'Active', currentPeriodStartUtc: null, currentPeriodEndUtc: null }),
       getAlertSettings: () => of({ email: null, phoneE164: null, whatsAppEnabled: false }),
       getLedger: jasmine.createSpy('getLedger').and.returnValue(of(emptyPage())),
@@ -75,6 +75,18 @@ describe('WalletComponent buying credits', () => {
     const buy = () => (fixture.nativeElement.querySelector('.pack-row button') as HTMLButtonElement).click();
     return { fixture, billing, recharge, payments, dialog, notify, entitlements, buy };
   }
+
+  it('says up front that a pack priced in another currency can only be paid in INR, and opens no payment', () => {
+    const { dialog, recharge, payments, billing, notify, buy } = setup({ confirmed: true, pack: { ...PACK, currencyCode: 'USD', currencySymbol: '$', totalLocal: 12 } });
+
+    buy();
+
+    expect(notify.info).toHaveBeenCalledWith(jasmine.stringMatching(/only be paid in INR.*USD/));
+    expect(dialog.open).not.toHaveBeenCalled();
+    expect(recharge.createPackOrder).not.toHaveBeenCalled();
+    expect(payments.pay).not.toHaveBeenCalled();
+    expect(billing.purchaseCreditPack).not.toHaveBeenCalled();
+  });
 
   it('asks for confirmation naming the pack, the price, Razorpay and the 12-month validity before anything is ordered', () => {
     const { dialog, recharge, buy } = setup({ confirmed: false });

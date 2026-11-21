@@ -260,6 +260,11 @@ export class WalletComponent implements OnInit, OnDestroy {
     if (this.buyingPackId) {
       return;
     }
+    // Razorpay takes credit pack payments in INR only for now; say so up front instead of opening a payment that cannot go through.
+    if ((pack.currencyCode ?? '').toUpperCase() !== 'INR') {
+      this.notify.info(`Credit packs can only be paid in INR (Indian Rupees) right now. Please contact support to buy credits in ${pack.currencyCode}.`);
+      return;
+    }
 
     this.dialog
       .open(ConfirmDialogComponent, {
