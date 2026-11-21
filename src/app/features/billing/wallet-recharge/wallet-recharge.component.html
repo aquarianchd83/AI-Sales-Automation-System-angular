@@ -1,0 +1,132 @@
+<div class="page">
+  <app-page-header title="Recharge wallet" subtitle="Add credits to your wallet with UPI, cards or net banking. Credits are added as soon as your payment is confirmed.">
+    <a mat-stroked-button routerLink="/billing/wallet">
+      <mat-icon>arrow_back</mat-icon>
+      Usage & credits
+    </a>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+  <div class="notice notice--urgent" *ngIf="loadError" role="alert">
+    <mat-icon>error</mat-icon>
+    <div class="notice-text">{{ loadError }}</div>
+  </div>
+
+  <div class="recharge-grid" *ngIf="options as o">
+    <mat-card class="recharge-card">
+      <div class="balance-line" data-testid="balance-before">
+        <mat-icon>toll</mat-icon>
+        <span>Wallet balance</span>
+        <strong data-testid="balance">{{ o.balance | number: '1.0-2' }} credits</strong>
+      </div>
+
+      <h3>Choose an amount</h3>
+      <div class="presets" role="group" aria-label="Recharge amount">
+        <button
+          *ngFor="let p of o.presets"
+          mat-stroked-button
+          type="button"
+          class="preset"
+          [class.preset--selected]="selectedPreset === p"
+          [attr.aria-pressed]="selectedPreset === p"
+          [disabled]="processing"
+          (click)="selectPreset(p)"
+        >
+          {{ formatRupees(p) }}
+        </button>
+      </div>
+
+      <mat-form-field appearance="outline" class="amount-field">
+        <mat-label>Or enter an amount (₹)</mat-label>
+        <input matInput type="number" inputmode="decimal" step="1" data-testid="amount" [formControl]="amount" [min]="o.minAmount" [max]="o.maxAmount" />
+        <mat-hint>{{ formatRupees(o.minAmount) }} to {{ formatRupees(o.maxAmount) }}</mat-hint>
+        <mat-error *ngIf="amountError() as message">{{ message }}</mat-error>
+      </mat-form-field>
+    </mat-card>
+
+    <mat-card class="recharge-card summary" data-testid="summary">
+      <h3>Payment summary</h3>
+      <mat-progress-bar mode="indeterminate" *ngIf="quoting"></mat-progress-bar>
+      <p class="muted" *ngIf="!quote && !quoteError && !quoting">Choose an amount to see what you will pay.</p>
+      <p class="error" *ngIf="quoteError" role="alert">{{ quoteError }}</p>
+
+      <dl *ngIf="quote as q">
+        <div><dt>Recharge amount</dt><dd data-testid="quote-amount">{{ formatRupees(q.amount) }}</dd></div>
+        <div *ngFor="let line of q.taxLines"><dt>{{ line.name }} ({{ line.ratePercent }}%)</dt><dd>{{ formatRupees(line.amount) }}</dd></div>
+        <div *ngIf="!q.taxLines.length && q.tax > 0"><dt>Tax</dt><dd>{{ formatRupees(q.tax) }}</dd></div>
+        <div class="total"><dt>Total payable</dt><dd data-testid="quote-total">{{ formatRupees(q.total) }}</dd></div>
+        <div><dt>Credits you get</dt><dd>{{ q.credits | number: '1.0-2' }}</dd></div>
+        <div><dt>Balance before</dt><dd>{{ q.balanceBefore | number: '1.0-2' }}</dd></div>
+        <div><dt>Balance after</dt><dd>{{ q.balanceAfter | number: '1.0-2' }}</dd></div>
+      </dl>
+
+      <button mat-flat-button color="primary" type="button" class="pay-button" data-testid="pay" [disabled]="!canPay" (click)="pay()">
+        <mat-icon>lock</mat-icon>
+        Pay {{ quote ? formatRupees(quote.total) : '' }} securely
+      </button>
+      <div class="processing" *ngIf="processing" role="status" aria-live="polite" data-testid="processing">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        <span>{{ processingMessage }}</span>
+      </div>
+      <p class="muted fine-print">Payments are processed by Razorpay. Your wallet is credited only after the payment is confirmed.</p>
+    </mat-card>
+  </div>
+
+  <mat-card class="section-card" id="recharge-history">
+    <h3>Recharge history</h3>
+    <mat-progress-bar mode="indeterminate" *ngIf="historyLoading"></mat-progress-bar>
+    <p class="muted" *ngIf="!historyLoading && !history.items.length">No recharges yet.</p>
+
+    <div class="table-scroll" *ngIf="history.items.length">
+      <table mat-table [dataSource]="history.items" data-testid="history">
+        <ng-container matColumnDef="when">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let t">{{ t.createdAt | zonedDate: 'dd MMM yyyy, HH:mm' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="reference">
+          <th mat-header-cell *matHeaderCellDef>Reference</th>
+          <td mat-cell *matCellDef="let t" class="mono">{{ t.reference }}</td>
+        </ng-container>
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let t">{{ formatRupees(t.amount) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="total">
+          <th mat-header-cell *matHeaderCellDef>Paid (with tax)</th>
+          <td mat-cell *matCellDef="let t">{{ formatRupees(t.total) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="credits">
+          <th mat-header-cell *matHeaderCellDef>Credits</th>
+          <td mat-cell *matCellDef="let t">{{ t.credits | number: '1.0-2' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="method">
+          <th mat-header-cell *matHeaderCellDef>Method</th>
+          <td mat-cell *matCellDef="let t">{{ t.paymentMethod ? (t.paymentMethod | uppercase) : '-' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let t">
+            <span class="status" [ngClass]="'status--' + t.status.toLowerCase()" [attr.title]="t.failureReason">{{ statusLabel(t.status) }}</span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let t">
+            <button mat-button type="button" *ngIf="isPending(t.status) || t.status === 'Failed'" (click)="checkStatus(t)">Check status</button>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: historyColumns"></tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="history.totalCount"
+      [pageIndex]="history.page - 1"
+      [pageSize]="history.pageSize"
+      [pageSizeOptions]="[10, 25, 50]"
+      (page)="onPage($event)"
+      *ngIf="history.totalCount > 10"
+    ></mat-paginator>
+  </mat-card>
+</div>
