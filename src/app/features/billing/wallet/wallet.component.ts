@@ -3,7 +3,7 @@ import { FormControl, NonNullableFormBuilder, Validators } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject } from 'rxjs';
-import { finalize, takeUntil } from 'rxjs/operators';
+import { finalize, switchMap, takeUntil } from 'rxjs/operators';
 
 import {
   AI_TRANSACTION_STATUS_LABELS,
@@ -35,6 +35,8 @@ import {
 import { BillingService } from '../../../core/services/billing.service';
 import { EntitlementsService } from '../../../core/services/entitlements.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { RazorpayPaymentFlowService } from '../../../core/services/razorpay-payment-flow.service';
+import { WalletRechargeService } from '../../../core/services/wallet-recharge.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /** The wallet card's derived state - kept here so the template stays a plain read. */
@@ -49,8 +51,8 @@ interface BalanceView {
 
 /**
  * The tenant's single credit wallet: the balance and where it came from, what each feature costs, what each spent this month, the monthly cap the tenant
- * puts on each feature, each feature's own ledger, buying extra credits and where billing alerts are sent. Payment is simulated (see BillingService), so a
- * purchase takes effect immediately - nothing on this page collects card details.
+ * puts on each feature, each feature's own ledger, buying extra credits and where billing alerts are sent. A credit pack is paid through Razorpay Checkout
+ * (the server makes the order and credits the pack only once it has verified the payment); this page never sees card or UPI details.
  */
 @Component({
   selector: 'app-wallet',
@@ -111,7 +113,9 @@ export class WalletComponent implements OnInit, OnDestroy {
     private readonly entitlements: EntitlementsService,
     private readonly notify: NotificationService,
     private readonly dialog: MatDialog,
-    private readonly fb: NonNullableFormBuilder
+    private readonly fb: NonNullableFormBuilder,
+    private readonly recharge: WalletRechargeService,
+    private readonly payments: RazorpayPaymentFlowService
   ) {}
 
   ngOnInit(): void {
@@ -261,8 +265,8 @@ export class WalletComponent implements OnInit, OnDestroy {
       .open(ConfirmDialogComponent, {
         data: {
           title: `Buy ${pack.name}?`,
-          message: `You'll be charged ${pack.taxLocal ? formatMoney(pack.currencySymbol, pack.totalLocal) + ' (' + this.priceWithTax(pack) + ')' : this.formatPrice(pack)}. The credits are added straight away and stay valid for 12 months.`,
-          confirmLabel: 'Buy credits',
+          message: `You'll pay ${pack.taxLocal ? formatMoney(pack.currencySymbol, pack.totalLocal) + ' (' + this.priceWithTax(pack) + ')' : this.formatPrice(pack)} through Razorpay. The credits are added as soon as the payment is confirmed and stay valid for 12 months.`,
+          confirmLabel: 'Pay with Razorpay',
         },
         width: '460px',
       })
@@ -273,15 +277,42 @@ export class WalletComponent implements OnInit, OnDestroy {
         }
 
         this.buyingPackId = pack.id;
-        this.billing
-          .purchaseCreditPack(pack.id)
-          .pipe(finalize(() => (this.buyingPackId = null)))
-          .subscribe(() => {
-            this.notify.success(`${pack.name} added.`);
-            this.reloadWallet();
-            this.loadLedger();
-            this.loadAiUsage();
-            this.entitlements.load(true).subscribe();
+        // The server prices the pack and makes the Razorpay order; Checkout takes the payment; the server verifies it and adds the credits.
+        this.recharge
+          .createPackOrder(pack.id)
+          .pipe(
+            switchMap((order) => this.payments.pay(order)),
+            finalize(() => (this.buyingPackId = null)),
+            takeUntil(this.destroy$)
+          )
+          .subscribe({
+            next: (outcome) => {
+              switch (outcome.kind) {
+                case 'credited':
+                  this.notify.success(`${pack.name} added to your wallet.`);
+                  this.reloadWallet();
+                  this.loadLedger();
+                  this.loadAiUsage();
+                  this.entitlements.load(true).subscribe();
+                  break;
+                case 'pending':
+                  this.notify.info('Your payment is still being confirmed. The credits are added automatically as soon as it is.');
+                  break;
+                case 'failed':
+                case 'attempt-failed':
+                  this.notify.error(outcome.message);
+                  break;
+                case 'closed':
+                  this.notify.info('The payment window was closed. If you were charged, the credits are added automatically.');
+                  break;
+              }
+            },
+            // Creating the order failed (the API's message is already shown by the error interceptor), or Checkout could not load.
+            error: (error: unknown) => {
+              if (error instanceof Error) {
+                this.notify.error(error.message);
+              }
+            },
           });
       });
   }

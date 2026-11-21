@@ -162,7 +162,7 @@
           <div class="muted pack-price">{{ priceWithTax(pack) }}</div>
         </div>
         <button mat-flat-button color="primary" type="button" [disabled]="!canBuy || !!buyingPackId" (click)="buy(pack)">
-          {{ buyingPackId === pack.id ? 'Adding…' : 'Buy' }}
+          {{ buyingPackId === pack.id ? 'Processing…' : 'Buy' }}
         </button>
       </div>
       <p class="muted" *ngIf="!packs.length">No packs available.</p>

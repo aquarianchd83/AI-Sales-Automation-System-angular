@@ -40,6 +40,11 @@ export class WalletRechargeService {
     return this.http.post<RechargeCheckout>(`${this.baseUrl}/recharge/create-order`, { amount, currency: 'INR' });
   }
 
+  /** A Razorpay order for one credit pack - the pack's price plus tax, for the pack's credits, all decided by the server. */
+  createPackOrder(packId: string): Observable<RechargeCheckout> {
+    return this.http.post<RechargeCheckout>(`${this.baseUrl}/recharge/credit-packs/${encodeURIComponent(packId)}/create-order`, {});
+  }
+
   verifyPayment(request: VerifyRechargeRequest): Observable<RechargeVerifyResult> {
     return this.http.post<RechargeVerifyResult>(`${this.baseUrl}/recharge/verify-payment`, request);
   }
