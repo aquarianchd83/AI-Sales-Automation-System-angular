@@ -897,7 +897,8 @@ export type PlatformNotificationKind =
   | 'RefundFailed'
   | 'PlanRenewalFailed'
   | 'ConfigurationNeeded'
-  | 'DatabaseCapacity';
+  | 'DatabaseCapacity'
+  | 'WalletPaymentNeedsAttention';
 export type PlatformNotificationSeverity = 'Info' | 'Warning' | 'Critical';
 
 /** An alert for the platform operators — a tenant's background job that keeps failing, or has recovered. */
@@ -926,6 +927,7 @@ export function platformNotificationRoute(n: Pick<PlatformNotification, 'kind' |
       return '/platform/database-size';
     case 'TenantSignedUp':
     case 'PlanRenewalFailed':
+    case 'WalletPaymentNeedsAttention':
       return n.tenantId ? `/platform/tenants/${n.tenantId}` : '/platform/tenants';
     default:
       return '/platform/jobs';

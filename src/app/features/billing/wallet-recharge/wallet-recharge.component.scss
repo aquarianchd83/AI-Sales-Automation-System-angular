@@ -1,0 +1,126 @@
+.recharge-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 800px) {
+  .recharge-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.recharge-card {
+  padding: 20px;
+
+  h3 {
+    margin: 16px 0 12px;
+  }
+}
+
+.balance-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  strong {
+    margin-left: auto;
+    font-size: 1.25rem;
+  }
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.preset--selected {
+  border-color: var(--mdc-theme-primary, #00796b);
+  background: rgba(0, 121, 107, 0.1);
+  font-weight: 600;
+}
+
+.amount-field {
+  width: 100%;
+  max-width: 320px;
+}
+
+.summary {
+  dl {
+    margin: 0 0 16px;
+  }
+
+  dl > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  dt,
+  dd {
+    margin: 0;
+  }
+
+  .total {
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+}
+
+.pay-button {
+  width: 100%;
+}
+
+.processing {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fine-print {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+}
+
+.error {
+  color: #b00020;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+.status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.status--credited {
+  background: #d7f0dc;
+  color: #1b5e20;
+}
+
+.status--failed,
+.status--expired {
+  background: #fde0e0;
+  color: #b00020;
+}
+
+.status--created,
+.status--authorized {
+  background: #fff3d6;
+  color: #7a5200;
+}
