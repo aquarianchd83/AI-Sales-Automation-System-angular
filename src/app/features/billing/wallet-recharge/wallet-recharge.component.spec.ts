@@ -166,7 +166,8 @@ describe('WalletRechargeComponent', () => {
 
     expect(component.processing).toBeFalse();
     expect(component.options!.balance).toBe(1500);
-    expect(notify.success).toHaveBeenCalled();
+    // The wallet holds credits, so the notice names credits - not the rupees paid.
+    expect(notify.success).toHaveBeenCalledWith('500 credits added to your wallet.');
     expect(entitlements.load).toHaveBeenCalledWith(true);
     expect(recharge.getHistory).toHaveBeenCalledTimes(2);
     tick(350); // resetting the amount schedules a (debounced) price check

@@ -100,6 +100,11 @@ export function isRechargePending(status: RechargeStatus): boolean {
 }
 
 /** "₹1,234.50" - rupees always show paise when there are any. */
+/** Credits as the wallet shows them: "1,500 credits", or "1,500.5 credits" for a rate that is not a whole number. */
+export function formatCredits(credits: number): string {
+  return `${credits.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ${credits === 1 ? 'credit' : 'credits'}`;
+}
+
 export function formatRupees(amount: number): string {
   const decimals = Number.isInteger(amount) ? 0 : 2;
   return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;

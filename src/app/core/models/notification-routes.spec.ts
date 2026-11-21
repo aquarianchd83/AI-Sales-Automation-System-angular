@@ -45,13 +45,14 @@ describe('notification routes', () => {
     expect(platformNotificationRoute({ kind: 'RefundFailed', tenantId: 't1' })).toBe('/platform/refunds');
     expect(platformNotificationRoute({ kind: 'TenantSignedUp', tenantId: 't1' })).toBe('/platform/tenants/t1');
     expect(platformNotificationRoute({ kind: 'PlanRenewalFailed', tenantId: 't1' })).toBe('/platform/tenants/t1');
+    expect(platformNotificationRoute({ kind: 'WalletPaymentNeedsAttention', tenantId: 't1' })).toBe('/platform/tenants/t1');
     expect(platformNotificationRoute({ kind: 'TenantSignedUp', tenantId: null })).toBe('/platform/tenants');
     expect(platformNotificationRoute({ kind: 'JobFailing', tenantId: 't1' })).toBe('/platform/jobs');
     expect(platformNotificationRoute({ kind: 'JobRecovered', tenantId: null })).toBe('/platform/jobs');
   });
 
   it('every operator alert kind has a route (nothing falls through to a wrong screen by accident)', () => {
-    const kinds: PlatformNotificationKind[] = ['JobFailing', 'JobRecovered', 'TenantSignedUp', 'RefundRequested', 'RefundFailed', 'PlanRenewalFailed'];
+    const kinds: PlatformNotificationKind[] = ['JobFailing', 'JobRecovered', 'TenantSignedUp', 'RefundRequested', 'RefundFailed', 'PlanRenewalFailed', 'WalletPaymentNeedsAttention'];
     for (const kind of kinds) {
       expect(platformNotificationRoute({ kind, tenantId: 't' })).toMatch(/^\/platform\//);
     }

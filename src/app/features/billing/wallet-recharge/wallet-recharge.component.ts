@@ -14,6 +14,7 @@ import {
   RechargeStatus,
   RechargeTransaction,
   RechargeVerifyResult,
+  formatCredits,
   formatRupees,
   isRechargePending,
 } from '../../../core/models/wallet-recharge.model';
@@ -277,7 +278,8 @@ export class WalletRechargeComponent implements OnInit, OnDestroy {
   /** The only place the wallet balance changes on screen: the server has confirmed the credit. */
   private credited(transaction: RechargeTransaction | null, balance: number | null): void {
     this.processing = false;
-    this.notify.success(`${formatRupees(transaction?.amount ?? 0)} added to your wallet.`);
+    // The wallet holds credits, not rupees: say what was added in the wallet's own unit.
+    this.notify.success(transaction ? `${formatCredits(transaction.credits)} added to your wallet.` : 'Your wallet has been credited.');
     if (balance != null && this.options) {
       this.options = { ...this.options, balance };
     } else {
@@ -331,7 +333,7 @@ export class WalletRechargeComponent implements OnInit, OnDestroy {
       next: (fresh) => {
         this.history = { ...this.history, items: this.history.items.map((t) => (t.id === fresh.id ? fresh : t)) };
         if (fresh.status === 'Credited' && row.status !== 'Credited') {
-          this.notify.success(`${formatRupees(fresh.amount)} added to your wallet.`);
+          this.notify.success(`${formatCredits(fresh.credits)} added to your wallet.`);
           this.refreshBalance();
           this.entitlements.load(true).subscribe();
         }
