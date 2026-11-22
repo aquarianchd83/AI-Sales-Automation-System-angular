@@ -62,7 +62,7 @@ describe('PlatformPlanEditorComponent', () => {
     expect(text(root.querySelector('h1')!)).toContain('Create plan');
     expect(text(root)).toContain('Starter credits (once)');
     expect(text(root)).toContain('Credits every month');
-    expect(root.querySelectorAll('.feature-list mat-checkbox').length).toBe(5);
+    expect(root.querySelectorAll('.feature-list mat-checkbox').length).toBe(6);
     expect(text(root)).not.toContain('Included quota per billing period');
     expect(root.querySelector('.report')).toBeNull();
   });
@@ -143,6 +143,45 @@ describe('PlatformPlanEditorComponent', () => {
     expect(sent.features).toEqual(['WhatsAppMessaging', 'AiConversations', 'ContentStudio']);
     expect(sent.monthlyCredits).toBe(250);
     expect(success).toHaveBeenCalledWith('Plan updated.');
+  });
+
+  it('keeps the limits under their features: no Limits panel, and the leads cap is not under Credits', () => {
+    const { root } = create('pl1');
+
+    const headings = Array.from(root.querySelectorAll('h2')).map((h) => text(h).trim());
+    expect(headings).toContain('Features and limits');
+    expect(headings).not.toContain('Limits');
+
+    const credits = Array.from(root.querySelectorAll('mat-card')).find((c) => text(c.querySelector('h2')!).trim() === 'Credits')!;
+    expect(text(credits)).not.toContain('Leads per discovery run');
+    expect(root.querySelector('[data-testid="team-members-row"]')).not.toBeNull();
+  });
+
+  it('shows a feature\'s limit only while the feature is ticked', () => {
+    const { component, fixture, root } = create('pl1'); // premium: WhatsApp, AI, Lead discovery
+
+    expect(root.querySelector('[data-testid="limit-LeadDiscovery"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="limit-Campaigns"]')).toBeNull();
+    expect(root.querySelector('[data-testid="limit-ProductKnowledge"]')).toBeNull();
+
+    component.toggleFeature('Campaigns', true);
+    component.toggleFeature('LeadDiscovery', false);
+    fixture.detectChanges();
+
+    expect(root.querySelector('[data-testid="limit-Campaigns"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="limit-LeadDiscovery"]')).toBeNull();
+  });
+
+  it('saves Campaigns as its own feature with its campaign limit', () => {
+    const { component, billing } = create('pl1');
+
+    component.toggleFeature('Campaigns', true);
+    component.form.patchValue({ maxCampaigns: 7 });
+    component.save();
+
+    const sent = billing.updatePlan.calls.mostRecent().args[1];
+    expect(sent.features).toContain('Campaigns');
+    expect(sent.maxCampaigns).toBe(7);
   });
 
   it('shows a plan that no longer exists as a load failure rather than an empty form', () => {

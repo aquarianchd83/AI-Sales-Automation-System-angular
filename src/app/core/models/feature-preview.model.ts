@@ -30,16 +30,33 @@ export const FEATURE_PREVIEWS: Record<PlatformFeature, FeaturePreview> = {
     slug: 'whatsapp-messaging',
     title: PLATFORM_FEATURE_LABELS.WhatsAppMessaging,
     icon: PLATFORM_FEATURE_ICONS.WhatsAppMessaging,
-    outcome: 'Reach your customers on WhatsApp with templates and campaigns.',
+    outcome: 'Reach your customers on WhatsApp with templates.',
     benefits: [
-      'Message a whole customer list in one campaign',
-      'Write a template once and reuse it in every chat and campaign',
+      'Write a template once and reuse it in every chat',
+      'Send a template to a customer in one tap',
       'Plan a sequence of messages that goes out on its own',
     ],
     images: [
-      { icon: 'campaign', caption: 'Campaign builder' },
       { icon: 'text_snippet', caption: 'Message templates' },
+      { icon: 'send', caption: 'Send a template' },
       { icon: 'schedule_send', caption: 'Message sequence' },
+    ],
+  },
+  Campaigns: {
+    feature: 'Campaigns',
+    slug: 'campaigns',
+    title: PLATFORM_FEATURE_LABELS.Campaigns,
+    icon: PLATFORM_FEATURE_ICONS.Campaigns,
+    outcome: 'Message a whole customer list on WhatsApp in one go.',
+    benefits: [
+      'Build a campaign from a template and a customer list',
+      'Schedule it to go out when your customers are listening',
+      'Follow every send, delivery and reply in one place',
+    ],
+    images: [
+      { icon: 'campaign', caption: 'Campaign builder' },
+      { icon: 'event', caption: 'Scheduled sends' },
+      { icon: 'insights', caption: 'Campaign results' },
     ],
   },
   AiConversations: {

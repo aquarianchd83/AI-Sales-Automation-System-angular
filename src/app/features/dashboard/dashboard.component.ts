@@ -273,10 +273,10 @@ export class DashboardComponent implements OnInit {
     const p = this.pipeline;
 
     const customers = o?.customers ?? null;
-    if (locked.has('WhatsAppMessaging') && customers !== null && customers >= SUGGEST_MIN_CUSTOMERS) {
+    if (locked.has('Campaigns') && customers !== null && customers >= SUGGEST_MIN_CUSTOMERS) {
       return {
         text: `You have ${customers.toLocaleString()} customers. Campaigns could message all of them in one go.`,
-        route: featurePreviewUrl('WhatsAppMessaging'),
+        route: featurePreviewUrl('Campaigns'),
       };
     }
 

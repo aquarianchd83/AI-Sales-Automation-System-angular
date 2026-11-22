@@ -107,7 +107,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         // Tags is opened from the Customers page, so it stays under this entry.
         { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'] },
         { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [], feature: 'WhatsAppMessaging' },
-        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'WhatsAppMessaging' },
+        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'Campaigns' },
         // One entry for everything the AI knows; its screens are listed on the page itself (KnowledgeHubComponent).
         {
           label: 'Knowledge',

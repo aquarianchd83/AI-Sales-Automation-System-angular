@@ -69,6 +69,8 @@ export class FeaturePreviewComponent implements OnInit, OnDestroy {
   get openRoute(): string | null {
     switch (this.preview?.feature) {
       case 'WhatsAppMessaging':
+        return '/message-templates';
+      case 'Campaigns':
         return '/campaigns';
       case 'AiConversations':
         return '/conversations';

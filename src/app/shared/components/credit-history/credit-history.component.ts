@@ -14,7 +14,7 @@ import {
   formatUnits,
 } from '../../../core/models/billing.model';
 import { PagedResult } from '../../../core/models/paged-result.model';
-import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature } from '../../../core/models/wallet.model';
+import { PLATFORM_FEATURE_LABELS, PlatformFeature, SPENDING_FEATURES } from '../../../core/models/wallet.model';
 
 export type CreditHistoryFilter = PlatformFeature | 'Purchased' | 'Used' | 'TestChat' | '';
 
@@ -116,7 +116,7 @@ export class CreditHistoryComponent implements OnInit {
       { key: '', label: 'All activity', value: String(s.totalEntries), detail: s.totalEntries === 1 ? 'movement' : 'movements' },
       { key: 'Purchased', label: 'Purchased', value: formatUnits(purchased?.units ?? 0), detail: entries(purchased?.count ?? 0) },
       { key: 'Used', label: 'Used', value: formatUnits(used), detail: entries(type(QuotaEntryType.Consumption)?.count ?? 0) },
-      ...PLATFORM_FEATURES.map((f) => {
+      ...SPENDING_FEATURES.map((f) => {
         const row = s.byFeature.find((x) => x.feature === f);
         return { key: f as CreditHistoryFilter, label: this.featureLabels[f], value: formatUnits(row?.unitsUsed ?? 0), detail: entries(row?.count ?? 0) };
       }),

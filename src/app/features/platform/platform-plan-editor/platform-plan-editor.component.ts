@@ -26,6 +26,23 @@ export class PlatformPlanEditorComponent implements OnInit {
   readonly allFeatures = PLATFORM_FEATURES;
   readonly featureLabels = PLATFORM_FEATURE_LABELS;
 
+  /** A line under a feature when its name alone does not say what it is. */
+  readonly featureHints: Partial<Record<PlatformFeature, string>> = {
+    Campaigns: 'Bulk and scheduled WhatsApp campaigns. Sends are paid as WhatsApp messaging.',
+    LeadDiscovery: 'The most one run may add, whatever balance is left. 0 turns discovery off.',
+  };
+
+  /** The limit that belongs to a feature, shown beside it once ticked. */
+  private readonly featureLimits: Partial<Record<PlatformFeature, { control: 'maxCampaigns' | 'maxLeadDiscoveryBatchSize' | 'maxKnowledgeBaseArticles'; label: string }>> = {
+    Campaigns: { control: 'maxCampaigns', label: 'Max campaigns' },
+    LeadDiscovery: { control: 'maxLeadDiscoveryBatchSize', label: 'Leads per discovery run (cap)' },
+    ProductKnowledge: { control: 'maxKnowledgeBaseArticles', label: 'Max knowledge base articles' },
+  };
+
+  limitFor(feature: PlatformFeature): { control: string; label: string } | null {
+    return this.featureLimits[feature] ?? null;
+  }
+
   planId: string | null = null;
   plan: PlatformPlan | null = null;
 

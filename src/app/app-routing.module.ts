@@ -156,7 +156,7 @@ const routes: Routes = [
       {
         path: 'campaigns',
         canActivate: [roleGuard, featureGuard],
-        data: { roles: TENANT_ROLES, feature: 'WhatsAppMessaging' },
+        data: { roles: TENANT_ROLES, feature: 'Campaigns' },
         loadChildren: () =>
           import('./features/campaigns/campaigns.module').then((m) => m.CampaignsModule),
       },

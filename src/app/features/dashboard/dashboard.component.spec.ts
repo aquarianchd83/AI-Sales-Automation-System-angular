@@ -219,7 +219,7 @@ describe('DashboardComponent', () => {
   });
 
   describe('Unlock more', () => {
-    const ALL: PlatformFeature[] = ['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge'];
+    const ALL: PlatformFeature[] = ['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge', 'Campaigns'];
     const withPlan = (features: PlatformFeature[], setup: Setup = {}): HTMLElement => {
       create({ admin: true, ...setup });
       TestBed.inject(EntitlementsStore).set({ planCode: 'basic', planName: 'Basic', features, balance: 50, costs: [] });
@@ -230,7 +230,7 @@ describe('DashboardComponent', () => {
     const suggestion = (root: HTMLElement) => root.querySelector('[data-testid="unlock-suggestion"] span')?.textContent?.trim() ?? null;
 
     it('shows one card per feature the plan lacks, each with its icon, name, benefit and a link to its preview', () => {
-      const root = withPlan(['WhatsAppMessaging', 'AiConversations']);
+      const root = withPlan(['WhatsAppMessaging', 'Campaigns', 'AiConversations']);
 
       expect(cards(root).map((c) => c.getAttribute('data-feature'))).toEqual(['LeadDiscovery', 'ContentStudio', 'ProductKnowledge']);
       const first = cards(root)[0];
@@ -268,17 +268,17 @@ describe('DashboardComponent', () => {
         const root = withPlan(['AiConversations', 'LeadDiscovery']);
 
         expect(suggestion(root)).toBe('You have 42 customers. Campaigns could message all of them in one go.');
-        expect(root.querySelector('[data-testid="unlock-suggestion"]')?.getAttribute('href')).toBe('/premium/whatsapp-messaging');
+        expect(root.querySelector('[data-testid="unlock-suggestion"]')?.getAttribute('href')).toBe('/premium/campaigns');
       });
 
       it('counts the open conversations when AI conversations are locked and at least 5 are open', () => {
-        const root = withPlan(['WhatsAppMessaging', 'LeadDiscovery']);
+        const root = withPlan(['WhatsAppMessaging', 'Campaigns', 'LeadDiscovery']);
 
         expect(suggestion(root)).toBe('7 conversations are open right now. The AI could answer them while your team is busy.');
       });
 
       it('counts the deals won when lead discovery is locked and at least 3 were won', () => {
-        const root = withPlan(['WhatsAppMessaging', 'AiConversations']);
+        const root = withPlan(['WhatsAppMessaging', 'Campaigns', 'AiConversations']);
 
         expect(suggestion(root)).toBe('You have won 4 deals. Lead discovery could find more businesses like those customers.');
       });
@@ -293,7 +293,7 @@ describe('DashboardComponent', () => {
       it('shows nothing when the numbers are too small to back it up', () => {
         const root = withPlan([], { empty: true });
 
-        expect(cards(root).length).toBe(5);
+        expect(cards(root).length).toBe(6);
         expect(suggestion(root)).toBeNull();
       });
 
@@ -304,7 +304,7 @@ describe('DashboardComponent', () => {
       });
 
       it('shows nothing when no rule is about a locked feature', () => {
-        const root = withPlan(['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery']);
+        const root = withPlan(['WhatsAppMessaging', 'Campaigns', 'AiConversations', 'LeadDiscovery']);
 
         expect(cards(root).length).toBe(2);
         expect(suggestion(root)).toBeNull();

@@ -55,29 +55,39 @@
             <input matInput type="number" min="0" formControlName="monthlyCredits" data-testid="monthly-credits" />
             <mat-hint>Added each month while on this plan. 0 means none.</mat-hint>
           </mat-form-field>
-          <mat-form-field subscriptSizing="dynamic">
-            <mat-label>Leads per discovery run (cap on one run)</mat-label>
-            <input matInput type="number" min="0" formControlName="maxLeadDiscoveryBatchSize" />
-            <mat-hint>The most one run may add, whatever balance is left. 0 turns discovery off.</mat-hint>
-          </mat-form-field>
         </div>
       </mat-card>
 
       <mat-card class="editor-card">
-        <h2>Features</h2>
+        <h2>Features and limits</h2>
         <p class="muted">
-          What a tenant on this plan can use. A feature that is not ticked is hidden from the menu and refused by the API. Each feature shows its credit cost
-          on the page, set on <a routerLink="/platform/service-margins">Service Margins</a>.
+          What a tenant on this plan can use. A feature that is not ticked is hidden from the menu and refused by the API; a ticked feature shows its limit
+          beside it. Each feature shows its credit cost on the page, set on <a routerLink="/platform/service-margins">Service Margins</a>.
         </p>
         <div class="feature-list">
-          <mat-checkbox
-            *ngFor="let feature of allFeatures"
-            [checked]="hasFeature(feature)"
-            (change)="toggleFeature(feature, $event.checked)"
-            [attr.data-feature]="feature"
-          >
-            {{ featureLabels[feature] }}
-          </mat-checkbox>
+          <div class="feature-row" data-testid="team-members-row">
+            <div class="feature-name">
+              <span>Team members</span>
+              <span class="muted small">Always included</span>
+            </div>
+            <mat-form-field subscriptSizing="dynamic" class="limit-field">
+              <mat-label>Max users</mat-label>
+              <input matInput type="number" min="0" formControlName="maxUsers" />
+            </mat-form-field>
+          </div>
+
+          <div class="feature-row" *ngFor="let feature of allFeatures">
+            <div class="feature-name">
+              <mat-checkbox [checked]="hasFeature(feature)" (change)="toggleFeature(feature, $event.checked)" [attr.data-feature]="feature">
+                {{ featureLabels[feature] }}
+              </mat-checkbox>
+              <span class="muted small" *ngIf="featureHints[feature]">{{ featureHints[feature] }}</span>
+            </div>
+            <mat-form-field subscriptSizing="dynamic" class="limit-field" *ngIf="hasFeature(feature) && limitFor(feature) as limit">
+              <mat-label>{{ limit.label }}</mat-label>
+              <input matInput type="number" min="0" [formControlName]="limit.control" [attr.data-testid]="'limit-' + feature" />
+            </mat-form-field>
+          </div>
         </div>
       </mat-card>
 
@@ -88,24 +98,6 @@
           Tax is added on top at checkout.
         </p>
         <app-country-price-editor [rows]="countryPrices" [regions]="regions" [allowFree]="true"></app-country-price-editor>
-      </mat-card>
-
-      <mat-card class="editor-card">
-        <h2>Limits</h2>
-        <div class="field-grid">
-          <mat-form-field subscriptSizing="dynamic">
-            <mat-label>Max users</mat-label>
-            <input matInput type="number" min="0" formControlName="maxUsers" />
-          </mat-form-field>
-          <mat-form-field subscriptSizing="dynamic">
-            <mat-label>Max campaigns</mat-label>
-            <input matInput type="number" min="0" formControlName="maxCampaigns" />
-          </mat-form-field>
-          <mat-form-field subscriptSizing="dynamic">
-            <mat-label>Max knowledge base articles</mat-label>
-            <input matInput type="number" min="0" formControlName="maxKnowledgeBaseArticles" />
-          </mat-form-field>
-        </div>
       </mat-card>
 
     </form>

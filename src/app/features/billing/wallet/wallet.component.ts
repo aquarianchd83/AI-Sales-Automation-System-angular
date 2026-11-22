@@ -25,7 +25,7 @@ import {
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import {
   FeatureWallet,
-  PLATFORM_FEATURES,
+  SPENDING_FEATURES,
   PLATFORM_FEATURE_ICONS,
   PLATFORM_FEATURE_LABELS,
   PlatformFeature,
@@ -62,7 +62,7 @@ interface BalanceView {
 export class WalletComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly features = PLATFORM_FEATURES;
+  readonly features = SPENDING_FEATURES;
   readonly featureLabels = PLATFORM_FEATURE_LABELS;
   readonly featureIcons = PLATFORM_FEATURE_ICONS;
   readonly originLabels = QUOTA_GRANT_ORIGIN_LABELS;
@@ -83,7 +83,7 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   /** One input per feature for its monthly cap; empty means no cap. */
   readonly capControls = new Map<PlatformFeature, FormControl<number | null>>(
-    PLATFORM_FEATURES.map((f) => [f, new FormControl<number | null>(null, { validators: [Validators.min(0)] })])
+    SPENDING_FEATURES.map((f) => [f, new FormControl<number | null>(null, { validators: [Validators.min(0)] })])
   );
 
   balance: BalanceView | null = null;

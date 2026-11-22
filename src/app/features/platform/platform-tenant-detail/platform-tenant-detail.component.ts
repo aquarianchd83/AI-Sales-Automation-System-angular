@@ -27,7 +27,7 @@ import {
   formatCharge,
   formatUnits,
 } from '../../../core/models/billing.model';
-import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature } from '../../../core/models/wallet.model';
+import { PLATFORM_FEATURE_LABELS, PlatformFeature, SPENDING_FEATURES } from '../../../core/models/wallet.model';
 import { TenantSettingCategory, TenantWhatsAppConfig } from '../../../core/models/tenant-settings.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { ImpersonationSessionService } from '../../../core/services/impersonation-session.service';
@@ -96,7 +96,7 @@ export class PlatformTenantDetailComponent implements OnInit {
   quota: QuotaBalance[] = [];
   loadingQuota = true;
   readonly ledgerColumns = ['processingDate', 'credits', 'unit', 'activity', 'balance'];
-  readonly ledgerFeatures = PLATFORM_FEATURES;
+  readonly ledgerFeatures = SPENDING_FEATURES;
   readonly featureLabels = PLATFORM_FEATURE_LABELS;
   ledgerFilter: PlatformFeature | 'Purchased' | 'Used' | '' = '';
   /** The credit history can be limited to a range of days; it narrows the entries, the tiles and the graph alike. */
@@ -495,7 +495,7 @@ export class PlatformTenantDetailComponent implements OnInit {
       { key: '', label: 'All activity', value: String(s.totalEntries), detail: s.totalEntries === 1 ? 'movement' : 'movements' },
       { key: 'Purchased', label: 'Purchased', value: formatUnits(purchased?.units ?? 0), detail: entries(purchased?.count ?? 0) },
       { key: 'Used', label: 'Used', value: formatUnits(used), detail: entries(type(QuotaEntryType.Consumption)?.count ?? 0) },
-      ...PLATFORM_FEATURES.map((f) => {
+      ...SPENDING_FEATURES.map((f) => {
         const row = s.byFeature.find((x) => x.feature === f);
         return { key: f, label: this.featureLabels[f], value: formatUnits(row?.unitsUsed ?? 0), detail: entries(row?.count ?? 0) };
       }),

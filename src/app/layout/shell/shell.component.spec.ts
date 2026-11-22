@@ -116,7 +116,7 @@ describe('ShellComponent sidenav', () => {
       fixture.detectChanges();
       return fixture.nativeElement as HTMLElement;
     };
-    const BASIC: PlatformFeature[] = ['WhatsAppMessaging', 'AiConversations'];
+    const BASIC: PlatformFeature[] = ['WhatsAppMessaging', 'AiConversations', 'Campaigns'];
     const link = (root: HTMLElement, label: string) =>
       Array.from(root.querySelectorAll<HTMLAnchorElement>('.nav-item')).find((a) => a.querySelector('.nav-item-label')?.textContent?.trim() === label);
 
@@ -151,7 +151,7 @@ describe('ShellComponent sidenav', () => {
     });
 
     it('locks nothing on a plan that includes every feature, or before the plan is known', () => {
-      const all = withPlan(['Admin'], ['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge']);
+      const all = withPlan(['Admin'], ['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge', 'Campaigns']);
       expect(all.querySelector('.nav-item--locked')).toBeNull();
       expect(link(all, 'Lead Discovery')!.getAttribute('href')).toBe('/lead-discovery/history');
 
@@ -162,7 +162,7 @@ describe('ShellComponent sidenav', () => {
     it('locks messaging entries for a plan without WhatsApp messaging', () => {
       const root = withPlan(['Admin'], ['AiConversations']);
 
-      expect(link(root, 'Campaigns')!.getAttribute('href')).toBe('/premium/whatsapp-messaging');
+      expect(link(root, 'Campaigns')!.getAttribute('href')).toBe('/premium/campaigns');
       expect(link(root, 'Message Templates')!.classList).toContain('nav-item--locked');
     });
 

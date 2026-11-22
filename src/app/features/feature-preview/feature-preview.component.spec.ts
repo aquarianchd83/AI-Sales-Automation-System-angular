@@ -90,7 +90,7 @@ describe('FeaturePreviewComponent', () => {
 
   it('gives every feature its own slug, benefits and image slots', () => {
     const slugs = PLATFORM_FEATURES.map((f) => FEATURE_PREVIEWS[f].slug);
-    expect(new Set(slugs).size).toBe(5);
+    expect(new Set(slugs).size).toBe(6);
     PLATFORM_FEATURES.forEach((f) => {
       expect(FEATURE_PREVIEWS[f].feature).toBe(f);
       expect(FEATURE_PREVIEWS[f].benefits.length).toBe(3);
@@ -143,7 +143,7 @@ describe('FeaturePreviewComponent', () => {
 
     expect(root.querySelector('.premium-chip')).toBeNull();
     expect(root.querySelector('[data-testid="preview-upgrade"]')).toBeNull();
-    expect((root.querySelector('[data-testid="preview-open"]') as HTMLAnchorElement).getAttribute('href')).toBe('/campaigns');
+    expect((root.querySelector('[data-testid="preview-open"]') as HTMLAnchorElement).getAttribute('href')).toBe('/message-templates');
   });
 
   it('sends an unknown feature to the dashboard', () => {
