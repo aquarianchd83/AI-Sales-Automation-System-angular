@@ -92,3 +92,14 @@ export function creditsLabel(credits: number): string {
   const text = credits.toLocaleString(undefined, { maximumFractionDigits: 2 });
   return `${text} ${credits === 1 ? 'credit' : 'credits'}`;
 }
+
+/** One feature's platform-wide publish switch, as the platform admin's Features page shows it. */
+export interface PlatformFeatureSwitch {
+  feature: PlatformFeature;
+  label: string;
+  description: string;
+  /** False when unpublished: hidden from every tenant and refused by the API, whatever its plan includes. */
+  published: boolean;
+  /** When the switch was last changed (UTC; show it with the `zonedDate` pipe), or null if never. */
+  updatedAtUtc: string | null;
+}

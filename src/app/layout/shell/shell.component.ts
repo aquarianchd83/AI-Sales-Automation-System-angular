@@ -264,6 +264,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Tenant Settings', icon: 'tune', route: '/settings/tenant', roles: [] },
         { label: 'AWS Settings', icon: 'cloud', route: '/platform/aws-settings', roles: [] },
         { label: 'SMTP/SMS Settings', icon: 'forward_to_inbox', route: '/platform/delivery-settings', roles: [] },
+        { label: 'Features', icon: 'toggle_on', route: '/platform/features', roles: [] },
         { label: 'Integrations', icon: 'hub', route: '/platform/integration-settings', roles: [] },
         { label: 'Razorpay', icon: 'science', route: '/platform/razorpay-test', roles: [] },
         { label: 'Meta Ads', icon: 'ads_click', route: '/settings/meta-ads', roles: [] },

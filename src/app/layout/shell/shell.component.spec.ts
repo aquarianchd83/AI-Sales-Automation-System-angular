@@ -288,6 +288,7 @@ describe('ShellComponent sidenav', () => {
       'tuneTenant Settings',
       'cloudAWS Settings',
       'forward_to_inboxSMTP/SMS Settings',
+      'toggle_onFeatures',
       'hubIntegrations',
       'scienceRazorpay',
       'ads_clickMeta Ads',
