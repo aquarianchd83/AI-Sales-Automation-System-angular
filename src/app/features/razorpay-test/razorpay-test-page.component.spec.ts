@@ -59,7 +59,7 @@ describe('RazorpayTestPageComponent', () => {
 
   const create = (s: RazorpaySettings = settings(), orders: RazorpayOrder[] = []) => {
     api = jasmine.createSpyObj('RazorpayTestService', [
-      'getSettings', 'saveSettings', 'setAutoPay', 'testKeys', 'createOrder', 'verify', 'reportFailure', 'refund', 'getOrders', 'getWebhookEvents',
+      'getSettings', 'saveSettings', 'setAutoPay', 'setReadTransport', 'testKeys', 'createOrder', 'verify', 'reportFailure', 'refund', 'getOrders', 'getWebhookEvents',
     ]);
     api.getSettings.and.returnValue(of(s));
     api.getOrders.and.returnValue(of(orders));
@@ -218,6 +218,47 @@ describe('RazorpayTestPageComponent', () => {
     component.startRefund(component.orders[0]);
     component.confirmRefund();
     expect(api.refund.calls.mostRecent().args[1]).toBeNull();
+  });
+
+  describe('the Razorpay connection switch', () => {
+    const change = (checked: boolean) => ({ checked, source: { checked } } as unknown as MatSlideToggleChange);
+
+    it('is shown on, reading through MCP, by default', () => {
+      const { fixture, text } = create();
+      fixture.detectChanges();
+
+      const toggle = (fixture.nativeElement as HTMLElement).querySelector('#transport-card mat-slide-toggle') as HTMLElement;
+      expect(toggle).not.toBeNull();
+      expect(text()).toContain('Read payments through Razorpay MCP');
+      expect(text()).toContain('reads: MCP');
+      expect(toggle.classList.contains('mat-mdc-slide-toggle-checked')).toBeTrue();
+    });
+
+    it('switches reads to the REST API through the server and back', () => {
+      const { component } = create();
+      api.setReadTransport.and.returnValue(of(settings({ readTransport: 'Rest' })));
+
+      component.toggleReadTransport(change(false));
+
+      expect(api.setReadTransport).toHaveBeenCalledOnceWith('Rest');
+      expect(component.settings?.readTransport).toBe('Rest');
+      expect(notify.success).toHaveBeenCalledWith('Razorpay reads now use the REST API.');
+
+      api.setReadTransport.and.returnValue(of(settings({ readTransport: 'Mcp' })));
+      component.toggleReadTransport(change(true));
+      expect(api.setReadTransport).toHaveBeenCalledWith('Mcp');
+    });
+
+    it('puts the toggle back when the server refuses', () => {
+      const { component } = create();
+      api.setReadTransport.and.returnValue(throwError(() => new Error('nope')));
+      const event = change(false);
+
+      component.toggleReadTransport(event);
+
+      expect(event.source.checked).toBeTrue();
+      expect(notify.success).not.toHaveBeenCalled();
+    });
   });
 
   describe('the UPI AutoPay switch', () => {

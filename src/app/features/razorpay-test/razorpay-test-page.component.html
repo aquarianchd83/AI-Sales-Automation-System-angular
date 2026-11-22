@@ -77,6 +77,28 @@
         </div>
       </mat-card>
 
+      <!-- How the backend talks to Razorpay -->
+      <mat-card class="rz-card" id="transport-card">
+        <div class="card-title">
+          <h2>Razorpay connection</h2>
+          <span class="mode">reads: {{ settings?.readTransport === 'Rest' ? 'REST API' : 'MCP' }}</span>
+        </div>
+        <p class="muted">
+          Creating orders, capturing payments and refunds always use the Razorpay REST API (Razorpay's MCP server is read-only).
+          Looking up payments and orders goes through Razorpay's MCP server when this is on, and through the REST API when it is off.
+        </p>
+
+        <mat-slide-toggle
+          class="transport-toggle"
+          [checked]="settings?.readTransport !== 'Rest'"
+          [disabled]="savingTransport || !settings"
+          (change)="toggleReadTransport($event)"
+          aria-label="Read payments through Razorpay MCP"
+        >
+          Read payments through Razorpay MCP
+        </mat-slide-toggle>
+      </mat-card>
+
       <!-- UPI AutoPay switch -->
       <mat-card class="rz-card" id="autopay-card">
         <div class="card-title">

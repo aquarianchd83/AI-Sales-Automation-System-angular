@@ -66,6 +66,7 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
   loadFailed = false;
   savingKeys = false;
   savingAutoPay = false;
+  savingTransport = false;
   testingKeys = false;
   keyTest: RazorpayCheckResult | null = null;
   paying = false;
@@ -191,6 +192,27 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
         },
         error: () => {
           // ErrorInterceptor toasts the reason (e.g. keys not saved yet); put the toggle back where it was.
+          change.source.checked = !change.checked;
+        },
+      });
+  }
+
+  /** Reads (payment and order lookups) through Razorpay's MCP server when on, the REST API when off. The toggle shows the server's answer. */
+  toggleReadTransport(change: MatSlideToggleChange): void {
+    if (this.savingTransport) {
+      change.source.checked = !change.checked;
+      return;
+    }
+    this.savingTransport = true;
+    this.api
+      .setReadTransport(change.checked ? 'Mcp' : 'Rest')
+      .pipe(finalize(() => (this.savingTransport = false)))
+      .subscribe({
+        next: (settings) => {
+          this.settings = settings;
+          this.notify.success(settings.readTransport === 'Rest' ? 'Razorpay reads now use the REST API.' : 'Razorpay reads now use the Razorpay MCP server.');
+        },
+        error: () => {
           change.source.checked = !change.checked;
         },
       });

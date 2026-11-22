@@ -13,7 +13,11 @@ export interface RazorpaySettings {
   autoPayEnabled: boolean;
   /** On AND able to work: the keys and the webhook secret are saved. On but not ready means tenants still see the old buttons. */
   autoPayReady: boolean;
+  /** How payments and orders are read: through Razorpay's MCP server, or the REST API. Creating orders, capture and refunds always use REST. */
+  readTransport?: RazorpayReadTransport;
 }
+
+export type RazorpayReadTransport = 'Mcp' | 'Rest';
 
 /** Secrets: null keeps the stored one, '' clears it, anything else replaces it. */
 export interface UpdateRazorpaySettingsRequest {
