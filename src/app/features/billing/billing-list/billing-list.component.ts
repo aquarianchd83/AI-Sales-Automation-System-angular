@@ -80,6 +80,8 @@ export class BillingListComponent implements OnInit, OnDestroy {
   static readonly pollEveryMs = 5000;
   static readonly pollTimes = 36;
   private polling: RxSubscription | null = null;
+  /** Whether the server has already been asked, on this visit, to put a paid mandate's plan back on the subscription. */
+  private planSyncAsked = false;
 
   /** Whether the platform operator has switched refund requests on for this tenant - no button without it. */
   refundsEnabled = false;
@@ -531,6 +533,32 @@ export class BillingListComponent implements OnInit, OnDestroy {
         if (mandate && autoPayIsWaiting(mandate.status)) {
           this.startPolling(justStarted);
         }
+        this.syncPlanWithMandate();
+      },
+      error: () => undefined,
+    });
+  }
+
+  /**
+   * A mandate Razorpay reports as Active is one that has been paid. If the current plan is not that mandate's plan, the charge has not
+   * been applied here yet (its webhook is late or never came): ask the server once to check with Razorpay, which records the payment and
+   * moves the plan, then read the plan again. Waits until both the mandate and the subscription have loaded.
+   */
+  private syncPlanWithMandate(): void {
+    const mandate = this.mandate;
+    if (this.planSyncAsked || !mandate || mandate.status !== 'Active' || this.loadingSubscription) {
+      return;
+    }
+    if (this.subscription?.planId === mandate.planId) {
+      return;
+    }
+    this.planSyncAsked = true;
+    this.billing.refreshAutoPaySubscription(mandate.id).subscribe({
+      next: (fresh) => {
+        this.mandate = fresh;
+        this.loadSubscription();
+        this.loadPaymentHistory();
+        this.injector.get(EntitlementsService).load(true).subscribe({ error: () => undefined });
       },
       error: () => undefined,
     });
@@ -620,6 +648,7 @@ export class BillingListComponent implements OnInit, OnDestroy {
       next: (subscription) => {
         this.subscription = subscription;
         this.loadingSubscription = false;
+        this.syncPlanWithMandate();
       },
       error: () => (this.loadingSubscription = false),
     });

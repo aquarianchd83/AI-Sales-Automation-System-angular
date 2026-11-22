@@ -218,6 +218,23 @@ describe('BillingListComponent with UPI AutoPay', () => {
     expect(billing.refreshAutoPaySubscription.calls.count()).toBe(calls);
   }));
 
+  it('asks the server once to apply a paid mandate whose plan is not the current one yet, then reads the plan again', run(() => {
+    render({ mandates: [mandate('Active')], refreshes: [mandate('Active')], subscriptions: [trial, onPremium] });
+
+    expect(billing.refreshAutoPaySubscription).toHaveBeenCalledOnceWith('m-1');
+    expect(text('.plan-card.current h3')).toBe('premium');
+    expect(entitlementsLoad).toHaveBeenCalledWith(true);
+
+    settle(BillingListComponent.pollEveryMs * 5);
+    expect(billing.refreshAutoPaySubscription.calls.count()).toBe(1);
+  }));
+
+  it('does not ask the server again when the paid mandate is already the current plan', run(() => {
+    render({ mandates: [mandate('Active')], subscriptions: [onPremium] });
+
+    expect(billing.refreshAutoPaySubscription).not.toHaveBeenCalled();
+  }));
+
   it('stops asking after a few minutes and leaves Check status to the tenant', run(() => {
     render({ mandates: [mandate('PendingAuthorization')] });
 
