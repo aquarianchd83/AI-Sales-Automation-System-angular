@@ -1,0 +1,132 @@
+:host {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.unlock-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 10px;
+
+  h2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--app-ink);
+
+    mat-icon {
+      width: 20px;
+      height: 20px;
+      font-size: 20px;
+      color: #d97706;
+    }
+  }
+}
+
+.unlock-sub {
+  font-size: 13px;
+  color: var(--app-muted);
+}
+
+.unlock-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: var(--app-radius-sm);
+  background: #fff4e5;
+  border: 1px solid #f5c26b;
+  color: #7a4a00;
+  font-size: 13.5px;
+  text-decoration: none;
+
+  mat-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+.unlock-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.unlock-card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 8px;
+  border-radius: var(--app-radius);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow);
+
+  h3 {
+    margin: 10px 0 4px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--app-ink);
+  }
+
+  p {
+    flex: 1;
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: var(--app-text);
+  }
+}
+
+.unlock-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.unlock-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-muted);
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    color: var(--app-muted);
+  }
+}
+
+.unlock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px 1px 5px;
+  border-radius: 999px;
+  background: #fff4e5;
+  border: 1px solid #f5c26b;
+  color: #7a4a00;
+  font-size: 11.5px;
+  font-weight: 600;
+
+  mat-icon {
+    width: 13px;
+    height: 13px;
+    font-size: 13px;
+  }
+}
+
+.unlock-link {
+  align-self: flex-start;
+  margin-left: -8px;
+}
+

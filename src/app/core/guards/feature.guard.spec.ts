@@ -6,9 +6,11 @@ import { Observable, of } from 'rxjs';
 import { EntitlementsService } from '../services/entitlements.service';
 import { NotificationService } from '../services/notification.service';
 import { featureGuard } from './feature.guard';
+import { FEATURE_PREVIEWS } from '../models/feature-preview.model';
+import { PLATFORM_FEATURES, PlatformFeature } from '../models/wallet.model';
 
 describe('featureGuard', () => {
-  function run(has: boolean): Observable<boolean | UrlTree> {
+  function run(has: boolean, feature: PlatformFeature = 'ContentStudio'): Observable<boolean | UrlTree> {
     const notify = jasmine.createSpyObj('NotificationService', ['error']);
     TestBed.configureTestingModule({
       imports: [RouterTestingModule],
@@ -17,7 +19,7 @@ describe('featureGuard', () => {
         { provide: NotificationService, useValue: notify },
       ],
     });
-    const route = { data: { feature: 'ContentStudio' } } as unknown as ActivatedRouteSnapshot;
+    const route = { data: { feature } } as unknown as ActivatedRouteSnapshot;
     const result = TestBed.runInInjectionContext(() => featureGuard(route, {} as RouterStateSnapshot)) as Observable<boolean | UrlTree>;
     (run as unknown as { notify: unknown }).notify = notify;
     return result;
@@ -30,11 +32,29 @@ describe('featureGuard', () => {
     });
   });
 
-  it('sends a tenant to the dashboard, where the upgrade badge is, and raises no toast', (done) => {
+  it("sends a tenant to the feature's preview page, not the dashboard, and raises no toast", (done) => {
     run(false).subscribe((r) => {
-      expect(TestBed.inject(Router).serializeUrl(r as UrlTree)).toBe('/dashboard');
+      expect(TestBed.inject(Router).serializeUrl(r as UrlTree)).toBe('/premium/content-studio');
       expect(((run as unknown as { notify: { error: jasmine.Spy } }).notify).error).not.toHaveBeenCalled();
       done();
     });
+  });
+
+  PLATFORM_FEATURES.forEach((feature) => {
+    it(`routes a locked ${feature} screen to its own preview`, (done) => {
+      run(false, feature).subscribe((r) => {
+        expect(TestBed.inject(Router).serializeUrl(r as UrlTree)).toBe(`/premium/${FEATURE_PREVIEWS[feature].slug}`);
+        done();
+      });
+    });
+  });
+
+  it('lets any screen with no feature through without asking for the plan', () => {
+    TestBed.configureTestingModule({
+      imports: [RouterTestingModule],
+      providers: [{ provide: EntitlementsService, useValue: { load: () => { throw new Error('not asked'); }, has: () => false } }],
+    });
+    const route = { data: {} } as unknown as ActivatedRouteSnapshot;
+    expect(TestBed.runInInjectionContext(() => featureGuard(route, {} as RouterStateSnapshot))).toBeTrue();
   });
 });

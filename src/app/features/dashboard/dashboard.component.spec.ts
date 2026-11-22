@@ -19,6 +19,7 @@ import { MessageTemplateService } from '../../core/services/message-template.ser
 import { TenantSettingsService } from '../../core/services/tenant-settings.service';
 import { SharedModule } from '../../shared/shared.module';
 import { DashboardComponent } from './dashboard.component';
+import { UnlockMoreComponent } from './unlock-more/unlock-more.component';
 
 function page<T>(items: T[], totalCount = items.length): Observable<PagedResult<T>> {
   return of({ items, totalCount, page: 1, pageSize: Math.max(1, items.length), totalPages: 1 });
@@ -122,7 +123,7 @@ describe('DashboardComponent', () => {
     };
 
     TestBed.configureTestingModule({
-      declarations: [DashboardComponent],
+      declarations: [DashboardComponent, UnlockMoreComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: AuthService, useValue: auth },
@@ -217,34 +218,97 @@ describe('DashboardComponent', () => {
     expect(text).toContain('0 of 4 steps complete');
   });
 
-  describe('upgrade badges', () => {
-    const withPlan = (features: PlatformFeature[], admin = true): HTMLElement => {
-      create({ admin });
-      TestBed.inject(EntitlementsStore).set({ planCode: 'trial', planName: 'Trial', features, balance: 50, costs: [] });
+  describe('Unlock more', () => {
+    const ALL: PlatformFeature[] = ['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge'];
+    const withPlan = (features: PlatformFeature[], setup: Setup = {}): HTMLElement => {
+      create({ admin: true, ...setup });
+      TestBed.inject(EntitlementsStore).set({ planCode: 'basic', planName: 'Basic', features, balance: 50, costs: [] });
       fixture.detectChanges();
       return fixture.nativeElement as HTMLElement;
     };
-    const badges = (root: HTMLElement) => Array.from(root.querySelectorAll('.plan-badge-text')).map((e) => e.textContent?.trim());
+    const cards = (root: HTMLElement) => Array.from(root.querySelectorAll<HTMLElement>('.unlock-card'));
+    const suggestion = (root: HTMLElement) => root.querySelector('[data-testid="unlock-suggestion"] span')?.textContent?.trim() ?? null;
 
-    it('names each feature the plan lacks, as a badge that links to the plans page', () => {
+    it('shows one card per feature the plan lacks, each with its icon, name, benefit and a link to its preview', () => {
       const root = withPlan(['WhatsAppMessaging', 'AiConversations']);
 
-      expect(badges(root)).toEqual([
-        'Lead discovery is not part of your plan. Upgrade to Premium to use it.',
-        'Content Studio is not part of your plan. Upgrade to Premium to use it.',
-        'Product knowledge is not part of your plan. Upgrade to Premium to use it.',
-      ]);
-      expect(root.querySelector('.plan-badge')?.getAttribute('href')).toBe('/billing');
+      expect(cards(root).map((c) => c.getAttribute('data-feature'))).toEqual(['LeadDiscovery', 'ContentStudio', 'ProductKnowledge']);
+      const first = cards(root)[0];
+      expect(first.querySelector('.unlock-icon mat-icon')?.textContent?.trim()).toBe('travel_explore');
+      expect(first.querySelector('h3')?.textContent?.trim()).toBe('Lead discovery');
+      expect(first.querySelector('p')?.textContent?.trim()).toBe('Find new businesses that match the customers you sell to.');
+      const link = first.querySelector('a') as HTMLAnchorElement;
+      expect(link.textContent).toContain('See how it works');
+      expect(link.getAttribute('href')).toBe('/premium/lead-discovery');
+      // The old plain-text badges are gone.
+      expect(root.querySelector('.plan-badge')).toBeNull();
     });
 
-    it('shows none on a plan that includes everything', () => {
-      const root = withPlan(['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge']);
+    it('shows nothing when the plan includes every feature', () => {
+      const root = withPlan(ALL);
 
-      expect(root.querySelector('.plan-badges')).toBeNull();
+      expect(root.querySelector('[data-testid="unlock-more"]')).toBeNull();
     });
 
-    it('shows none to a user who cannot upgrade the plan', () => {
-      expect(badges(withPlan(['WhatsAppMessaging'], false))).toEqual([]);
+    it('shows nothing before the plan is known', () => {
+      create();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="unlock-more"]')).toBeNull();
+    });
+
+    it('shows nothing to a user who cannot upgrade the plan', () => {
+      const root = withPlan(['WhatsAppMessaging'], { admin: false });
+
+      expect(cards(root)).toEqual([]);
+      expect(suggestion(root)).toBeNull();
+    });
+
+    describe('the personalised line', () => {
+      it('counts the customers when campaigns are locked and there are at least 10', () => {
+        const root = withPlan(['AiConversations', 'LeadDiscovery']);
+
+        expect(suggestion(root)).toBe('You have 42 customers. Campaigns could message all of them in one go.');
+        expect(root.querySelector('[data-testid="unlock-suggestion"]')?.getAttribute('href')).toBe('/premium/whatsapp-messaging');
+      });
+
+      it('counts the open conversations when AI conversations are locked and at least 5 are open', () => {
+        const root = withPlan(['WhatsAppMessaging', 'LeadDiscovery']);
+
+        expect(suggestion(root)).toBe('7 conversations are open right now. The AI could answer them while your team is busy.');
+      });
+
+      it('counts the deals won when lead discovery is locked and at least 3 were won', () => {
+        const root = withPlan(['WhatsAppMessaging', 'AiConversations']);
+
+        expect(suggestion(root)).toBe('You have won 4 deals. Lead discovery could find more businesses like those customers.');
+      });
+
+      it('shows at most one line, the first rule that applies', () => {
+        const root = withPlan([]);
+
+        expect(root.querySelectorAll('[data-testid="unlock-suggestion"]').length).toBe(1);
+        expect(suggestion(root)).toContain('42 customers');
+      });
+
+      it('shows nothing when the numbers are too small to back it up', () => {
+        const root = withPlan([], { empty: true });
+
+        expect(cards(root).length).toBe(5);
+        expect(suggestion(root)).toBeNull();
+      });
+
+      it('shows nothing when the data could not be read', () => {
+        const root = withPlan([], { fail: true });
+
+        expect(suggestion(root)).toBeNull();
+      });
+
+      it('shows nothing when no rule is about a locked feature', () => {
+        const root = withPlan(['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery']);
+
+        expect(cards(root).length).toBe(2);
+        expect(suggestion(root)).toBeNull();
+      });
     });
   });
 });

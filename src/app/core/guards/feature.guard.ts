@@ -2,12 +2,14 @@ import { inject } from '@angular/core';
 import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
 import { map } from 'rxjs/operators';
 
+import { featurePreviewCommands } from '../models/feature-preview.model';
 import { PlatformFeature } from '../models/wallet.model';
 import { EntitlementsService } from '../services/entitlements.service';
 
 /**
- * Keeps a tenant out of a screen whose feature is not in its plan and sends them to the dashboard, where an upgrade badge names each feature
- * their plan lacks and links to the plans page - a prompt that stays put, not a toast that vanishes. Reads `data.feature` from the route. The API refuses the same requests, so this only spares the user a screen that would be full of errors.
+ * Keeps a tenant out of a screen whose feature is not in its plan and sends them to that feature's preview page (/premium/<slug>), which says what the
+ * feature does and how to get it - a page that stays put, not a toast that vanishes. Reads `data.feature` from the route. The API refuses the same
+ * requests, so this only spares the user a screen that would be full of errors.
  */
 export const featureGuard: CanActivateFn & CanActivateChildFn = (route) => {
   const feature = route.data['feature'] as PlatformFeature | undefined;
@@ -23,7 +25,7 @@ export const featureGuard: CanActivateFn & CanActivateChildFn = (route) => {
       if (entitlements.has(feature)) {
         return true;
       }
-      return router.createUrlTree(['/dashboard']);
+      return router.createUrlTree(featurePreviewCommands(feature));
     })
   );
 };

@@ -36,7 +36,7 @@ describe('ErrorInterceptor', () => {
     expect(notify.error).toHaveBeenCalledWith('Something broke');
   });
 
-  it('stays quiet when a feature is outside the plan - the dashboard badge says so', () => {
+  it('stays quiet when a feature is outside the plan - the locked menu entry and its preview page say so', () => {
     fail(403, { title: 'Content Studio is not part of your plan. Upgrade to Premium to use it.' });
 
     expect(notify.error).not.toHaveBeenCalled();

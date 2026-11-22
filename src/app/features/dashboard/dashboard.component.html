@@ -24,14 +24,8 @@
   </section>
 
   <!-- Features the plan lacks -->
-  <ng-container *ngIf="planBadges$ | async as badges">
-    <div class="plan-badges" *ngIf="badges.length">
-      <a class="plan-badge" *ngFor="let text of badges" routerLink="/billing">
-        <mat-icon>workspace_premium</mat-icon>
-        <span class="plan-badge-text">{{ text }}</span>
-        <span class="plan-badge-cta">Upgrade</span>
-      </a>
-    </div>
+  <ng-container *ngIf="unlockCards$ | async as cards">
+    <app-unlock-more *ngIf="cards.length" [cards]="cards" [suggestion]="suggestionFor(cards)"></app-unlock-more>
   </ng-container>
 
   <!-- Needs attention -->

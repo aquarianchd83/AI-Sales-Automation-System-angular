@@ -23,8 +23,8 @@ interface ProblemDetails {
 /**
  * Turns API failures into a single readable toast, then rethrows so callers can
  * still react (e.g. re-enable a submit button). 401 is skipped — AuthInterceptor
- * owns that path and either refreshes silently or redirects to /login. So is a customer-facing /public/ page, which explains its own outcomes. So is a refusal for a feature outside the tenant's plan: the dashboard
- * already shows an upgrade badge for it, and the screens are guarded, so a toast on top (from a background call at sign-in) would only nag.
+ * owns that path and either refreshes silently or redirects to /login. So is a customer-facing /public/ page, which explains its own outcomes. So is a refusal for a feature outside the tenant's plan: the menu
+ * shows it locked, the dashboard's "Unlock more" names it, and its screens route to its preview page, so a toast on top (from a background call at sign-in) would only nag.
  */
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {

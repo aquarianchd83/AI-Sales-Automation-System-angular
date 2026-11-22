@@ -32,16 +32,22 @@
                 class="nav-item"
                 matRipple
                 *appHasRole="item.roles"
-                [routerLink]="item.route"
+                [routerLink]="routeOf(item)"
                 routerLinkActive="nav-active"
-                [class.nav-active]="claimsCurrentPage(item)"
+                [class.nav-active]="!isLocked(item) && claimsCurrentPage(item)"
+                [class.nav-item--locked]="isLocked(item)"
                 ariaCurrentWhenActive="page"
                 [routerLinkActiveOptions]="{ exact: !!item.exact }"
-                [title]="item.label"
+                [title]="isLocked(item) ? item.label + ' - not in your plan. See what it does.' : item.label"
+                [attr.aria-label]="isLocked(item) ? item.label + ', Premium' : null"
                 (click)="drawer.mode === 'over' ? drawer.close() : null"
               >
                 <mat-icon>{{ item.icon }}</mat-icon>
-                <span>{{ item.label }}</span>
+                <span class="nav-item-label">{{ item.label }}</span>
+                <ng-container *ngIf="isLocked(item)">
+                  <span class="nav-premium-chip">Premium</span>
+                  <mat-icon class="nav-lock" aria-hidden="true">lock</mat-icon>
+                </ng-container>
               </a>
               </ng-container>
             </ng-container>

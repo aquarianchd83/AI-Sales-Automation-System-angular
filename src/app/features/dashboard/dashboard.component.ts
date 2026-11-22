@@ -28,7 +28,9 @@ import {
   TenantWhatsAppConfig,
 } from '../../core/models/tenant-settings.model';
 import { TENANT_ADMIN_ROLES, User } from '../../core/models/user.model';
-import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS } from '../../core/models/wallet.model';
+import { FEATURE_PREVIEWS, featurePreviewUrl } from '../../core/models/feature-preview.model';
+import { PLATFORM_FEATURES } from '../../core/models/wallet.model';
+import { UnlockCard, UnlockSuggestion } from './unlock-more/unlock-more.component';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
 import { BookingService } from '../../core/services/booking.service';
@@ -68,6 +70,11 @@ interface Alert {
   action: string;
   route: string;
 }
+
+/** Below these, the tenant's own numbers are too small to make a suggestion worth reading. */
+const SUGGEST_MIN_CUSTOMERS = 10;
+const SUGGEST_MIN_OPEN_CONVERSATIONS = 5;
+const SUGGEST_MIN_WON_DEALS = 3;
 
 interface ChecklistItem {
   label: string;
@@ -145,16 +152,20 @@ export class DashboardComponent implements OnInit {
   readonly isTenantAdmin = this.auth.hasAnyRole(TENANT_ADMIN_ROLES);
 
   /**
-   * One badge for each feature the plan lacks, to nudge an upgrade. Only an Admin sees them - upgrading is the Admin's to do - and none shows
-   * until the plan is known, so a Premium tenant never sees them flash.
+   * "Unlock more": one card for each feature the plan lacks, linking to its preview. Only an Admin sees them - upgrading is the Admin's to do (a
+   * Sales agent still finds the locked entries in the menu) - and none shows until the plan is known, so a Premium tenant never sees them flash.
    */
-  readonly planBadges$: Observable<string[]> = this.entitlements.entitlements$.pipe(
+  readonly unlockCards$: Observable<UnlockCard[]> = this.entitlements.entitlements$.pipe(
     map((e) =>
       !e || !this.isTenantAdmin
         ? []
-        : PLATFORM_FEATURES.filter((f) => !e.features.includes(f)).map(
-            (f) => `${PLATFORM_FEATURE_LABELS[f]} is not part of your plan. Upgrade to Premium to use it.`
-          )
+        : PLATFORM_FEATURES.filter((f) => !e.features.includes(f)).map((f) => ({
+            feature: f,
+            icon: FEATURE_PREVIEWS[f].icon,
+            title: FEATURE_PREVIEWS[f].title,
+            benefit: FEATURE_PREVIEWS[f].outcome,
+            route: featurePreviewUrl(f),
+          }))
     )
   );
 
@@ -239,6 +250,53 @@ export class DashboardComponent implements OnInit {
     const days = Math.round(hours / 24);
     if (days < 30) return `${days}d ago`;
     return date.toLocaleDateString();
+  }
+
+  /**
+   * At most one line tying a locked feature to the tenant's own numbers, from what the dashboard has already read - or null when no rule has the data
+   * to back it up. The first rule that applies wins.
+   */
+  suggestionFor(cards: UnlockCard[]): UnlockSuggestion | null {
+    const next = this.pickSuggestion(cards);
+    // The template asks on every check: hand back the same object while the line is the same, so the binding stays stable.
+    if (next?.text !== this.lastSuggestion?.text) {
+      this.lastSuggestion = next;
+    }
+    return this.lastSuggestion;
+  }
+
+  private lastSuggestion: UnlockSuggestion | null = null;
+
+  private pickSuggestion(cards: UnlockCard[]): UnlockSuggestion | null {
+    const locked = new Set(cards.map((c) => c.feature));
+    const o = this.overview;
+    const p = this.pipeline;
+
+    const customers = o?.customers ?? null;
+    if (locked.has('WhatsAppMessaging') && customers !== null && customers >= SUGGEST_MIN_CUSTOMERS) {
+      return {
+        text: `You have ${customers.toLocaleString()} customers. Campaigns could message all of them in one go.`,
+        route: featurePreviewUrl('WhatsAppMessaging'),
+      };
+    }
+
+    const open = o?.openConversations ?? null;
+    if (locked.has('AiConversations') && open !== null && open >= SUGGEST_MIN_OPEN_CONVERSATIONS) {
+      return {
+        text: `${open.toLocaleString()} conversations are open right now. The AI could answer them while your team is busy.`,
+        route: featurePreviewUrl('AiConversations'),
+      };
+    }
+
+    const won = p?.stages[LEAD_STAGE_ORDER.indexOf(LeadStage.Won)] ?? null;
+    if (locked.has('LeadDiscovery') && won !== null && won >= SUGGEST_MIN_WON_DEALS) {
+      return {
+        text: `You have won ${won.toLocaleString()} deals. Lead discovery could find more businesses like those customers.`,
+        route: featurePreviewUrl('LeadDiscovery'),
+      };
+    }
+
+    return null;
   }
 
   get checklistDone(): number {

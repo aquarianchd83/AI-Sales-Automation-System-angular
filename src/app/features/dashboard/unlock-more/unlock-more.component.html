@@ -1,0 +1,24 @@
+<section class="unlock" data-testid="unlock-more">
+  <div class="unlock-head">
+    <h2><mat-icon>workspace_premium</mat-icon>Unlock more</h2>
+    <span class="unlock-sub">Your plan does not include these yet.</span>
+  </div>
+  <a class="unlock-suggestion" *ngIf="suggestion as tip" [routerLink]="tip.route" data-testid="unlock-suggestion">
+    <mat-icon>lightbulb</mat-icon>
+    <span>{{ tip.text }}</span>
+  </a>
+  <div class="unlock-cards">
+    <div class="unlock-card" *ngFor="let card of cards" [attr.data-feature]="card.feature">
+      <div class="unlock-card-top">
+        <span class="unlock-icon"><mat-icon>{{ card.icon }}</mat-icon></span>
+        <span class="unlock-chip"><mat-icon>lock</mat-icon>Premium</span>
+      </div>
+      <h3>{{ card.title }}</h3>
+      <p>{{ card.benefit }}</p>
+      <a mat-button color="primary" class="unlock-link" [routerLink]="card.route">
+        See how it works
+        <mat-icon iconPositionEnd>arrow_forward</mat-icon>
+      </a>
+    </div>
+  </div>
+</section>
