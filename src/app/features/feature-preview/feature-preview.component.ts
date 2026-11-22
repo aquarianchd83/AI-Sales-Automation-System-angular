@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
@@ -31,6 +31,8 @@ export class FeaturePreviewComponent implements OnInit, OnDestroy {
   costs: FeatureCost[] | null = null;
 
   private readonly destroy$ = new Subject<void>();
+  /** The costs request for the feature on screen; a newer preview cancels it so an older answer cannot land on it. */
+  private costsRequest: Subscription | null = null;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -49,6 +51,7 @@ export class FeaturePreviewComponent implements OnInit, OnDestroy {
       }
       this.preview = FEATURE_PREVIEWS[feature];
       this.costs = null;
+      this.costsRequest?.unsubscribe();
       if (this.isAdmin) {
         this.loadCosts(feature);
       }
@@ -92,7 +95,8 @@ export class FeaturePreviewComponent implements OnInit, OnDestroy {
   }
 
   private loadCosts(feature: PlatformFeature): void {
-    this.billing
+    this.costsRequest?.unsubscribe();
+    this.costsRequest = this.billing
       .getWallet()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
