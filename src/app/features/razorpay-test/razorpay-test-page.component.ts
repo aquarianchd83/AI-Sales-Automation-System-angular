@@ -30,7 +30,7 @@ export interface FlowStep {
 }
 
 /**
- * The Platform Admin Console's Razorpay test page: save the platform's Razorpay keys, make a real (test-mode) payment through Razorpay
+ * The Platform Admin Console's Razorpay page: save the platform's Razorpay keys, make a real (test-mode) payment through Razorpay
  * Checkout, and watch the server prove it - signature, Razorpay's own record, capture - then refund it and see the signed webhooks
  * arrive. Deliberately not connected to tenant billing.
  */

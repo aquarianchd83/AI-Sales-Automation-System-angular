@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CreateRazorpayOrderRequest, RazorpayCheckResult, RazorpayCheckout, RazorpayMode, RazorpayOrder, RazorpayReadTransport, RazorpaySettings, RazorpaySuccessResponse, RazorpayVerifyResult, RazorpayWebhookEvent, UpdateRazorpaySettingsRequest } from '../models/razorpay.model';
 
-/** The platform's Razorpay test endpoints (PlatformSuperAdmin only). Not connected to tenant billing. */
+/** The platform's Razorpay endpoints (PlatformSuperAdmin only). Not connected to tenant billing. */
 @Injectable({ providedIn: 'root' })
 export class RazorpayTestService {
   private readonly baseUrl = `${environment.apiBaseUrl}/platform/razorpay`;

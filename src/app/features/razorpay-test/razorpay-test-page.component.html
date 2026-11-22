@@ -1,6 +1,6 @@
 <div class="page">
   <app-page-header
-    title="Razorpay Test"
+    title="Razorpay"
     subtitle="Save the platform's Razorpay keys and make a real payment through Razorpay Checkout to check everything works. Not connected to billing."
   >
     <button mat-stroked-button type="button" [disabled]="refreshing || loading" (click)="refresh()">
@@ -12,7 +12,7 @@
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
   <mat-card class="rz-card" *ngIf="loadFailed">
-    <p>The Razorpay test page could not be loaded.</p>
+    <p>The Razorpay page could not be loaded.</p>
     <button mat-stroked-button type="button" (click)="load()">Try again</button>
   </mat-card>
 
