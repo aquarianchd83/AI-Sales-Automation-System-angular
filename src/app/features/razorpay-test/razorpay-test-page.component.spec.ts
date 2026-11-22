@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { MatDialog } from '@angular/material/dialog';
 import { Subject, of, throwError } from 'rxjs';
 
-import { RazorpayCheckout, RazorpayOrder, RazorpaySettings } from '../../core/models/razorpay.model';
+import { RazorpayCheckout, RazorpayKeySet, RazorpayOrder, RazorpaySettings } from '../../core/models/razorpay.model';
 import { NotificationService } from '../../core/services/notification.service';
 import { CheckoutEvent, RazorpayCheckoutService } from '../../core/services/razorpay-checkout.service';
 import { RazorpayTestService } from '../../core/services/razorpay-test.service';
@@ -59,7 +60,7 @@ describe('RazorpayTestPageComponent', () => {
 
   const create = (s: RazorpaySettings = settings(), orders: RazorpayOrder[] = []) => {
     api = jasmine.createSpyObj('RazorpayTestService', [
-      'getSettings', 'saveSettings', 'setAutoPay', 'setReadTransport', 'testKeys', 'createOrder', 'verify', 'reportFailure', 'refund', 'getOrders', 'getWebhookEvents',
+      'getSettings', 'saveSettings', 'setAutoPay', 'setReadTransport', 'setActiveMode', 'testKeys', 'createOrder', 'verify', 'reportFailure', 'refund', 'getOrders', 'getWebhookEvents',
     ]);
     api.getSettings.and.returnValue(of(s));
     api.getOrders.and.returnValue(of(orders));
@@ -92,11 +93,11 @@ describe('RazorpayTestPageComponent', () => {
     expect(component.keysForm.controls.keySecret.value).toBe('');
     expect(component.hint('key')).toBe('••••1234');
     expect(component.webhookUrl).toBe(`${window.location.origin}/api/v1/webhooks/razorpay`);
-    expect(text()).toContain('test mode');
+    expect(text()).toContain('test mode active');
   });
 
-  it('warns loudly when live keys are saved', () => {
-    expect(create(settings({ keyId: 'rzp_live_ILgsfZCZoFIKMb', mode: 'live' })).text()).toContain('Payments made here charge real money');
+  it('warns loudly when live mode is active', () => {
+    expect(create(settings({ keyId: 'rzp_live_ILgsfZCZoFIKMb', mode: 'live' })).text()).toContain('Live mode is active');
   });
 
   it('keeps secrets left blank, clears them on request, and refuses a key id that is not Razorpay\'s', () => {
@@ -104,7 +105,7 @@ describe('RazorpayTestPageComponent', () => {
     component.keysForm.patchValue({ keySecret: ' new-secret ' });
     component.keysForm.markAsDirty();
     component.saveKeys();
-    expect(api.saveSettings.calls.mostRecent().args[0]).toEqual({ keyId: 'rzp_test_1DP5mmOlF5G5ag', keySecret: 'new-secret', webhookSecret: null });
+    expect(api.saveSettings.calls.mostRecent().args[0]).toEqual({ keyId: 'rzp_test_1DP5mmOlF5G5ag', keySecret: 'new-secret', webhookSecret: null, mode: 'test' });
 
     component.keysForm.patchValue({ removeWebhookSecret: true });
     component.keysForm.markAsDirty();
@@ -349,5 +350,92 @@ describe('RazorpayTestPageComponent', () => {
     expect(text()).toContain('order_ABC');
     expect(text()).toContain('INR 100.00');
     expect(text()).toContain('No webhooks yet');
+  });
+
+  // ── Test and Live keys ────────────────────────────────────────────────────────────
+
+  const keySet = (mode: 'test' | 'live', over: Partial<RazorpayKeySet> = {}): RazorpayKeySet => ({
+    mode,
+    keyId: mode === 'live' ? 'rzp_live_ILgsfZCZoFIKMb' : 'rzp_test_1DP5mmOlF5G5ag',
+    hasKeySecret: true,
+    keySecretHint: mode === 'live' ? '••••LIVE' : '••••1234',
+    hasWebhookSecret: true,
+    webhookSecretHint: '••••9876',
+    isConfigured: true,
+    isComplete: true,
+    ...over,
+  });
+
+  const both = (over: Partial<RazorpaySettings> = {}) =>
+    settings({ activeMode: 'test', testKeys: keySet('test'), liveKeys: keySet('live'), ...over });
+
+  it('opens on the active mode\'s tab and shows each tab\'s own keys', () => {
+    const { component } = create(both());
+    expect(component.editingMode).toBe('test');
+    expect(component.hint('key')).toBe('••••1234');
+
+    component.selectTab(1);
+    expect(component.editingMode).toBe('live');
+    expect(component.keysForm.controls.keyId.value).toBe('rzp_live_ILgsfZCZoFIKMb');
+    expect(component.hint('key')).toBe('••••LIVE');
+  });
+
+  it('saves into the open tab and refuses a key id from the other mode', () => {
+    const { component } = create(both({ liveKeys: keySet('live', { keyId: '', hasKeySecret: false, isConfigured: false, isComplete: false }) }));
+    component.selectTab(1);
+    component.keysForm.patchValue({ keyId: 'rzp_test_1DP5mmOlF5G5ag', keySecret: 's' });
+    component.keysForm.markAsDirty();
+    component.saveKeys();
+    expect(api.saveSettings).not.toHaveBeenCalled();
+    expect(component.keysForm.controls.keyId.hasError('wrongMode')).toBeTrue();
+
+    component.keysForm.patchValue({ keyId: 'rzp_live_ILgsfZCZoFIKMb' });
+    component.saveKeys();
+    expect(api.saveSettings.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({ keyId: 'rzp_live_ILgsfZCZoFIKMb', keySecret: 's', mode: 'live' }));
+  });
+
+  it('asks before switching to Live, and switches only on yes', () => {
+    const { component } = create(both());
+    const dialog = TestBed.inject(MatDialog);
+    const answer = new Subject<boolean>();
+    spyOn(dialog, 'open').and.returnValue({ afterClosed: () => answer } as never);
+    api.setActiveMode.and.returnValue(of(both({ activeMode: 'live', mode: 'live', keyId: 'rzp_live_ILgsfZCZoFIKMb' })));
+
+    component.chooseActiveMode('live');
+    expect(dialog.open).toHaveBeenCalled();
+    expect(api.setActiveMode).not.toHaveBeenCalled();
+
+    answer.next(true);
+    expect(api.setActiveMode).toHaveBeenCalledWith('live');
+    expect(component.activeMode).toBe('live');
+  });
+
+  it('switches back to Test without asking', () => {
+    const { component } = create(both({ activeMode: 'live', mode: 'live' }));
+    const dialog = TestBed.inject(MatDialog);
+    spyOn(dialog, 'open');
+    api.setActiveMode.and.returnValue(of(both()));
+
+    component.chooseActiveMode('test');
+
+    expect(dialog.open).not.toHaveBeenCalled();
+    expect(api.setActiveMode).toHaveBeenCalledWith('test');
+  });
+
+  it('keeps Live unavailable until all three Live keys are saved', () => {
+    const { fixture, component } = create(both({ liveKeys: keySet('live', { hasWebhookSecret: false, isComplete: false }) }));
+    expect(component.modeBlocker('live')).toBe('Save the Live webhook secret first');
+
+    component.chooseActiveMode('live');
+    expect(api.setActiveMode).not.toHaveBeenCalled();
+    const live = (fixture.nativeElement as HTMLElement).querySelector('[data-mode="live"]') as HTMLButtonElement;
+    expect(live.disabled).toBeTrue();
+  });
+
+  it('works with an API that sends only the single key set', () => {
+    const { component } = create(settings({ keyId: 'rzp_live_ILgsfZCZoFIKMb', mode: 'live' }));
+    expect(component.activeMode).toBe('live');
+    expect(component.slot('live')?.keyId).toBe('rzp_live_ILgsfZCZoFIKMb');
+    expect(component.slot('test')?.isConfigured).toBeFalse();
   });
 });

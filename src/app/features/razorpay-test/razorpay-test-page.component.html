@@ -17,9 +17,9 @@
   </mat-card>
 
   <ng-container *ngIf="!loading && !loadFailed">
-    <div class="banner banner--warn" *ngIf="settings?.mode === 'live' && settings?.isConfigured">
+    <div class="banner banner--warn" *ngIf="activeMode === 'live' && settings?.isConfigured">
       <mat-icon>warning</mat-icon>
-      <div><strong>Live keys are saved.</strong> Payments made here charge real money. Use test keys (rzp_test_...) to try things out.</div>
+      <div><strong>Live mode is active.</strong> Payments charge real money. Switch Active mode to Test to try things out.</div>
     </div>
 
     <div class="grid">
@@ -27,16 +27,63 @@
       <mat-card class="rz-card">
         <div class="card-title">
           <h2>1. Keys</h2>
-          <span class="mode" [class.mode--live]="settings?.mode === 'live'" *ngIf="settings?.isConfigured">{{ settings?.mode }} mode</span>
+          <span class="mode" [class.mode--live]="activeMode === 'live'" id="active-mode-chip">{{ activeMode }} mode active</span>
         </div>
-        <p class="muted">From Razorpay Dashboard &gt; Account &amp; Settings &gt; API Keys. The secret stays on the server; only the key id reaches the browser.</p>
+
+        <section class="active-mode" aria-labelledby="active-mode-label">
+          <div class="active-mode__label" id="active-mode-label">Active mode</div>
+          <div class="muted small">Checkout, wallet recharge, credit packs, AutoPay and webhooks use these keys. Ones already made keep their own mode's keys.</div>
+          <div class="seg" role="radiogroup" aria-labelledby="active-mode-label">
+            <button
+              type="button"
+              *ngFor="let m of modes"
+              class="seg__option"
+              [class.seg__option--on]="activeMode === m"
+              [class.seg__option--live]="m === 'live'"
+              role="radio"
+              [attr.aria-checked]="activeMode === m"
+              [attr.data-mode]="m"
+              [disabled]="savingMode || (activeMode !== m && !!modeBlocker(m))"
+              [matTooltip]="activeMode !== m ? modeBlocker(m) ?? '' : ''"
+              (click)="chooseActiveMode(m)"
+            >
+              <mat-icon>{{ m === 'live' ? 'bolt' : 'science' }}</mat-icon>
+              {{ m === 'live' ? 'Live' : 'Test' }}
+            </button>
+          </div>
+          <div class="slot-status">
+            <span class="slot" *ngFor="let m of modes" [attr.data-slot]="m">
+              <ng-container *ngIf="slot(m) as k">
+                <mat-icon [class.ok]="k.isComplete" [class.no]="!k.isComplete">{{ k.isComplete ? 'check_circle' : 'error_outline' }}</mat-icon>
+                {{ m === 'live' ? 'Live' : 'Test' }} keys
+                {{ k.isComplete ? 'saved (' + k.keyId + ')' : k.isConfigured ? 'saved, webhook secret missing' : 'not saved' }}
+              </ng-container>
+            </span>
+          </div>
+        </section>
+
+        <mat-tab-group class="key-tabs" [selectedIndex]="editingMode === 'live' ? 1 : 0" (selectedIndexChange)="selectTab($event)" animationDuration="0ms">
+          <mat-tab *ngFor="let m of modes">
+            <ng-template mat-tab-label>
+              {{ m === 'live' ? 'Live keys' : 'Test keys' }}
+              <span class="tab-badge" *ngIf="activeMode === m">active</span>
+            </ng-template>
+          </mat-tab>
+        </mat-tab-group>
+
+        <p class="muted">
+          From Razorpay Dashboard ({{ editingMode === 'live' ? 'Live' : 'Test' }} mode) &gt; Account &amp; Settings &gt; API Keys. The secret stays on the server; only the key id reaches the browser.
+        </p>
 
         <form [formGroup]="keysForm" (ngSubmit)="saveKeys()" novalidate>
           <mat-form-field class="field">
-            <mat-label>Key id</mat-label>
-            <input matInput formControlName="keyId" autocomplete="off" placeholder="rzp_test_XXXXXXXXXXXXXX" />
-            <mat-hint *ngIf="typedMode">{{ typedMode === 'live' ? 'Live key - real money' : 'Test key - no real money' }}</mat-hint>
-            <mat-error>It looks like rzp_test_... or rzp_live_...</mat-error>
+            <mat-label>Key id ({{ editingMode === 'live' ? 'Live' : 'Test' }})</mat-label>
+            <input matInput formControlName="keyId" autocomplete="off" [placeholder]="'rzp_' + editingMode + '_XXXXXXXXXXXXXX'" />
+            <mat-hint>Must start with rzp_{{ editingMode }}_</mat-hint>
+            <mat-error *ngIf="keysForm.controls.keyId.hasError('wrongMode')">
+              {{ editingMode === 'live' ? 'Live keys start with rzp_live_' : 'Test keys start with rzp_test_' }}
+            </mat-error>
+            <mat-error *ngIf="!keysForm.controls.keyId.hasError('wrongMode')">It looks like rzp_{{ editingMode }}_...</mat-error>
           </mat-form-field>
 
           <mat-form-field class="field">
@@ -44,17 +91,17 @@
             <input matInput type="password" autocomplete="new-password" formControlName="keySecret" [readonly]="keysForm.controls.removeKeySecret.value" />
             <mat-hint>{{ hint('key') ? 'Stored: ' + hint('key') + ' - leave blank to keep' : 'None stored' }}</mat-hint>
           </mat-form-field>
-          <mat-checkbox formControlName="removeKeySecret" *ngIf="settings?.hasKeySecret">Remove the stored key secret</mat-checkbox>
+          <mat-checkbox formControlName="removeKeySecret" *ngIf="slot(editingMode)?.hasKeySecret">Remove the stored key secret</mat-checkbox>
 
           <mat-form-field class="field">
             <mat-label>Webhook secret</mat-label>
             <input matInput type="password" autocomplete="new-password" formControlName="webhookSecret" [readonly]="keysForm.controls.removeWebhookSecret.value" />
-            <mat-hint>{{ hint('webhook') ? 'Stored: ' + hint('webhook') + ' - leave blank to keep' : 'The secret you type when creating the webhook in Razorpay' }}</mat-hint>
+            <mat-hint>{{ hint('webhook') ? 'Stored: ' + hint('webhook') + ' - leave blank to keep' : 'The secret you set on the ' + (editingMode === 'live' ? 'Live' : 'Test') + '-mode webhook' }}</mat-hint>
           </mat-form-field>
-          <mat-checkbox formControlName="removeWebhookSecret" *ngIf="settings?.hasWebhookSecret">Remove the stored webhook secret</mat-checkbox>
+          <mat-checkbox formControlName="removeWebhookSecret" *ngIf="slot(editingMode)?.hasWebhookSecret">Remove the stored webhook secret</mat-checkbox>
 
           <div class="actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="savingKeys || keysForm.pristine">{{ savingKeys ? 'Saving…' : 'Save keys' }}</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="savingKeys || keysForm.pristine">{{ savingKeys ? 'Saving…' : 'Save ' + editingMode + ' keys' }}</button>
             <button mat-stroked-button type="button" [disabled]="testingKeys" (click)="testKeys()">
               <mat-icon>{{ testingKeys ? 'hourglass_empty' : 'vpn_key' }}</mat-icon>
               {{ testingKeys ? 'Testing…' : 'Test keys' }}
@@ -62,18 +109,23 @@
           </div>
         </form>
 
+        <div class="result live-note" *ngIf="editingMode === 'live' && activeMode !== 'live'" role="note">
+          <mat-icon>info</mat-icon>
+          <span>Saving Live keys does not switch to Live. Use Active mode above when ready.</span>
+        </div>
+
         <div class="result" *ngIf="keyTest" [class.result--fail]="!keyTest.success" role="status" aria-live="polite">
           <mat-icon>{{ keyTest.success ? 'check_circle' : 'error' }}</mat-icon>
           <strong>{{ keyTest.message }}</strong>
         </div>
 
         <div class="webhook">
-          <div class="muted">Webhook URL - add it in Razorpay Dashboard &gt; Webhooks with the secret above (events: payment.*, order.paid, refund.*, subscription.*):</div>
+          <div class="muted">Webhook URL - add it in Razorpay Dashboard &gt; Webhooks in <strong>both</strong> Test and Live mode, each with its own secret (events: payment.*, order.paid, refund.*, subscription.*):</div>
           <div class="webhook-row">
             <code class="webhook-url">{{ webhookUrl }}</code>
             <button mat-icon-button type="button" matTooltip="Copy" aria-label="Copy webhook URL" (click)="copyWebhookUrl()"><mat-icon>content_copy</mat-icon></button>
           </div>
-          <div class="muted small" *ngIf="!settings?.hasWebhookSecret">No webhook secret is saved yet, so webhooks are refused.</div>
+          <div class="muted small" *ngIf="!slot('test')?.hasWebhookSecret && !slot('live')?.hasWebhookSecret">No webhook secret is saved yet, so webhooks are refused.</div>
         </div>
       </mat-card>
 
@@ -124,7 +176,8 @@
           <mat-icon>info</mat-icon>
           <strong>Save {{ autoPayMissing.join(' and ') }} first{{ settings?.autoPayEnabled ? ' - until then tenants still see the old buttons' : '' }}.</strong>
         </div>
-        <div class="result autopay-live" *ngIf="settings?.autoPayReady && settings?.mode === 'live'" role="status">
+        <div class="muted small autopay-mode">Uses the active mode's keys ({{ activeMode === 'live' ? 'Live' : 'Test' }}). Mandates made in one mode don't carry over to the other.</div>
+        <div class="result autopay-live" *ngIf="settings?.autoPayReady && activeMode === 'live'" role="status">
           <mat-icon>warning</mat-icon>
           <strong>Live keys: tenants who subscribe will be charged real money.</strong>
         </div>
@@ -135,9 +188,12 @@
 
       <!-- Pay -->
       <mat-card class="rz-card">
-        <div class="card-title"><h2>2. Make a test payment</h2></div>
+        <div class="card-title">
+          <h2>2. Make a test payment</h2>
+          <span class="mode" [class.mode--live]="activeMode === 'live'">{{ activeMode }}</span>
+        </div>
         <p class="muted">
-          Opens Razorpay Checkout. In test mode use card <code>4111 1111 1111 1111</code> (any future expiry, any CVV) or UPI
+          Opens Razorpay Checkout with the <strong>active</strong> mode's keys. In test mode use card <code>4111 1111 1111 1111</code> (any future expiry, any CVV) or UPI
           <code>success&#64;razorpay</code>; <code>failure&#64;razorpay</code> shows a failed attempt.
         </p>
 

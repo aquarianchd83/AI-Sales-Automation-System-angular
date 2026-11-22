@@ -15,6 +15,24 @@ export interface RazorpaySettings {
   autoPayReady: boolean;
   /** How payments and orders are read: through Razorpay's MCP server, or the REST API. Creating orders, capture and refunds always use REST. */
   readTransport?: RazorpayReadTransport;
+  /** Which key set new payments use. keyId, mode and the secret fields above describe this set. */
+  activeMode?: RazorpayMode;
+  testKeys?: RazorpayKeySet | null;
+  liveKeys?: RazorpayKeySet | null;
+}
+
+export type RazorpayMode = 'test' | 'live';
+
+/** One mode's saved keys, secrets masked. isComplete: key id, key secret and webhook secret are all saved. */
+export interface RazorpayKeySet {
+  mode: RazorpayMode;
+  keyId: string;
+  hasKeySecret: boolean;
+  keySecretHint: string | null;
+  hasWebhookSecret: boolean;
+  webhookSecretHint: string | null;
+  isConfigured: boolean;
+  isComplete: boolean;
 }
 
 export type RazorpayReadTransport = 'Mcp' | 'Rest';
@@ -24,6 +42,8 @@ export interface UpdateRazorpaySettingsRequest {
   keyId: string;
   keySecret: string | null;
   webhookSecret: string | null;
+  /** Which key set to save. The key id must carry that mode's prefix (rzp_test_ / rzp_live_). */
+  mode?: RazorpayMode;
 }
 
 export interface RazorpayCheckResult {
