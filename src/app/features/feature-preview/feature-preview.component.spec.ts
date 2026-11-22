@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { BehaviorSubject, of, throwError } from 'rxjs';
+import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
 
 import { FEATURE_PREVIEWS } from '../../core/models/feature-preview.model';
 import { PLATFORM_FEATURES, PlatformFeature, WalletSummary } from '../../core/models/wallet.model';
@@ -153,5 +153,19 @@ describe('FeaturePreviewComponent', () => {
     params.next(convertToParamMap({ feature: 'nope' }));
 
     expect(navigate).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it("keeps the costs of the feature on screen when an earlier preview's answer arrives late", () => {
+    const pending = new Subject<WalletSummary>();
+    render('lead-discovery');
+    billing.getWallet.and.returnValues(pending, of(WALLET));
+    // A slow answer for the first feature, then the Admin moves on to another one.
+    params.next(convertToParamMap({ feature: 'content-studio' }));
+    params.next(convertToParamMap({ feature: 'lead-discovery' }));
+    pending.next({ ...WALLET, features: WALLET.features.map((f) => ({ ...f, costs: [{ scenario: 9, title: 'Old', unitLabel: 'video', credits: 99, perAction: false }] })) });
+    fixture.detectChanges();
+
+    expect(text(fixture.nativeElement, 'preview-credits')).toContain('Uses 2 credits per candidate');
+    expect(text(fixture.nativeElement, 'preview-credits')).not.toContain('99');
   });
 });
