@@ -247,3 +247,118 @@
   display: block;
   margin: 4px 0 16px;
 }
+
+// ── Test and Live keys ──────────────────────────────────────────────────────────────
+
+.active-mode {
+  margin: 12px 0 8px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+
+  &__label {
+    font-weight: 600;
+  }
+}
+
+.seg {
+  display: flex;
+  margin: 10px 0 8px;
+  border: 1px solid rgba(0, 0, 0, 0.24);
+  border-radius: 6px;
+  overflow: hidden;
+
+  &__option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-weight: 500;
+    color: inherit;
+    cursor: pointer;
+
+    & + & {
+      border-left: 1px solid rgba(0, 0, 0, 0.24);
+    }
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #3f51b5;
+      outline-offset: -2px;
+    }
+
+    &--on {
+      background: #3f51b5;
+      color: #fff;
+      opacity: 1 !important;
+    }
+
+    &--on#{&}--live {
+      background: #c62828;
+    }
+  }
+}
+
+.slot-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+
+  mat-icon {
+    flex: none;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .ok {
+    color: #15803d;
+  }
+
+  .no {
+    color: #b45309;
+  }
+}
+
+.key-tabs {
+  margin-bottom: 8px;
+}
+
+.tab-badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: #3f51b5;
+  color: #fff;
+  font-size: 10px;
+}
+
+.autopay-mode {
+  margin-top: 8px;
+}

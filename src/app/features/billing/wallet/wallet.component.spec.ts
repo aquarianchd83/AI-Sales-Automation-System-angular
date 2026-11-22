@@ -17,6 +17,8 @@ import {
 import { emptyPage } from '../../../core/models/paged-result.model';
 import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature, WalletSummary } from '../../../core/models/wallet.model';
 import { BillingService } from '../../../core/services/billing.service';
+import { RazorpayPaymentFlowService } from '../../../core/services/razorpay-payment-flow.service';
+import { WalletRechargeService } from '../../../core/services/wallet-recharge.service';
 import { EntitlementsService } from '../../../core/services/entitlements.service';
 import { SharedModule } from '../../../shared/shared.module';
 import { WalletComponent } from './wallet.component';
@@ -113,6 +115,8 @@ describe('WalletComponent', () => {
       providers: [
         { provide: BillingService, useValue: billing },
         { provide: EntitlementsService, useValue: { load: () => of(null) } },
+        { provide: WalletRechargeService, useValue: { createPackOrder: () => of(null) } },
+        { provide: RazorpayPaymentFlowService, useValue: { pay: () => of({ kind: 'closed' }) } },
       ],
     });
 

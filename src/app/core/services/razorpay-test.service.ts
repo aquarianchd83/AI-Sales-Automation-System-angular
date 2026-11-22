@@ -3,19 +3,9 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import {
-  CreateRazorpayOrderRequest,
-  RazorpayCheckResult,
-  RazorpayCheckout,
-  RazorpayOrder,
-  RazorpaySettings,
-  RazorpaySuccessResponse,
-  RazorpayVerifyResult,
-  RazorpayWebhookEvent,
-  UpdateRazorpaySettingsRequest,
-} from '../models/razorpay.model';
+import { CreateRazorpayOrderRequest, RazorpayCheckResult, RazorpayCheckout, RazorpayMode, RazorpayOrder, RazorpayReadTransport, RazorpaySettings, RazorpaySuccessResponse, RazorpayVerifyResult, RazorpayWebhookEvent, UpdateRazorpaySettingsRequest } from '../models/razorpay.model';
 
-/** The platform's Razorpay test endpoints (PlatformSuperAdmin only). Not connected to tenant billing. */
+/** The platform's Razorpay endpoints (PlatformSuperAdmin only). Not connected to tenant billing. */
 @Injectable({ providedIn: 'root' })
 export class RazorpayTestService {
   private readonly baseUrl = `${environment.apiBaseUrl}/platform/razorpay`;
@@ -33,6 +23,16 @@ export class RazorpayTestService {
   /** Switches UPI AutoPay on or off for tenants. The server refuses to turn it on before the keys and webhook secret are saved (409). */
   setAutoPay(enabled: boolean): Observable<RazorpaySettings> {
     return this.http.put<RazorpaySettings>(`${this.baseUrl}/autopay`, { enabled });
+  }
+
+  /** Chooses which saved key set new payments use. 409 when that set is not saved (Live also needs its webhook secret). */
+  setActiveMode(mode: RazorpayMode): Observable<RazorpaySettings> {
+    return this.http.put<RazorpaySettings>(`${this.baseUrl}/mode`, { mode });
+  }
+
+  /** Chooses how payments and orders are read: 'Mcp' (Razorpay's MCP server) or 'Rest'. Writes always use the REST API. */
+  setReadTransport(transport: RazorpayReadTransport): Observable<RazorpaySettings> {
+    return this.http.put<RazorpaySettings>(`${this.baseUrl}/transport`, { transport });
   }
 
   /** Checks a key pair against Razorpay, saved or not. A null secret tests the stored one. */

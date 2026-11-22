@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { FormControl, NonNullableFormBuilder, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, NonNullableFormBuilder, ValidationErrors, Validators } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { Subscription, forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
@@ -8,6 +9,8 @@ import {
   RAZORPAY_CURRENCIES,
   RazorpayCheckResult,
   RazorpayCheckout,
+  RazorpayKeySet,
+  RazorpayMode,
   RazorpayOrder,
   RazorpaySettings,
   RazorpayStep,
@@ -17,6 +20,7 @@ import {
 import { NotificationService } from '../../core/services/notification.service';
 import { RazorpayCheckoutService } from '../../core/services/razorpay-checkout.service';
 import { RazorpayTestService } from '../../core/services/razorpay-test.service';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /** One line of the live log of the current payment. */
 export interface FlowStep {
@@ -26,7 +30,7 @@ export interface FlowStep {
 }
 
 /**
- * The Platform Admin Console's Razorpay test page: save the platform's Razorpay keys, make a real (test-mode) payment through Razorpay
+ * The Platform Admin Console's Razorpay page: save the platform's Razorpay keys, make a real (test-mode) payment through Razorpay
  * Checkout, and watch the server prove it - signature, Razorpay's own record, capture - then refund it and see the signed webhooks
  * arrive. Deliberately not connected to tenant billing.
  */
@@ -40,7 +44,7 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
   readonly format = formatMinor;
 
   readonly keysForm = this.fb.group({
-    keyId: ['', [Validators.pattern(/^rzp_(test|live)_[A-Za-z0-9]{6,40}$/)]],
+    keyId: ['', [Validators.pattern(/^rzp_(test|live)_[A-Za-z0-9]{6,40}$/), (c: AbstractControl) => this.prefixMatchesTab(c)]],
     keySecret: '',
     removeKeySecret: false,
     webhookSecret: '',
@@ -66,6 +70,10 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
   loadFailed = false;
   savingKeys = false;
   savingAutoPay = false;
+  savingTransport = false;
+  savingMode = false;
+  /** Which key set the form below edits: the Test keys or the Live keys tab. Not the same as the active mode. */
+  editingMode: RazorpayMode = 'test';
   testingKeys = false;
   keyTest: RazorpayCheckResult | null = null;
   paying = false;
@@ -81,8 +89,109 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
     private readonly fb: NonNullableFormBuilder,
     private readonly api: RazorpayTestService,
     private readonly checkout: RazorpayCheckoutService,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly dialog: MatDialog
   ) {}
+
+  readonly modes: RazorpayMode[] = ['test', 'live'];
+
+  /** The mode new payments use. Older APIs without it: the saved key id's mode. */
+  get activeMode(): RazorpayMode {
+    return this.settings?.activeMode ?? this.settings?.mode ?? 'test';
+  }
+
+  /** One mode's saved keys. Older APIs that send only the single key set: that set fills the slot its key id names. */
+  slot(mode: RazorpayMode): RazorpayKeySet | null {
+    const s = this.settings;
+    if (!s) {
+      return null;
+    }
+    const fromApi = mode === 'live' ? s.liveKeys : s.testKeys;
+    if (fromApi) {
+      return fromApi;
+    }
+    if (s.mode !== mode || !s.keyId) {
+      return { mode, keyId: '', hasKeySecret: false, keySecretHint: null, hasWebhookSecret: false, webhookSecretHint: null, isConfigured: false, isComplete: false };
+    }
+    return {
+      mode, keyId: s.keyId, hasKeySecret: s.hasKeySecret, keySecretHint: s.keySecretHint, hasWebhookSecret: s.hasWebhookSecret,
+      webhookSecretHint: s.webhookSecretHint, isConfigured: s.isConfigured, isComplete: s.isConfigured && s.hasWebhookSecret,
+    };
+  }
+
+  /** Why a mode cannot be made active yet, or null when it can. Live needs all three keys: live money must be confirmable. */
+  modeBlocker(mode: RazorpayMode): string | null {
+    const keys = this.slot(mode);
+    if (!keys?.isConfigured) {
+      return `Save ${mode === 'live' ? 'Live' : 'Test'} keys first`;
+    }
+    if (mode === 'live' && !keys.isComplete) {
+      return 'Save the Live webhook secret first';
+    }
+    return null;
+  }
+
+  /** The Test keys / Live keys tab: shows that mode's saved keys in the form. Unsaved typing on the other tab is dropped. */
+  selectTab(index: number): void {
+    this.editingMode = this.modes[index] ?? 'test';
+    this.resetKeysForm();
+  }
+
+  /** Makes a saved key set the one new payments use. Going Live asks first: it charges real money. */
+  chooseActiveMode(mode: RazorpayMode): void {
+    if (this.savingMode || mode === this.activeMode || this.modeBlocker(mode)) {
+      return;
+    }
+    if (mode === 'test') {
+      this.applyActiveMode(mode);
+      return;
+    }
+    const keyId = this.slot('live')?.keyId ?? '';
+    const data: ConfirmDialogData = {
+      title: 'Switch to Live mode?',
+      message:
+        `All new payments - wallet recharge, credit packs, plan AutoPay and Checkout on this page - will charge real money with key ${keyId}. ` +
+        'Orders and subscriptions already made in Test mode stay as they are, and their webhooks are still verified.',
+      confirmLabel: 'Switch to Live',
+      destructive: true,
+    };
+    this.dialog
+      .open(ConfirmDialogComponent, { data, width: '460px' })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.applyActiveMode(mode);
+        }
+      });
+  }
+
+  private applyActiveMode(mode: RazorpayMode): void {
+    this.savingMode = true;
+    this.api
+      .setActiveMode(mode)
+      .pipe(finalize(() => (this.savingMode = false)))
+      .subscribe({
+        next: (settings) => {
+          // Not applySettings: keep anything typed in the key form.
+          this.settings = settings;
+          this.notify.success(mode === 'live' ? 'Live mode is on. New payments charge real money.' : 'Test mode is on. No real money moves.');
+        },
+        error: () => {
+          // ErrorInterceptor toasts the reason.
+        },
+      });
+  }
+
+  /** The key id must belong to the tab it is typed in: rzp_test_ under Test keys, rzp_live_ under Live keys. */
+  private prefixMatchesTab(control: AbstractControl): ValidationErrors | null {
+    const value = String(control.value ?? '').trim();
+    if (!value || !/^rzp_(test|live)_/.test(value)) {
+      return null;
+    }
+    // Runs once while the form is being built, before editingMode exists.
+    const mode = this.editingMode ?? 'test';
+    return value.startsWith(`rzp_${mode}_`) ? null : { wrongMode: true };
+  }
 
   /** Where to point Razorpay's webhook: the API is served from this origin under /api. */
   get webhookUrl(): string {
@@ -136,13 +245,15 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
 
   // ── Keys ──────────────────────────────────────────────────────────────────────────
 
+  /** The tab's stored secret, masked. */
   hint(kind: 'key' | 'webhook'): string | null {
-    if (!this.settings) {
+    const keys = this.slot(this.editingMode);
+    if (!keys) {
       return null;
     }
     return kind === 'key'
-      ? this.settings.hasKeySecret ? this.settings.keySecretHint ?? 'set' : null
-      : this.settings.hasWebhookSecret ? this.settings.webhookSecretHint ?? 'set' : null;
+      ? keys.hasKeySecret ? keys.keySecretHint ?? 'set' : null
+      : keys.hasWebhookSecret ? keys.webhookSecretHint ?? 'set' : null;
   }
 
   saveKeys(): void {
@@ -160,12 +271,13 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
         keyId: raw.keyId.trim(),
         keySecret: raw.removeKeySecret ? '' : raw.keySecret.trim() || null,
         webhookSecret: raw.removeWebhookSecret ? '' : raw.webhookSecret.trim() || null,
+        mode: this.editingMode,
       })
       .pipe(finalize(() => (this.savingKeys = false)))
       .subscribe({
         next: (settings) => {
           this.applySettings(settings);
-          this.notify.success('Razorpay keys saved.');
+          this.notify.success(`Razorpay ${this.editingMode} keys saved.`);
         },
         error: () => {
           // ErrorInterceptor toasts it.
@@ -191,6 +303,27 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
         },
         error: () => {
           // ErrorInterceptor toasts the reason (e.g. keys not saved yet); put the toggle back where it was.
+          change.source.checked = !change.checked;
+        },
+      });
+  }
+
+  /** Reads (payment and order lookups) through Razorpay's MCP server when on, the REST API when off. The toggle shows the server's answer. */
+  toggleReadTransport(change: MatSlideToggleChange): void {
+    if (this.savingTransport) {
+      change.source.checked = !change.checked;
+      return;
+    }
+    this.savingTransport = true;
+    this.api
+      .setReadTransport(change.checked ? 'Mcp' : 'Rest')
+      .pipe(finalize(() => (this.savingTransport = false)))
+      .subscribe({
+        next: (settings) => {
+          this.settings = settings;
+          this.notify.success(settings.readTransport === 'Rest' ? 'Razorpay reads now use the REST API.' : 'Razorpay reads now use the Razorpay MCP server.');
+        },
+        error: () => {
           change.source.checked = !change.checked;
         },
       });
@@ -388,7 +521,17 @@ export class RazorpayTestPageComponent implements OnInit, OnDestroy {
   }
 
   private applySettings(settings: RazorpaySettings): void {
+    const first = this.settings === null;
     this.settings = settings;
-    this.keysForm.reset({ keyId: settings.keyId, keySecret: '', removeKeySecret: false, webhookSecret: '', removeWebhookSecret: false });
+    if (first) {
+      // Open on the tab of the mode in use.
+      this.editingMode = this.activeMode;
+    }
+    this.resetKeysForm();
+  }
+
+  private resetKeysForm(): void {
+    this.keysForm.reset({ keyId: this.slot(this.editingMode)?.keyId ?? '', keySecret: '', removeKeySecret: false, webhookSecret: '', removeWebhookSecret: false });
+    this.keyTest = null;
   }
 }
