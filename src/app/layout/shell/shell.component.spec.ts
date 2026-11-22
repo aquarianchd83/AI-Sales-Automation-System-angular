@@ -178,7 +178,7 @@ describe('ShellComponent sidenav', () => {
       'cloudAWS Settings',
       'forward_to_inboxSMTP/SMS Settings',
       'hubIntegrations',
-      'scienceRazorpay Test',
+      'scienceRazorpay',
       'ads_clickMeta Ads',
       'receipt_longLogs',
       'historyAudit Log',
