@@ -54,14 +54,22 @@
     <mat-expansion-panel class="config-panel" *ngIf="show('tax')" [expanded]="open['tax']" (opened)="open['tax'] = true" (closed)="open['tax'] = false">
       <mat-expansion-panel-header>
         <mat-panel-title>Tax<mat-icon class="panel-warn" *ngIf="sectionInvalid('tax')" aria-label="Needs attention">error</mat-icon></mat-panel-title>
-        <mat-panel-description>GST / VAT added on top of prices</mat-panel-description>
+        <mat-panel-description>{{ form.controls.taxEnabled.value ? 'GST on: added on top of prices' : 'GST off: no tax charged' }}</mat-panel-description>
       </mat-expansion-panel-header>
 
-      
-      <p class="muted">
-        Tax is always added on top of a price and is not your revenue. India's GST is CGST + SGST when the tenant is in your own
-        state, and IGST anywhere else. A rate of 0 means no tax in that country.
+      <mat-slide-toggle class="tax-switch" color="primary" [formControl]="form.controls.taxEnabled">Charge GST / tax</mat-slide-toggle>
+      <p class="muted" *ngIf="form.controls.taxEnabled.value; else taxOff">
+        On: tax is added on top of every new payment (plans, AutoPay, credit packs, wallet recharges) and shown on its invoice.
+        Tax is not your revenue. India's GST is CGST + SGST when the tenant is in your own state, and IGST anywhere else. A rate
+        of 0 means no tax in that country.
       </p>
+      <ng-template #taxOff>
+        <p class="muted">
+          Off: no GST or tax is charged on anything new, and new invoices show none. Payments already made keep the tax they were
+          charged. The rates below are kept for when you switch it back on. AutoPay mandates already set up keep charging the
+          amount the tenant agreed to.
+        </p>
+      </ng-template>
       <div class="field-grid">
         <mat-form-field subscriptSizing="dynamic">
           <mat-label>Your registered state</mat-label>

@@ -376,6 +376,19 @@ describe('PlatformConfigurationComponent', () => {
     expect(sent.fx).toEqual({ inrPerUsd: 91.5 });
   });
 
+  it('loads the GST switch and sends it switched off with the rates kept', () => {
+    const { component, save } = render();
+    expect(component.form.controls.taxEnabled.value).toBeTrue();
+
+    component.form.controls.taxEnabled.setValue(false);
+    component.form.markAsDirty();
+    component.save();
+
+    const sent: PlatformConfiguration = save.calls.mostRecent().args[0];
+    expect(sent.tax!.enabled).toBeFalse();
+    expect(sent.tax!.countries[0]).toEqual(jasmine.objectContaining({ countryCode: 'IN', ratePercent: 18 }));
+  });
+
   it('will not save an exchange rate of zero or a tax rate over 100', () => {
     const { component, save } = render();
 

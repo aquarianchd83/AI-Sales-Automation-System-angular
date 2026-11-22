@@ -62,7 +62,8 @@ export class PlatformConfigurationComponent implements OnInit {
     leadDefault: this.leadRates('Default'),
     leadModels: this.fb.array<FormGroup>([]),
     aiModels: this.fb.array<FormGroup>([]),
-    // Tax is always added on top of a price; the state decides CGST + SGST versus IGST for India.
+    // The GST switch: on, tax is added on top of every new payment; the state decides CGST + SGST versus IGST for India.
+    taxEnabled: [true],
     supplierStateCode: ['MH', [Validators.required]],
     taxCountries: this.fb.array<FormGroup>([]),
     // Typical usage the plan cost report prices a plan against: how the WhatsApp quota splits, and how big one AI conversation
@@ -267,7 +268,7 @@ export class PlatformConfigurationComponent implements OnInit {
     const f = this.form.controls;
     const controls: Record<string, { invalid: boolean }[]> = {
       countries: [f.countries],
-      tax: [f.supplierStateCode, f.taxCountries],
+      tax: [f.taxEnabled, f.supplierStateCode, f.taxCountries],
       fx: [f.inrPerUsd],
       costing: [f.costing],
       refunds: [f.refunds],
@@ -414,6 +415,7 @@ export class PlatformConfigurationComponent implements OnInit {
     }
 
     if (config.tax) {
+      this.form.controls.taxEnabled.setValue(config.tax.enabled !== false);
       this.form.controls.supplierStateCode.setValue(config.tax.supplierStateCode);
       this.taxCountries.clear();
       for (const t of config.tax.countries) {
@@ -463,6 +465,7 @@ export class PlatformConfigurationComponent implements OnInit {
 
     return {
       tax: {
+        enabled: !!v.taxEnabled,
         supplierStateCode: v.supplierStateCode,
         countries: (v.taxCountries as TaxCountryConfig[]).map((t) => ({
           countryCode: t.countryCode,

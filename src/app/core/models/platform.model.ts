@@ -568,6 +568,9 @@ export interface TaxCountryConfig {
 }
 
 export interface TaxConfig {
+  /** The platform's GST switch. On: tax is added to every new payment and shown on its invoice. Off: no tax is charged or
+   * shown on anything new (payments already made keep theirs). Missing means on. */
+  enabled?: boolean;
   /** The state the platform is registered in — decides CGST + SGST versus IGST. */
   supplierStateCode: string;
   countries: TaxCountryConfig[];
