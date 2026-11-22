@@ -4,12 +4,16 @@
  */
 
 /** The product areas a plan can include and a tenant can cap. Sent as the name (the API serialises this enum as a string). */
-export type PlatformFeature = 'WhatsAppMessaging' | 'AiConversations' | 'LeadDiscovery' | 'ContentStudio' | 'ProductKnowledge';
+export type PlatformFeature = 'WhatsAppMessaging' | 'Campaigns' | 'AiConversations' | 'LeadDiscovery' | 'ContentStudio' | 'ProductKnowledge';
 
-export const PLATFORM_FEATURES: PlatformFeature[] = ['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge'];
+export const PLATFORM_FEATURES: PlatformFeature[] = ['WhatsAppMessaging', 'Campaigns', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge'];
+
+/** The features that spend credits, so have a ledger, a monthly cap and a line in the wallet. Campaigns only gates access: its sends are WhatsApp messaging. */
+export const SPENDING_FEATURES: PlatformFeature[] = PLATFORM_FEATURES.filter((f) => f !== 'Campaigns');
 
 export const PLATFORM_FEATURE_LABELS: Record<PlatformFeature, string> = {
   WhatsAppMessaging: 'WhatsApp messaging',
+  Campaigns: 'Campaigns',
   AiConversations: 'AI conversations',
   LeadDiscovery: 'Lead discovery',
   ContentStudio: 'Content Studio',
@@ -18,6 +22,7 @@ export const PLATFORM_FEATURE_LABELS: Record<PlatformFeature, string> = {
 
 export const PLATFORM_FEATURE_ICONS: Record<PlatformFeature, string> = {
   WhatsAppMessaging: 'chat',
+  Campaigns: 'campaign',
   AiConversations: 'smart_toy',
   LeadDiscovery: 'travel_explore',
   ContentStudio: 'auto_awesome',

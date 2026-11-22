@@ -21,6 +21,7 @@ import { PlatformTicketService } from '../../core/services/platform-ticket.servi
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { PlatformWalletTopUpDialogComponent } from '../../shared/components/platform-wallet-top-up-dialog/platform-wallet-top-up-dialog.component';
 import { PlatformFeature } from '../../core/models/wallet.model';
+import { featurePreviewUrl } from '../../core/models/feature-preview.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
 import { PlatformNotificationService } from '../../core/services/platform-notification.service';
@@ -39,8 +40,14 @@ interface NavItem {
   visible?: () => boolean;
   /** Other url prefixes that also mean this entry is the current one - for an entry that opens a page holding several routes. */
   matches?: string[];
-  /** Hidden for a tenant whose plan does not include this feature. */
-  feature?: PlatformFeature;
+  /**
+   * Locked for a tenant whose plan does not include this feature: still listed, dimmed with a lock and a Premium chip, and it opens the feature's
+   * preview page instead of the screen. A function for an entry that opens on whichever of several features is in the plan - it returns the
+   * feature that locks the entry, or undefined when the entry is open.
+   */
+  feature?: PlatformFeature | (() => PlatformFeature | undefined);
+  /** Where the entry goes when it depends on the plan, read each time instead of `route`. */
+  link?: () => string;
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -100,15 +107,25 @@ export class ShellComponent implements OnInit, OnDestroy {
         // Tags is opened from the Customers page, so it stays under this entry.
         { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'] },
         { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [], feature: 'WhatsAppMessaging' },
-        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'WhatsAppMessaging' },
+        { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'Campaigns' },
         // One entry for everything the AI knows; its screens are listed on the page itself (KnowledgeHubComponent).
         {
           label: 'Knowledge',
           icon: 'psychology',
-          // An Admin lands on Product Sources; a Sales Manager only has the studio screens, so lands on the questionnaire.
+          // An Admin lands on Product Sources; a Sales Manager only has the studio screens, so lands on the questionnaire - and so does an Admin
+          // whose plan has the studio but not product knowledge.
           route: this.auth.hasAnyRole(TENANT_ADMIN_ONLY) ? '/product-knowledge/sources' : '/content-studio/questionnaire',
+          link: () => (this.canOpenProductKnowledge() || !this.canOpenStudio() ? '/product-knowledge/sources' : '/content-studio/questionnaire'),
           roles: STUDIO_CONTENT_ROLES,
-          visible: () => this.canOpenProductKnowledge() || this.canOpenStudio(),
+          // An Admin always has a Knowledge screen to open or to preview; a Sales Manager only has the studio ones, once the platform switches it on.
+          visible: () => this.auth.hasAnyRole(TENANT_ADMIN_ONLY) || this.studioEnabled,
+          // Open while either feature behind it is; locked on the one this user would land on.
+          feature: () =>
+            this.canOpenProductKnowledge() || this.canOpenStudio()
+              ? undefined
+              : this.auth.hasAnyRole(TENANT_ADMIN_ONLY)
+              ? 'ProductKnowledge'
+              : 'ContentStudio',
           matches: ['/product-knowledge', '/content-studio/questionnaire', '/content-studio/facts', '/content-studio/readiness'],
         },
       ],
@@ -299,9 +316,28 @@ export class ShellComponent implements OnInit, OnDestroy {
     return this.studioEnabled && this.entitlements.has('ContentStudio');
   }
 
-  /** An entry shows when its own switch allows it and the tenant's plan includes its feature. */
+  /** An entry shows when its own switch allows it. One whose feature is not in the plan still shows, locked (see isLocked). */
   isItemVisible(item: NavItem): boolean {
-    return (!item.visible || item.visible()) && (!item.feature || this.entitlements.has(item.feature));
+    return !item.visible || item.visible();
+  }
+
+  /** The feature the tenant's plan lacks that locks this entry, or null when it is open (always, until the plan is known). */
+  lockedFeature(item: NavItem): PlatformFeature | null {
+    const feature = typeof item.feature === 'function' ? item.feature() : item.feature;
+    return feature && !this.entitlements.has(feature) ? feature : null;
+  }
+
+  isLocked(item: NavItem): boolean {
+    return this.lockedFeature(item) !== null;
+  }
+
+  /** Where the entry goes: the feature's preview when locked, otherwise its own screen. */
+  routeOf(item: NavItem): string {
+    const locked = this.lockedFeature(item);
+    if (locked) {
+      return featurePreviewUrl(locked);
+    }
+    return item.link ? item.link() : item.route;
   }
 
   /** Nav groups the user has folded away, by label. Remembered on this browser; a group holding the page being viewed never folds. */

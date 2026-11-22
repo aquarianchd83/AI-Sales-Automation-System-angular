@@ -72,6 +72,14 @@ const routes: Routes = [
           import('./features/dashboard/dashboard.module').then((m) => m.DashboardModule),
       },
       {
+        // What a feature the plan lacks would do, and how to get it. The sidenav's locked entries, the dashboard's "Unlock more" cards and featureGuard
+        // open it. The real screens keep their featureGuard; this page shows nothing of the tenant's data.
+        path: 'premium',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ROLES },
+        loadChildren: () => import('./features/feature-preview/feature-preview.module').then((m) => m.FeaturePreviewModule),
+      },
+      {
         path: 'customers',
         canActivate: [roleGuard],
         data: { roles: TENANT_ROLES },
@@ -148,7 +156,7 @@ const routes: Routes = [
       {
         path: 'campaigns',
         canActivate: [roleGuard, featureGuard],
-        data: { roles: TENANT_ROLES, feature: 'WhatsAppMessaging' },
+        data: { roles: TENANT_ROLES, feature: 'Campaigns' },
         loadChildren: () =>
           import('./features/campaigns/campaigns.module').then((m) => m.CampaignsModule),
       },

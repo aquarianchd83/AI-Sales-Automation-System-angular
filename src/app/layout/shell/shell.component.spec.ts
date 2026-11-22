@@ -17,15 +17,20 @@ import { PlatformTicketService } from '../../core/services/platform-ticket.servi
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { TenantProfileService } from '../../core/services/tenant-profile.service';
 import { SharedModule } from '../../shared/shared.module';
+import { EntitlementsStore } from '../../core/services/entitlements.store';
+import { PlatformFeature } from '../../core/models/wallet.model';
 import { ShellComponent } from './shell.component';
 
 describe('ShellComponent sidenav', () => {
   /** The tickets the operator would see as Open; a test sets it before building the shell. */
   let openTickets: unknown[] = [];
   let ticketService: { getAll: jasmine.Spy };
+  /** Whether the platform has switched Content Studio on; a test sets it before building the shell. */
+  let studioEnabled = false;
 
   beforeEach(() => {
     openTickets = [];
+    studioEnabled = false;
     ticketService = { getAll: jasmine.createSpy('getAll').and.callFake((status?: string) => of(status === 'Open' ? openTickets : [])) };
   });
 
@@ -51,7 +56,7 @@ describe('ShellComponent sidenav', () => {
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },
         { provide: AccountRecoveryService, useValue: { resendVerificationEmail: resend } },
         { provide: AccountService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
-        { provide: ContentStudioService, useValue: { getStatus: () => of({ enabled: false }) } },
+        { provide: ContentStudioService, useValue: { getStatus: () => of({ enabled: studioEnabled }) } },
         { provide: BillingService, useValue: { getNotifications: () => of([]) } },
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of(platformAlerts) } },
@@ -101,6 +106,112 @@ describe('ShellComponent sidenav', () => {
       'manage_accountsUsers & Roles',
       'scienceTest Notifications',
     ]);
+  });
+
+  describe('features the plan lacks', () => {
+    /** Builds the shell, then lands the tenant's plan, as the entitlements call would. */
+    const withPlan = (roles: string[], features: PlatformFeature[]): HTMLElement => {
+      const fixture = createFixture(roles);
+      TestBed.inject(EntitlementsStore).set({ planCode: 'basic', planName: 'Basic', features, balance: 10, costs: [] });
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    };
+    const BASIC: PlatformFeature[] = ['WhatsAppMessaging', 'AiConversations', 'Campaigns'];
+    const link = (root: HTMLElement, label: string) =>
+      Array.from(root.querySelectorAll<HTMLAnchorElement>('.nav-item')).find((a) => a.querySelector('.nav-item-label')?.textContent?.trim() === label);
+
+    it('still lists a locked entry, dimmed, with a lock and a Premium chip, opening its preview', () => {
+      const root = withPlan(['Admin'], BASIC);
+
+      const lead = link(root, 'Lead Discovery')!;
+      expect(lead).toBeDefined();
+      expect(lead.classList).toContain('nav-item--locked');
+      expect(lead.querySelector('.nav-lock')?.textContent?.trim()).toBe('lock');
+      expect(lead.querySelector('.nav-premium-chip')?.textContent?.trim()).toBe('Premium');
+      expect(lead.getAttribute('href')).toBe('/premium/lead-discovery');
+      expect(lead.getAttribute('target')).toBeNull();
+      expect(lead.getAttribute('aria-label')).toBe('Lead Discovery, Premium');
+    });
+
+    it('leaves the entries the plan includes exactly as they were', () => {
+      const root = withPlan(['Admin'], BASIC);
+
+      for (const [label, href] of [
+        ['Customers', '/customers'],
+        ['Message Templates', '/message-templates'],
+        ['Campaigns', '/campaigns'],
+        ['Inbox', '/conversations'],
+      ]) {
+        const a = link(root, label)!;
+        expect(a.classList).not.toContain('nav-item--locked');
+        expect(a.querySelector('.nav-premium-chip')).toBeNull();
+        expect(a.querySelector('.nav-lock')).toBeNull();
+        expect(a.getAttribute('href')).toBe(href);
+      }
+    });
+
+    it('locks nothing on a plan that includes every feature, or before the plan is known', () => {
+      const all = withPlan(['Admin'], ['WhatsAppMessaging', 'AiConversations', 'LeadDiscovery', 'ContentStudio', 'ProductKnowledge', 'Campaigns']);
+      expect(all.querySelector('.nav-item--locked')).toBeNull();
+      expect(link(all, 'Lead Discovery')!.getAttribute('href')).toBe('/lead-discovery/history');
+
+      TestBed.resetTestingModule();
+      expect(render(['Admin']).querySelector('.nav-item--locked')).toBeNull();
+    });
+
+    it('locks messaging entries for a plan without WhatsApp messaging', () => {
+      const root = withPlan(['Admin'], ['AiConversations']);
+
+      expect(link(root, 'Campaigns')!.getAttribute('href')).toBe('/premium/campaigns');
+      expect(link(root, 'Message Templates')!.classList).toContain('nav-item--locked');
+    });
+
+    it("shows an Admin's Knowledge entry locked on product knowledge when neither knowledge feature is in the plan", () => {
+      const root = withPlan(['Admin'], BASIC);
+
+      const knowledge = link(root, 'Knowledge')!;
+      expect(knowledge.classList).toContain('nav-item--locked');
+      expect(knowledge.getAttribute('href')).toBe('/premium/product-knowledge');
+    });
+
+    it('opens Knowledge on the studio for an Admin whose plan has the studio but not product knowledge', () => {
+      studioEnabled = true;
+      const root = withPlan(['Admin'], [...BASIC, 'ContentStudio']);
+
+      const knowledge = link(root, 'Knowledge')!;
+      expect(knowledge.classList).not.toContain('nav-item--locked');
+      expect(knowledge.getAttribute('href')).toBe('/content-studio/questionnaire');
+    });
+
+    it('still respects the module switch: a locked studio entry shows only once the platform switches the studio on', () => {
+      expect(link(withPlan(['Admin'], BASIC), 'Story Studio')).toBeUndefined();
+
+      TestBed.resetTestingModule();
+      studioEnabled = true;
+      const story = link(withPlan(['Admin'], BASIC), 'Story Studio')!;
+      expect(story.classList).toContain('nav-item--locked');
+      expect(story.getAttribute('href')).toBe('/premium/content-studio');
+    });
+
+    it('still respects roles: a sales agent sees locked entries open to them, and none of the admin-only ones', () => {
+      studioEnabled = true;
+      const root = withPlan(['SalesAgent'], BASIC);
+
+      expect(link(root, 'Lead Discovery')!.getAttribute('href')).toBe('/premium/lead-discovery');
+      expect(link(root, 'Story Studio')).toBeUndefined();
+      expect(link(root, 'Charges & Activity')).toBeUndefined();
+      expect(link(root, 'Knowledge')).toBeUndefined();
+      expect(labels(root)).toEqual(['Outreach', 'Engage', 'Extra']);
+    });
+
+    it('shows a Sales Manager the studio entries locked, landing on the studio preview', () => {
+      studioEnabled = true;
+      const root = withPlan(['SalesManager'], BASIC);
+
+      expect(link(root, 'Knowledge')!.getAttribute('href')).toBe('/premium/content-studio');
+      expect(link(root, 'Story Studio')!.getAttribute('href')).toBe('/premium/content-studio');
+      expect(link(root, 'Charges & Activity')).toBeUndefined();
+    });
   });
 
   it('folds a group away when its heading is clicked, and opens it again', () => {

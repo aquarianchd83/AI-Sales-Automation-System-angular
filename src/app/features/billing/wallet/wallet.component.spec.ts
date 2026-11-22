@@ -15,7 +15,7 @@ import {
   QuotaType,
 } from '../../../core/models/billing.model';
 import { emptyPage } from '../../../core/models/paged-result.model';
-import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature, WalletSummary } from '../../../core/models/wallet.model';
+import { SPENDING_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature, WalletSummary } from '../../../core/models/wallet.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { RazorpayPaymentFlowService } from '../../../core/services/razorpay-payment-flow.service';
 import { WalletRechargeService } from '../../../core/services/wallet-recharge.service';
@@ -50,13 +50,13 @@ const PACK: CreditPack = {
 };
 
 /** A wallet for a Premium tenant: every feature, WhatsApp capped at 60 with 45 used. Override per test. */
-const summary = (over: Partial<WalletSummary> = {}, includeOnly: PlatformFeature[] = PLATFORM_FEATURES): WalletSummary => ({
+const summary = (over: Partial<WalletSummary> = {}, includeOnly: PlatformFeature[] = SPENDING_FEATURES): WalletSummary => ({
   balance: 80,
   planCode: 'premium',
   planName: 'Premium',
   monthlyCredits: 100,
   monthStartUtc: '2026-10-01T00:00:00Z',
-  features: PLATFORM_FEATURES.map((feature) => ({
+  features: SPENDING_FEATURES.map((feature) => ({
     feature,
     label: PLATFORM_FEATURE_LABELS[feature],
     description: '',
@@ -86,7 +86,7 @@ describe('WalletComponent', () => {
       getQuota: jasmine.createSpy('getQuota').and.returnValue(of(options.balances ?? credits(80, 100))),
       getWallet: jasmine.createSpy('getWallet').and.returnValue(of(options.wallet ?? summary())),
       setFeatureCap: jasmine.createSpy('setFeatureCap').and.callFake((req: { feature: PlatformFeature; monthlyLimit: number | null }) =>
-        of(summary({}, PLATFORM_FEATURES))
+        of(summary({}, SPENDING_FEATURES))
       ),
       getAiUsage: jasmine.createSpy('getAiUsage').and.returnValue(
         of({ ...emptyPage<AiTransaction>(), items: options.aiUsage ?? [], totalCount: (options.aiUsage ?? []).length, totalPages: 1 })

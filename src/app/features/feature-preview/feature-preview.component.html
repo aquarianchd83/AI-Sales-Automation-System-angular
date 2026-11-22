@@ -1,0 +1,73 @@
+<div class="page" *ngIf="preview as p" [attr.data-feature]="p.feature">
+  <section class="preview-hero">
+    <span class="preview-icon"><mat-icon>{{ p.icon }}</mat-icon></span>
+    <div class="preview-head">
+      <div class="preview-title-row">
+        <h1>{{ p.title }}</h1>
+        <span class="premium-chip" *ngIf="!included"><mat-icon>lock</mat-icon>Premium</span>
+      </div>
+      <p class="preview-outcome" data-testid="preview-outcome">{{ p.outcome }}</p>
+    </div>
+  </section>
+
+  <div class="preview-grid">
+    <mat-card class="preview-card">
+      <h2>What you get</h2>
+      <ul class="benefits" data-testid="preview-benefits">
+        <li *ngFor="let b of p.benefits">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ b }}</span>
+        </li>
+      </ul>
+
+      <div class="credit-line" data-testid="preview-credits">
+        <mat-icon aria-hidden="true">toll</mat-icon>
+        <ng-container *ngIf="isAdmin; else memberCredits">
+          <span *ngIf="creditLine as line; else costsUnknown">{{ line }}, from your one credit balance.</span>
+          <ng-template #costsUnknown>
+            <span *ngIf="costs === null">Reading the credit costs…</span>
+            <span *ngIf="costs !== null">Uses credits from your balance. The Credit cap page lists every price.</span>
+          </ng-template>
+        </ng-container>
+        <ng-template #memberCredits>
+          <span>Uses credits from your workspace balance. Your admin can see the price of each action.</span>
+        </ng-template>
+      </div>
+
+      <div class="preview-actions" data-testid="preview-actions">
+        <ng-container *ngIf="included; else locked">
+          <span class="included-note">Your plan includes {{ p.title | lowercase }}.</span>
+          <a mat-flat-button color="primary" *ngIf="openRoute as link" [routerLink]="link" data-testid="preview-open">
+            <mat-icon>arrow_forward</mat-icon>
+            Open {{ p.title | lowercase }}
+          </a>
+        </ng-container>
+        <ng-template #locked>
+          <ng-container *ngIf="isAdmin; else askAdmin">
+            <a mat-flat-button color="primary" routerLink="/billing" data-testid="preview-upgrade">
+              <mat-icon>workspace_premium</mat-icon>
+              Upgrade to Premium
+            </a>
+            <a mat-stroked-button routerLink="/billing/credit-costs">
+              <mat-icon>price_check</mat-icon>
+              See credit costs
+            </a>
+          </ng-container>
+          <ng-template #askAdmin>
+            <p class="ask-admin" data-testid="preview-ask-admin">
+              <mat-icon>info</mat-icon>
+              <span>Ask your admin to upgrade to Premium. Only an admin can change the plan.</span>
+            </p>
+          </ng-template>
+        </ng-template>
+      </div>
+    </mat-card>
+
+    <div class="shots" aria-label="What it looks like">
+      <figure class="shot" *ngFor="let img of p.images" data-testid="preview-image">
+        <div class="shot-frame"><mat-icon>{{ img.icon }}</mat-icon></div>
+        <figcaption>{{ img.caption }}</figcaption>
+      </figure>
+    </div>
+  </div>
+</div>

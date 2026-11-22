@@ -158,5 +158,48 @@
 .feature-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+}
+
+.feature-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  min-height: 56px;
+  border-top: 1px solid rgba(128, 128, 128, 0.2);
+
+  &:first-child {
+    border-top: none;
+  }
+}
+
+.feature-name {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 260px;
+  min-width: 0;
+
+  span.small {
+    font-size: 12px;
+  }
+
+  > span:first-child {
+    font-size: 14px;
+  }
+
+  .muted {
+    margin: 0;
+    padding-left: 0;
+  }
+
+  mat-checkbox + .muted {
+    padding-left: 40px;
+  }
+}
+
+.limit-field {
+  flex: 0 0 220px;
+  max-width: 100%;
 }
