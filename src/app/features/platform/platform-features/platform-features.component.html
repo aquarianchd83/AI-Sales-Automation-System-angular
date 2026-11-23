@@ -1,0 +1,44 @@
+<div class="page">
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="loadFailed" class="features-card">
+    <p>The features could not be loaded.</p>
+    <button mat-stroked-button type="button" (click)="load()">Try again</button>
+  </mat-card>
+
+  <ng-container *ngIf="!loading && !loadFailed">
+    <p class="muted intro">
+      Publish or unpublish a feature for the whole platform. An unpublished feature is hidden from every tenant and refused by the API, whatever their plan
+      includes. Changes apply from the next request, no restart.
+    </p>
+
+    <div class="status" [class.status--warn]="unpublishedCount > 0">
+      <mat-icon>{{ unpublishedCount > 0 ? 'visibility_off' : 'check_circle' }}</mat-icon>
+      <strong>
+        {{ unpublishedCount === 0 ? 'Every feature is published' : unpublishedCount + ' of ' + features.length + ' features unpublished' }}
+      </strong>
+    </div>
+
+    <mat-card class="features-card" *ngFor="let item of features">
+      <div class="row" [class.row--off]="!item.published">
+        <mat-icon class="row__icon">{{ icons[item.feature] }}</mat-icon>
+        <div class="row__text">
+          <h2>
+            {{ item.label }}
+            <span class="badge" [class.badge--off]="!item.published">{{ item.published ? 'Published' : 'Unpublished' }}</span>
+          </h2>
+          <p class="muted">{{ item.description }}</p>
+          <p class="muted small" *ngIf="item.updatedAtUtc">Last changed {{ item.updatedAtUtc | zonedDate: 'medium' }}</p>
+        </div>
+        <mat-slide-toggle
+          [checked]="item.published"
+          [disabled]="saving !== null"
+          (change)="toggle(item, $event.checked)"
+          [attr.aria-label]="(item.published ? 'Unpublish ' : 'Publish ') + item.label"
+        >
+          {{ item.published ? 'Published' : 'Unpublished' }}
+        </mat-slide-toggle>
+      </div>
+    </mat-card>
+  </ng-container>
+</div>
