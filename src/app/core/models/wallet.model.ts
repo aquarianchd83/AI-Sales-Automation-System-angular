@@ -42,6 +42,35 @@ export interface FeatureCost {
   description?: string;
 }
 
+/**
+ * Free uses of a feature the tenant's plan does NOT include (e.g. 10 free leads of lead discovery on Basic). While some are left the feature is open
+ * and listed in `Entitlements.features`; once they are gone it is locked like any feature outside the plan, until the tenant upgrades. Lifetime, not monthly.
+ */
+export interface FeatureTrial {
+  feature: PlatformFeature;
+  label: string;
+  freeUses: number;
+  used: number;
+  remaining: number;
+  exhausted: boolean;
+  /** What one use is, plural ("leads", "AI generations"). */
+  unit: string;
+  unitSingular: string;
+  /** True when the plan includes the feature but caps it (Basic: 100 AI replies); false for free uses of a feature outside the plan. */
+  includedInPlan?: boolean;
+}
+
+/** "7 of 10 free leads left" for free uses, "80 of 100 AI replies left" for a plan's cap. */
+export function trialLeftLabel(trial: FeatureTrial): string {
+  return `${trial.remaining} of ${trial.freeUses} ${trial.includedInPlan ? '' : 'free '}${trial.freeUses === 1 ? trial.unitSingular : trial.unit} left`;
+}
+
+/** "You have used all 10 free leads of Lead discovery included with your Basic plan." */
+export function trialUsedUpLabel(trial: FeatureTrial, planName: string | null): string {
+  const unit = trial.freeUses === 1 ? trial.unitSingular : trial.unit;
+  return `You have used all ${trial.freeUses} ${trial.includedInPlan ? '' : 'free '}${unit} of ${trial.label} included with your ${planName || 'current'} plan.`;
+}
+
 export interface FeatureWallet {
   feature: PlatformFeature;
   label: string;
@@ -52,6 +81,8 @@ export interface FeatureWallet {
   /** The tenant's own limit on this feature's credits per calendar month, or null for none. */
   monthlyCap: number | null;
   costs: FeatureCost[];
+  /** Set when the plan does not include the feature but gives free uses of it. */
+  freeTrial?: FeatureTrial | null;
 }
 
 export interface WalletSummary {
@@ -70,6 +101,8 @@ export interface Entitlements {
   features: PlatformFeature[];
   balance: number;
   costs: CreditCostItem[];
+  /** Features the plan does not include but gives free uses of (used up or not). Absent from an older API. */
+  trials?: FeatureTrial[] | null;
 }
 
 export interface CreditCostItem {

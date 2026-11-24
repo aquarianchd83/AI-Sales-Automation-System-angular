@@ -20,7 +20,7 @@ import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { PlatformTicketService } from '../../core/services/platform-ticket.service';
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { PlatformWalletTopUpDialogComponent } from '../../shared/components/platform-wallet-top-up-dialog/platform-wallet-top-up-dialog.component';
-import { PlatformFeature } from '../../core/models/wallet.model';
+import { FeatureTrial, PlatformFeature, trialLeftLabel } from '../../core/models/wallet.model';
 import { featurePreviewUrl } from '../../core/models/feature-preview.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
@@ -46,6 +46,8 @@ interface NavItem {
    * feature that locks the entry, or undefined when the entry is open.
    */
   feature?: PlatformFeature | (() => PlatformFeature | undefined);
+  /** Features whose free uses this entry's chip shows, when `feature` alone does not name them (an entry behind several features, or one with no lock). */
+  trialFeatures?: PlatformFeature[];
   /** Where the entry goes when it depends on the plan, read each time instead of `route`. */
   link?: () => string;
 }
@@ -57,6 +59,16 @@ interface NavSection {
 }
 
 const TENANT_ADMIN_ONLY = [AppRole.Admin];
+
+/** Which feature a screen belongs to, by the start of its address - for the free-trial bar above it. */
+const FEATURE_ROUTES: [string, PlatformFeature][] = [
+  ['/lead-discovery', 'LeadDiscovery'],
+  ['/product-knowledge', 'ProductKnowledge'],
+  ['/content-studio', 'ContentStudio'],
+  ['/conversations', 'AiConversations'],
+  ['/message-templates', 'WhatsAppMessaging'],
+  ['/campaigns', 'Campaigns'],
+];
 
 /** localStorage key for the set of announcement ids this browser has dismissed — a per-viewer
  * convenience (see TokenStorageService's own doc comment on why localStorage is already this
@@ -127,13 +139,14 @@ export class ShellComponent implements OnInit, OnDestroy {
               ? 'ProductKnowledge'
               : 'ContentStudio',
           matches: ['/product-knowledge', '/content-studio/questionnaire', '/content-studio/facts', '/content-studio/readiness'],
+          trialFeatures: ['ProductKnowledge', 'ContentStudio'],
         },
       ],
     },
     {
       label: 'Engage',
       items: [
-        { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [] },
+        { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [], trialFeatures: ['AiConversations'] },
         { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
         { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
         { label: 'Demos Scheduled', icon: 'event_available', route: '/bookings', roles: [] },
@@ -330,6 +343,51 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   isLocked(item: NavItem): boolean {
     return this.lockedFeature(item) !== null;
+  }
+
+  /** The free uses an open entry is running on (one of its features is outside the plan but has free uses left), or null. */
+  trialOf(item: NavItem): FeatureTrial | null {
+    const named = typeof item.feature === 'function' ? item.feature() : item.feature;
+    const features = [...(named ? [named] : []), ...(item.trialFeatures ?? [])];
+    for (const feature of features) {
+      const trial = this.openTrial(feature);
+      if (trial) {
+        return trial;
+      }
+    }
+    return null;
+  }
+
+  private openTrial(feature: PlatformFeature): FeatureTrial | null {
+    if (!this.entitlements.has(feature)) {
+      return null;
+    }
+    const trial = this.entitlements.trialOf(feature);
+    return trial && !trial.exhausted ? trial : null;
+  }
+
+  /** "7 free left", for the chip beside an entry on free uses. */
+  trialChip(item: NavItem): string | null {
+    const trial = this.trialOf(item);
+    return trial ? `${trial.remaining} ${trial.includedInPlan ? '' : 'free '}left` : null;
+  }
+
+  /**
+   * The free uses the page on screen is running on, for the bar above it: "Lead discovery: 7 of 10 free leads left on your Basic plan". Null on any
+   * page whose feature is in the plan, and for a platform admin.
+   */
+  get currentTrial(): FeatureTrial | null {
+    if (this.isPlatformSuperAdmin) {
+      return null;
+    }
+    // Read from the page's own address, so a screen behind a shared entry (Knowledge holds product knowledge and the studio) shows its own feature.
+    const path = this.router.url.split(/[?#]/)[0];
+    const match = FEATURE_ROUTES.find(([prefix]) => path === prefix || path.startsWith(prefix + '/'));
+    return match ? this.openTrial(match[1]) : null;
+  }
+
+  trialLine(trial: FeatureTrial): string {
+    return `${trial.label}: ${trialLeftLabel(trial)} on your ${this.entitlements.current?.planName || 'current'} plan.`;
   }
 
   /** Where the entry goes: the feature's preview when locked, otherwise its own screen. */

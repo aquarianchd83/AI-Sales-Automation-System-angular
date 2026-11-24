@@ -34,9 +34,18 @@
         </ng-template>
       </div>
 
+      <p class="trial-note trial-note--used" *ngIf="trialUsedUp as line" data-testid="preview-trial-used">
+        <mat-icon>hourglass_bottom</mat-icon>
+        <span>{{ line }} Upgrade to Premium to keep using it.</span>
+      </p>
+      <p class="trial-note" *ngIf="trialLeft as line" data-testid="preview-trial-left">
+        <mat-icon>hourglass_top</mat-icon>
+        <span>Free trial: {{ line }}. After that it needs Premium.</span>
+      </p>
+
       <div class="preview-actions" data-testid="preview-actions">
         <ng-container *ngIf="included; else locked">
-          <span class="included-note">Your plan includes {{ p.title | lowercase }}.</span>
+          <span class="included-note" *ngIf="!trialLeft">Your plan includes {{ p.title | lowercase }}.</span>
           <a mat-flat-button color="primary" *ngIf="openRoute as link" [routerLink]="link" data-testid="preview-open">
             <mat-icon>arrow_forward</mat-icon>
             Open {{ p.title | lowercase }}

@@ -5,7 +5,7 @@ import { forkJoin, of } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import { RegionOption } from '../../../core/models/billing.model';
-import { CreatePlanRequest, PlatformPlan, UpdatePlanRequest } from '../../../core/models/platform.model';
+import { CreatePlanRequest, PlanFeatureTrialInput, PlatformPlan, UpdatePlanRequest } from '../../../core/models/platform.model';
 import { PLATFORM_FEATURES, PLATFORM_FEATURE_LABELS, PlatformFeature } from '../../../core/models/wallet.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -41,6 +41,47 @@ export class PlatformPlanEditorComponent implements OnInit {
 
   limitFor(feature: PlatformFeature): { control: string; label: string } | null {
     return this.featureLimits[feature] ?? null;
+  }
+
+  /**
+   * What one free use of a feature is, for a feature the plan does NOT include: a tenant on the plan can use it this many times and is then asked
+   * to upgrade. Campaigns spends nothing of its own, so it has nothing to count and cannot be given free uses.
+   */
+  readonly trialUnits: Partial<Record<PlatformFeature, string>> = {
+    LeadDiscovery: 'leads',
+    ContentStudio: 'AI generations',
+    ProductKnowledge: 'AI actions',
+    WhatsAppMessaging: 'messages',
+    AiConversations: 'AI replies',
+  };
+
+  /** Free uses per feature outside the plan, as edited. A feature not in here is sent as 0 only if the plan had some before. */
+  readonly freeUses: Partial<Record<PlatformFeature, number>> = {};
+  private readonly freeUsesBefore = new Set<PlatformFeature>();
+
+  freeUsesOf(feature: PlatformFeature): number {
+    return this.freeUses[feature] ?? 0;
+  }
+
+  setFreeUses(feature: PlatformFeature, value: string | number): void {
+    const n = Math.max(0, Math.floor(Number(value) || 0));
+    this.freeUses[feature] = n;
+    this.form.markAsDirty();
+  }
+
+  /**
+   * Every feature with something to count has a box: beside an unticked feature it is the free uses to try it, beside a ticked one a cap
+   * (Basic: AI conversations up to 100 replies). Either way the tenant is asked to upgrade once they are used up; 0 means none / no cap.
+   */
+  canHaveFreeUses(feature: PlatformFeature): boolean {
+    return !!this.trialUnits[feature];
+  }
+
+  private freeTrialInputs(): PlanFeatureTrialInput[] {
+    return PLATFORM_FEATURES.filter((f) => this.trialUnits[f] && (this.freeUses[f] !== undefined || this.freeUsesBefore.has(f))).map((f) => ({
+      feature: f,
+      freeUses: this.freeUses[f] ?? 0,
+    }));
   }
 
   planId: string | null = null;
@@ -152,6 +193,7 @@ export class PlatformPlanEditorComponent implements OnInit {
     const priceMonthlyCents = 0;
     const features = PLATFORM_FEATURES.filter((f) => this.features.has(f));
     const countryPrices = toCountryPriceInputs(this.countryPrices);
+    const freeTrials = this.freeTrialInputs();
 
     this.saving = true;
     const request$ = this.planId
@@ -168,6 +210,7 @@ export class PlatformPlanEditorComponent implements OnInit {
           monthlyCredits: raw.monthlyCredits,
           features,
           countryPrices,
+          freeTrials,
         } as UpdatePlanRequest)
       : this.billing.createPlan({
           code: raw.code,
@@ -183,6 +226,7 @@ export class PlatformPlanEditorComponent implements OnInit {
           monthlyCredits: raw.monthlyCredits,
           features,
           countryPrices,
+          freeTrials,
         } as CreatePlanRequest);
 
     request$.pipe(finalize(() => (this.saving = false))).subscribe({
@@ -218,6 +262,15 @@ export class PlatformPlanEditorComponent implements OnInit {
 
     this.features.clear();
     plan.features.forEach((f) => this.features.add(f));
+
+    this.freeUsesBefore.clear();
+    for (const key of Object.keys(this.freeUses) as PlatformFeature[]) {
+      delete this.freeUses[key];
+    }
+    for (const t of plan.freeTrials ?? []) {
+      this.freeUses[t.feature] = t.freeUses;
+      this.freeUsesBefore.add(t.feature);
+    }
 
     this.countryPrices.clear();
     for (const p of plan.countryPrices) {

@@ -6,7 +6,7 @@ import { takeUntil } from 'rxjs/operators';
 import { STUDIO_CONTENT_ROLES } from '../../core/models/content-studio.model';
 import { FEATURE_PREVIEWS, FeaturePreview, featureFromSlug } from '../../core/models/feature-preview.model';
 import { TENANT_ADMIN_ROLES } from '../../core/models/user.model';
-import { FeatureCost, PlatformFeature, creditsLabel } from '../../core/models/wallet.model';
+import { FeatureCost, FeatureTrial, PlatformFeature, creditsLabel, trialLeftLabel, trialUsedUpLabel } from '../../core/models/wallet.model';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
 import { EntitlementsStore } from '../../core/services/entitlements.store';
@@ -66,6 +66,23 @@ export class FeaturePreviewComponent implements OnInit, OnDestroy {
   /** True once the plan is known to include the feature - e.g. right after an upgrade, or from an old link. */
   get included(): boolean {
     return !!this.preview && this.entitlements.current !== null && this.entitlements.has(this.preview.feature);
+  }
+
+  /** The free uses the plan gives of this feature (used up or not), or null when it gives none. */
+  get trial(): FeatureTrial | null {
+    return this.preview ? this.entitlements.trialOf(this.preview.feature) : null;
+  }
+
+  /** "You have used all 10 free leads of Lead discovery included with your Basic plan." once they are gone; null otherwise. */
+  get trialUsedUp(): string | null {
+    const trial = this.trial;
+    return trial?.exhausted ? trialUsedUpLabel(trial, this.entitlements.current?.planName ?? null) : null;
+  }
+
+  /** "7 of 10 free leads left", while the feature is open on free uses. */
+  get trialLeft(): string | null {
+    const trial = this.trial;
+    return trial && !trial.exhausted ? trialLeftLabel(trial) : null;
   }
 
   /** Where the feature's own screen is, for a tenant whose plan includes it; null when this user has no screen for it. */

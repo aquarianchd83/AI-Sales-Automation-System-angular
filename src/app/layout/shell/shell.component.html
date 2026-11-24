@@ -48,6 +48,7 @@
                   <span class="nav-premium-chip">Premium</span>
                   <mat-icon class="nav-lock" aria-hidden="true">lock</mat-icon>
                 </ng-container>
+                <span class="nav-trial-chip" *ngIf="trialChip(item) as chip" [attr.data-testid]="'nav-trial-' + item.route">{{ chip }}</span>
               </a>
               </ng-container>
             </ng-container>
@@ -372,6 +373,19 @@
         {{ checkingOnboarding ? 'Checking…' : 'Check this step' }}
       </button>
       <a mat-flat-button color="primary" routerLink="/onboarding">Back to setup</a>
+    </div>
+
+    <!-- A Premium feature the plan only gives a few free uses of: how many are left, and the way to keep it. -->
+    <div class="trial-bar" *ngIf="currentTrial as trial" role="status" data-testid="trial-bar">
+      <mat-icon>hourglass_top</mat-icon>
+      <span class="trial-bar-text">
+        <strong>{{ trial.includedInPlan ? 'Plan limit.' : 'Free trial.' }}</strong> {{ trialLine(trial) }} After that it needs Premium.
+      </span>
+      <a mat-flat-button color="primary" routerLink="/billing" *ngIf="canOpenWallet; else askAdminTrial">
+        <mat-icon>workspace_premium</mat-icon>
+        Upgrade to Premium
+      </a>
+      <ng-template #askAdminTrial><span class="trial-bar-ask">Ask your admin to upgrade.</span></ng-template>
     </div>
 
     <main class="shell-content">

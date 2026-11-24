@@ -211,6 +211,19 @@
     opacity: 0.75;
   }
 
+  .nav-trial-chip {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.16);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+  }
+
   .nav-premium-chip {
     flex: none;
     padding: 1px 7px;
@@ -669,6 +682,26 @@ button.wallet-chip {
   margin-left: 8px;
   font-size: 16px;
   font-weight: 500;
+}
+
+.trial-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 24px;
+  background: #fff7e6;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+  color: #7c4a03;
+
+  .trial-bar-text {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .trial-bar-ask {
+    font-weight: 500;
+  }
 }
 
 .onboarding-bar {

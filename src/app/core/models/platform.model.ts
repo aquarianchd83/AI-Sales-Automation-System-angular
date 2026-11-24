@@ -227,6 +227,21 @@ export interface PlatformPlan {
   /** Explicit prices set per country, each in that country's own currency. A country without one is quoted the
    * USD price converted at the platform rate. */
   countryPrices: CountryPrice[];
+  /** Free uses the plan gives of features it does NOT include: a tenant can try each this many times, then is asked to upgrade. */
+  freeTrials?: PlanFeatureTrial[] | null;
+}
+
+/** Free uses a plan gives of one feature it does not include. `unit` is what one use is ("leads"). */
+export interface PlanFeatureTrial {
+  feature: PlatformFeature;
+  freeUses: number;
+  unit: string;
+}
+
+/** Free uses being set for one feature; 0 means none. */
+export interface PlanFeatureTrialInput {
+  feature: PlatformFeature;
+  freeUses: number;
 }
 
 /** One country's explicit price (PlatformPlanDto/PlatformCreditPackDto.countryPrices). */
@@ -266,6 +281,8 @@ export interface CreatePlanRequest {
   monthlyCredits?: number;
   features?: PlatformFeature[] | null;
   countryPrices?: CountryPriceInput[] | null;
+  /** Free uses of features outside the plan. On an update, omitted leaves them unchanged; each feature listed is set (0 for none). */
+  freeTrials?: PlanFeatureTrialInput[] | null;
 }
 
 /** Body of PUT one plan. isActive is how a plan is both retired (the Delete button sets it false)
@@ -287,6 +304,8 @@ export interface UpdatePlanRequest {
   features?: PlatformFeature[] | null;
   /** Omitted leaves the plan's country prices unchanged; when sent it is the complete set. */
   countryPrices?: CountryPriceInput[] | null;
+  /** Free uses of features outside the plan. On an update, omitted leaves them unchanged; each feature listed is set (0 for none). */
+  freeTrials?: PlanFeatureTrialInput[] | null;
 }
 
 /** PlatformCreditPackDto — the credit-pack catalog. priceCents is the authored USD price; priceLocal is the
