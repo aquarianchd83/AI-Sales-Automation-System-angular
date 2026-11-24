@@ -48,7 +48,7 @@
                   <span class="nav-premium-chip">Premium</span>
                   <mat-icon class="nav-lock" aria-hidden="true">lock</mat-icon>
                 </ng-container>
-                <span class="nav-trial-chip" *ngIf="trialChip(item) as chip" [class.nav-trial-chip--used-up]="chip === 'Used up'" [attr.data-testid]="'nav-trial-' + item.route">{{ chip }}</span>
+                <span class="nav-trial-chip" *ngIf="trialChip(item) as chip" [attr.data-testid]="'nav-trial-' + item.route">{{ chip }}</span>
               </a>
               </ng-container>
             </ng-container>
