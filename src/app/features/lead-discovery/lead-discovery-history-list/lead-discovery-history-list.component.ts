@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, Injector, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -21,6 +21,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { TenantJobService } from '../../../core/services/tenant-job.service';
 import { LEAD_DISCOVERY_JOB_TYPES } from '../../../core/models/tenant-job.model';
 import { TenantJobsDialogComponent, TenantJobsDialogData } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
+import { EntitlementsService } from '../../../core/services/entitlements.service';
 import { EntitlementsStore } from '../../../core/services/entitlements.store';
 import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
@@ -74,6 +75,8 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   private readonly featureAccess = inject(EntitlementsStore);
+  /** Asked for only when a run finishes on free leads, so the page needs no HTTP stack just to render. */
+  private readonly injector = inject(Injector);
   readonly usedUpHint = USED_UP_HINT;
 
   /** Free leads used up: the executions stay readable, a new run (or retry) needs Premium. */
@@ -91,10 +94,14 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
     private readonly dialog: MatDialog
   ) {}
 
-  /** The lead-discovery job just finished: fetch its execution, in place. */
+  /** The lead-discovery job just finished: fetch its execution, in place - and the free leads left, so a run that used the last one turns the page
+   * read-only at once. */
   refresh(): void {
     this.stopPolling$.next();
     this.reload$.next();
+    if (this.featureAccess.trialOf('LeadDiscovery')) {
+      this.injector.get(EntitlementsService).load(true).subscribe();
+    }
   }
 
   ngOnInit(): void {
