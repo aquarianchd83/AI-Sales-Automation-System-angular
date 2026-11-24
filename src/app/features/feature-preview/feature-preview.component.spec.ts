@@ -168,4 +168,38 @@ describe('FeaturePreviewComponent', () => {
     expect(text(fixture.nativeElement, 'preview-credits')).toContain('Uses 2 credits per candidate');
     expect(text(fixture.nativeElement, 'preview-credits')).not.toContain('99');
   });
+  describe('free uses of a Premium feature', () => {
+    const trial = (used: number) => ({
+      feature: 'LeadDiscovery' as PlatformFeature,
+      label: 'Lead discovery',
+      freeUses: 10,
+      used,
+      remaining: Math.max(0, 10 - used),
+      exhausted: used >= 10,
+      unit: 'leads',
+      unitSingular: 'lead',
+    });
+
+    function renderWithTrial(used: number): HTMLElement {
+      const root = render(FEATURE_PREVIEWS.LeadDiscovery.slug, { plan: null });
+      const features: PlatformFeature[] = used >= 10 ? ['WhatsAppMessaging'] : ['WhatsAppMessaging', 'LeadDiscovery'];
+      TestBed.inject(EntitlementsStore).set({ planCode: 'basic', planName: 'Basic', features, balance: 50, costs: [], trials: [trial(used)] });
+      fixture.detectChanges();
+      return root;
+    }
+
+    it('says how many free uses are left while the feature is open on them', () => {
+      const root = renderWithTrial(3);
+
+      expect(text(root, 'preview-trial-left')).toContain('7 of 10 free leads left');
+      expect(root.querySelector('[data-testid="preview-trial-used"]')).toBeNull();
+    });
+
+    it('says the free uses are gone and offers the upgrade once they are used up', () => {
+      const root = renderWithTrial(10);
+
+      expect(text(root, 'preview-trial-used')).toContain('You have used all 10 free leads of Lead discovery included with your Basic plan.');
+      expect(root.querySelector('[data-testid="preview-upgrade"]')).not.toBeNull();
+    });
+  });
 });

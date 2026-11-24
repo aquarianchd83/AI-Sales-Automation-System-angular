@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-import { CreditCostItem, Entitlements, PlatformFeature } from '../models/wallet.model';
+import { CreditCostItem, Entitlements, FeatureTrial, PlatformFeature } from '../models/wallet.model';
 
 /**
  * What the signed-in tenant may use and what each action costs, as last loaded - the shared state the menu, the screens and the credit placeholders read.
@@ -34,6 +34,14 @@ export class EntitlementsStore {
     }
     const known = this.state.value;
     return known === null || known.features.includes(feature);
+  }
+
+  /** The free uses the plan gives of a feature it does not include, or null when it includes the feature (or gives none, or is not known yet). */
+  trialOf(feature: PlatformFeature): FeatureTrial | null {
+    if (this.unrestricted) {
+      return null;
+    }
+    return this.state.value?.trials?.find((t) => t.feature === feature) ?? null;
   }
 
   /** What one unit of the scenario costs in credits, or null when it is not known (or not in the plan). */

@@ -200,3 +200,22 @@ figcaption {
   color: var(--app-muted);
   text-align: center;
 }
+
+.trial-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  color: inherit;
+
+  mat-icon {
+    flex: none;
+  }
+
+  &--used {
+    background: rgba(245, 158, 11, 0.14);
+  }
+}

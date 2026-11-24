@@ -20,7 +20,7 @@ import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { PlatformTicketService } from '../../core/services/platform-ticket.service';
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { PlatformWalletTopUpDialogComponent } from '../../shared/components/platform-wallet-top-up-dialog/platform-wallet-top-up-dialog.component';
-import { PlatformFeature } from '../../core/models/wallet.model';
+import { FeatureTrial, PlatformFeature, trialLeftLabel } from '../../core/models/wallet.model';
 import { featurePreviewUrl } from '../../core/models/feature-preview.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
@@ -330,6 +330,47 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   isLocked(item: NavItem): boolean {
     return this.lockedFeature(item) !== null;
+  }
+
+  /** The free uses an open entry is running on (its feature is outside the plan but some free uses are left), or null. */
+  trialOf(item: NavItem): FeatureTrial | null {
+    const feature = typeof item.feature === 'function' ? item.feature() : item.feature;
+    if (!feature || !this.entitlements.has(feature)) {
+      return null;
+    }
+    const trial = this.entitlements.trialOf(feature);
+    return trial && !trial.exhausted ? trial : null;
+  }
+
+  /** "7 free left", for the chip beside an entry on free uses. */
+  trialChip(item: NavItem): string | null {
+    const trial = this.trialOf(item);
+    return trial ? `${trial.remaining} free left` : null;
+  }
+
+  /**
+   * The free uses the page on screen is running on, for the bar above it: "Lead discovery: 7 of 10 free leads left on your Basic plan". Null on any
+   * page whose feature is in the plan, and for a platform admin.
+   */
+  get currentTrial(): FeatureTrial | null {
+    if (this.isPlatformSuperAdmin) {
+      return null;
+    }
+    const path = this.router.url.split(/[?#]/)[0];
+    for (const section of this.navSections) {
+      for (const item of section.items) {
+        const onPage = this.claimsPath(item, path) || path === item.route || path.startsWith(item.route + '/');
+        const trial = onPage ? this.trialOf(item) : null;
+        if (trial) {
+          return trial;
+        }
+      }
+    }
+    return null;
+  }
+
+  trialLine(trial: FeatureTrial): string {
+    return `${trial.label}: ${trialLeftLabel(trial)} on your ${this.entitlements.current?.planName || 'current'} plan.`;
   }
 
   /** Where the entry goes: the feature's preview when locked, otherwise its own screen. */
