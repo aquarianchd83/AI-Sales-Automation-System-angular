@@ -89,7 +89,7 @@
               <input matInput type="number" min="0" [formControlName]="limit.control" [attr.data-testid]="'limit-' + feature" />
             </mat-form-field>
             <mat-form-field subscriptSizing="dynamic" class="limit-field" *ngIf="canHaveFreeUses(feature)">
-              <mat-label>Free {{ trialUnits[feature] }} before upgrade</mat-label>
+              <mat-label>Free {{ trialUnits[feature] }}</mat-label>
               <input
                 matInput
                 type="number"
@@ -99,7 +99,7 @@
                 (input)="setFreeUses(feature, $any($event.target).value)"
                 [attr.data-testid]="'free-uses-' + feature"
               />
-              <mat-hint>Lifetime, per tenant. 0 keeps it locked.</mat-hint>
+              <mat-hint>Before upgrade. Lifetime, per tenant; 0 keeps it locked.</mat-hint>
             </mat-form-field>
           </div>
         </div>
