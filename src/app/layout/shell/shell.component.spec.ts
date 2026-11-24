@@ -1,6 +1,7 @@
 import { ComponentFixture, discardPeriodicTasks, fakeAsync, flush, TestBed, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
+import { Router } from '@angular/router';
 import { NEVER, of } from 'rxjs';
 
 import { AccountRecoveryService } from '../../core/services/account-recovery.service';
@@ -119,6 +120,38 @@ describe('ShellComponent sidenav', () => {
     const BASIC: PlatformFeature[] = ['WhatsAppMessaging', 'AiConversations', 'Campaigns'];
     const link = (root: HTMLElement, label: string) =>
       Array.from(root.querySelectorAll<HTMLAnchorElement>('.nav-item')).find((a) => a.querySelector('.nav-item-label')?.textContent?.trim() === label);
+
+    const trial = (feature: PlatformFeature, used: number) => ({
+      feature, label: feature, freeUses: 10, used, remaining: Math.max(0, 10 - used), exhausted: used >= 10, unit: 'uses', unitSingular: 'use',
+    });
+
+    it('shows "N free left" on an entry open on free uses, and the free-trial bar on its pages', () => {
+      const fixture = createFixture(['Admin']);
+      TestBed.inject(EntitlementsStore).set({
+        planCode: 'basic', planName: 'Basic', features: [...BASIC, 'LeadDiscovery', 'ProductKnowledge'], balance: 10, costs: [],
+        trials: [trial('LeadDiscovery', 3), trial('ProductKnowledge', 1)],
+      });
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(link(root, 'Lead Discovery')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('7 free left');
+      // Knowledge is shared by two features; its chip still shows product knowledge's free uses.
+      expect(link(root, 'Knowledge')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('9 free left');
+
+      spyOnProperty(TestBed.inject(Router), 'url', 'get').and.returnValue('/product-knowledge/sources');
+      fixture.detectChanges();
+      expect(root.querySelector('[data-testid="trial-bar"]')?.textContent).toContain('9 of 10 free uses left on your Basic plan');
+    });
+
+    it('shows no chip once the free uses are gone: the entry is locked instead', () => {
+      const fixture = createFixture(['Admin']);
+      TestBed.inject(EntitlementsStore).set({ planCode: 'basic', planName: 'Basic', features: BASIC, balance: 10, costs: [], trials: [trial('LeadDiscovery', 10)] });
+      fixture.detectChanges();
+      const lead = link(fixture.nativeElement as HTMLElement, 'Lead Discovery')!;
+
+      expect(lead.querySelector('.nav-trial-chip')).toBeNull();
+      expect(lead.classList).toContain('nav-item--locked');
+    });
 
     it('still lists a locked entry, dimmed, with a lock and a Premium chip, opening its preview', () => {
       const root = withPlan(['Admin'], BASIC);
