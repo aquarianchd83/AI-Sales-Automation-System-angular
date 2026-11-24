@@ -56,17 +56,19 @@ export interface FeatureTrial {
   /** What one use is, plural ("leads", "AI generations"). */
   unit: string;
   unitSingular: string;
+  /** True when the plan includes the feature but caps it (Basic: 100 AI replies); false for free uses of a feature outside the plan. */
+  includedInPlan?: boolean;
 }
 
-/** "7 of 10 free leads left" / "1 of 3 free AI generations left". */
+/** "7 of 10 free leads left" for free uses, "80 of 100 AI replies left" for a plan's cap. */
 export function trialLeftLabel(trial: FeatureTrial): string {
-  return `${trial.remaining} of ${trial.freeUses} free ${trial.freeUses === 1 ? trial.unitSingular : trial.unit} left`;
+  return `${trial.remaining} of ${trial.freeUses} ${trial.includedInPlan ? '' : 'free '}${trial.freeUses === 1 ? trial.unitSingular : trial.unit} left`;
 }
 
 /** "You have used all 10 free leads of Lead discovery included with your Basic plan." */
 export function trialUsedUpLabel(trial: FeatureTrial, planName: string | null): string {
   const unit = trial.freeUses === 1 ? trial.unitSingular : trial.unit;
-  return `You have used all ${trial.freeUses} free ${unit} of ${trial.label} included with your ${planName || 'current'} plan.`;
+  return `You have used all ${trial.freeUses} ${trial.includedInPlan ? '' : 'free '}${unit} of ${trial.label} included with your ${planName || 'current'} plan.`;
 }
 
 export interface FeatureWallet {

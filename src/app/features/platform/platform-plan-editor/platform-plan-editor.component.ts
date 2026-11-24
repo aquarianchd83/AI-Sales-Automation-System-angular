@@ -69,16 +69,18 @@ export class PlatformPlanEditorComponent implements OnInit {
     this.form.markAsDirty();
   }
 
-  /** The free-uses box shows beside a feature the plan does not include and that has something to count. */
+  /**
+   * Every feature with something to count has a box: beside an unticked feature it is the free uses to try it, beside a ticked one a cap
+   * (Basic: AI conversations up to 100 replies). Either way the tenant is asked to upgrade once they are used up; 0 means none / no cap.
+   */
   canHaveFreeUses(feature: PlatformFeature): boolean {
-    return !this.hasFeature(feature) && !!this.trialUnits[feature];
+    return !!this.trialUnits[feature];
   }
 
   private freeTrialInputs(): PlanFeatureTrialInput[] {
     return PLATFORM_FEATURES.filter((f) => this.trialUnits[f] && (this.freeUses[f] !== undefined || this.freeUsesBefore.has(f))).map((f) => ({
       feature: f,
-      // A feature now ticked into the plan does not need free uses; 0 clears them so unticking it later does not bring them back unseen.
-      freeUses: this.hasFeature(f) ? 0 : this.freeUses[f] ?? 0,
+      freeUses: this.freeUses[f] ?? 0,
     }));
   }
 

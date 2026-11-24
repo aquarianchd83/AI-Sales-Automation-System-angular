@@ -192,9 +192,9 @@ describe('PlatformPlanEditorComponent', () => {
   it('gives an unticked Premium feature free uses, and saves them with the plan', () => {
     const { fixture, component, root, billing } = create('pl1');
 
-    // Content Studio is not in the plan, so it has a free-uses box; lead discovery is, so it has none.
+    // Content Studio is not in the plan, so its box is free uses; lead discovery is, so its box is a cap.
     expect(root.querySelector('[data-testid="free-uses-ContentStudio"]')).not.toBeNull();
-    expect(root.querySelector('[data-testid="free-uses-LeadDiscovery"]')).toBeNull();
+    expect(root.querySelector('[data-testid="free-uses-LeadDiscovery"]')?.closest('mat-form-field')?.textContent).toContain('Cap: leads');
     expect(root.querySelector('[data-testid="free-uses-Campaigns"]')).toBeNull();
 
     const input = root.querySelector('[data-testid="free-uses-ContentStudio"]') as HTMLInputElement;

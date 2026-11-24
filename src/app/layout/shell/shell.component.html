@@ -379,7 +379,7 @@
     <div class="trial-bar" *ngIf="currentTrial as trial" role="status" data-testid="trial-bar">
       <mat-icon>hourglass_top</mat-icon>
       <span class="trial-bar-text">
-        <strong>Free trial.</strong> {{ trialLine(trial) }} After that it needs Premium.
+        <strong>{{ trial.includedInPlan ? 'Plan limit.' : 'Free trial.' }}</strong> {{ trialLine(trial) }} After that it needs Premium.
       </span>
       <a mat-flat-button color="primary" routerLink="/billing" *ngIf="canOpenWallet; else askAdminTrial">
         <mat-icon>workspace_premium</mat-icon>

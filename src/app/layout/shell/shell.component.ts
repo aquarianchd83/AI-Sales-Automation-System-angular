@@ -369,7 +369,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   /** "7 free left", for the chip beside an entry on free uses. */
   trialChip(item: NavItem): string | null {
     const trial = this.trialOf(item);
-    return trial ? `${trial.remaining} free left` : null;
+    return trial ? `${trial.remaining} ${trial.includedInPlan ? '' : 'free '}left` : null;
   }
 
   /**

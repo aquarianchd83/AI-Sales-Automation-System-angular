@@ -63,7 +63,7 @@
         <p class="muted">
           What a tenant on this plan can use. A feature that is not ticked is hidden from the menu and refused by the API; a ticked feature shows its limit
           beside it. A feature that is not ticked can still be given a few free uses, so a tenant can try it before being asked to upgrade (credits are
-          still charged for each use). Each feature shows its credit cost on the page, set on <a routerLink="/platform/service-margins">Service Margins</a>.
+          still charged for each use). A ticked feature can be capped the same way, e.g. AI conversations up to 100 replies on Basic. Each feature shows its credit cost on the page, set on <a routerLink="/platform/service-margins">Service Margins</a>.
         </p>
         <div class="feature-list">
           <div class="feature-row" data-testid="team-members-row">
@@ -89,7 +89,7 @@
               <input matInput type="number" min="0" [formControlName]="limit.control" [attr.data-testid]="'limit-' + feature" />
             </mat-form-field>
             <mat-form-field subscriptSizing="dynamic" class="limit-field" *ngIf="canHaveFreeUses(feature)">
-              <mat-label>Free {{ trialUnits[feature] }}</mat-label>
+              <mat-label>{{ hasFeature(feature) ? 'Cap: ' : 'Free ' }}{{ trialUnits[feature] }}</mat-label>
               <input
                 matInput
                 type="number"
@@ -99,7 +99,8 @@
                 (input)="setFreeUses(feature, $any($event.target).value)"
                 [attr.data-testid]="'free-uses-' + feature"
               />
-              <mat-hint>Before upgrade. Lifetime, per tenant; 0 keeps it locked.</mat-hint>
+              <mat-hint *ngIf="hasFeature(feature)">Before upgrade. Lifetime, per tenant; 0 = no cap.</mat-hint>
+              <mat-hint *ngIf="!hasFeature(feature)">Before upgrade. Lifetime, per tenant; 0 keeps it locked.</mat-hint>
             </mat-form-field>
           </div>
         </div>
