@@ -224,6 +224,12 @@
     white-space: nowrap;
   }
 
+  .nav-trial-chip--used-up {
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #fbbf24;
+  }
+
   .nav-premium-chip {
     flex: none;
     padding: 1px 7px;
@@ -702,6 +708,12 @@ button.wallet-chip {
   .trial-bar-ask {
     font-weight: 500;
   }
+}
+
+.trial-bar--used-up {
+  background: #fdecea;
+  border-bottom-color: rgba(220, 38, 38, 0.3);
+  color: #7f1d1d;
 }
 
 .onboarding-bar {

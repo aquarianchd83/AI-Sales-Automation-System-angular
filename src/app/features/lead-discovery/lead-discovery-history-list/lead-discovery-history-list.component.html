@@ -19,10 +19,13 @@
       <mat-icon>schedule</mat-icon>
       Jobs
     </button>
-    <button mat-button type="button" [disabled]="runningNow" (click)="runNow()">
-      <mat-icon>play_arrow</mat-icon>
-      {{ runningNow ? 'Queuing…' : 'Run now' }}
-    </button>
+    <!-- Free leads used up: the executions below stay readable, a new run needs Premium. The span carries the tooltip a disabled button can't. -->
+    <span [matTooltip]="usedUp ? usedUpHint : ''">
+      <button mat-button type="button" [disabled]="runningNow || usedUp" (click)="runNow()" data-testid="run-now">
+        <mat-icon>{{ usedUp ? 'lock' : 'play_arrow' }}</mat-icon>
+        {{ runningNow ? 'Queuing…' : 'Run now' }}
+      </button>
+    </span>
     <a mat-button routerLink="..">
       <mat-icon>travel_explore</mat-icon>
       Discovered leads
@@ -149,7 +152,7 @@
                   mat-icon-button
                   *ngIf="row.canRetry"
                   matTooltip="Retry — resumes only the unfinished work"
-                  [disabled]="retrying.has(row.id)"
+                  [disabled]="retrying.has(row.id) || usedUp"
                   (click)="retry(row, $event)"
                 >
                   <mat-icon>replay</mat-icon>

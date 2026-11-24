@@ -49,8 +49,8 @@
             color="primary"
             type="button"
             (click)="polishDescription()"
-            [disabled]="!form.controls.description.value.trim() || polishing"
-            [matTooltip]="form.controls.description.value.trim() ? 'Rewrites your description so it reads clearly' : 'Write a description first'"
+            [disabled]="!form.controls.description.value.trim() || polishing || usedUp"
+            [matTooltip]="usedUp ? usedUpHint : form.controls.description.value.trim() ? 'Rewrites your description so it reads clearly' : 'Write a description first'"
           >
             <mat-icon>auto_fix_high</mat-icon>
             {{ polishing ? 'Polishing…' : 'Polish Content using AI' }}
@@ -81,8 +81,8 @@
               type="button"
               class="suggest-button"
               (click)="suggestKeywords()"
-              [disabled]="!form.controls.description.value.trim() || suggesting"
-              [matTooltip]="form.controls.description.value.trim() ? 'Suggests the words people search for to find this kind of business' : 'Write a description first'"
+              [disabled]="!form.controls.description.value.trim() || suggesting || usedUp"
+              [matTooltip]="usedUp ? usedUpHint : form.controls.description.value.trim() ? 'Suggests the words people search for to find this kind of business' : 'Write a description first'"
             >
               <mat-icon>auto_awesome</mat-icon>
               {{ suggesting ? 'Suggesting…' : 'AI suggest' }}
@@ -502,8 +502,10 @@
     <span>You have unsaved changes</span>
     <span class="spacer"></span>
     <button mat-button type="button" (click)="discard()" [disabled]="saving">Discard</button>
-    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
-      {{ saving ? 'Saving…' : 'Save changes' }}
-    </button>
+    <span [matTooltip]="usedUp ? usedUpHint : ''">
+      <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving || usedUp">
+        {{ saving ? 'Saving…' : 'Save changes' }}
+      </button>
+    </span>
   </div>
 </div>

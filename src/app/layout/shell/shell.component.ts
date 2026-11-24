@@ -20,7 +20,7 @@ import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { PlatformTicketService } from '../../core/services/platform-ticket.service';
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { PlatformWalletTopUpDialogComponent } from '../../shared/components/platform-wallet-top-up-dialog/platform-wallet-top-up-dialog.component';
-import { FeatureTrial, PlatformFeature, trialLeftLabel } from '../../core/models/wallet.model';
+import { FeatureTrial, PlatformFeature, trialLeftLabel, trialUsedUpLabel } from '../../core/models/wallet.model';
 import { featurePreviewUrl } from '../../core/models/feature-preview.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
@@ -323,11 +323,11 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   private canOpenProductKnowledge(): boolean {
-    return this.auth.hasAnyRole(TENANT_ADMIN_ONLY) && this.entitlements.has('ProductKnowledge');
+    return this.auth.hasAnyRole(TENANT_ADMIN_ONLY) && this.entitlements.canView('ProductKnowledge');
   }
 
   private canOpenStudio(): boolean {
-    return this.studioEnabled && this.entitlements.has('ContentStudio');
+    return this.studioEnabled && this.entitlements.canView('ContentStudio');
   }
 
   /** An entry shows when its own switch allows it. One whose feature is not in the plan still shows, locked (see isLocked). */
@@ -335,10 +335,11 @@ export class ShellComponent implements OnInit, OnDestroy {
     return !item.visible || item.visible();
   }
 
-  /** The feature the tenant's plan lacks that locks this entry, or null when it is open (always, until the plan is known). */
+  /** The feature the tenant's plan lacks that locks this entry, or null when it is open (always, until the plan is known). A feature whose free uses
+   * are used up is not locked: its screens open read-only, so the tenant still sees what it made. */
   lockedFeature(item: NavItem): PlatformFeature | null {
     const feature = typeof item.feature === 'function' ? item.feature() : item.feature;
-    return feature && !this.entitlements.has(feature) ? feature : null;
+    return feature && !this.entitlements.canView(feature) ? feature : null;
   }
 
   isLocked(item: NavItem): boolean {
@@ -366,10 +367,14 @@ export class ShellComponent implements OnInit, OnDestroy {
     return trial && !trial.exhausted ? trial : null;
   }
 
-  /** "7 free left", for the chip beside an entry on free uses. */
+  /** "7 free left", for the chip beside an entry on free uses - or "Used up" once its own feature has none left (the screen is read-only). */
   trialChip(item: NavItem): string | null {
     const trial = this.trialOf(item);
-    return trial ? `${trial.remaining} ${trial.includedInPlan ? '' : 'free '}left` : null;
+    if (trial) {
+      return `${trial.remaining} ${trial.includedInPlan ? '' : 'free '}left`;
+    }
+    const named = typeof item.feature === 'function' ? item.feature() : item.feature;
+    return named && this.entitlements.usedUp(named) ? 'Used up' : null;
   }
 
   /**
@@ -384,6 +389,27 @@ export class ShellComponent implements OnInit, OnDestroy {
     const path = this.router.url.split(/[?#]/)[0];
     const match = FEATURE_ROUTES.find(([prefix]) => path === prefix || path.startsWith(prefix + '/'));
     return match ? this.openTrial(match[1]) : null;
+  }
+
+  /**
+   * The free uses (or plan cap) the page on screen has used up, for the read-only bar above it: what is there stays readable, adding new needs Premium.
+   * Null while any are left, on any page whose feature is in the plan, and for a platform admin.
+   */
+  get currentUsedUp(): FeatureTrial | null {
+    if (this.isPlatformSuperAdmin) {
+      return null;
+    }
+    const path = this.router.url.split(/[?#]/)[0];
+    const match = FEATURE_ROUTES.find(([prefix]) => path === prefix || path.startsWith(prefix + '/'));
+    return match ? this.entitlements.usedUp(match[1]) : null;
+  }
+
+  usedUpLine(trial: FeatureTrial): string {
+    const what =
+      trial.feature === 'AiConversations'
+        ? 'The AI has stopped replying; you can still read your chats and answer them yourself.'
+        : 'You can still see everything here; upgrade to Premium to add new.';
+    return `${trialUsedUpLabel(trial, this.entitlements.current?.planName ?? null)} ${what}`;
   }
 
   trialLine(trial: FeatureTrial): string {

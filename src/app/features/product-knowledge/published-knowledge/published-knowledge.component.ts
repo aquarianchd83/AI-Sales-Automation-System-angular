@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { finalize } from 'rxjs/operators';
@@ -7,6 +7,8 @@ import { KnowledgeVersion, KnowledgeVersionDetail, KnowledgeVersionsOverview } f
 import { NotificationService } from '../../../core/services/notification.service';
 import { PublishedKnowledgeService } from '../../../core/services/published-knowledge.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /** The id of the "next version" entry at the top of the list, which is not a version yet. */
 export const NEXT = 'next';
@@ -37,6 +39,14 @@ export class PublishedKnowledgeComponent implements OnInit {
   reindexing = false;
   readonly expanded = new Set<string>();
   readonly note = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(500)] });
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free AI actions used up: the versions stay readable, publishing a new one needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('ProductKnowledge') !== null;
+  }
 
   constructor(
     private readonly service: PublishedKnowledgeService,
@@ -83,7 +93,7 @@ export class PublishedKnowledgeComponent implements OnInit {
 
   get canPublish(): boolean {
     const p = this.overview?.preview;
-    return !!p && p.ready > 0 && !p.nothingNew && !this.publishing && this.note.valid;
+    return !!p && p.ready > 0 && !p.nothingNew && !this.publishing && this.note.valid && !this.usedUp;
   }
 
   /** Why the button is not available, or null when it is. */
@@ -91,6 +101,9 @@ export class PublishedKnowledgeComponent implements OnInit {
     const p = this.overview?.preview;
     if (!p) {
       return null;
+    }
+    if (this.usedUp) {
+      return this.usedUpHint;
     }
     if (p.ready === 0) {
       return p.heldBack.length ? 'Everything you approved needs another look first.' : 'Approve some answers first.';

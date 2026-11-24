@@ -23,7 +23,8 @@
         color="primary"
         type="button"
         *ngIf="d.execution.canRetry"
-        [disabled]="retrying"
+        [disabled]="retrying || usedUp"
+        [matTooltip]="usedUp ? usedUpHint : ''"
         (click)="retry()"
       >
         <mat-icon>replay</mat-icon>

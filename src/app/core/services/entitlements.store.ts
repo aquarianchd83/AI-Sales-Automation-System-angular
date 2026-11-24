@@ -36,6 +36,23 @@ export class EntitlementsStore {
     return known === null || known.features.includes(feature);
   }
 
+  /**
+   * Whether the tenant may still open the feature's screens: when it can use it, and also once its free uses (or its plan's cap) are used up - what it
+   * already made stays readable, only adding new asks for an upgrade (see {@link usedUp}).
+   */
+  canView(feature: PlatformFeature): boolean {
+    return this.has(feature) || this.usedUp(feature) !== null;
+  }
+
+  /** The free uses (or the plan's cap) of a feature, once they are all used up: its screens are read-only. Null while any are left, or when it has none. */
+  usedUp(feature: PlatformFeature): FeatureTrial | null {
+    if (this.has(feature)) {
+      return null;
+    }
+    const trial = this.trialOf(feature);
+    return trial && trial.exhausted ? trial : null;
+  }
+
   /** The free uses the plan gives of a feature it does not include, or null when it includes the feature (or gives none, or is not known yet). */
   trialOf(feature: PlatformFeature): FeatureTrial | null {
     if (this.unrestricted) {

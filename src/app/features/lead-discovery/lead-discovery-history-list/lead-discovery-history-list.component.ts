@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -21,6 +21,8 @@ import { NotificationService } from '../../../core/services/notification.service
 import { TenantJobService } from '../../../core/services/tenant-job.service';
 import { LEAD_DISCOVERY_JOB_TYPES } from '../../../core/models/tenant-job.model';
 import { TenantJobsDialogComponent, TenantJobsDialogData } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /** TenantJobCatalog.LeadDiscovery on the backend — the job key POST /jobs/{jobType}/trigger takes. */
 const LEAD_DISCOVERY_JOB_TYPE = 'lead-discovery';
@@ -70,6 +72,14 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   /** Ends the Run-now polling: the job said it finished, so there is nothing left to wait for. */
   private readonly stopPolling$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free leads used up: the executions stay readable, a new run (or retry) needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('LeadDiscovery') !== null;
+  }
 
   constructor(
     private readonly leadDiscovery: LeadDiscoveryService,

@@ -41,6 +41,11 @@ export class EntitlementsService {
     return this.store.has(feature);
   }
 
+  /** Whether the feature's screens can be opened - also read-only, once its free uses are used up. */
+  canView(feature: PlatformFeature): boolean {
+    return this.store.canView(feature);
+  }
+
   /** Loads the entitlements (once; later callers share the answer) - or asks again with `force`, e.g. after a purchase or a plan change. */
   load(force = false): Observable<Entitlements | null> {
     // A platform admin belongs to no tenant, so there is no plan to read - and nothing to hide.

@@ -1,5 +1,5 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { finalize } from 'rxjs/operators';
@@ -19,6 +19,8 @@ import { CampaignService } from '../../../core/services/campaign.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantProfileService } from '../../../core/services/tenant-profile.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 const L = LEAD_DISCOVERY_LIMITS;
 
@@ -136,6 +138,14 @@ export class LeadDiscoveryProfileComponent implements OnInit {
    * saved actually change keeps the reference (and the mat-options) stable in between.
    */
   sourceCampaignOptions: { id: string; name: string; status: string | null }[] = [];
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free leads used up: the profile stays readable, changing it (or its AI helpers) needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('LeadDiscovery') !== null;
+  }
 
   constructor(
     private readonly fb: FormBuilder,

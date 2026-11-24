@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Subscription, timer } from 'rxjs';
@@ -14,6 +14,8 @@ import {
 import { NotificationService } from '../../../core/services/notification.service';
 import { ProductKnowledgeService } from '../../../core/services/product-knowledge.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /** How often the list refreshes while a source is still being read. */
 export const POLL_MS = 4000;
@@ -56,6 +58,14 @@ export class KnowledgeSourcesComponent implements OnInit, OnDestroy {
 
   private poll: Subscription | null = null;
 
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free AI actions used up: the sources stay readable, adding or re-reading one needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('ProductKnowledge') !== null;
+  }
+
   constructor(
     private readonly sources: ProductKnowledgeService,
     private readonly notify: NotificationService,
@@ -88,11 +98,11 @@ export class KnowledgeSourcesComponent implements OnInit, OnDestroy {
 
   /** Documents can be uploaded: storage is ready, there is room, and the platform has the switch on. */
   get canUpload(): boolean {
-    return !!this.overview && this.overview.storageReady && !this.atLimit && this.overview.documentUploadEnabled;
+    return !!this.overview && this.overview.storageReady && !this.atLimit && this.overview.documentUploadEnabled && !this.usedUp;
   }
 
   get canAddWebsite(): boolean {
-    return !!this.overview && this.overview.storageReady && !this.atLimit && this.overview.websiteScanningEnabled;
+    return !!this.overview && this.overview.storageReady && !this.atLimit && this.overview.websiteScanningEnabled && !this.usedUp;
   }
 
   /** A source can be read again only while the switch for its kind is on. */

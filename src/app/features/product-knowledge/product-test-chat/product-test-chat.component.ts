@@ -1,10 +1,12 @@
-import { AfterViewChecked, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
 import { TestChatReply, TestChatTurn } from '../../../core/models/product-test-chat.model';
 import { ProductTestChatService } from '../../../core/services/product-test-chat.service';
 import { PublishedKnowledgeService } from '../../../core/services/published-knowledge.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 export interface ChatMessage {
   id: number;
@@ -43,6 +45,14 @@ export class ProductTestChatComponent implements OnInit, AfterViewChecked {
   private scrollPending = false;
   private nextId = 1;
 
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free AI actions used up: the chat so far stays readable, a new question needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('ProductKnowledge') !== null;
+  }
+
   constructor(
     private readonly chat: ProductTestChatService,
     private readonly published: PublishedKnowledgeService
@@ -70,7 +80,7 @@ export class ProductTestChatComponent implements OnInit, AfterViewChecked {
   }
 
   get canSend(): boolean {
-    return !this.sending && this.input.value.trim().length > 0 && this.liveVersion !== null;
+    return !this.sending && this.input.value.trim().length > 0 && this.liveVersion !== null && !this.usedUp;
   }
 
   /** Enter sends; Shift+Enter makes a new line. */

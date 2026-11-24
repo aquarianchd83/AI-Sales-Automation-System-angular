@@ -12,10 +12,12 @@
       <mat-icon>quiz</mat-icon>
       Questionnaire
     </a>
-    <button mat-flat-button color="primary" type="button" (click)="startNew()">
-      <mat-icon>add</mat-icon>
-      Add a fact
-    </button>
+    <span [matTooltip]="usedUp ? usedUpHint : ''">
+      <button mat-flat-button color="primary" type="button" (click)="startNew()" [disabled]="usedUp">
+        <mat-icon>{{ usedUp ? 'lock' : 'add' }}</mat-icon>
+        Add a fact
+      </button>
+    </span>
   </app-page-header>
 
   <div class="summary" *ngIf="summary">

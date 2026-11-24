@@ -64,6 +64,6 @@ export class KnowledgeHubComponent implements OnInit {
   }
 
   visibleItems(): HubItem[] {
-    return this.items.filter((i) => this.auth.hasAnyRole(i.roles) && (!i.needsStudio || this.studioEnabled) && this.entitlements.has(i.feature));
+    return this.items.filter((i) => this.auth.hasAnyRole(i.roles) && (!i.needsStudio || this.studioEnabled) && this.entitlements.canView(i.feature));
   }
 }

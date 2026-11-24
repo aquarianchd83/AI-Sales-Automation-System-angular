@@ -1,10 +1,12 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { finalize, takeUntil } from 'rxjs/operators';
 
 import { STORY_VIDEO_REQUEST_STATUS_LABELS, StoryVideoRequestDetail, StoryVideoRequestStatus } from '../../../core/models/story-studio.model';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /**
  * One requested video on its own page: where it stands, what was asked for, the script once the platform team has written it, the video (to watch and to
@@ -23,6 +25,14 @@ export class StudioStoryDetailComponent implements OnInit, OnDestroy {
   notFound = false;
 
   private readonly destroy$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free AI generations used up: what is here stays readable, making something new needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('ContentStudio') !== null;
+  }
 
   constructor(
     private readonly route: ActivatedRoute,

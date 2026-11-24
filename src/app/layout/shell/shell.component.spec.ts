@@ -143,14 +143,15 @@ describe('ShellComponent sidenav', () => {
       expect(root.querySelector('[data-testid="trial-bar"]')?.textContent).toContain('9 of 10 free uses left on your Basic plan');
     });
 
-    it('shows no chip once the free uses are gone: the entry is locked instead', () => {
+    it('keeps the entry open, read-only, once the free uses are gone: a "Used up" chip, no lock', () => {
       const fixture = createFixture(['Admin']);
       TestBed.inject(EntitlementsStore).set({ planCode: 'basic', planName: 'Basic', features: BASIC, balance: 10, costs: [], trials: [trial('LeadDiscovery', 10)] });
       fixture.detectChanges();
       const lead = link(fixture.nativeElement as HTMLElement, 'Lead Discovery')!;
 
-      expect(lead.querySelector('.nav-trial-chip')).toBeNull();
-      expect(lead.classList).toContain('nav-item--locked');
+      expect(lead.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('Used up');
+      expect(lead.classList).not.toContain('nav-item--locked');
+      expect(lead.getAttribute('href')).toBe('/lead-discovery/history');
     });
 
     it('still lists a locked entry, dimmed, with a lock and a Premium chip, opening its preview', () => {

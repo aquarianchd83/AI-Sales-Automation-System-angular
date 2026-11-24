@@ -65,6 +65,9 @@ export function trialLeftLabel(trial: FeatureTrial): string {
   return `${trial.remaining} of ${trial.freeUses} ${trial.includedInPlan ? '' : 'free '}${trial.freeUses === 1 ? trial.unitSingular : trial.unit} left`;
 }
 
+/** The tooltip on an add/run button that is off because the feature's free uses are used up (its screens stay open, read-only). */
+export const USED_UP_HINT = 'Free uses used up. Upgrade to Premium to add new.';
+
 /** "You have used all 10 free leads of Lead discovery included with your Basic plan." */
 export function trialUsedUpLabel(trial: FeatureTrial, planName: string | null): string {
   const unit = trial.freeUses === 1 ? trial.unitSingular : trial.unit;
