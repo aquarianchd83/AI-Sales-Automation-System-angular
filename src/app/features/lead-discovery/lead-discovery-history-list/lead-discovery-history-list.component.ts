@@ -274,7 +274,7 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
 
   /** Skipped (nothing started): the reason, or the plain fact. */
   skipReason(execution: LeadDiscoveryExecutionSummary): string | null {
-    return execution.quotaStopReason || execution.errorMessage;
+    return (execution.quotaStopReason || execution.errorMessage || 'It could not start.').replace(/^Skipped:\s*/i, '');
   }
 
   private buildQuery(): LeadDiscoveryHistoryQuery {

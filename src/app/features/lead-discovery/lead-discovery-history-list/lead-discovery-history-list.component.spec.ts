@@ -383,6 +383,20 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(row).not.toContain('Completed');
   });
 
+  it('shows Lock and Auto-Campaign as N/A for a run that did not start, with the reason and no upgrade for a profile that is off', () => {
+    create([{
+      processingDate: '2026-09-26T00:00:00Z',
+      executions: [summary({ skipCount: 1, lockStatus: 'Pending', quotaStopReason: null, errorMessage: 'Skipped: lead discovery is turned off in the profile.' })],
+    }]);
+
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('[data-testid="lock-na"]')?.textContent).toContain('N/A');
+    expect(root.querySelector('[data-testid="campaign-na"]')?.textContent).toContain('N/A');
+    expect(text()).not.toContain('Pending');
+    expect(root.querySelector('[data-testid="skip-reason"]')?.textContent).toContain('lead discovery is turned off in the profile.');
+    expect(text()).not.toContain('Upgrade to Premium');
+  });
+
   it('calls Completed "Done" and RetryPending "Will retry"', () => {
     create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ id: 'd' }), summary({ id: 'r', status: 'RetryPending' })] }]);
 

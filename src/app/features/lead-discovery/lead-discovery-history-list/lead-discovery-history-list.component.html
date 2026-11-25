@@ -129,6 +129,10 @@
                 </ng-container>
                 <ng-template #notRun>
                   <span class="muted">Not run</span>
+                  <div class="sub skip-reason" data-testid="skip-reason">
+                    {{ skipReason(row) }}
+                    <a *ngIf="isPlanStop(row)" routerLink="/billing" (click)="$event.stopPropagation()">Upgrade to Premium</a>
+                  </div>
                   <div class="muted sub">No leads searched, no credits used</div>
                 </ng-template>
                 <div
@@ -151,8 +155,9 @@
             <ng-container matColumnDef="campaign">
               <th mat-header-cell *matHeaderCellDef>Auto-Campaign</th>
               <td mat-cell *matCellDef="let row">
-                <span *ngIf="!row.autoCampaignConfigured" class="muted">Not configured</span>
-                <ng-container *ngIf="row.autoCampaignConfigured">
+                <span *ngIf="row.skipCount" class="muted" data-testid="campaign-na">N/A</span>
+                <span *ngIf="!row.skipCount && !row.autoCampaignConfigured" class="muted">Not configured</span>
+                <ng-container *ngIf="!row.skipCount && row.autoCampaignConfigured">
                   <span [class]="chipClass(row.campaignStatus)">{{ row.campaignStatus }}</span>
                   <div class="muted sub" *ngIf="row.generatedCampaignName">{{ row.generatedCampaignName }}</div>
                 </ng-container>
@@ -162,7 +167,9 @@
             <ng-container matColumnDef="lock">
               <th mat-header-cell *matHeaderCellDef>Lock</th>
               <td mat-cell *matCellDef="let row">
-                <span [class]="chipClass(row.lockStatus)">{{ row.lockStatus }}</span>
+                <!-- A run that never started took no lock: "Pending" would say it is still waiting. -->
+                <span *ngIf="row.skipCount; else lockChip" class="muted" data-testid="lock-na">N/A</span>
+                <ng-template #lockChip><span [class]="chipClass(row.lockStatus)">{{ row.lockStatus }}</span></ng-template>
               </td>
             </ng-container>
 
@@ -175,10 +182,6 @@
               <th mat-header-cell *matHeaderCellDef>Status</th>
               <td mat-cell *matCellDef="let row">
                 <span [class]="row.skipCount ? chipClass('NotApplicable') : chipClass(row.status)">{{ statusLabel(row) }}</span>
-                <div class="sub skip-reason" *ngIf="row.skipCount">
-                  {{ skipReason(row) }}
-                  <a routerLink="/billing" (click)="$event.stopPropagation()">Upgrade to Premium</a>
-                </div>
                 <div class="muted sub" *ngIf="row.skipCount > 1" data-testid="skip-count">Skipped {{ row.skipCount }} times, last {{ row.lastSkippedAtUtc | zonedDate: 'medium' }}</div>
                 <div class="muted sub" *ngIf="!row.skipCount && row.nextRetryInfo" [matTooltip]="row.nextRetryInfo">{{ row.nextRetryInfo }}</div>
               </td>
