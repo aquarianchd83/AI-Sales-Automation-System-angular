@@ -7,6 +7,7 @@ import { NEVER, of } from 'rxjs';
 import { AccountRecoveryService } from '../../core/services/account-recovery.service';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
+import { LeadFollowUpService } from '../../core/services/lead-follow-up.service';
 import { AuthService } from '../../core/services/auth.service';
 import { OnboardingService } from '../../core/services/onboarding.service';
 import { BillingService } from '../../core/services/billing.service';
@@ -28,10 +29,12 @@ describe('ShellComponent sidenav', () => {
   let ticketService: { getAll: jasmine.Spy };
   /** Whether the platform has switched Content Studio on; a test sets it before building the shell. */
   let studioEnabled = false;
+  let suggestedFollowUps = 0;
 
   beforeEach(() => {
     openTickets = [];
     studioEnabled = false;
+    suggestedFollowUps = 0;
     ticketService = { getAll: jasmine.createSpy('getAll').and.callFake((status?: string) => of(status === 'Open' ? openTickets : [])) };
   });
 
@@ -62,6 +65,7 @@ describe('ShellComponent sidenav', () => {
         { provide: TenantProfileService, useValue: { getProfile: () => of({ timezone: 'Asia/Kolkata' }) } },
         { provide: PlatformNotificationService, useValue: { getRecent: () => of(platformAlerts) } },
         { provide: PlatformTicketService, useValue: ticketService },
+        { provide: LeadFollowUpService, useValue: { getSummary: () => of({ scheduled: 0, dueNow: 0, dueWithin30Days: 0, sent: 0, suggested: suggestedFollowUps }) } },
         { provide: PlatformWalletService, useValue: { summary$: of({ balance: 0, topUpCount: 0, lastTopUpDate: null }), refresh: () => undefined } },
         { provide: NotificationHubService, useValue: { connect: () => undefined, disconnect: () => undefined, notificationReceived$: NEVER } },
       ],
@@ -565,5 +569,18 @@ describe('ShellComponent sidenav', () => {
       expect(banner(fixture.nativeElement)?.textContent).toContain('Sent.');
       expect(banner(fixture.nativeElement)?.querySelector('button')).toBeNull();
     });
+  });
+
+  it('shows nothing beside Follow-ups while no AI suggestion is waiting', () => {
+    const root = render(['Admin']);
+
+    expect(root.querySelector('[data-testid="nav-approve-/follow-ups"]')).toBeNull();
+  });
+
+  it('shows how many AI follow-up suggestions are waiting beside Follow-ups', () => {
+    suggestedFollowUps = 2;
+    const root = render(['Admin']);
+
+    expect(root.querySelector('[data-testid="nav-approve-/follow-ups"]')?.textContent?.trim()).toBe('2 to approve');
   });
 });

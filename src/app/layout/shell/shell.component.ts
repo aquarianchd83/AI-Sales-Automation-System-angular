@@ -6,6 +6,7 @@ import { Observable, Subject, of, timer } from 'rxjs';
 import { filter, finalize, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
+import { LeadFollowUpService } from '../../core/services/lead-follow-up.service';
 import { AppRole, REPORT_ROLES, User } from '../../core/models/user.model';
 import { Announcement, PLATFORM_ADMIN_ROLES, PlatformNotification, platformNotificationRoute } from '../../core/models/platform.model';
 import { AccountRecoveryService } from '../../core/services/account-recovery.service';
@@ -52,6 +53,8 @@ interface NavItem {
   link?: () => string;
   /** A plan limit that is not a feature (EntitlementsStore.quotaOf), shown in the same chip: "4 left", then "Used up". */
   quotaKey?: string;
+  /** Shows "N to approve" beside the entry while the AI has follow-up suggestions waiting for a person. */
+  approveChip?: boolean;
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -151,7 +154,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [], trialFeatures: ['AiConversations'] },
         { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
         { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
-        { label: 'Follow-ups', icon: 'event_repeat', route: '/follow-ups', roles: [] },
+        { label: 'Follow-ups', icon: 'event_repeat', route: '/follow-ups', roles: [], approveChip: true },
         { label: 'Demos Scheduled', icon: 'event_available', route: '/bookings', roles: [] },
       ],
     },
@@ -368,6 +371,24 @@ export class ShellComponent implements OnInit, OnDestroy {
     }
     const trial = this.entitlements.trialOf(feature);
     return trial && !trial.exhausted ? trial : null;
+  }
+
+  /** AI-suggested follow-ups nobody has confirmed or dismissed yet - the number on the Follow-ups entry. */
+  followUpsToApprove = 0;
+
+  /** "2 to approve", for the entry that asks for it, only while something is waiting. */
+  approveChip(item: NavItem): string | null {
+    return item.approveChip && this.followUpsToApprove > 0 ? `${this.followUpsToApprove} to approve` : null;
+  }
+
+  private refreshFollowUpsToApprove(): void {
+    if (this.isPlatformSuperAdmin) {
+      return;
+    }
+    this.injector
+      .get(LeadFollowUpService)
+      .getSummary()
+      .subscribe({ next: (summary) => (this.followUpsToApprove = summary.suggested), error: () => undefined });
   }
 
   /** "3/10" (used / allocated), for the chip beside an entry with a free-use quota, a plan cap or a plan limit. Full means read-only. */
@@ -663,6 +684,11 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.updateHeading(this.router.url);
+    this.refreshFollowUpsToApprove();
+    if (!this.isPlatformSuperAdmin) {
+      // Approving or dismissing a suggestion changes the count, so it is read again straight away rather than on the next page change.
+      this.injector.get(LeadFollowUpService).changed$?.pipe(takeUntil(this.destroy$)).subscribe(() => this.refreshFollowUpsToApprove());
+    }
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -672,6 +698,8 @@ export class ShellComponent implements OnInit, OnDestroy {
         this.updateHeading(e.urlAfterRedirects);
         // A ticket is resolved on its own page, so the badge is read again as the operator moves on, not on the next tick.
         this.refreshOpenTickets();
+        // Suggestions are confirmed or dismissed on the Follow-ups page and on a lead, so the count is read again as the tenant moves on.
+        this.refreshFollowUpsToApprove();
         // Credits are spent in the background and by what the tenant does on any page, so the figure is read again as they move around.
         if (!this.isPlatformSuperAdmin) {
           this.entitlementsLoader.load(true).subscribe({ error: () => undefined });

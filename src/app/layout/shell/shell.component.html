@@ -48,6 +48,7 @@
                   <span class="nav-premium-chip">Premium</span>
                   <mat-icon class="nav-lock" aria-hidden="true">lock</mat-icon>
                 </ng-container>
+                <span class="nav-approve-chip" *ngIf="approveChip(item) as approve" [attr.data-testid]="'nav-approve-' + item.route">{{ approve }}</span>
                 <span class="nav-trial-chip" *ngIf="trialChip(item) as chip" [attr.data-testid]="'nav-trial-' + item.route">{{ chip }}</span>
               </a>
               </ng-container>
