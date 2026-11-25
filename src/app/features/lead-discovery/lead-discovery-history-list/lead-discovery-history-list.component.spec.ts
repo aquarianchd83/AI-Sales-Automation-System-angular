@@ -84,7 +84,8 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   beforeEach(() => {
     service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution']);
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
-    tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger']);
+    tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger', 'getJobs']);
+    tenantJobs.getJobs.and.returnValue(of({ runsBackgroundJobs: true, jobs: [] }));
     billing = jasmine.createSpyObj('BillingService', ['getQuota']);
     billing.getQuota.and.returnValue(of([]));
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
@@ -107,7 +108,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
 
     expect(service.getHistory).toHaveBeenCalledWith({ page: 1, pageSize: 25, status: undefined });
     expect(text()).toContain('Eye clinic');
-    expect(text()).toContain('Completed');
+    expect(text()).toContain('Done');
     expect(text()).toContain('Welcome New Leads - 2026-09-26');
     expect(text()).toContain('₹35.28');
   });
@@ -338,5 +339,51 @@ describe('LeadDiscoveryHistoryListComponent', () => {
         data: jasmine.objectContaining({ title: 'Lead discovery jobs', jobTypes: ['lead-discovery', 'lead-follow-ups'] }),
       })
     );
+  });
+  it('shows when the schedule runs next, and that scheduled runs are paused when they are', () => {
+    tenantJobs.getJobs.and.returnValue(of({
+      runsBackgroundJobs: true,
+      jobs: [{ jobType: 'lead-discovery', isEnabled: true, nextExecutionUtc: '2026-11-26T08:30:00Z' } as never],
+    }));
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary()] }]);
+    expect(text()).toContain('Next scheduled run:');
+
+    tenantJobs.getJobs.and.returnValue(of({ runsBackgroundJobs: true, jobs: [{ jobType: 'lead-discovery', isEnabled: false, nextExecutionUtc: null } as never] }));
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary()] }]);
+    expect(text()).toContain('Scheduled runs are paused.');
+  });
+
+  it('says who started a run: Automatic for the schedule, Manual with the name for Run now', () => {
+    create([{
+      processingDate: '2026-09-26T00:00:00Z',
+      executions: [summary({ id: 'a' }), summary({ id: 'm', trigger: 'Manual run', startedBy: 'harish@example.com' })],
+    }]);
+
+    expect(text()).toContain('Automatic');
+    expect(text()).toContain('By the schedule');
+    expect(text()).toContain('Manual');
+    expect(text()).toContain('Run now by harish@example.com');
+  });
+
+  it('shows a skipped run calmly: Skipped, no search, the reason and the upgrade, with a repeat count', () => {
+    create([{
+      processingDate: '2026-09-26T00:00:00Z',
+      executions: [summary({ skipCount: 3, lastSkippedAtUtc: '2026-09-26T12:00:00Z', quotaStopReason: 'Your plan allows up to 7 campaigns. Upgrade to create more.' })],
+    }]);
+
+    const row = text();
+    expect(row).toContain('Skipped');
+    expect(row).toContain('No leads searched, no credits used');
+    expect(row).toContain('Your plan allows up to 7 campaigns.');
+    expect(row).toContain('Upgrade to Premium');
+    expect(row).toContain('Skipped 3 times');
+    expect(row).not.toContain('Completed');
+  });
+
+  it('calls Completed "Done" and RetryPending "Will retry"', () => {
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ id: 'd' }), summary({ id: 'r', status: 'RetryPending' })] }]);
+
+    expect(text()).toContain('Done');
+    expect(text()).toContain('Will retry');
   });
 });

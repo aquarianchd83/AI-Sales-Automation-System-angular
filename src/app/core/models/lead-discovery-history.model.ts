@@ -21,7 +21,13 @@ export interface LeadDiscoveryExecutionSummary {
   processingDate: string;
   leadDiscoveryProfileId: string;
   profileName: string;
+  /** "Scheduled", "Manual run" (Run now), "Automatic retry" or "Manual retry". */
   trigger: string;
+  /** Who started it, when a person did. */
+  startedBy?: string | null;
+  /** More than 0 when the run could not start (a plan limit): how many times, the same row updated each time. */
+  skipCount?: number;
+  lastSkippedAtUtc?: string | null;
   status: string;
   startedAtUtc: string;
   endedAtUtc: string | null;
@@ -446,4 +452,19 @@ export function countCandidateOutcomes(rows: readonly LeadDiscoveryExecutionCust
   return CANDIDATE_OUTCOMES.map((o) => ({ outcome: o.value, count: rows.filter((r) => candidateOutcome(r) === o.value).length })).filter(
     (c) => c.count > 0
   );
+}
+
+/** What a status is called on screen: plain words for the ones a tenant should not have to decode. */
+export function leadDiscoveryStatusLabel(row: { status: string; skipCount?: number }): string {
+  if ((row.skipCount ?? 0) > 0) {
+    return 'Skipped';
+  }
+  switch (row.status) {
+    case 'Completed':
+      return 'Done';
+    case 'RetryPending':
+      return 'Will retry';
+    default:
+      return row.status;
+  }
 }

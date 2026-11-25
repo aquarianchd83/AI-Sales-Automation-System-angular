@@ -105,3 +105,50 @@
     font-weight: 400;
   }
 }
+
+.next-run {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  border: 1px solid #cfe8e4;
+  border-radius: 10px;
+  background: #e8f5f3;
+  color: #0b4f48;
+  font-size: 13px;
+
+  mat-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  &__change {
+    margin-left: auto;
+  }
+}
+
+/* Who started a run: the schedule (blue) or a person's Run now (purple). */
+.by-chip {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: #e3f2fd;
+  color: #1565c0;
+  font-size: 12px;
+  font-weight: 600;
+
+  &--manual {
+    background: #f3e5f5;
+    color: #6a1b9a;
+  }
+}
+
+.skip-reason {
+  margin-top: 4px;
+  max-width: 260px;
+  white-space: normal;
+}

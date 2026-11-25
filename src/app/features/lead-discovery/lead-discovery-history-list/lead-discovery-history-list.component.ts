@@ -13,6 +13,7 @@ import {
   LeadDiscoveryHistoryDay,
   LeadDiscoveryHistoryQuery,
   leadDiscoveryStatusChipClass,
+  leadDiscoveryStatusLabel,
 } from '../../../core/models/lead-discovery-history.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { BillingService } from '../../../core/services/billing.service';
@@ -51,6 +52,7 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusOptions = LEAD_DISCOVERY_EXECUTION_STATUSES;
   readonly chipClass = leadDiscoveryStatusChipClass;
+  readonly statusLabel = leadDiscoveryStatusLabel;
   readonly formatCharge = formatCharge;
   readonly statusControl = new FormControl<string | null>(null);
 
@@ -61,6 +63,10 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   /** Lead-candidate quota remaining, for the header chip — null while loading, or when the tenant
    * has never had any (capacity 0), since neither is worth showing. */
   quotaLabel: string | null = null;
+  /** When the schedule runs next (UTC), or null while loading or when scheduled runs are paused. */
+  nextRunUtc: string | null = null;
+  /** Scheduled runs are switched off, so nothing starts by itself. */
+  schedulePaused = false;
   /** Execution ids currently being retried — disables their retry button until the request settles. */
   readonly retrying = new Set<string>();
 
@@ -114,6 +120,18 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
           if (quota && quota.capacity > 0) {
             this.quotaLabel = formatUnits(quota.balance);
           }
+        },
+        error: () => undefined,
+      });
+
+    this.tenantJobs
+      .getJobs()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (all) => {
+          const job = all.jobs.find((j) => j.jobType === LEAD_DISCOVERY_JOB_TYPE);
+          this.schedulePaused = !!job && !job.isEnabled;
+          this.nextRunUtc = job && job.isEnabled ? job.nextExecutionUtc : null;
         },
         error: () => undefined,
       });
@@ -224,6 +242,43 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
       return `Retry attempt ${execution.retryCount}`;
     }
     return null;
+  }
+
+  /** The earlier run this one finished, when it is on the page. */
+  retriedFrom(execution: LeadDiscoveryExecutionSummary): LeadDiscoveryExecutionSummary | null {
+    if (!execution.retryOfExecutionId) {
+      return null;
+    }
+    for (const day of this.page.items) {
+      const found = day.executions.find((e) => e.id === execution.retryOfExecutionId);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  /** Whether a person (Run now, manual retry) started it, as against the schedule. */
+  isManual(execution: LeadDiscoveryExecutionSummary): boolean {
+    return execution.trigger === 'Manual run' || execution.trigger === 'Manual retry';
+  }
+
+  /** Under "Started by": which firing it was, or who pressed Run now. */
+  startedByDetail(execution: LeadDiscoveryExecutionSummary): string {
+    if (this.isManual(execution)) {
+      return execution.startedBy ? `Run now by ${execution.startedBy}` : 'Run now';
+    }
+    return 'By the schedule';
+  }
+
+  /** A run stopped by a limit of the plan rather than by credits: the fix is an upgrade, not the wallet. */
+  isPlanStop(execution: LeadDiscoveryExecutionSummary): boolean {
+    return !execution.quotaExhausted && !!execution.quotaStopReason;
+  }
+
+  /** Skipped (nothing started): the reason, or the plain fact. */
+  skipReason(execution: LeadDiscoveryExecutionSummary): string | null {
+    return execution.quotaStopReason || execution.errorMessage;
   }
 
   private buildQuery(): LeadDiscoveryHistoryQuery {
