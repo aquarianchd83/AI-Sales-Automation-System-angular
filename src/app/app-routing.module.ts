@@ -40,6 +40,13 @@ const routes: Routes = [
   },
   { path: 'privacy-policy', redirectTo: 'privacy', pathMatch: 'full' },
   {
+    // Public Terms and Conditions: static content, no guard, outside ShellComponent. Same shape as /privacy.
+    path: 'terms',
+    loadChildren: () => import('./features/terms/terms.module').then((m) => m.TermsModule),
+  },
+  { path: 'terms-and-conditions', redirectTo: 'terms', pathMatch: 'full' },
+  { path: 'terms-of-service', redirectTo: 'terms', pathMatch: 'full' },
+  {
     // What a customer reaches from the link in the SMS. No guard of any kind: the customer has no account, and the secret in the
     // link is the whole credential. Outside ShellComponent, so none of the app's chrome (menus, tenant data) is on it.
     path: 'consent/:token',
