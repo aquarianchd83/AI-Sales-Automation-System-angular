@@ -42,6 +42,9 @@ describe('LeadDiscoveryService', () => {
       autoCampaignStartTime: null,
       dndCheckEnabled: false,
       consentSmsEnabled: false,
+      consentReminderEnabled: false,
+      consentReminderFirstDays: 3,
+      consentReminderSecondDays: 7,
     };
     service.saveProfile(request).subscribe();
 

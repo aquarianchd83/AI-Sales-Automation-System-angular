@@ -519,3 +519,20 @@ mat-icon[matPrefix] {
   margin: -6px 0 0;
   font-size: 12px;
 }
+
+.reminder-days {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 16px;
+  margin-top: 12px;
+
+  mat-form-field {
+    width: 220px;
+  }
+
+  .field-message {
+    flex: 1 0 100%;
+    margin: 0;
+  }
+}

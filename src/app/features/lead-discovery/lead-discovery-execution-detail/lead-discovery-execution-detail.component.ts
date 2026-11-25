@@ -12,6 +12,8 @@ import {
   consentSmsChipClass,
   consentSmsLabel,
   consentSmsWasSent,
+  consentStateChipClass,
+  consentStateLabel,
   filterByVerification,
   leadDiscoveryStatusChipClass,
   rowHistoryEvents,
@@ -40,6 +42,8 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
   readonly smsChip = consentSmsChipClass;
   readonly smsText = consentSmsLabel;
   readonly smsSent = consentSmsWasSent;
+  readonly stateText = consentStateLabel;
+  readonly stateChip = consentStateChipClass;
   /** The DND check filter on the Customers tab; 'All' shows every row. */
   verificationFilter = 'All';
   readonly verificationChip = verificationChipClass;

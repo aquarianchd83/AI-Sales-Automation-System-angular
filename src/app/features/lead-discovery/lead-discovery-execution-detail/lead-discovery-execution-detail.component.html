@@ -275,7 +275,20 @@
                       <mat-icon *ngIf="row.consentSmsStatus === 'Failed'" class="sms-icon sms-icon--not-sent" aria-label="Not sent">close</mat-icon>
                       <span [class]="smsChip(row.consentSmsStatus)">{{ smsText(row.consentSmsStatus) }}</span>
                     </span>
+                    <div class="consent-state" *ngIf="row.consentState" data-testid="consent-state">
+                      <span [class]="stateChip(row.consentState)">{{ stateText(row.consentState) }}</span>
+                    </div>
                     <div class="muted" *ngIf="row.consentRecordedAtUtc">Replied {{ row.consentRecordedAtUtc | zonedDate: 'medium' }}</div>
+                    <div class="muted" *ngIf="row.consentReminderCount" data-testid="consent-reminders">
+                      {{ row.consentReminderCount }} reminder{{ row.consentReminderCount === 1 ? '' : 's' }} sent, last
+                      {{ row.consentLastReminderAtUtc | zonedDate: 'mediumDate' }}
+                    </div>
+                    <div class="muted" *ngIf="row.consentState === 'Waiting' && row.consentLinkExpiresAtUtc" data-testid="consent-expires">
+                      Link valid until {{ row.consentLinkExpiresAtUtc | zonedDate: 'mediumDate' }}
+                    </div>
+                    <div class="muted" *ngIf="row.consentState === 'NoResponse'" data-testid="consent-no-response">
+                      The link expired{{ row.consentLinkExpiresAtUtc ? ' on ' + (row.consentLinkExpiresAtUtc | zonedDate: 'mediumDate') : '' }} with no answer.
+                    </div>
                   </ng-container>
                   <ng-template #smsNotSent>
                     <span class="sms-line sms-note">

@@ -391,6 +391,27 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
       expect(cells[2].textContent).toContain('Failed');
     });
 
+    it('shows where each customer stands on the consent SMS: consented, waiting with its reminders, or no response', () => {
+      createWithCounts([
+        row({ id: 'r1', consentSmsStatus: 'Delivered', consentState: 'Consented', consentRecordedAtUtc: '2026-10-15T06:30:00Z' }),
+        row({
+          id: 'r2', customerId: 'c2', consentSmsStatus: 'Delivered', consentState: 'Waiting', consentReminderCount: 1,
+          consentLastReminderAtUtc: '2026-10-18T06:00:00Z', consentLinkExpiresAtUtc: '2026-10-29T06:00:00Z',
+        }),
+        row({ id: 'r3', customerId: 'c3', consentSmsStatus: 'Delivered', consentState: 'NoResponse', consentReminderCount: 2, consentLinkExpiresAtUtc: '2026-10-29T06:00:00Z' }),
+      ]);
+
+      const cells = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('td.mat-column-consentSms'));
+      expect(cells[0].querySelector('[data-testid="consent-state"]')?.textContent).toContain('Consented');
+      expect(cells[1].querySelector('[data-testid="consent-state"]')?.textContent).toContain('Waiting for reply');
+      expect(cells[1].querySelector('[data-testid="consent-reminders"]')?.textContent).toContain('1 reminder sent');
+      expect(cells[1].querySelector('[data-testid="consent-expires"]')?.textContent).toContain('Link valid until');
+      expect(cells[2].querySelector('[data-testid="consent-state"]')?.textContent).toContain('No response');
+      expect(cells[2].querySelector('[data-testid="consent-reminders"]')?.textContent).toContain('2 reminders sent');
+      expect(cells[2].querySelector('[data-testid="consent-no-response"]')?.textContent).toContain('expired');
+      expect(cells[2].querySelector('[data-testid="consent-expires"]')).toBeNull();
+    });
+
     it('filters the customers by DND check result and shows the checked-at time column', () => {
       createWithCounts(rows());
       expect(tableRows()).toBe(4);
