@@ -540,6 +540,7 @@
     <mat-icon>edit_note</mat-icon>
     <span>You have unsaved changes</span>
     <span class="spacer"></span>
+    <span class="used-up-note" *ngIf="usedUp" data-testid="save-used-up">{{ usedUpHint }}</span>
     <button mat-button type="button" (click)="discard()" [disabled]="saving">Discard</button>
     <span [matTooltip]="usedUp ? usedUpHint : ''">
       <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving || usedUp">
