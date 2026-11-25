@@ -106,13 +106,13 @@ export interface Entitlements {
   costs: CreditCostItem[];
   /** Features the plan does not include but gives free uses of (used up or not). Absent from an older API. */
   trials?: FeatureTrial[] | null;
-  /** Plan limits that are not a feature of their own (the customer limit). Absent when the plan has none. */
+  /** Plan limits that are not a feature of their own (the customer and user limits). Absent when the plan has none. */
   quotas?: PlanQuota[] | null;
 }
 
 /** A plan limit that is not a feature: "4 of 10 customers left". */
 export interface PlanQuota {
-  key: 'Customers' | string;
+  key: 'Customers' | 'Users' | string;
   label: string;
   limit: number;
   used: number;

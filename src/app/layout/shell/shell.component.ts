@@ -199,7 +199,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Agent Performance', icon: 'monitoring', route: '/agent-performance', roles: TENANT_ADMIN_ONLY },
         { label: 'WhatsApp Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
         { label: 'Consent Page', icon: 'fact_check', route: '/consent-page-settings', roles: TENANT_ADMIN_ONLY },
-        { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
+        { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY, quotaKey: 'Users' },
         { label: 'Test Notifications', icon: 'science', route: '/billing/notifications/test', roles: TENANT_ADMIN_ONLY },
       ],
     },
