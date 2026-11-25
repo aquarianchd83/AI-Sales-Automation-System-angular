@@ -26,21 +26,11 @@
 }
 
 .brand-logo {
-  display: grid;
-  place-items: center;
+  display: block;
   flex: none;
   width: 38px;
   height: 38px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, #14b8a6, #6366f1);
-  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.35);
-  color: #fff;
-
-  mat-icon {
-    width: 22px;
-    height: 22px;
-    font-size: 22px;
-  }
+  object-fit: contain;
 }
 
 .brand-text {
@@ -51,9 +41,13 @@
 }
 
 .brand-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   letter-spacing: 0.1px;
+  color: #22c55e;
+}
+
+.brand-title-ai {
   color: #f8fafc;
 }
 

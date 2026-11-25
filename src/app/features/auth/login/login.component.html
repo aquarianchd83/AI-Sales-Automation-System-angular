@@ -1,12 +1,7 @@
 <div class="login-page">
   <mat-card class="login-card">
-    <div class="login-brand">
-      <mat-icon color="primary">forum</mat-icon>
-      <div>
-        <h1>Sales Automation</h1>
-        <p class="muted">WhatsApp marketing &amp; AI sales admin panel</p>
-      </div>
-    </div>
+    <img class="app-logo" src="assets/brand/aisaarthi-logo.png" alt="AiSaarthi" width="1048" height="251" />
+    <p class="muted app-logo-tagline">AI sales automation for WhatsApp</p>
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <mat-form-field class="full-width">
@@ -70,6 +65,9 @@
     </p>
     <p class="hint muted">
       <a routerLink="/recover/forgot-password">Forgot your password?</a>
+    </p>
+    <p class="hint muted legal-links">
+      <a routerLink="/terms">Terms and Conditions</a> · <a routerLink="/privacy">Privacy Policy</a>
     </p>
   </mat-card>
 </div>
