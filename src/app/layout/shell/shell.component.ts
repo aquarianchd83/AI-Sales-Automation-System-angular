@@ -50,6 +50,8 @@ interface NavItem {
   trialFeatures?: PlatformFeature[];
   /** Where the entry goes when it depends on the plan, read each time instead of `route`. */
   link?: () => string;
+  /** A plan limit that is not a feature (EntitlementsStore.quotaOf), shown in the same chip: "4 left", then "Used up". */
+  quotaKey?: string;
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -117,7 +119,7 @@ export class ShellComponent implements OnInit, OnDestroy {
           feature: 'LeadDiscovery',
         },
         // Tags is opened from the Customers page, so it stays under this entry.
-        { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'] },
+        { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'], quotaKey: 'Customers' },
         { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [], feature: 'WhatsAppMessaging' },
         { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'Campaigns' },
         // One entry for everything the AI knows; its screens are listed on the page itself (KnowledgeHubComponent).
@@ -369,6 +371,10 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   /** "7 free left", for the chip beside an entry on free uses - or "Used up" once its own feature has none left (the screen is read-only). */
   trialChip(item: NavItem): string | null {
+    if (item.quotaKey) {
+      const quota = this.entitlements.quotaOf(item.quotaKey);
+      return quota ? (quota.exhausted ? 'Used up' : `${quota.remaining} left`) : null;
+    }
     const trial = this.trialOf(item);
     if (trial) {
       return `${trial.remaining} ${trial.includedInPlan ? '' : 'free '}left`;

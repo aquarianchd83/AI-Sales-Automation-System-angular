@@ -207,6 +207,8 @@ export interface PlatformPlan {
   maxUsers: number;
   maxMessagesPerMonth: number;
   maxCampaigns: number;
+  /** The most customers a tenant on this plan may keep; 0 for no limit. Absent from an older API. */
+  maxCustomers?: number;
   maxKnowledgeBaseArticles: number;
   /** The most new leads one lead discovery run may add for a tenant on this plan. */
   maxLeadDiscoveryBatchSize: number;
@@ -277,6 +279,8 @@ export interface CreatePlanRequest {
   maxKnowledgeBaseArticles: number;
   priceMonthlyCents: number;
   maxLeadDiscoveryBatchSize?: number | null;
+  /** The most customers a tenant on the plan may keep; 0 for no limit. Omitted on an update leaves it unchanged. */
+  maxCustomers?: number | null;
   starterCredits?: number;
   monthlyCredits?: number;
   features?: PlatformFeature[] | null;
@@ -297,6 +301,8 @@ export interface UpdatePlanRequest {
   priceMonthlyCents: number;
   isActive: boolean;
   maxLeadDiscoveryBatchSize?: number | null;
+  /** The most customers a tenant on the plan may keep; 0 for no limit. Omitted on an update leaves it unchanged. */
+  maxCustomers?: number | null;
   /** Omitted leaves the credits unchanged. */
   starterCredits?: number | null;
   monthlyCredits?: number | null;

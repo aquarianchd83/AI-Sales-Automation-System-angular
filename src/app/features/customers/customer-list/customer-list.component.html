@@ -16,14 +16,19 @@
       <mat-icon>sell</mat-icon>
       Tags
     </a>
-    <button mat-stroked-button type="button" (click)="importCsv()">
-      <mat-icon>upload_file</mat-icon>
-      Import CSV / Excel
-    </button>
-    <button mat-flat-button color="primary" type="button" (click)="create()">
-      <mat-icon>person_add</mat-icon>
-      New customer
-    </button>
+    <!-- The plan's customer limit reached: the customers stay open, adding more needs Premium. The spans carry the tooltip a disabled button can't. -->
+    <span [matTooltip]="customersFull ? usedUpHint : ''">
+      <button mat-stroked-button type="button" (click)="importCsv()" [disabled]="customersFull" data-testid="import-customers">
+        <mat-icon>{{ customersFull ? 'lock' : 'upload_file' }}</mat-icon>
+        Import CSV / Excel
+      </button>
+    </span>
+    <span [matTooltip]="customersFull ? usedUpHint : ''">
+      <button mat-flat-button color="primary" type="button" (click)="create()" [disabled]="customersFull" data-testid="new-customer">
+        <mat-icon>{{ customersFull ? 'lock' : 'person_add' }}</mat-icon>
+        New customer
+      </button>
+    </span>
   </app-page-header>
 
   <mat-card class="table-card">

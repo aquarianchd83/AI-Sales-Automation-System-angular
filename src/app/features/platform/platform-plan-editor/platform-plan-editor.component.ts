@@ -92,6 +92,8 @@ export class PlatformPlanEditorComponent implements OnInit {
     name: ['', Validators.required],
     maxUsers: [0, [Validators.required, Validators.min(0)]],
     maxCampaigns: [0, [Validators.required, Validators.min(0)]],
+    // 0 is no limit (Plan.MaxCustomers).
+    maxCustomers: [0, [Validators.required, Validators.min(0)]],
     maxKnowledgeBaseArticles: [0, [Validators.required, Validators.min(0)]],
     // 25 is Plan.DefaultLeadDiscoveryBatchSize on the backend.
     maxLeadDiscoveryBatchSize: [25, [Validators.required, Validators.min(0)]],
@@ -202,6 +204,7 @@ export class PlatformPlanEditorComponent implements OnInit {
           maxUsers: raw.maxUsers,
           maxMessagesPerMonth: this.plan?.maxMessagesPerMonth ?? 0,
           maxCampaigns: raw.maxCampaigns,
+          maxCustomers: raw.maxCustomers,
           maxKnowledgeBaseArticles: raw.maxKnowledgeBaseArticles,
           maxLeadDiscoveryBatchSize: raw.maxLeadDiscoveryBatchSize,
           priceMonthlyCents,
@@ -219,6 +222,7 @@ export class PlatformPlanEditorComponent implements OnInit {
           // There is no monthly message cap any more - sending is paid for with credits.
           maxMessagesPerMonth: 0,
           maxCampaigns: raw.maxCampaigns,
+          maxCustomers: raw.maxCustomers,
           maxKnowledgeBaseArticles: raw.maxKnowledgeBaseArticles,
           maxLeadDiscoveryBatchSize: raw.maxLeadDiscoveryBatchSize,
           priceMonthlyCents,
@@ -251,6 +255,7 @@ export class PlatformPlanEditorComponent implements OnInit {
       name: plan.name,
       maxUsers: plan.maxUsers,
       maxCampaigns: plan.maxCampaigns,
+      maxCustomers: plan.maxCustomers ?? 0,
       maxKnowledgeBaseArticles: plan.maxKnowledgeBaseArticles,
       maxLeadDiscoveryBatchSize: plan.maxLeadDiscoveryBatchSize,
       starterCredits: plan.starterCredits,

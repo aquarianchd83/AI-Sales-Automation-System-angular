@@ -154,6 +154,19 @@ describe('ShellComponent sidenav', () => {
       expect(lead.getAttribute('href')).toBe('/lead-discovery/history');
     });
 
+    it('shows the customer limit beside Customers: "N left", then "Used up"', () => {
+      const fixture = createFixture(['Admin']);
+      const store = TestBed.inject(EntitlementsStore);
+      const quota = (used: number) => ({ key: 'Customers', label: 'Customers', limit: 10, used, remaining: Math.max(0, 10 - used), exhausted: used >= 10, unit: 'customers', unitSingular: 'customer' });
+      store.set({ planCode: 'basic', planName: 'Basic', features: BASIC, balance: 10, costs: [], quotas: [quota(6)] });
+      fixture.detectChanges();
+      expect(link(fixture.nativeElement as HTMLElement, 'Customers')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('4 left');
+
+      store.set({ planCode: 'basic', planName: 'Basic', features: BASIC, balance: 10, costs: [], quotas: [quota(10)] });
+      fixture.detectChanges();
+      expect(link(fixture.nativeElement as HTMLElement, 'Customers')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('Used up');
+    });
+
     it('still lists a locked entry, dimmed, with a lock and a Premium chip, opening its preview', () => {
       const root = withPlan(['Admin'], BASIC);
 
