@@ -104,7 +104,7 @@
                 >
                   <span>{{ row.quotaExhausted ? 'Out of credits — stopped early' : 'Stopped — not out of credits' }}</span>
                   <span class="quota-reason" *ngIf="row.quotaStopReason">{{ row.quotaStopReason }}</span>
-                  <a routerLink="/billing/wallet" (click)="$event.stopPropagation()">{{ row.quotaExhausted ? 'Buy credits' : 'Open wallet' }}</a>
+                  <a [routerLink]="row.quotaExhausted ? '/billing/wallet' : '/billing'" (click)="$event.stopPropagation()">{{ row.quotaExhausted ? 'Buy credits' : 'Upgrade to Premium' }}</a>
                 </div>
               </td>
             </ng-container>

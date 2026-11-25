@@ -203,7 +203,10 @@ describe('LeadDiscoveryExecutionDetailComponent', () => {
 
     expect(text()).toContain(reason);
     expect(text()).not.toContain('Lead-candidate quota ran out partway through');
-    expect((fixture.nativeElement as HTMLElement).querySelector('a[href="/billing/wallet"]')?.textContent).toContain('Open wallet');
+    // A limit of the plan is fixed by the plan, so it offers the upgrade, never the wallet.
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('a[href="/billing"]')?.textContent).toContain('Upgrade to Premium');
+    expect(root.querySelector('a[href="/billing/wallet"]')).toBeNull();
   });
 
   it('has no buy-credits link when the quota was not exhausted', () => {

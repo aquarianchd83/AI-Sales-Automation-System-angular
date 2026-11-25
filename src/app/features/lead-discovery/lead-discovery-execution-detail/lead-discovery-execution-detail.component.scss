@@ -11,34 +11,61 @@
   font-size: 13px;
 }
 
-.field-message--error,
-.field-message--warn {
+/* A message above the figures: icon, text, and the one action that fixes it on the right (below the text on a phone). */
+.notice {
   display: flex;
-  align-items: flex-start;
-  gap: 6px;
+  align-items: center;
+  gap: 12px;
   margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid;
+  border-radius: 10px;
   font-size: 13px;
+  line-height: 1.45;
 
-  mat-icon {
+  > mat-icon {
     flex: none;
-    width: 18px;
-    height: 18px;
-    font-size: 18px;
-    margin-top: 1px;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
   }
-}
 
-.buy-credits-link {
-  display: inline-flex;
-  margin: 6px 0 0;
-}
+  &__text {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
 
-.field-message--error {
-  color: #b3261e;
-}
+  &__action {
+    flex: none;
+    white-space: nowrap;
 
-.field-message--warn {
-  color: #8a5300;
+    mat-icon {
+      width: 18px;
+      height: 18px;
+      font-size: 18px;
+      margin-right: 4px;
+    }
+  }
+
+  &--error {
+    color: #8c1d18;
+    background: #fdecea;
+    border-color: #f5c6c2;
+  }
+
+  &--warn {
+    color: #7a4a00;
+    background: #fff4e5;
+    border-color: #f3d9ad;
+  }
+
+  @media (max-width: 600px) {
+    flex-wrap: wrap;
+
+    &__action {
+      margin-left: 32px;
+    }
+  }
 }
 
 .stat-grid {
