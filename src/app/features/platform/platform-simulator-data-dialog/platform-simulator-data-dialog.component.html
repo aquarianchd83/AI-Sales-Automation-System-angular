@@ -1,0 +1,106 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit' : 'Add' }} - {{ tab.label }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" novalidate>
+    <!-- Keyed kinds: one of the listed keys, and its value -->
+    <ng-container *ngIf="keyed">
+      <mat-form-field class="full-width">
+        <mat-label>Key</mat-label>
+        <mat-select formControlName="name" (selectionChange)="keyChanged()">
+          <mat-option *ngFor="let k of data.freeKeys" [value]="k.key">{{ k.key }}</mat-option>
+        </mat-select>
+        <mat-error>Key choose karein.</mat-error>
+      </mat-form-field>
+      <p class="muted help" *ngIf="selectedKey">{{ selectedKey.help }}</p>
+
+      <mat-form-field class="full-width" *ngIf="category !== Category.Setting">
+        <mat-label>{{ category === Category.IntentKeywords ? 'Keywords (comma se alag)' : 'Text' }}</mat-label>
+        <textarea matInput formControlName="value" rows="4" maxlength="4000" data-testid="value"></textarea>
+        <mat-error>Value zaroori hai.</mat-error>
+      </mat-form-field>
+      <mat-form-field class="full-width" *ngIf="category === Category.Setting">
+        <mat-label>Value</mat-label>
+        <input matInput formControlName="value" maxlength="10" data-testid="value" />
+        <mat-hint>true / false, ya FlawedSharePercent ke liye 0-90</mat-hint>
+        <mat-error>Value zaroori hai.</mat-error>
+      </mat-form-field>
+      <button mat-button type="button" *ngIf="selectedKey" (click)="useDefault()">
+        <mat-icon>restart_alt</mat-icon>
+        Built-in value use karein
+      </button>
+    </ng-container>
+
+    <!-- A lead business -->
+    <div class="grid" *ngIf="category === Category.LeadBusiness">
+      <mat-form-field class="span-2">
+        <mat-label>Business name</mat-label>
+        <input matInput formControlName="name" maxlength="200" data-testid="name" />
+        <mat-error>Business name zaroori hai.</mat-error>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Business type</mat-label>
+        <input matInput formControlName="businessType" maxlength="300" placeholder="Dental clinic" />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Contact person</mat-label>
+        <input matInput formControlName="contactPerson" maxlength="300" />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Address</mat-label>
+        <input matInput formControlName="address" maxlength="300" />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>City</mat-label>
+        <input matInput formControlName="city" maxlength="300" />
+        <mat-hint>Khali = run ki location</mat-hint>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Phone</mat-label>
+        <input matInput formControlName="phone" maxlength="40" placeholder="+91 98140 21001" data-testid="phone" />
+        <mat-error>Phone zaroori hai.</mat-error>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Email</mat-label>
+        <input matInput formControlName="email" maxlength="300" />
+        <mat-error>Valid email daalein.</mat-error>
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Website</mat-label>
+        <input matInput formControlName="website" maxlength="300" placeholder="https://name.example" />
+      </mat-form-field>
+      <mat-form-field>
+        <mat-label>Lead score (0-100)</mat-label>
+        <input matInput type="number" formControlName="leadScore" min="0" max="100" />
+        <mat-error>0 se 100 ke beech.</mat-error>
+      </mat-form-field>
+      <mat-form-field class="span-2">
+        <mat-label>Behaviour</mat-label>
+        <mat-select formControlName="variant">
+          <mat-option *ngFor="let v of variants" [value]="v">{{ variantLabels[v] }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <!-- A DND number -->
+    <mat-form-field class="full-width" *ngIf="category === Category.DndNumber">
+      <mat-label>Phone number</mat-label>
+      <input matInput formControlName="name" maxlength="40" placeholder="+91 99999 00000" data-testid="name" />
+      <mat-error>Phone number zaroori hai.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width" *ngIf="!keyed">
+      <mat-label>Order</mat-label>
+      <input matInput type="number" formControlName="displayOrder" />
+      <mat-hint>Chhota number pehle use hota hai</mat-hint>
+    </mat-form-field>
+
+    <mat-slide-toggle formControlName="isActive" class="active-toggle">Simulator ise use kare (active)</mat-slide-toggle>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()" data-testid="save">
+    {{ saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add' }}
+  </button>
+</mat-dialog-actions>

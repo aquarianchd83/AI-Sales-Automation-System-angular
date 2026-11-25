@@ -1,0 +1,107 @@
+<div class="page">
+  <app-page-header
+    title="Simulator Dummy Data"
+    subtitle="Jab koi integration Simulator mode mein hai, simulator har operation mein yahi data use karta hai. Add, edit ya delete karke control apne paas rakhein."
+  >
+    <button mat-stroked-button type="button" (click)="restoreDefaults()" [disabled]="restoring || loading" data-testid="restore">
+      <mat-icon>settings_backup_restore</mat-icon>
+      Restore defaults
+    </button>
+    <button mat-flat-button color="primary" type="button" (click)="add()" [disabled]="loading || !canAdd(current)" data-testid="add">
+      <mat-icon>add</mat-icon>
+      Add
+    </button>
+  </app-page-header>
+
+  <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
+
+  <mat-card *ngIf="!loading">
+    <mat-tab-group [(selectedIndex)]="selectedIndex" mat-stretch-tabs="false" animationDuration="0ms">
+      <mat-tab *ngFor="let tab of tabs">
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">{{ tab.icon }}</mat-icon>
+          {{ tab.label }} ({{ rowsOf(tab.category).length }})
+        </ng-template>
+
+        <p class="muted tab-help">{{ tab.help }}</p>
+
+        <div class="table-scroll" *ngIf="rowsOf(tab.category).length; else empty">
+          <table mat-table [dataSource]="rowsOf(tab.category)" class="data-table">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>{{ tab.category === Category.DndNumber ? 'Phone number' : 'Business' }}</th>
+              <td mat-cell *matCellDef="let r">
+                <strong>{{ r.name }}</strong>
+                <div class="muted small" *ngIf="detailsOf(r) as details">{{ details }}</div>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="businessType">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td mat-cell *matCellDef="let r">{{ r.businessType || '-' }}</td>
+            </ng-container>
+            <ng-container matColumnDef="phone">
+              <th mat-header-cell *matHeaderCellDef>Phone</th>
+              <td mat-cell *matCellDef="let r" class="mono nowrap">{{ r.phone }}</td>
+            </ng-container>
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef>Email / website</th>
+              <td mat-cell *matCellDef="let r">
+                <div>{{ r.email || '-' }}</div>
+                <div class="muted small">{{ r.website }}</div>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="score">
+              <th mat-header-cell *matHeaderCellDef>Score</th>
+              <td mat-cell *matCellDef="let r">{{ r.leadScore }}</td>
+            </ng-container>
+            <ng-container matColumnDef="variant">
+              <th mat-header-cell *matHeaderCellDef>Behaviour</th>
+              <td mat-cell *matCellDef="let r">
+                <span class="chip" [class.chip--bad]="!!r.variant">{{ variantLabel(r) }}</span>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="key">
+              <th mat-header-cell *matHeaderCellDef>Key</th>
+              <td mat-cell *matCellDef="let r">
+                <strong class="mono">{{ r.name }}</strong>
+                <div class="muted small">{{ helpOf(r) }}</div>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="value">
+              <th mat-header-cell *matHeaderCellDef>Value</th>
+              <td mat-cell *matCellDef="let r" class="value-cell">{{ r.value }}</td>
+            </ng-container>
+            <ng-container matColumnDef="updated">
+              <th mat-header-cell *matHeaderCellDef>Last changed</th>
+              <td mat-cell *matCellDef="let r" class="nowrap">
+                {{ (r.updatedAt || r.createdAt) | zonedDate: 'dd MMM yyyy, HH:mm' }}
+                <div class="muted small" *ngIf="!r.isActive">Inactive</div>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let r" class="actions nowrap">
+                <button mat-icon-button type="button" matTooltip="Edit" (click)="edit(r)" data-testid="edit">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button mat-icon-button type="button" matTooltip="Delete" (click)="delete(r)" data-testid="delete">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnsOf(tab.category)"></tr>
+            <tr mat-row *matRowDef="let r; columns: columnsOf(tab.category)" [class.row--inactive]="!r.isActive"></tr>
+          </table>
+        </div>
+
+        <ng-template #empty>
+          <div class="empty-state">
+            <mat-icon class="empty-icon">{{ tab.icon }}</mat-icon>
+            <p *ngIf="!isKeyed(tab.category)">Abhi koi data nahi hai - simulator ke paas yahan se kuch nahi milega. "Add" ya "Restore defaults" use karein.</p>
+            <p *ngIf="isKeyed(tab.category)">Koi row nahi - simulator built-in values use kar raha hai.</p>
+          </div>
+        </ng-template>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card>
+</div>
