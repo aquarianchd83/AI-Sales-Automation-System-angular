@@ -69,9 +69,11 @@
   opacity: 0.5;
 }
 
+/* Material cards stack their children in a column by default; these two are single rows. */
 .setting-card,
 .job-bar {
   display: flex;
+  flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
   gap: 16px 24px;
@@ -85,6 +87,15 @@
 
 .months-select {
   width: 160px;
+  flex: 0 0 auto;
+}
+
+.job-bar > div {
+  text-align: left;
+}
+
+.job-bar .spacer {
+  flex: 1 1 auto;
 }
 
 .job-bar--paused {
