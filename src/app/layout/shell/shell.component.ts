@@ -369,18 +369,19 @@ export class ShellComponent implements OnInit, OnDestroy {
     return trial && !trial.exhausted ? trial : null;
   }
 
-  /** "7 free left", for the chip beside an entry on free uses - or "Used up" once its own feature has none left (the screen is read-only). */
+  /** "3/10" (used / allocated), for the chip beside an entry with a free-use quota, a plan cap or a plan limit. Full means read-only. */
   trialChip(item: NavItem): string | null {
     if (item.quotaKey) {
       const quota = this.entitlements.quotaOf(item.quotaKey);
-      return quota ? (quota.exhausted ? 'Used up' : `${quota.remaining} left`) : null;
+      return quota ? `${quota.used}/${quota.limit}` : null;
     }
     const trial = this.trialOf(item);
     if (trial) {
-      return `${trial.remaining} ${trial.includedInPlan ? '' : 'free '}left`;
+      return `${trial.used}/${trial.freeUses}`;
     }
     const named = typeof item.feature === 'function' ? item.feature() : item.feature;
-    return named && this.entitlements.usedUp(named) ? 'Used up' : null;
+    const spent = named ? this.entitlements.usedUp(named) : null;
+    return spent ? `${spent.used}/${spent.freeUses}` : null;
   }
 
   /**

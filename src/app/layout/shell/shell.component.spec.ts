@@ -125,7 +125,7 @@ describe('ShellComponent sidenav', () => {
       feature, label: feature, freeUses: 10, used, remaining: Math.max(0, 10 - used), exhausted: used >= 10, unit: 'uses', unitSingular: 'use',
     });
 
-    it('shows "N free left" on an entry open on free uses, and the free-trial bar on its pages', () => {
+    it('shows "used/allocated" on an entry open on free uses, and the free-trial bar on its pages', () => {
       const fixture = createFixture(['Admin']);
       TestBed.inject(EntitlementsStore).set({
         planCode: 'basic', planName: 'Basic', features: [...BASIC, 'LeadDiscovery', 'ProductKnowledge'], balance: 10, costs: [],
@@ -134,37 +134,37 @@ describe('ShellComponent sidenav', () => {
       fixture.detectChanges();
       const root = fixture.nativeElement as HTMLElement;
 
-      expect(link(root, 'Lead Discovery')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('7 free left');
+      expect(link(root, 'Lead Discovery')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('3/10');
       // Knowledge is shared by two features; its chip still shows product knowledge's free uses.
-      expect(link(root, 'Knowledge')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('9 free left');
+      expect(link(root, 'Knowledge')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('1/10');
 
       spyOnProperty(TestBed.inject(Router), 'url', 'get').and.returnValue('/product-knowledge/sources');
       fixture.detectChanges();
       expect(root.querySelector('[data-testid="trial-bar"]')?.textContent).toContain('9 of 10 free uses left on your Basic plan');
     });
 
-    it('keeps the entry open, read-only, once the free uses are gone: a "Used up" chip, no lock', () => {
+    it('keeps the entry open, read-only, once the free uses are gone: a full "10/10" chip, no lock', () => {
       const fixture = createFixture(['Admin']);
       TestBed.inject(EntitlementsStore).set({ planCode: 'basic', planName: 'Basic', features: BASIC, balance: 10, costs: [], trials: [trial('LeadDiscovery', 10)] });
       fixture.detectChanges();
       const lead = link(fixture.nativeElement as HTMLElement, 'Lead Discovery')!;
 
-      expect(lead.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('Used up');
+      expect(lead.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('10/10');
       expect(lead.classList).not.toContain('nav-item--locked');
       expect(lead.getAttribute('href')).toBe('/lead-discovery/history');
     });
 
-    it('shows the customer limit beside Customers: "N left", then "Used up"', () => {
+    it('shows the customer limit beside Customers: "6/10", then "10/10"', () => {
       const fixture = createFixture(['Admin']);
       const store = TestBed.inject(EntitlementsStore);
       const quota = (used: number) => ({ key: 'Customers', label: 'Customers', limit: 10, used, remaining: Math.max(0, 10 - used), exhausted: used >= 10, unit: 'customers', unitSingular: 'customer' });
       store.set({ planCode: 'basic', planName: 'Basic', features: BASIC, balance: 10, costs: [], quotas: [quota(6)] });
       fixture.detectChanges();
-      expect(link(fixture.nativeElement as HTMLElement, 'Customers')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('4 left');
+      expect(link(fixture.nativeElement as HTMLElement, 'Customers')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('6/10');
 
       store.set({ planCode: 'basic', planName: 'Basic', features: BASIC, balance: 10, costs: [], quotas: [quota(10)] });
       fixture.detectChanges();
-      expect(link(fixture.nativeElement as HTMLElement, 'Customers')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('Used up');
+      expect(link(fixture.nativeElement as HTMLElement, 'Customers')!.querySelector('.nav-trial-chip')?.textContent?.trim()).toBe('10/10');
     });
 
     it('still lists a locked entry, dimmed, with a lock and a Premium chip, opening its preview', () => {
