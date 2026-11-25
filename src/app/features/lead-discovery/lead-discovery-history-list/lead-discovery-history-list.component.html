@@ -9,16 +9,6 @@
       {{ quotaLabel }} credits left
       <a routerLink="/billing/wallet" class="quota-chip-topup" (click)="$event.stopPropagation()">Top up</a>
     </span>
-    <button
-      mat-stroked-button
-      type="button"
-      class="jobs-button"
-      matTooltip="The scheduled jobs behind lead discovery"
-      (click)="openJobs()"
-    >
-      <mat-icon>schedule</mat-icon>
-      Jobs
-    </button>
     <!-- Free leads used up: the executions below stay readable, a new run needs Premium. The span carries the tooltip a disabled button can't. -->
     <span [matTooltip]="usedUp ? usedUpHint : ''">
       <button mat-button type="button" [disabled]="runningNow || usedUp" (click)="runNow()" data-testid="run-now">

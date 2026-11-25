@@ -63,6 +63,12 @@ export interface ScheduleLeadFollowUpRequest {
   reason: string | null;
 }
 
+/** LeadFollowUpSettingDto: how many months after "not now" the reminder is scheduled. */
+export interface LeadFollowUpSetting {
+  months: number;
+  maxMonths: number;
+}
+
 /** LeadFollowUpSummaryDto. */
 export interface LeadFollowUpSummary {
   scheduled: number;

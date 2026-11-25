@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   LeadFollowUp,
+  LeadFollowUpSetting,
   LeadFollowUpSummary,
   ScheduleLeadFollowUpRequest,
 } from '../models/lead-follow-up.model';
@@ -32,6 +33,15 @@ export class LeadFollowUpService {
 
   getSummary(): Observable<LeadFollowUpSummary> {
     return this.http.get<LeadFollowUpSummary>(`${this.followUpsUrl}/summary`);
+  }
+
+  getSetting(): Observable<LeadFollowUpSetting> {
+    return this.http.get<LeadFollowUpSetting>(`${this.followUpsUrl}/settings`);
+  }
+
+  /** Tenant Admin only. Applies to follow-ups suggested from now on. */
+  saveSetting(months: number): Observable<LeadFollowUpSetting> {
+    return this.http.put<LeadFollowUpSetting>(`${this.followUpsUrl}/settings`, { months });
   }
 
   /** Every follow-up the lead has had, newest first. */

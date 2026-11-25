@@ -21,8 +21,6 @@ import { BillingService } from '../../../core/services/billing.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantJobService } from '../../../core/services/tenant-job.service';
-import { LEAD_DISCOVERY_JOB_TYPES } from '../../../core/models/tenant-job.model';
-import { TenantJobsDialogComponent, TenantJobsDialogData } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
 import { EntitlementsService } from '../../../core/services/entitlements.service';
 import { EntitlementsStore } from '../../../core/services/entitlements.store';
 import { USED_UP_HINT } from '../../../core/models/wallet.model';
@@ -172,17 +170,6 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
 
   /** Queues today's lead-discovery run immediately, without waiting for its cron schedule. Refused
    * (409) when the job is disabled or a run for this tenant is already in flight. */
-  /** The lead discovery jobs open in a dialog, the same way the Campaigns page shows its own. */
-  openJobs(): void {
-    const data: TenantJobsDialogData = {
-      title: 'Lead discovery jobs',
-      description: 'The scheduled jobs that discover new leads and follow them up.',
-      // The lead discovery run itself is scheduled on the profile screen (up to five dates and times); only the follow-up job keeps a cron here.
-      jobTypes: LEAD_DISCOVERY_JOB_TYPES.filter((type) => type !== LEAD_DISCOVERY_JOB_TYPE),
-    };
-    this.dialog.open(TenantJobsDialogComponent, { ...TenantJobsDialogComponent.config, data });
-  }
-
   runNow(): void {
     if (this.runningNow) {
       return;

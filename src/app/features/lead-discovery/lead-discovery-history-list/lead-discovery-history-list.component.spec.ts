@@ -11,7 +11,6 @@ import { BillingService } from '../../../core/services/billing.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantJobService } from '../../../core/services/tenant-job.service';
-import { TenantJobsDialogComponent } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
 import { SharedModule } from '../../../shared/shared.module';
 import { LeadDiscoveryHistoryListComponent } from './lead-discovery-history-list.component';
 
@@ -329,18 +328,12 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(service.getHistory.calls.count()).toBe(callsBeforeRun);
   }));
 
-  it('opens the lead discovery jobs in a dialog from the Jobs button', () => {
+  it('has no Jobs button: the lead discovery schedule lives on the profile screen and follow-ups have their own page', () => {
     create([]);
 
-    (fixture.nativeElement.querySelector('.jobs-button') as HTMLButtonElement).click();
-
-    expect(dialog.open).toHaveBeenCalledWith(
-      TenantJobsDialogComponent,
-      jasmine.objectContaining({
-        data: jasmine.objectContaining({ title: 'Lead discovery jobs', jobTypes: ['lead-follow-ups'] }),
-      })
-    );
+    expect(fixture.nativeElement.querySelector('.jobs-button')).toBeNull();
   });
+
   it('lists the runs the schedule will start next, or says nothing is scheduled', () => {
     service.getSchedule.and.returnValue(of({
       timeZoneId: 'Asia/Kolkata', maxSlots: 5, slots: [], nextRunAtUtc: '2026-11-26T05:00:00Z',

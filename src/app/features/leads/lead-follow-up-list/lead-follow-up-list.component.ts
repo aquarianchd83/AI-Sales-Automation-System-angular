@@ -1,6 +1,6 @@
 import { ActivatedRoute, Router } from '@angular/router';
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { FormControl } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject, of } from 'rxjs';
@@ -8,7 +8,9 @@ import { catchError, debounceTime, distinctUntilChanged, finalize, startWith, sw
 
 import {
   FOLLOW_UP_HISTORY_STATUSES,
+  FOLLOW_UP_MAX_MONTHS,
   LeadFollowUp,
+  LeadFollowUpSetting,
   LeadFollowUpSummary,
   followUpStatusChipClass,
   followUpWaitLabel,
@@ -17,6 +19,10 @@ import {
   isFollowUpSuggestion,
 } from '../../../core/models/lead-follow-up.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
+import { AppRole } from '../../../core/models/user.model';
+import { TenantJob } from '../../../core/models/tenant-job.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { TenantJobService } from '../../../core/services/tenant-job.service';
 import { LeadFollowUpService } from '../../../core/services/lead-follow-up.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -34,7 +40,7 @@ export type FollowUpView = 'scheduled' | 'due30' | string;
 export class LeadFollowUpListComponent implements OnInit, OnDestroy {
   @ViewChild(MatPaginator) paginator?: MatPaginator;
 
-  readonly displayedColumns = ['customer', 'status', 'dueAt', 'reason', 'template', 'actions'];
+  readonly displayedColumns = ['customer', 'followUpOn', 'dueAt', 'status', 'actions'];
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly historyStatuses = FOLLOW_UP_HISTORY_STATUSES;
   readonly statusClass = followUpStatusChipClass;
@@ -45,6 +51,17 @@ export class LeadFollowUpListComponent implements OnInit, OnDestroy {
 
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
   readonly viewControl = new FormControl<FollowUpView>('scheduled', { nonNullable: true });
+
+  readonly monthChoices = Array.from({ length: FOLLOW_UP_MAX_MONTHS }, (_, i) => i + 1);
+  readonly monthsControl = new FormControl<number>(1, { nonNullable: true, validators: [Validators.required, Validators.min(1), Validators.max(FOLLOW_UP_MAX_MONTHS)] });
+  /** The sender job's controls and the setting are for the tenant Admin; everyone else just sees the list. */
+  readonly isAdmin = this.auth.hasAnyRole([AppRole.Admin]);
+
+  setting: LeadFollowUpSetting | null = null;
+  savingSetting = false;
+  /** The hourly sender job - null until loaded, or for a user who may not see it. */
+  job: TenantJob | null = null;
+  jobBusy = false;
 
   page: PagedResult<LeadFollowUp> = emptyPage<LeadFollowUp>();
   summary: LeadFollowUpSummary | null = null;
@@ -60,10 +77,15 @@ export class LeadFollowUpListComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly route: ActivatedRoute,
     private readonly dialog: MatDialog,
-    private readonly notify: NotificationService
+    private readonly notify: NotificationService,
+    private readonly auth: AuthService,
+    private readonly tenantJobs: TenantJobService
   ) {}
 
   ngOnInit(): void {
+    this.loadSetting();
+    this.loadJob();
+
     this.searchControl.valueChanges
       .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((search) => {
@@ -108,7 +130,7 @@ export class LeadFollowUpListComponent implements OnInit, OnDestroy {
   }
 
   viewLead(followUp: LeadFollowUp): void {
-    void this.router.navigate(['..', followUp.leadId], { relativeTo: this.route });
+    void this.router.navigate(['/leads', followUp.leadId]);
   }
 
   sendNow(followUp: LeadFollowUp, event: Event): void {
@@ -152,6 +174,97 @@ export class LeadFollowUpListComponent implements OnInit, OnDestroy {
   review(followUp: LeadFollowUp, event: Event): void {
     event.stopPropagation();
     this.viewLead(followUp);
+  }
+
+  /** True while the job is paused and something is already due - the warning that a paused job is holding follow-ups back. */
+  get pausedWithDue(): boolean {
+    return !!this.job && !this.job.isEnabled && (this.summary?.dueNow ?? 0) > 0;
+  }
+
+  saveSetting(): void {
+    if (this.monthsControl.invalid || this.savingSetting) {
+      return;
+    }
+    this.savingSetting = true;
+    this.followUps
+      .saveSetting(this.monthsControl.value)
+      .pipe(finalize(() => (this.savingSetting = false)))
+      .subscribe({
+        next: (setting) => {
+          this.setting = setting;
+          this.monthsControl.markAsPristine();
+          this.notify.success('Saved. New follow-ups will be scheduled this many months ahead.');
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
+  }
+
+  /** Pauses or resumes the hourly sender. The schedule itself stays as it is. */
+  toggleSending(): void {
+    const job = this.job;
+    if (!job || this.jobBusy) {
+      return;
+    }
+    this.jobBusy = true;
+    this.tenantJobs
+      .updateSchedule(job.jobType, { cronExpression: job.cronExpression, isEnabled: !job.isEnabled })
+      .pipe(finalize(() => (this.jobBusy = false)))
+      .subscribe({
+        next: (updated) => {
+          this.job = updated;
+          this.notify.success(updated.isEnabled ? 'Follow-up sending resumed.' : 'Follow-up sending paused.');
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
+  }
+
+  /** Runs one check right now, without waiting for the next hour. */
+  checkNow(): void {
+    if (!this.job || this.jobBusy) {
+      return;
+    }
+    this.jobBusy = true;
+    this.tenantJobs
+      .trigger(this.job.jobType)
+      .pipe(finalize(() => (this.jobBusy = false)))
+      .subscribe({
+        next: () => {
+          this.notify.success('Checking now. The list updates in a moment.');
+          setTimeout(() => this.reload$.next(), 4000);
+        },
+        error: () => {
+          // ErrorInterceptor toasts it.
+        },
+      });
+  }
+
+  private loadSetting(): void {
+    this.followUps.getSetting().subscribe({
+      next: (setting) => {
+        this.setting = setting;
+        this.monthsControl.setValue(setting.months);
+        this.monthsControl.markAsPristine();
+      },
+      error: () => {
+        // ErrorInterceptor toasts it.
+      },
+    });
+  }
+
+  private loadJob(): void {
+    if (!this.isAdmin) {
+      return;
+    }
+    this.tenantJobs.getJobs().subscribe({
+      next: (result) => (this.job = result.jobs.find((j) => j.jobType === 'lead-follow-ups') ?? null),
+      error: () => {
+        // ErrorInterceptor toasts it.
+      },
+    });
   }
 
   private run(followUp: LeadFollowUp, call: ReturnType<LeadFollowUpService['cancel']>, success: string): void {

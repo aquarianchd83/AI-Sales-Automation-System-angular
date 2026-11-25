@@ -93,6 +93,7 @@ describe('ShellComponent sidenav', () => {
       'inboxInbox',
       'support_agentHandoffs',
       'insightsLeads',
+      'event_repeatFollow-ups',
       'event_availableDemos Scheduled',
       'inventory_2Packages',
       'perm_mediaMedia Library',
@@ -288,7 +289,7 @@ describe('ShellComponent sidenav', () => {
 
     expect(labels(root)).toEqual(['Outreach', 'Engage', 'Extra']);
     expect(items(root)).not.toContain('settingsWhatsApp Settings');
-    expect(items(root).length).toBe(11);
+    expect(items(root).length).toBe(12);
   });
 
   it('sends an Admin straight to Lead Discovery History - the Discovered Leads page would 403 nobody, but History is Admin-only', () => {

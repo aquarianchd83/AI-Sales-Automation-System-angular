@@ -10,6 +10,65 @@
     </a>
   </app-page-header>
 
+  <!-- How long after "not now" the reminder goes out. New follow-ups only; one already scheduled keeps its date. -->
+  <mat-card class="setting-card" data-testid="setting-card">
+    <div class="setting-text">
+      <strong>Send the follow-up after</strong>
+      <div class="muted">For a customer who named no wait of their own. Follow-ups already scheduled keep their date.</div>
+    </div>
+    <mat-form-field subscriptSizing="dynamic" class="months-select">
+      <mat-label>Months</mat-label>
+      <mat-select [formControl]="monthsControl" data-testid="months-select">
+        <mat-option *ngFor="let m of monthChoices" [value]="m">{{ m }} month{{ m === 1 ? '' : 's' }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <button
+      *ngIf="isAdmin"
+      mat-flat-button
+      color="primary"
+      type="button"
+      data-testid="save-setting"
+      [disabled]="monthsControl.pristine || monthsControl.invalid || savingSetting"
+      (click)="saveSetting()"
+    >
+      Save
+    </button>
+  </mat-card>
+
+  <!-- The hourly job that sends the reminders. -->
+  <mat-card class="job-bar" [class.job-bar--paused]="job && !job.isEnabled" *ngIf="job" data-testid="job-bar">
+    <div>
+      <div class="k">Sending</div>
+      <span class="chip" [class.chip--paused]="!job.isEnabled">{{ job.isEnabled ? 'Active' : 'Paused' }}</span>
+    </div>
+    <div>
+      <div class="k">Checks</div>
+      Every hour, at 15 past
+    </div>
+    <div>
+      <div class="k">Last check</div>
+      {{ job.lastRunAtUtc ? (job.lastRunAtUtc | zonedDate: 'medium') : 'Never' }}
+    </div>
+    <div>
+      <div class="k">Next check</div>
+      {{ job.isEnabled && job.nextExecutionUtc ? (job.nextExecutionUtc | zonedDate: 'medium') : 'Not scheduled' }}
+    </div>
+    <span class="spacer"></span>
+    <button mat-stroked-button type="button" data-testid="check-now" [disabled]="jobBusy || !job.isEnabled" (click)="checkNow()">Check now</button>
+    <button mat-flat-button color="primary" type="button" data-testid="toggle-sending" [disabled]="jobBusy" (click)="toggleSending()">
+      <mat-icon>{{ job.isEnabled ? 'pause' : 'play_arrow' }}</mat-icon>
+      {{ job.isEnabled ? 'Pause sending' : 'Resume sending' }}
+    </button>
+  </mat-card>
+  <div class="paused-warning" *ngIf="pausedWithDue" data-testid="paused-warning">
+    <mat-icon>warning</mat-icon>
+    {{ summary?.dueNow }} follow-up{{ summary?.dueNow === 1 ? ' is' : 's are' }} due but sending is paused, so
+    {{ summary?.dueNow === 1 ? 'it' : 'they' }} will not go out until you resume.
+  </div>
+  <p class="muted rule-note">
+    Reminders go out only between 9 AM and 8 PM in your time zone. Customers who opted out, wrote in since, or were messaged in the last 7 days are skipped.
+  </p>
+
   <div class="summary" *ngIf="summary as s">
     <mat-card class="tile" [class.tile--suggested]="s.suggested > 0" *ngIf="s.suggested > 0 || viewControl.value === 'Suggested'">
       <div class="tile-value">{{ s.suggested }}</div>
@@ -60,10 +119,27 @@
     <div class="table-scroll">
       <table mat-table [dataSource]="page.items">
         <ng-container matColumnDef="customer">
-          <th mat-header-cell *matHeaderCellDef>Customer</th>
+          <th mat-header-cell *matHeaderCellDef>Lead</th>
           <td mat-cell *matCellDef="let f">
             <span class="primary-cell">{{ f.customerName || f.customerPhoneNumberE164 }}</span>
             <div class="muted phone-cell">{{ f.customerPhoneNumberE164 }} · follow-up #{{ f.followUpNumber }}</div>
+            <div class="muted phone-cell" *ngIf="f.reason">{{ f.reason }}</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="followUpOn">
+          <th mat-header-cell *matHeaderCellDef>Follow-up on</th>
+          <td mat-cell *matCellDef="let f" data-testid="follow-up-on">
+            {{ f.createdAt | zonedDate: 'mediumDate' }}
+            <div class="muted phone-cell" *ngIf="suggestion(f.status)">Noticed by the AI in chat</div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="dueAt">
+          <th mat-header-cell *matHeaderCellDef>Scheduled date</th>
+          <td mat-cell *matCellDef="let f" data-testid="scheduled-date">
+            {{ f.dueAt | zonedDate: 'mediumDate' }}
+            <div class="muted phone-cell">{{ waitLabel(f) }}<span *ngIf="overdue(f)"> · due now</span></div>
           </td>
         </ng-container>
 
@@ -73,24 +149,6 @@
             <span [class]="statusClass(f.status)">{{ suggestion(f.status) ? 'AI suggestion' : f.status }}</span>
             <div class="muted phone-cell" *ngIf="f.outcomeNote">{{ f.outcomeNote }}</div>
           </td>
-        </ng-container>
-
-        <ng-container matColumnDef="dueAt">
-          <th mat-header-cell *matHeaderCellDef>Due</th>
-          <td mat-cell *matCellDef="let f">
-            {{ f.dueAt | zonedDate: 'mediumDate' }}
-            <div class="muted phone-cell">{{ waitLabel(f) }}<span *ngIf="overdue(f)"> · due now</span></div>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="reason">
-          <th mat-header-cell *matHeaderCellDef>Why they couldn't proceed</th>
-          <td mat-cell *matCellDef="let f">{{ f.reason || '—' }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="template">
-          <th mat-header-cell *matHeaderCellDef>Message</th>
-          <td mat-cell *matCellDef="let f">{{ f.messageTemplateName || '—' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">

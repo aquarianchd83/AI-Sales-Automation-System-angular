@@ -68,3 +68,63 @@
   height: 40px;
   opacity: 0.5;
 }
+
+.setting-card,
+.job-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  padding: 14px 20px;
+  margin-bottom: 12px;
+}
+
+.setting-text {
+  flex: 1 1 260px;
+}
+
+.months-select {
+  width: 160px;
+}
+
+.job-bar--paused {
+  background: #fff8e1;
+}
+
+.k {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7488;
+}
+
+.chip {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e6f4ea;
+  color: #1e7e34;
+
+  &--paused {
+    background: #fff3e0;
+    color: #b45f06;
+  }
+}
+
+.paused-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fff3e0;
+  color: #8a4b00;
+}
+
+.rule-note {
+  margin: 0 0 16px;
+  font-size: 12px;
+}

@@ -108,6 +108,14 @@ const routes: Routes = [
           import('./features/leads/leads.module').then((m) => m.LeadsModule),
       },
       {
+        // Interested customers who could not go ahead yet, reminded on WhatsApp later. Open to every tenant user, like the leads they belong to.
+        path: 'follow-ups',
+        canActivate: [roleGuard],
+        data: { roles: TENANT_ROLES },
+        loadChildren: () =>
+          import('./features/leads/follow-ups.module').then((m) => m.FollowUpsModule),
+      },
+      {
         // What customers agreed with the AI: demos, visits, appointments. Open to every tenant user, like the inbox it comes from.
         path: 'bookings',
         canActivate: [roleGuard],
