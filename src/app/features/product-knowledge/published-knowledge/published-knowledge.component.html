@@ -42,7 +42,7 @@
           mat-stroked-button
           type="button"
           *ngIf="cur.servingStatus !== 'Replaced'"
-          [disabled]="reindexing"
+          [disabled]="reindexing || usedUp"
           (click)="reindex(cur)"
           data-testid="reindex"
         >
@@ -158,7 +158,7 @@
             </div>
             <div class="head-actions">
               <button mat-stroked-button type="button" (click)="downloadFinal(d.version)" data-testid="final-file"><mat-icon>download</mat-icon> Download file</button>
-              <button mat-stroked-button type="button" *ngIf="d.version.status !== 'Current'" [disabled]="restoring" (click)="restore(d.version)" data-testid="restore">
+              <button mat-stroked-button type="button" *ngIf="d.version.status !== 'Current'" [disabled]="restoring || usedUp" (click)="restore(d.version)" data-testid="restore">
                 <mat-icon>restore</mat-icon> Restore this version
               </button>
             </div>

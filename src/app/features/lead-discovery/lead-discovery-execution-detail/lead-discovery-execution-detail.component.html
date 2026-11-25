@@ -23,7 +23,8 @@
         color="primary"
         type="button"
         *ngIf="d.execution.canRetry"
-        [disabled]="retrying"
+        [disabled]="retrying || usedUp"
+        [matTooltip]="usedUp ? usedUpHint : ''"
         (click)="retry()"
       >
         <mat-icon>replay</mat-icon>
@@ -40,28 +41,31 @@
       </span>
     </div>
 
-    <p class="field-message--error" *ngIf="d.execution.errorMessage" role="alert">
+    <div class="notice notice--error" *ngIf="d.execution.errorMessage" role="alert">
       <mat-icon>error_outline</mat-icon>
-      <span>
+      <div class="notice__text">
         {{ d.execution.errorMessage }}
         <span class="muted" *ngIf="d.execution.failedStep">(step: {{ d.execution.failedStep }})</span>
-      </span>
-    </p>
-    <p class="field-message--warn" *ngIf="d.execution.quotaExhausted" role="note">
+      </div>
+    </div>
+    <!-- Out of credits: the fix is buying credits. -->
+    <div class="notice notice--warn" *ngIf="d.execution.quotaExhausted" role="note">
       <mat-icon>warning_amber</mat-icon>
-      <span>
+      <div class="notice__text">
         Lead-candidate quota ran out partway through, so fewer customers were created than the batch size
         asked for. Buy credits or wait for the plan to renew.
-        <a mat-stroked-button color="primary" routerLink="/billing/wallet" class="buy-credits-link">Buy credits</a>
-      </span>
-    </p>
-    <p class="field-message--warn" *ngIf="!d.execution.quotaExhausted && d.execution.quotaStopReason" role="note" data-testid="stop-reason">
+      </div>
+      <a mat-stroked-button color="primary" routerLink="/billing/wallet" class="notice__action">Buy credits</a>
+    </div>
+    <!-- Stopped by the plan's own limit (free uses, customers, campaigns): the fix is a plan upgrade, not credits. -->
+    <div class="notice notice--warn" *ngIf="!d.execution.quotaExhausted && d.execution.quotaStopReason" role="note" data-testid="stop-reason">
       <mat-icon>warning_amber</mat-icon>
-      <span>
-        {{ d.execution.quotaStopReason }}
-        <a mat-stroked-button color="primary" routerLink="/billing/wallet" class="buy-credits-link">Open wallet</a>
-      </span>
-    </p>
+      <div class="notice__text">{{ d.execution.quotaStopReason }}</div>
+      <a mat-stroked-button color="primary" routerLink="/billing" class="notice__action">
+        <mat-icon>workspace_premium</mat-icon>
+        Upgrade to Premium
+      </a>
+    </div>
     <p class="muted" *ngIf="d.execution.nextRetryInfo">{{ d.execution.nextRetryInfo }}</p>
 
     <div class="stat-grid">
@@ -271,7 +275,20 @@
                       <mat-icon *ngIf="row.consentSmsStatus === 'Failed'" class="sms-icon sms-icon--not-sent" aria-label="Not sent">close</mat-icon>
                       <span [class]="smsChip(row.consentSmsStatus)">{{ smsText(row.consentSmsStatus) }}</span>
                     </span>
+                    <div class="consent-state" *ngIf="row.consentState" data-testid="consent-state">
+                      <span [class]="stateChip(row.consentState)">{{ stateText(row.consentState) }}</span>
+                    </div>
                     <div class="muted" *ngIf="row.consentRecordedAtUtc">Replied {{ row.consentRecordedAtUtc | zonedDate: 'medium' }}</div>
+                    <div class="muted" *ngIf="row.consentReminderCount" data-testid="consent-reminders">
+                      {{ row.consentReminderCount }} reminder{{ row.consentReminderCount === 1 ? '' : 's' }} sent, last
+                      {{ row.consentLastReminderAtUtc | zonedDate: 'mediumDate' }}
+                    </div>
+                    <div class="muted" *ngIf="row.consentState === 'Waiting' && row.consentLinkExpiresAtUtc" data-testid="consent-expires">
+                      Link valid until {{ row.consentLinkExpiresAtUtc | zonedDate: 'mediumDate' }}
+                    </div>
+                    <div class="muted" *ngIf="row.consentState === 'NoResponse'" data-testid="consent-no-response">
+                      The link expired{{ row.consentLinkExpiresAtUtc ? ' on ' + (row.consentLinkExpiresAtUtc | zonedDate: 'mediumDate') : '' }} with no answer.
+                    </div>
                   </ng-container>
                   <ng-template #smsNotSent>
                     <span class="sms-line sms-note">

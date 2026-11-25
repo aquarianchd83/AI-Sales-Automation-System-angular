@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, Injector, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -12,15 +12,18 @@ import {
   LeadDiscoveryExecutionSummary,
   LeadDiscoveryHistoryDay,
   LeadDiscoveryHistoryQuery,
+  LeadDiscoverySchedule,
   leadDiscoveryStatusChipClass,
+  leadDiscoveryStatusLabel,
 } from '../../../core/models/lead-discovery-history.model';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { BillingService } from '../../../core/services/billing.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantJobService } from '../../../core/services/tenant-job.service';
-import { LEAD_DISCOVERY_JOB_TYPES } from '../../../core/models/tenant-job.model';
-import { TenantJobsDialogComponent, TenantJobsDialogData } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
+import { EntitlementsService } from '../../../core/services/entitlements.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /** TenantJobCatalog.LeadDiscovery on the backend — the job key POST /jobs/{jobType}/trigger takes. */
 const LEAD_DISCOVERY_JOB_TYPE = 'lead-discovery';
@@ -48,6 +51,7 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   readonly statusOptions = LEAD_DISCOVERY_EXECUTION_STATUSES;
   readonly chipClass = leadDiscoveryStatusChipClass;
+  readonly statusLabel = leadDiscoveryStatusLabel;
   readonly formatCharge = formatCharge;
   readonly statusControl = new FormControl<string | null>(null);
 
@@ -58,6 +62,8 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   /** Lead-candidate quota remaining, for the header chip — null while loading, or when the tenant
    * has never had any (capacity 0), since neither is worth showing. */
   quotaLabel: string | null = null;
+  /** The tenant's own schedule (up to five dates and times) and the runs it will start next; null until loaded. */
+  schedule: LeadDiscoverySchedule | null = null;
   /** Execution ids currently being retried — disables their retry button until the request settles. */
   readonly retrying = new Set<string>();
 
@@ -71,6 +77,16 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   private readonly stopPolling$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
 
+  private readonly featureAccess = inject(EntitlementsStore);
+  /** Asked for only when a run finishes on free leads, so the page needs no HTTP stack just to render. */
+  private readonly injector = inject(Injector);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free leads used up: the executions stay readable, a new run (or retry) needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('LeadDiscovery') !== null;
+  }
+
   constructor(
     private readonly leadDiscovery: LeadDiscoveryService,
     private readonly tenantJobs: TenantJobService,
@@ -81,10 +97,14 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
     private readonly dialog: MatDialog
   ) {}
 
-  /** The lead-discovery job just finished: fetch its execution, in place. */
+  /** The lead-discovery job just finished: fetch its execution, in place - and the free leads left, so a run that used the last one turns the page
+   * read-only at once. */
   refresh(): void {
     this.stopPolling$.next();
     this.reload$.next();
+    if (this.featureAccess.trialOf('LeadDiscovery')) {
+      this.injector.get(EntitlementsService).load(true).subscribe();
+    }
   }
 
   ngOnInit(): void {
@@ -98,6 +118,14 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
             this.quotaLabel = formatUnits(quota.balance);
           }
         },
+        error: () => undefined,
+      });
+
+    this.leadDiscovery
+      .getSchedule()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (schedule) => (this.schedule = schedule),
         error: () => undefined,
       });
 
@@ -142,16 +170,6 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
 
   /** Queues today's lead-discovery run immediately, without waiting for its cron schedule. Refused
    * (409) when the job is disabled or a run for this tenant is already in flight. */
-  /** The lead discovery jobs open in a dialog, the same way the Campaigns page shows its own. */
-  openJobs(): void {
-    const data: TenantJobsDialogData = {
-      title: 'Lead discovery jobs',
-      description: 'The scheduled jobs that discover new leads and follow them up.',
-      jobTypes: LEAD_DISCOVERY_JOB_TYPES,
-    };
-    this.dialog.open(TenantJobsDialogComponent, { ...TenantJobsDialogComponent.config, data });
-  }
-
   runNow(): void {
     if (this.runningNow) {
       return;
@@ -207,6 +225,43 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
       return `Retry attempt ${execution.retryCount}`;
     }
     return null;
+  }
+
+  /** The earlier run this one finished, when it is on the page. */
+  retriedFrom(execution: LeadDiscoveryExecutionSummary): LeadDiscoveryExecutionSummary | null {
+    if (!execution.retryOfExecutionId) {
+      return null;
+    }
+    for (const day of this.page.items) {
+      const found = day.executions.find((e) => e.id === execution.retryOfExecutionId);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  /** Whether a person (Run now, manual retry) started it, as against the schedule. */
+  isManual(execution: LeadDiscoveryExecutionSummary): boolean {
+    return execution.trigger === 'Manual run' || execution.trigger === 'Manual retry';
+  }
+
+  /** Under "Started by": which firing it was, or who pressed Run now. */
+  startedByDetail(execution: LeadDiscoveryExecutionSummary): string {
+    if (this.isManual(execution)) {
+      return execution.startedBy ? `Run now by ${execution.startedBy}` : 'Run now';
+    }
+    return 'By the schedule';
+  }
+
+  /** A run stopped by a limit of the plan rather than by credits: the fix is an upgrade, not the wallet. */
+  isPlanStop(execution: LeadDiscoveryExecutionSummary): boolean {
+    return !execution.quotaExhausted && !!execution.quotaStopReason;
+  }
+
+  /** Skipped (nothing started): the reason, or the plain fact. */
+  skipReason(execution: LeadDiscoveryExecutionSummary): string | null {
+    return (execution.quotaStopReason || execution.errorMessage || 'It could not start.').replace(/^Skipped:\s*/i, '');
   }
 
   private buildQuery(): LeadDiscoveryHistoryQuery {

@@ -48,6 +48,7 @@
                   <span class="nav-premium-chip">Premium</span>
                   <mat-icon class="nav-lock" aria-hidden="true">lock</mat-icon>
                 </ng-container>
+                <span class="nav-approve-chip" *ngIf="approveChip(item) as approve" [attr.data-testid]="'nav-approve-' + item.route">{{ approve }}</span>
                 <span class="nav-trial-chip" *ngIf="trialChip(item) as chip" [attr.data-testid]="'nav-trial-' + item.route">{{ chip }}</span>
               </a>
               </ng-container>
@@ -386,6 +387,19 @@
         Upgrade to Premium
       </a>
       <ng-template #askAdminTrial><span class="trial-bar-ask">Ask your admin to upgrade.</span></ng-template>
+    </div>
+
+    <!-- Its free uses (or the plan's cap) are used up: the page stays open so the tenant sees what it made, but adding new needs Premium. -->
+    <div class="trial-bar trial-bar--used-up" *ngIf="currentUsedUp as trial" role="status" data-testid="used-up-bar">
+      <mat-icon>lock_clock</mat-icon>
+      <span class="trial-bar-text">
+        <strong>{{ trial.feature === 'AiConversations' ? 'AI replies paused.' : 'Read-only.' }}</strong> {{ usedUpLine(trial) }}
+      </span>
+      <a mat-flat-button color="primary" routerLink="/billing" *ngIf="canOpenWallet; else askAdminUsedUp">
+        <mat-icon>workspace_premium</mat-icon>
+        Upgrade to Premium
+      </a>
+      <ng-template #askAdminUsedUp><span class="trial-bar-ask">Ask your admin to upgrade.</span></ng-template>
     </div>
 
     <main class="shell-content">

@@ -8,6 +8,8 @@ import {
   LeadDiscoveryHistoryDay,
   LeadDiscoveryHistoryQuery,
   LeadDiscoveryRetryQueued,
+  LeadDiscoverySchedule,
+  SaveLeadDiscoverySlot,
 } from '../models/lead-discovery-history.model';
 import {
   AutoCampaignEnrollment,
@@ -33,6 +35,16 @@ export class LeadDiscoveryService {
 
   getProfile(): Observable<LeadDiscoveryProfile> {
     return this.http.get<LeadDiscoveryProfile>(`${this.baseUrl}/profile`);
+  }
+
+  /** The tenant's own dates and times for lead discovery to run by itself (up to five), and the next runs they make. */
+  getSchedule(): Observable<LeadDiscoverySchedule> {
+    return this.http.get<LeadDiscoverySchedule>(`${this.baseUrl}/schedule`);
+  }
+
+  /** Replaces the schedule. Refused (400) for a time in the past, two the same, or more than five that are not done. */
+  saveSchedule(slots: SaveLeadDiscoverySlot[]): Observable<LeadDiscoverySchedule> {
+    return this.http.put<LeadDiscoverySchedule>(`${this.baseUrl}/schedule`, { slots });
   }
 
   /** "AI suggest": search keywords from the description and the packages the tenant sells. Nothing is saved. */

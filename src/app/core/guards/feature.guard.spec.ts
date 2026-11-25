@@ -15,7 +15,7 @@ describe('featureGuard', () => {
     TestBed.configureTestingModule({
       imports: [RouterTestingModule],
       providers: [
-        { provide: EntitlementsService, useValue: { load: () => of(null), has: () => has } },
+        { provide: EntitlementsService, useValue: { load: () => of(null), has: () => has, canView: () => has } },
         { provide: NotificationService, useValue: notify },
       ],
     });
@@ -46,6 +46,18 @@ describe('featureGuard', () => {
         expect(TestBed.inject(Router).serializeUrl(r as UrlTree)).toBe(`/premium/${FEATURE_PREVIEWS[feature].slug}`);
         done();
       });
+    });
+  });
+
+  it('lets a tenant in, read-only, once its free uses of the feature are used up', (done) => {
+    TestBed.configureTestingModule({
+      imports: [RouterTestingModule],
+      providers: [{ provide: EntitlementsService, useValue: { load: () => of(null), has: () => false, canView: () => true } }],
+    });
+    const route = { data: { feature: 'LeadDiscovery' } } as unknown as ActivatedRouteSnapshot;
+    (TestBed.runInInjectionContext(() => featureGuard(route, {} as RouterStateSnapshot)) as Observable<boolean | UrlTree>).subscribe((r) => {
+      expect(r).toBeTrue();
+      done();
     });
   });
 

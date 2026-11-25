@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, finalize, takeUntil } from 'rxjs/operators';
@@ -9,6 +9,8 @@ import { NotificationService } from '../../../core/services/notification.service
 import { StoryStudioService } from '../../../core/services/story-studio.service';
 import { TenantProfileService } from '../../../core/services/tenant-profile.service';
 import { ProblemOption, StoryBrief, buildStoryTopic, factList, factText, parseProblems, parseStoryTopic } from '../studio-stories/story-brief';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /** The value of a dropdown's "Other (type your own)" entry. */
 export const OTHER = '__other__';
@@ -82,6 +84,14 @@ export class StudioStoryNewComponent implements OnInit, OnDestroy {
   problemError = false;
 
   private readonly destroy$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free AI generations used up: what is here stays readable, making something new needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('ContentStudio') !== null;
+  }
 
   constructor(
     private readonly studio: StoryStudioService,

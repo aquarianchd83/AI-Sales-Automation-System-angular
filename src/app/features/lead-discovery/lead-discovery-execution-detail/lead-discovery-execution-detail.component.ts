@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -12,6 +12,8 @@ import {
   consentSmsChipClass,
   consentSmsLabel,
   consentSmsWasSent,
+  consentStateChipClass,
+  consentStateLabel,
   filterByVerification,
   leadDiscoveryStatusChipClass,
   rowHistoryEvents,
@@ -23,6 +25,8 @@ import { LeadDiscoveryService } from '../../../core/services/lead-discovery.serv
 import { NotificationService } from '../../../core/services/notification.service';
 import { CandidatesConsideredDialogComponent, CandidatesConsideredDialogData } from '../candidates-considered-dialog/candidates-considered-dialog.component';
 import { CustomerHistoryDialogComponent } from '../../../shared/components/customer-history-dialog/customer-history-dialog.component';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /** One lead discovery execution in full: customer outcome counts, per-customer results, template
  * associations and lock transitions, plus a retry action when the execution allows it. Admin only. */
@@ -38,6 +42,8 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
   readonly smsChip = consentSmsChipClass;
   readonly smsText = consentSmsLabel;
   readonly smsSent = consentSmsWasSent;
+  readonly stateText = consentStateLabel;
+  readonly stateChip = consentStateChipClass;
   /** The DND check filter on the Customers tab; 'All' shows every row. */
   verificationFilter = 'All';
   readonly verificationChip = verificationChipClass;
@@ -54,6 +60,14 @@ export class LeadDiscoveryExecutionDetailComponent implements OnInit, OnDestroy 
 
   private executionId = '';
   private readonly destroy$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free leads used up: this execution stays readable, retrying it needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('LeadDiscovery') !== null;
+  }
 
   constructor(
     private readonly route: ActivatedRoute,

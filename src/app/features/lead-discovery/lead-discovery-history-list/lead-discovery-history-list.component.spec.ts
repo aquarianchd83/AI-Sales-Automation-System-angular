@@ -11,7 +11,6 @@ import { BillingService } from '../../../core/services/billing.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantJobService } from '../../../core/services/tenant-job.service';
-import { TenantJobsDialogComponent } from '../../../shared/components/tenant-jobs-dialog/tenant-jobs-dialog.component';
 import { SharedModule } from '../../../shared/shared.module';
 import { LeadDiscoveryHistoryListComponent } from './lead-discovery-history-list.component';
 
@@ -82,9 +81,11 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   }
 
   beforeEach(() => {
-    service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution']);
+    service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution', 'getSchedule']);
+    service.getSchedule.and.returnValue(of({ timeZoneId: 'Asia/Kolkata', maxSlots: 5, slots: [], upcoming: [], nextRunAtUtc: null }));
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
-    tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger']);
+    tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger', 'getJobs']);
+    tenantJobs.getJobs.and.returnValue(of({ runsBackgroundJobs: true, jobs: [] }));
     billing = jasmine.createSpyObj('BillingService', ['getQuota']);
     billing.getQuota.and.returnValue(of([]));
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
@@ -107,7 +108,7 @@ describe('LeadDiscoveryHistoryListComponent', () => {
 
     expect(service.getHistory).toHaveBeenCalledWith({ page: 1, pageSize: 25, status: undefined });
     expect(text()).toContain('Eye clinic');
-    expect(text()).toContain('Completed');
+    expect(text()).toContain('Done');
     expect(text()).toContain('Welcome New Leads - 2026-09-26');
     expect(text()).toContain('₹35.28');
   });
@@ -224,14 +225,15 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('says a used-up monthly limit is a limit, not missing credits, and points to the wallet instead of buying credits', () => {
+  it('says a used-up monthly limit is a limit, not missing credits, and offers the plan upgrade instead of buying credits', () => {
     const reason = 'Lead discovery has used its monthly limit of 25 credits. Your wallet still has 813 credits.';
     create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ quotaExhausted: false, quotaStopReason: reason })] }]);
 
     const row = text();
 
     expect(row).toContain(reason);
-    expect(row).toContain('Open wallet');
+    expect(row).toContain('Upgrade to Premium');
+    expect(row).not.toContain('Open wallet');
     expect(row).not.toContain('Out of credits');
     expect(row).not.toContain('Buy credits');
   });
@@ -326,16 +328,72 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(service.getHistory.calls.count()).toBe(callsBeforeRun);
   }));
 
-  it('opens the lead discovery jobs in a dialog from the Jobs button', () => {
+  it('has no Jobs button: the lead discovery schedule lives on the profile screen and follow-ups have their own page', () => {
     create([]);
 
-    (fixture.nativeElement.querySelector('.jobs-button') as HTMLButtonElement).click();
+    expect(fixture.nativeElement.querySelector('.jobs-button')).toBeNull();
+  });
 
-    expect(dialog.open).toHaveBeenCalledWith(
-      TenantJobsDialogComponent,
-      jasmine.objectContaining({
-        data: jasmine.objectContaining({ title: 'Lead discovery jobs', jobTypes: ['lead-discovery', 'lead-follow-ups'] }),
-      })
-    );
+  it('lists the runs the schedule will start next, or says nothing is scheduled', () => {
+    service.getSchedule.and.returnValue(of({
+      timeZoneId: 'Asia/Kolkata', maxSlots: 5, slots: [], nextRunAtUtc: '2026-11-26T05:00:00Z',
+      upcoming: [{ runAtUtc: '2026-11-26T05:00:00Z', slot: 1, repeatDaily: true }, { runAtUtc: '2026-11-27T12:30:00Z', slot: 2, repeatDaily: false }],
+    }));
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary()] }]);
+    expect(text()).toContain('Coming up');
+    expect(text()).toContain('Slot 1 · repeats daily');
+    expect(text()).toContain('Slot 2 · once');
+
+    service.getSchedule.and.returnValue(of({ timeZoneId: 'Asia/Kolkata', maxSlots: 5, slots: [], upcoming: [], nextRunAtUtc: null }));
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary()] }]);
+    expect(text()).toContain('Nothing is scheduled');
+  });
+
+  it('says who started a run: Automatic for the schedule, Manual with the name for Run now', () => {
+    create([{
+      processingDate: '2026-09-26T00:00:00Z',
+      executions: [summary({ id: 'a' }), summary({ id: 'm', trigger: 'Manual run', startedBy: 'harish@example.com' })],
+    }]);
+
+    expect(text()).toContain('Automatic');
+    expect(text()).toContain('By the schedule');
+    expect(text()).toContain('Manual');
+    expect(text()).toContain('Run now by harish@example.com');
+  });
+
+  it('shows a skipped run calmly: Skipped, no search, the reason and the upgrade, with a repeat count', () => {
+    create([{
+      processingDate: '2026-09-26T00:00:00Z',
+      executions: [summary({ skipCount: 3, lastSkippedAtUtc: '2026-09-26T12:00:00Z', quotaStopReason: 'Your plan allows up to 7 campaigns. Upgrade to create more.' })],
+    }]);
+
+    const row = text();
+    expect(row).toContain('Skipped');
+    expect(row).toContain('No leads searched, no credits used');
+    expect(row).toContain('Your plan allows up to 7 campaigns.');
+    expect(row).toContain('Upgrade to Premium');
+    expect(row).toContain('Skipped 3 times');
+    expect(row).not.toContain('Completed');
+  });
+
+  it('shows Lock and Auto-Campaign as N/A for a run that did not start, with the reason and no upgrade for a profile that is off', () => {
+    create([{
+      processingDate: '2026-09-26T00:00:00Z',
+      executions: [summary({ skipCount: 1, lockStatus: 'Pending', quotaStopReason: null, errorMessage: 'Skipped: lead discovery is turned off in the profile.' })],
+    }]);
+
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('[data-testid="lock-na"]')?.textContent).toContain('N/A');
+    expect(root.querySelector('[data-testid="campaign-na"]')?.textContent).toContain('N/A');
+    expect(text()).not.toContain('Pending');
+    expect(root.querySelector('[data-testid="skip-reason"]')?.textContent).toContain('lead discovery is turned off in the profile.');
+    expect(text()).not.toContain('Upgrade to Premium');
+  });
+
+  it('calls Completed "Done" and RetryPending "Will retry"', () => {
+    create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary({ id: 'd' }), summary({ id: 'r', status: 'RetryPending' })] }]);
+
+    expect(text()).toContain('Done');
+    expect(text()).toContain('Will retry');
   });
 });

@@ -1,5 +1,5 @@
 import { ActivatedRoute, Router } from '@angular/router';
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -26,6 +26,8 @@ import { CustomerOptInDialogComponent } from '../customer-opt-in-dialog/customer
 import { CustomerService } from '../../../core/services/customer.service';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 @Component({
   selector: 'app-customer-list',
@@ -64,6 +66,14 @@ export class CustomerListComponent implements OnInit, OnDestroy {
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** The plan's customer limit is reached: the list stays readable, adding or importing more needs Premium (the API refuses it too). */
+  get customersFull(): boolean {
+    return !!this.featureAccess.quotaOf('Customers')?.exhausted;
+  }
 
   constructor(
     private readonly customers: CustomerService,

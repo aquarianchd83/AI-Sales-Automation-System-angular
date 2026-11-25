@@ -8,7 +8,8 @@ import { EntitlementsService } from '../services/entitlements.service';
 
 /**
  * Keeps a tenant out of a screen whose feature is not in its plan and sends them to that feature's preview page (/premium/<slug>), which says what the
- * feature does and how to get it - a page that stays put, not a toast that vanishes. Reads `data.feature` from the route. The API refuses the same
+ * feature does and how to get it - a page that stays put, not a toast that vanishes. A feature whose free uses are used up is not locked: its screens open
+ * read-only. Reads `data.feature` from the route. The API refuses the same
  * requests, so this only spares the user a screen that would be full of errors.
  */
 export const featureGuard: CanActivateFn & CanActivateChildFn = (route) => {
@@ -22,7 +23,8 @@ export const featureGuard: CanActivateFn & CanActivateChildFn = (route) => {
 
   return entitlements.load().pipe(
     map(() => {
-      if (entitlements.has(feature)) {
+      // Used up free uses leave the screen open read-only: the tenant keeps seeing what it made, the screen disables adding new.
+      if (entitlements.canView(feature)) {
         return true;
       }
       return router.createUrlTree(featurePreviewCommands(feature));

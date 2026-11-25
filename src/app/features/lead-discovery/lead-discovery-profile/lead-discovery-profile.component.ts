@@ -1,5 +1,5 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { finalize } from 'rxjs/operators';
@@ -19,6 +19,8 @@ import { CampaignService } from '../../../core/services/campaign.service';
 import { LeadDiscoveryService } from '../../../core/services/lead-discovery.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { TenantProfileService } from '../../../core/services/tenant-profile.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 const L = LEAD_DISCOVERY_LIMITS;
 
@@ -65,6 +67,10 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     dndCheckEnabled: [false],
     // Off by default, matching the backend: no SMS is sent unless the tenant turns it on.
     consentSmsEnabled: [false],
+    // Off by default: no reminder is sent unless the tenant turns it on. Days are counted from the invitation.
+    consentReminderEnabled: [false],
+    consentReminderFirstDays: [3],
+    consentReminderSecondDays: [7 as number | null],
     fields: this.fb.nonNullable.group({
       ContactPerson: [false],
       Address: [false],
@@ -136,6 +142,14 @@ export class LeadDiscoveryProfileComponent implements OnInit {
    * saved actually change keeps the reference (and the mat-options) stable in between.
    */
   sourceCampaignOptions: { id: string; name: string; status: string | null }[] = [];
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free leads used up: the profile stays readable, changing it (or its AI helpers) needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('LeadDiscovery') !== null;
+  }
 
   constructor(
     private readonly fb: FormBuilder,
@@ -313,6 +327,41 @@ export class LeadDiscoveryProfileComponent implements OnInit {
     return this.form.controls.autoCampaignEnabled.value && !this.form.controls.sourceCampaignId.value;
   }
 
+  /** How many days a customer has to answer the consent SMS: 14, or the Auto-Campaign's own length when that is shorter. */
+  get consentWindowDays(): number {
+    return this.saved?.consentWindowDays ?? 14;
+  }
+
+  /** The days a reminder can be set to: from 1 to the day before the consent link closes. */
+  get reminderDays(): number[] {
+    return Array.from({ length: Math.max(this.consentWindowDays - 1, 1) }, (_, i) => i + 1);
+  }
+
+  /** The second reminder can only come after the first. */
+  get secondReminderDays(): number[] {
+    return this.reminderDays.filter((d) => d > this.form.controls.consentReminderFirstDays.value);
+  }
+
+  /** Reminders are on but a day falls outside the days the consent link is open - never saved, never sent. */
+  get reminderDaysInvalid(): boolean {
+    const v = this.form.getRawValue();
+    if (!v.consentSmsEnabled || !v.consentReminderEnabled) {
+      return false;
+    }
+    const max = this.consentWindowDays - 1;
+    const second = v.consentReminderSecondDays;
+    return v.consentReminderFirstDays < 1 || v.consentReminderFirstDays > max || (second != null && (second <= v.consentReminderFirstDays || second > max));
+  }
+
+  /** Moving the first reminder to or past the second drops the second, so the pair never contradicts itself. */
+  onFirstReminderChange(): void {
+    const first = this.form.controls.consentReminderFirstDays.value;
+    const second = this.form.controls.consentReminderSecondDays.value;
+    if (second != null && second <= first) {
+      this.form.controls.consentReminderSecondDays.setValue(null);
+    }
+  }
+
   /** The consent SMS is texted to the customers an Auto-Campaign takes, so with it on and no Auto-Campaign nothing is ever sent. Shown the
    * moment the two are in that state, rather than after a run that sent nothing. */
   get consentSmsWithoutCampaign(): boolean {
@@ -458,7 +507,8 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       !this.lists.locations.length ||
       this.sourceCampaignMissing ||
       this.sourceCampaignIneligible ||
-      this.startTimeMissing
+      this.startTimeMissing ||
+      this.reminderDaysInvalid
     ) {
       this.form.markAllAsTouched();
       return;
@@ -478,6 +528,9 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       independentBusiness: v.independentBusiness,
       dndCheckEnabled: v.dndCheckEnabled,
       consentSmsEnabled: v.consentSmsEnabled,
+      consentReminderEnabled: v.consentReminderEnabled,
+      consentReminderFirstDays: v.consentReminderFirstDays,
+      consentReminderSecondDays: v.consentReminderSecondDays,
       minimumLeadScore: v.minimumLeadScore,
       additionalCriteria: this.lists.additionalCriteria,
       autoCampaignEnabled: v.autoCampaignEnabled,
@@ -528,6 +581,9 @@ export class LeadDiscoveryProfileComponent implements OnInit {
       independentBusiness: profile.independentBusiness,
       dndCheckEnabled: profile.dndCheckEnabled ?? false,
       consentSmsEnabled: profile.consentSmsEnabled ?? false,
+      consentReminderEnabled: profile.consentReminderEnabled ?? false,
+      consentReminderFirstDays: profile.consentReminderFirstDays ?? 3,
+      consentReminderSecondDays: profile.consentReminderSecondDays === undefined ? 7 : profile.consentReminderSecondDays,
       fields: {
         ContactPerson: required('ContactPerson'),
         Address: required('Address'),

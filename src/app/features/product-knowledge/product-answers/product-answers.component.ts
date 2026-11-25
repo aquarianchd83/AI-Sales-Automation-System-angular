@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Observable, Subscription, timer } from 'rxjs';
@@ -18,6 +18,8 @@ import {
 import { NotificationService } from '../../../core/services/notification.service';
 import { ProductAnswersService } from '../../../core/services/product-answers.service';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /** How often the screen refreshes while a drafting run is going. */
 export const POLL_MS = 4000;
@@ -96,6 +98,14 @@ export class ProductAnswersComponent implements OnInit, OnDestroy {
 
   private poll: Subscription | null = null;
   private wasRunning = false;
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free AI actions used up: the answers stay readable, AI drafting needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('ProductKnowledge') !== null;
+  }
 
   constructor(
     private readonly answers: ProductAnswersService,
@@ -196,11 +206,11 @@ export class ProductAnswersComponent implements OnInit, OnDestroy {
   }
 
   get canDraft(): boolean {
-    return !!this.overview && this.overview.aiMode !== 'Off' && this.overview.readySources > 0 && !this.running && !this.starting;
+    return !!this.overview && this.overview.aiMode !== 'Off' && this.overview.readySources > 0 && !this.running && !this.starting && !this.usedUp;
   }
 
   get canAsk(): boolean {
-    return !!this.overview && this.overview.aiMode !== 'Off' && this.overview.customQuestions < this.overview.maxCustomQuestions;
+    return !!this.overview && this.overview.aiMode !== 'Off' && this.overview.customQuestions < this.overview.maxCustomQuestions && !this.usedUp;
   }
 
   /** How many questions have an answer the evidence supports (anything above "no evidence"). */

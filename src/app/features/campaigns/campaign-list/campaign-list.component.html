@@ -18,10 +18,13 @@
         Jobs
       </button>
     </ng-container>
-    <button mat-flat-button color="primary" type="button" (click)="create()">
-      <mat-icon>add</mat-icon>
-      New campaign
-    </button>
+    <!-- Basic's campaign limit reached: the campaigns stay open, a new one needs Premium. The span carries the tooltip a disabled button can't. -->
+    <span [matTooltip]="usedUp ? usedUpHint : ''">
+      <button mat-flat-button color="primary" type="button" (click)="create()" [disabled]="usedUp" data-testid="new-campaign">
+        <mat-icon>{{ usedUp ? 'lock' : 'add' }}</mat-icon>
+        New campaign
+      </button>
+    </span>
   </app-page-header>
 
   <mat-card class="table-card">

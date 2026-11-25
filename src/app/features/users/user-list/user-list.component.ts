@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -21,6 +21,8 @@ import { Role, User } from '../../../core/models/user.model';
 import { UserFormDialogComponent, UserFormDialogData } from '../user-form-dialog/user-form-dialog.component';
 import { UserRolesDialogComponent } from '../user-roles-dialog/user-roles-dialog.component';
 import { UserService } from '../../../core/services/user.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 @Component({
   selector: 'app-user-list',
@@ -48,6 +50,14 @@ export class UserListComponent implements OnInit, OnDestroy {
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** The plan's team limit is reached: the list stays readable, adding a user needs Premium (the API refuses it too). */
+  get usersFull(): boolean {
+    return !!this.featureAccess.quotaOf('Users')?.exhausted;
+  }
 
   constructor(
     private readonly users: UserService,

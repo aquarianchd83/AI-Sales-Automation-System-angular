@@ -35,6 +35,14 @@ export interface LeadDiscoveryProfile {
   dndCheckEnabled: boolean;
   /** Whether each customer the auto-campaign takes is sent an SMS inviting them to start a WhatsApp conversation (their consent). False by default. */
   consentSmsEnabled: boolean;
+  /** Whether a customer who has not answered the consent SMS is sent up to two reminders. False by default. */
+  consentReminderEnabled?: boolean;
+  /** Days after the invitation the first reminder goes. */
+  consentReminderFirstDays?: number;
+  /** Days after the invitation the second reminder goes; null for none. */
+  consentReminderSecondDays?: number | null;
+  /** How many days a customer has to answer: 14, or the Auto-Campaign's own length when that is shorter. A reminder must go before this day. */
+  consentWindowDays?: number;
   updatedAt: string | null;
 }
 
@@ -61,6 +69,9 @@ export interface SaveLeadDiscoveryProfileRequest {
   autoCampaignStartTime: string | null;
   dndCheckEnabled: boolean;
   consentSmsEnabled: boolean;
+  consentReminderEnabled: boolean;
+  consentReminderFirstDays: number;
+  consentReminderSecondDays: number | null;
 }
 
 /** Body of POST /lead-discovery/keyword-suggestions. `existing` are never suggested again. */

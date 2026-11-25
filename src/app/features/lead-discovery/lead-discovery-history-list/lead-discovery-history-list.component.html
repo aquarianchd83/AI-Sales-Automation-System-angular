@@ -9,20 +9,13 @@
       {{ quotaLabel }} credits left
       <a routerLink="/billing/wallet" class="quota-chip-topup" (click)="$event.stopPropagation()">Top up</a>
     </span>
-    <button
-      mat-stroked-button
-      type="button"
-      class="jobs-button"
-      matTooltip="The scheduled jobs behind lead discovery"
-      (click)="openJobs()"
-    >
-      <mat-icon>schedule</mat-icon>
-      Jobs
-    </button>
-    <button mat-button type="button" [disabled]="runningNow" (click)="runNow()">
-      <mat-icon>play_arrow</mat-icon>
-      {{ runningNow ? 'Queuing…' : 'Run now' }}
-    </button>
+    <!-- Free leads used up: the executions below stay readable, a new run needs Premium. The span carries the tooltip a disabled button can't. -->
+    <span [matTooltip]="usedUp ? usedUpHint : ''">
+      <button mat-button type="button" [disabled]="runningNow || usedUp" (click)="runNow()" data-testid="run-now">
+        <mat-icon>{{ usedUp ? 'lock' : 'play_arrow' }}</mat-icon>
+        {{ runningNow ? 'Queuing…' : 'Run now' }}
+      </button>
+    </span>
     <a mat-button routerLink="..">
       <mat-icon>travel_explore</mat-icon>
       Discovered leads
@@ -40,6 +33,23 @@
     finishedHint="The new execution is listed below."
     (finished)="refresh()"
   ></app-job-status-banner>
+
+  <!-- Coming up: what the tenant's schedule will start next (Automatic). A Run now is a person's and never appears here. -->
+  <div class="next-run" *ngIf="schedule" data-testid="next-run">
+    <mat-icon>schedule</mat-icon>
+    <div class="next-run__body">
+      <strong>Coming up</strong>
+      <ng-container *ngIf="schedule.upcoming.length; else nothingScheduled">
+        <div class="next-run__item" *ngFor="let run of schedule.upcoming">
+          <span class="next-run__when">{{ run.runAtUtc | zonedDate: 'medium' }}</span>
+          <span class="by-chip">Automatic</span>
+          <span class="muted">Slot {{ run.slot }} · {{ run.repeatDaily ? 'repeats daily' : 'once' }}</span>
+        </div>
+      </ng-container>
+      <ng-template #nothingScheduled><span class="muted"> Nothing is scheduled, so no run starts by itself.</span></ng-template>
+    </div>
+    <a mat-button color="primary" class="next-run__change" routerLink="/lead-discovery/profile" fragment="schedule">Edit schedule</a>
+  </div>
 
   <mat-card class="table-card">
     <div class="filters">
@@ -71,9 +81,20 @@
               <th mat-header-cell *matHeaderCellDef>Profile</th>
               <td mat-cell *matCellDef="let row">
                 <div>{{ row.profileName }}</div>
-                <div class="muted sub">
-                  {{ row.trigger }}<span *ngIf="chainLabel(row)"> · {{ chainLabel(row) }}</span>
+                <div class="muted sub" *ngIf="row.retryOfExecutionId; else newSearch">
+                  <ng-container *ngIf="retriedFrom(row) as earlier; else earlierRun">Finishing the {{ earlier.startedAtUtc | zonedDate: 'medium' }} run</ng-container>
+                  <ng-template #earlierRun>Finishing an earlier run</ng-template>
+                  (try {{ row.retryCount }})
                 </div>
+                <ng-template #newSearch><div class="muted sub">New search</div></ng-template>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="startedBy">
+              <th mat-header-cell *matHeaderCellDef>Started by</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="by-chip" [class.by-chip--manual]="isManual(row)" [attr.data-testid]="'started-by-' + row.id">{{ isManual(row) ? 'Manual' : 'Automatic' }}</span>
+                <div class="muted sub">{{ startedByDetail(row) }}</div>
               </td>
             </ng-container>
 
@@ -91,17 +112,27 @@
             <ng-container matColumnDef="customers">
               <th mat-header-cell *matHeaderCellDef>Customers</th>
               <td mat-cell *matCellDef="let row">
+                <ng-container *ngIf="!row.skipCount; else notRun">
                 <span matTooltip="Created">{{ row.customersCreated }} created</span> ·
                 <span matTooltip="Duplicate">{{ row.customersDuplicate }} dup</span>
                 <span *ngIf="row.customersFailed" class="warn-text"> · {{ row.customersFailed }} failed</span>
+                </ng-container>
+                <ng-template #notRun>
+                  <span class="muted">Not run</span>
+                  <div class="sub skip-reason" data-testid="skip-reason">
+                    {{ skipReason(row) }}
+                    <a *ngIf="isPlanStop(row)" routerLink="/billing" (click)="$event.stopPropagation()">Upgrade to Premium</a>
+                  </div>
+                  <div class="muted sub">No leads searched, no credits used</div>
+                </ng-template>
                 <div
                   class="warn-text sub quota-row"
-                  *ngIf="row.quotaExhausted || row.quotaStopReason"
+                  *ngIf="!row.skipCount && (row.quotaExhausted || row.quotaStopReason)"
                   [matTooltip]="row.quotaStopReason || 'Your credits ran out partway through, so fewer customers were created than the batch size asked for. Buy credits or raise the limit.'"
                 >
-                  <span>{{ row.quotaExhausted ? 'Out of credits — stopped early' : 'Stopped — not out of credits' }}</span>
+                  <span>{{ row.quotaExhausted ? 'Out of credits — stopped early' : 'Stopped early — plan limit' }}</span>
                   <span class="quota-reason" *ngIf="row.quotaStopReason">{{ row.quotaStopReason }}</span>
-                  <a routerLink="/billing/wallet" (click)="$event.stopPropagation()">{{ row.quotaExhausted ? 'Buy credits' : 'Open wallet' }}</a>
+                  <a [routerLink]="row.quotaExhausted ? '/billing/wallet' : '/billing'" (click)="$event.stopPropagation()">{{ row.quotaExhausted ? 'Buy credits' : 'Upgrade to Premium' }}</a>
                 </div>
               </td>
             </ng-container>
@@ -114,8 +145,9 @@
             <ng-container matColumnDef="campaign">
               <th mat-header-cell *matHeaderCellDef>Auto-Campaign</th>
               <td mat-cell *matCellDef="let row">
-                <span *ngIf="!row.autoCampaignConfigured" class="muted">Not configured</span>
-                <ng-container *ngIf="row.autoCampaignConfigured">
+                <span *ngIf="row.skipCount" class="muted" data-testid="campaign-na">N/A</span>
+                <span *ngIf="!row.skipCount && !row.autoCampaignConfigured" class="muted">Not configured</span>
+                <ng-container *ngIf="!row.skipCount && row.autoCampaignConfigured">
                   <span [class]="chipClass(row.campaignStatus)">{{ row.campaignStatus }}</span>
                   <div class="muted sub" *ngIf="row.generatedCampaignName">{{ row.generatedCampaignName }}</div>
                 </ng-container>
@@ -125,7 +157,9 @@
             <ng-container matColumnDef="lock">
               <th mat-header-cell *matHeaderCellDef>Lock</th>
               <td mat-cell *matCellDef="let row">
-                <span [class]="chipClass(row.lockStatus)">{{ row.lockStatus }}</span>
+                <!-- A run that never started took no lock: "Pending" would say it is still waiting. -->
+                <span *ngIf="row.skipCount; else lockChip" class="muted" data-testid="lock-na">N/A</span>
+                <ng-template #lockChip><span [class]="chipClass(row.lockStatus)">{{ row.lockStatus }}</span></ng-template>
               </td>
             </ng-container>
 
@@ -137,8 +171,9 @@
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef>Status</th>
               <td mat-cell *matCellDef="let row">
-                <span [class]="chipClass(row.status)">{{ row.status }}</span>
-                <div class="muted sub" *ngIf="row.nextRetryInfo" [matTooltip]="row.nextRetryInfo">{{ row.nextRetryInfo }}</div>
+                <span [class]="row.skipCount ? chipClass('NotApplicable') : chipClass(row.status)">{{ statusLabel(row) }}</span>
+                <div class="muted sub" *ngIf="row.skipCount > 1" data-testid="skip-count">Skipped {{ row.skipCount }} times, last {{ row.lastSkippedAtUtc | zonedDate: 'medium' }}</div>
+                <div class="muted sub" *ngIf="!row.skipCount && row.nextRetryInfo" [matTooltip]="row.nextRetryInfo">{{ row.nextRetryInfo }}</div>
               </td>
             </ng-container>
 
@@ -149,7 +184,7 @@
                   mat-icon-button
                   *ngIf="row.canRetry"
                   matTooltip="Retry — resumes only the unfinished work"
-                  [disabled]="retrying.has(row.id)"
+                  [disabled]="retrying.has(row.id) || usedUp"
                   (click)="retry(row, $event)"
                 >
                   <mat-icon>replay</mat-icon>
@@ -157,10 +192,10 @@
               </td>
             </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="['profile', 'provider', 'customers', 'spent', 'campaign', 'lock', 'started', 'status', 'actions']"></tr>
+            <tr mat-header-row *matHeaderRowDef="['profile', 'startedBy', 'provider', 'customers', 'spent', 'campaign', 'lock', 'started', 'status', 'actions']"></tr>
             <tr
               mat-row
-              *matRowDef="let row; columns: ['profile', 'provider', 'customers', 'spent', 'campaign', 'lock', 'started', 'status', 'actions']"
+              *matRowDef="let row; columns: ['profile', 'startedBy', 'provider', 'customers', 'spent', 'campaign', 'lock', 'started', 'status', 'actions']"
               class="clickable-row"
               (click)="viewExecution(row)"
             ></tr>

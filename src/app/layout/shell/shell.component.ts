@@ -6,6 +6,7 @@ import { Observable, Subject, of, timer } from 'rxjs';
 import { filter, finalize, map, shareReplay, switchMap, takeUntil } from 'rxjs/operators';
 
 import { AuthService } from '../../core/services/auth.service';
+import { LeadFollowUpService } from '../../core/services/lead-follow-up.service';
 import { AppRole, REPORT_ROLES, User } from '../../core/models/user.model';
 import { Announcement, PLATFORM_ADMIN_ROLES, PlatformNotification, platformNotificationRoute } from '../../core/models/platform.model';
 import { AccountRecoveryService } from '../../core/services/account-recovery.service';
@@ -20,7 +21,7 @@ import { EntitlementsStore } from '../../core/services/entitlements.store';
 import { PlatformTicketService } from '../../core/services/platform-ticket.service';
 import { PlatformWalletService } from '../../core/services/platform-wallet.service';
 import { PlatformWalletTopUpDialogComponent } from '../../shared/components/platform-wallet-top-up-dialog/platform-wallet-top-up-dialog.component';
-import { FeatureTrial, PlatformFeature, trialLeftLabel } from '../../core/models/wallet.model';
+import { FeatureTrial, PlatformFeature, trialLeftLabel, trialUsedUpLabel } from '../../core/models/wallet.model';
 import { featurePreviewUrl } from '../../core/models/feature-preview.model';
 import { NotificationsChangedService } from '../../core/services/notifications-changed.service';
 import { NotificationHubService } from '../../core/services/notification-hub.service';
@@ -50,6 +51,10 @@ interface NavItem {
   trialFeatures?: PlatformFeature[];
   /** Where the entry goes when it depends on the plan, read each time instead of `route`. */
   link?: () => string;
+  /** A plan limit that is not a feature (EntitlementsStore.quotaOf), shown in the same chip: "4 left", then "Used up". */
+  quotaKey?: string;
+  /** Shows "N to approve" beside the entry while the AI has follow-up suggestions waiting for a person. */
+  approveChip?: boolean;
 }
 
 /** A labelled group of nav items. `label` null renders the items with no heading. */
@@ -117,7 +122,7 @@ export class ShellComponent implements OnInit, OnDestroy {
           feature: 'LeadDiscovery',
         },
         // Tags is opened from the Customers page, so it stays under this entry.
-        { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'] },
+        { label: 'Customers', icon: 'groups', route: '/customers', roles: [], matches: ['/tags'], quotaKey: 'Customers' },
         { label: 'Message Templates', icon: 'text_snippet', route: '/message-templates', roles: [], feature: 'WhatsAppMessaging' },
         { label: 'Campaigns', icon: 'campaign', route: '/campaigns', roles: [], feature: 'Campaigns' },
         // One entry for everything the AI knows; its screens are listed on the page itself (KnowledgeHubComponent).
@@ -149,6 +154,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Inbox', icon: 'inbox', route: '/conversations', roles: [], trialFeatures: ['AiConversations'] },
         { label: 'Handoffs', icon: 'support_agent', route: '/handoffs', roles: [] },
         { label: 'Leads', icon: 'insights', route: '/leads', roles: [] },
+        { label: 'Follow-ups', icon: 'event_repeat', route: '/follow-ups', roles: [], approveChip: true },
         { label: 'Demos Scheduled', icon: 'event_available', route: '/bookings', roles: [] },
       ],
     },
@@ -197,7 +203,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Agent Performance', icon: 'monitoring', route: '/agent-performance', roles: TENANT_ADMIN_ONLY },
         { label: 'WhatsApp Settings', icon: 'settings', route: '/tenant-settings', roles: TENANT_ADMIN_ONLY },
         { label: 'Consent Page', icon: 'fact_check', route: '/consent-page-settings', roles: TENANT_ADMIN_ONLY },
-        { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY },
+        { label: 'Users & Roles', icon: 'manage_accounts', route: '/users', roles: TENANT_ADMIN_ONLY, quotaKey: 'Users' },
         { label: 'Test Notifications', icon: 'science', route: '/billing/notifications/test', roles: TENANT_ADMIN_ONLY },
       ],
     },
@@ -323,11 +329,11 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   private canOpenProductKnowledge(): boolean {
-    return this.auth.hasAnyRole(TENANT_ADMIN_ONLY) && this.entitlements.has('ProductKnowledge');
+    return this.auth.hasAnyRole(TENANT_ADMIN_ONLY) && this.entitlements.canView('ProductKnowledge');
   }
 
   private canOpenStudio(): boolean {
-    return this.studioEnabled && this.entitlements.has('ContentStudio');
+    return this.studioEnabled && this.entitlements.canView('ContentStudio');
   }
 
   /** An entry shows when its own switch allows it. One whose feature is not in the plan still shows, locked (see isLocked). */
@@ -335,10 +341,11 @@ export class ShellComponent implements OnInit, OnDestroy {
     return !item.visible || item.visible();
   }
 
-  /** The feature the tenant's plan lacks that locks this entry, or null when it is open (always, until the plan is known). */
+  /** The feature the tenant's plan lacks that locks this entry, or null when it is open (always, until the plan is known). A feature whose free uses
+   * are used up is not locked: its screens open read-only, so the tenant still sees what it made. */
   lockedFeature(item: NavItem): PlatformFeature | null {
     const feature = typeof item.feature === 'function' ? item.feature() : item.feature;
-    return feature && !this.entitlements.has(feature) ? feature : null;
+    return feature && !this.entitlements.canView(feature) ? feature : null;
   }
 
   isLocked(item: NavItem): boolean {
@@ -366,10 +373,37 @@ export class ShellComponent implements OnInit, OnDestroy {
     return trial && !trial.exhausted ? trial : null;
   }
 
-  /** "7 free left", for the chip beside an entry on free uses. */
+  /** AI-suggested follow-ups nobody has confirmed or dismissed yet - the number on the Follow-ups entry. */
+  followUpsToApprove = 0;
+
+  /** "2 to approve", for the entry that asks for it, only while something is waiting. */
+  approveChip(item: NavItem): string | null {
+    return item.approveChip && this.followUpsToApprove > 0 ? `${this.followUpsToApprove} to approve` : null;
+  }
+
+  private refreshFollowUpsToApprove(): void {
+    if (this.isPlatformSuperAdmin) {
+      return;
+    }
+    this.injector
+      .get(LeadFollowUpService)
+      .getSummary()
+      .subscribe({ next: (summary) => (this.followUpsToApprove = summary.suggested), error: () => undefined });
+  }
+
+  /** "3/10" (used / allocated), for the chip beside an entry with a free-use quota, a plan cap or a plan limit. Full means read-only. */
   trialChip(item: NavItem): string | null {
+    if (item.quotaKey) {
+      const quota = this.entitlements.quotaOf(item.quotaKey);
+      return quota ? `${quota.used}/${quota.limit}` : null;
+    }
     const trial = this.trialOf(item);
-    return trial ? `${trial.remaining} ${trial.includedInPlan ? '' : 'free '}left` : null;
+    if (trial) {
+      return `${trial.used}/${trial.freeUses}`;
+    }
+    const named = typeof item.feature === 'function' ? item.feature() : item.feature;
+    const spent = named ? this.entitlements.usedUp(named) : null;
+    return spent ? `${spent.used}/${spent.freeUses}` : null;
   }
 
   /**
@@ -384,6 +418,27 @@ export class ShellComponent implements OnInit, OnDestroy {
     const path = this.router.url.split(/[?#]/)[0];
     const match = FEATURE_ROUTES.find(([prefix]) => path === prefix || path.startsWith(prefix + '/'));
     return match ? this.openTrial(match[1]) : null;
+  }
+
+  /**
+   * The free uses (or plan cap) the page on screen has used up, for the read-only bar above it: what is there stays readable, adding new needs Premium.
+   * Null while any are left, on any page whose feature is in the plan, and for a platform admin.
+   */
+  get currentUsedUp(): FeatureTrial | null {
+    if (this.isPlatformSuperAdmin) {
+      return null;
+    }
+    const path = this.router.url.split(/[?#]/)[0];
+    const match = FEATURE_ROUTES.find(([prefix]) => path === prefix || path.startsWith(prefix + '/'));
+    return match ? this.entitlements.usedUp(match[1]) : null;
+  }
+
+  usedUpLine(trial: FeatureTrial): string {
+    const what =
+      trial.feature === 'AiConversations'
+        ? 'The AI has stopped replying; you can still read your chats and answer them yourself.'
+        : 'You can still see everything here; upgrade to Premium to add new.';
+    return `${trialUsedUpLabel(trial, this.entitlements.current?.planName ?? null)} ${what}`;
   }
 
   trialLine(trial: FeatureTrial): string {
@@ -629,6 +684,11 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.updateHeading(this.router.url);
+    this.refreshFollowUpsToApprove();
+    if (!this.isPlatformSuperAdmin) {
+      // Approving or dismissing a suggestion changes the count, so it is read again straight away rather than on the next page change.
+      this.injector.get(LeadFollowUpService).changed$?.pipe(takeUntil(this.destroy$)).subscribe(() => this.refreshFollowUpsToApprove());
+    }
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
@@ -638,6 +698,8 @@ export class ShellComponent implements OnInit, OnDestroy {
         this.updateHeading(e.urlAfterRedirects);
         // A ticket is resolved on its own page, so the badge is read again as the operator moves on, not on the next tick.
         this.refreshOpenTickets();
+        // Suggestions are confirmed or dismissed on the Follow-ups page and on a lead, so the count is read again as the tenant moves on.
+        this.refreshFollowUpsToApprove();
         // Credits are spent in the background and by what the tenant does on any page, so the figure is read again as they move around.
         if (!this.isPlatformSuperAdmin) {
           this.entitlementsLoader.load(true).subscribe({ error: () => undefined });

@@ -8,6 +8,7 @@ import { OnboardingStatus, OnboardingStepState } from '../../core/models/onboard
 import { AccountRecoveryService } from '../../core/services/account-recovery.service';
 import { AccountService } from '../../core/services/account.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
+import { LeadFollowUpService } from '../../core/services/lead-follow-up.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BillingService } from '../../core/services/billing.service';
 import { ContentStudioService } from '../../core/services/content-studio.service';
@@ -50,6 +51,7 @@ describe('ShellComponent during onboarding', () => {
       declarations: [ShellComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
+        { provide: LeadFollowUpService, useValue: { getSummary: () => of({ scheduled: 0, dueNow: 0, dueWithin30Days: 0, sent: 0, suggested: 0 }) } },
         { provide: AuthService, useValue: auth },
         { provide: OnboardingService, useValue: { status$: status$.asObservable(), refresh } },
         { provide: AnnouncementService, useValue: { getActive: () => of([]) } },

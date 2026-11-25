@@ -49,8 +49,8 @@
             color="primary"
             type="button"
             (click)="polishDescription()"
-            [disabled]="!form.controls.description.value.trim() || polishing"
-            [matTooltip]="form.controls.description.value.trim() ? 'Rewrites your description so it reads clearly' : 'Write a description first'"
+            [disabled]="!form.controls.description.value.trim() || polishing || usedUp"
+            [matTooltip]="usedUp ? usedUpHint : form.controls.description.value.trim() ? 'Rewrites your description so it reads clearly' : 'Write a description first'"
           >
             <mat-icon>auto_fix_high</mat-icon>
             {{ polishing ? 'Polishing…' : 'Polish Content using AI' }}
@@ -81,8 +81,8 @@
               type="button"
               class="suggest-button"
               (click)="suggestKeywords()"
-              [disabled]="!form.controls.description.value.trim() || suggesting"
-              [matTooltip]="form.controls.description.value.trim() ? 'Suggests the words people search for to find this kind of business' : 'Write a description first'"
+              [disabled]="!form.controls.description.value.trim() || suggesting || usedUp"
+              [matTooltip]="usedUp ? usedUpHint : form.controls.description.value.trim() ? 'Suggests the words people search for to find this kind of business' : 'Write a description first'"
             >
               <mat-icon>auto_awesome</mat-icon>
               {{ suggesting ? 'Suggesting…' : 'AI suggest' }}
@@ -457,6 +457,42 @@
             </div>
             <mat-slide-toggle formControlName="consentSmsEnabled" aria-label="Send WhatsApp consent SMS"></mat-slide-toggle>
           </div>
+
+          <div class="switch-row" *ngIf="form.controls.consentSmsEnabled.value" data-testid="reminder-row">
+            <div>
+              <strong>Remind customers who haven't replied</strong>
+              <span>
+                Sends up to two more SMS to a customer who has not answered, each with a fresh link. Never to someone who agreed, declined or opted out,
+                and only between 9 AM and 8 PM in your time zone. After {{ consentWindowDays }} days the link expires and the customer shows as
+                <strong>No response</strong>.
+              </span>
+            </div>
+            <mat-slide-toggle formControlName="consentReminderEnabled" aria-label="Remind customers who haven't replied"></mat-slide-toggle>
+          </div>
+        </div>
+
+        <div class="reminder-days" *ngIf="form.controls.consentSmsEnabled.value && form.controls.consentReminderEnabled.value" data-testid="reminder-days">
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>First reminder after</mat-label>
+            <mat-select formControlName="consentReminderFirstDays" (selectionChange)="onFirstReminderChange()" data-testid="first-reminder">
+              <mat-option *ngFor="let d of reminderDays" [value]="d">{{ d }} day{{ d === 1 ? '' : 's' }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>Second reminder after</mat-label>
+            <mat-select formControlName="consentReminderSecondDays" data-testid="second-reminder">
+              <mat-option [value]="null">No second reminder</mat-option>
+              <mat-option *ngFor="let d of secondReminderDays" [value]="d">{{ d }} day{{ d === 1 ? '' : 's' }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <p class="field-message" data-testid="reminder-window">
+            Customers have {{ consentWindowDays }} days to answer<ng-container *ngIf="consentWindowDays < 14">, the length of your Auto-Campaign</ng-container>,
+            so a reminder can go from day 1 to day {{ consentWindowDays - 1 }}.
+          </p>
+          <p class="field-message field-message--warn" *ngIf="reminderDaysInvalid" role="alert">
+            <mat-icon>warning_amber</mat-icon>
+            <span>A reminder has to go before the link closes (day {{ consentWindowDays - 1 }} at the latest), and the second after the first.</span>
+          </p>
         </div>
 
         <p class="field-message field-message--warn" *ngIf="consentSmsWithoutCampaign" role="status" data-test="consent-needs-campaign">
@@ -497,13 +533,19 @@
     </aside>
   </form>
 
+  <!-- The runs the tenant schedules (Automatic) and Run now (Manual): its own card and its own Save, not part of the profile's. -->
+  <app-lead-discovery-schedule *ngIf="!loading && !loadFailed && saved"></app-lead-discovery-schedule>
+
   <div class="save-bar" *ngIf="!loading && !loadFailed && hasChanges">
     <mat-icon>edit_note</mat-icon>
     <span>You have unsaved changes</span>
     <span class="spacer"></span>
+    <span class="used-up-note" *ngIf="usedUp" data-testid="save-used-up">{{ usedUpHint }}</span>
     <button mat-button type="button" (click)="discard()" [disabled]="saving">Discard</button>
-    <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving">
-      {{ saving ? 'Saving…' : 'Save changes' }}
-    </button>
+    <span [matTooltip]="usedUp ? usedUpHint : ''">
+      <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving || usedUp">
+        {{ saving ? 'Saving…' : 'Save changes' }}
+      </button>
+    </span>
   </div>
 </div>

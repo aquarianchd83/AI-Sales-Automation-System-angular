@@ -48,7 +48,7 @@
       </p>
 
       <div class="actions">
-        <button mat-stroked-button type="button" (click)="clone()" data-testid="clone">
+        <button mat-stroked-button type="button" (click)="clone()" [disabled]="usedUp" [title]="usedUp ? usedUpHint : ''" data-testid="clone">
           <mat-icon>content_copy</mat-icon>
           Clone
         </button>

@@ -226,11 +226,11 @@
           <p class="error small" *ngIf="problemError" data-testid="problem-error">Describe the problem first.</p>
           <div class="raise-actions">
             <app-credit-cost [scenarios]="[4]" prefix="This video costs" data-testid="raise-cost"></app-credit-cost>
-            <button mat-stroked-button type="button" (click)="saveDraft()" [disabled]="savingDraft || raising" data-testid="save-draft" title="Keep what you have filled in so far. Nothing is charged.">
+            <button mat-stroked-button type="button" (click)="saveDraft()" [disabled]="savingDraft || raising || usedUp" data-testid="save-draft" title="Keep what you have filled in so far. Nothing is charged.">
               <mat-icon>save</mat-icon>
               {{ draftId ? 'Update draft' : 'Save draft' }}
             </button>
-            <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="raising || savingDraft" data-testid="raise-request">
+            <button mat-flat-button color="primary" type="button" (click)="raise()" [disabled]="raising || savingDraft || usedUp" [title]="usedUp ? usedUpHint : ''" data-testid="raise-request">
               <mat-icon>send</mat-icon>
               Raise the request
             </button>

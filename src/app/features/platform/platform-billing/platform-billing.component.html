@@ -70,6 +70,7 @@
       <ul>
         <li>{{ plan.maxUsers }} users</li>
         <li>{{ plan.maxCampaigns }} campaigns</li>
+        <li>{{ plan.maxCustomers ? plan.maxCustomers + ' customers' : 'Unlimited customers' }}</li>
         <li>{{ plan.maxKnowledgeBaseArticles }} KB articles</li>
         <li>up to {{ plan.maxLeadDiscoveryBatchSize }} leads per discovery run</li>
       </ul>

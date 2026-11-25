@@ -3,10 +3,12 @@
     title="Story studio"
     subtitle="Turn what your business has already told us into a short video about the problem your product solves. Write the script and approve it: nothing is made or paid for yet."
   >
-    <button mat-flat-button color="primary" (click)="startNew()" data-testid="new-story">
-      <mat-icon>add</mat-icon>
-      New story
-    </button>
+    <span [matTooltip]="usedUp ? usedUpHint : ''">
+      <button mat-flat-button color="primary" (click)="startNew()" [disabled]="usedUp" data-testid="new-story">
+        <mat-icon>{{ usedUp ? 'lock' : 'add' }}</mat-icon>
+        New story
+      </button>
+    </span>
   </app-page-header>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading || busy"></mat-progress-bar>
@@ -62,7 +64,7 @@
               </span>
             </td>
             <td class="actions-col">
-              <button mat-stroked-button type="button" (click)="clone(p, $event)" [attr.data-clone]="p.id" title="Start a new story with the same answers">
+              <button mat-stroked-button type="button" (click)="clone(p, $event)" [disabled]="usedUp" [attr.data-clone]="p.id" [title]="usedUp ? usedUpHint : 'Start a new story with the same answers'">
                 <mat-icon>content_copy</mat-icon>
                 Clone
               </button>
@@ -192,7 +194,7 @@
         </mat-radio-group>
 
         <div class="actions">
-          <button mat-flat-button color="primary" (click)="createProject()" [disabled]="brief.invalid || busy" data-testid="create-project">
+          <button mat-flat-button color="primary" (click)="createProject()" [disabled]="brief.invalid || busy || usedUp" data-testid="create-project">
             Create story
           </button>
           <button mat-button (click)="creating = false">Cancel</button>
@@ -229,7 +231,7 @@
           </div>
 
           <p class="muted" *ngIf="!script">No script yet. It is written from your verified facts.</p>
-          <button mat-flat-button color="primary" (click)="generate()" [disabled]="busy || !isDraft" data-testid="generate" *ngIf="isDraft">
+          <button mat-flat-button color="primary" (click)="generate()" [disabled]="busy || !isDraft || usedUp" data-testid="generate" *ngIf="isDraft">
             <mat-icon>auto_awesome</mat-icon>
             {{ script ? 'Write a new script' : 'Write the script from my facts' }}
           </button>
@@ -372,7 +374,7 @@
             <mat-checkbox *ngIf="costsMoney" [(ngModel)]="confirmCost" [ngModelOptions]="{ standalone: true }" data-testid="confirm-cost">
               I understand this costs about {{ totalEstimateUsd | number: '1.2-2' }} USD and is billed even if I am not happy with the result.
             </mat-checkbox>
-            <button mat-flat-button color="primary" (click)="makeClips()" [disabled]="busy || (costsMoney && !confirmCost)" data-testid="make-clips">
+            <button mat-flat-button color="primary" (click)="makeClips()" [disabled]="busy || (costsMoney && !confirmCost) || usedUp" data-testid="make-clips">
               <mat-icon>movie</mat-icon>
               Make the clips
             </button>

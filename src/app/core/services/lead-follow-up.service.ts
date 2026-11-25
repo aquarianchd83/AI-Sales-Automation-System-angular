@@ -1,10 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 import { environment } from '../../../environments/environment';
 import {
   LeadFollowUp,
+  LeadFollowUpSetting,
   LeadFollowUpSummary,
   ScheduleLeadFollowUpRequest,
 } from '../models/lead-follow-up.model';
@@ -16,6 +18,9 @@ import { PagedQuery, PagedResult, toPagedParams } from '../models/paged-result.m
 export class LeadFollowUpService {
   private readonly followUpsUrl = `${environment.apiBaseUrl}/lead-follow-ups`;
   private readonly leadsUrl = `${environment.apiBaseUrl}/leads`;
+
+  /** Fires after a follow-up is scheduled, cancelled or sent, so counts shown elsewhere (the sidenav's "to approve") can be read again. */
+  readonly changed$ = new Subject<void>();
 
   constructor(private readonly http: HttpClient) {}
 
@@ -34,6 +39,15 @@ export class LeadFollowUpService {
     return this.http.get<LeadFollowUpSummary>(`${this.followUpsUrl}/summary`);
   }
 
+  getSetting(): Observable<LeadFollowUpSetting> {
+    return this.http.get<LeadFollowUpSetting>(`${this.followUpsUrl}/settings`);
+  }
+
+  /** Tenant Admin only. Applies to follow-ups suggested from now on. */
+  saveSetting(months: number): Observable<LeadFollowUpSetting> {
+    return this.http.put<LeadFollowUpSetting>(`${this.followUpsUrl}/settings`, { months });
+  }
+
   /** Every follow-up the lead has had, newest first. */
   getForLead(leadId: string): Observable<LeadFollowUp[]> {
     return this.http.get<LeadFollowUp[]>(`${this.leadsUrl}/${leadId}/follow-ups`);
@@ -41,15 +55,15 @@ export class LeadFollowUpService {
 
   /** Parks the lead. Replaces the lead's current Scheduled follow-up, if any. */
   schedule(leadId: string, request: ScheduleLeadFollowUpRequest): Observable<LeadFollowUp> {
-    return this.http.post<LeadFollowUp>(`${this.leadsUrl}/${leadId}/follow-ups`, request);
+    return this.http.post<LeadFollowUp>(`${this.leadsUrl}/${leadId}/follow-ups`, request).pipe(tap(() => this.changed$.next()));
   }
 
   cancel(id: string): Observable<LeadFollowUp> {
-    return this.http.post<LeadFollowUp>(`${this.followUpsUrl}/${id}/cancel`, {});
+    return this.http.post<LeadFollowUp>(`${this.followUpsUrl}/${id}/cancel`, {}).pipe(tap(() => this.changed$.next()));
   }
 
   /** Sends a Scheduled or Failed follow-up now, outside the daytime window. */
   sendNow(id: string): Observable<LeadFollowUp> {
-    return this.http.post<LeadFollowUp>(`${this.followUpsUrl}/${id}/send-now`, {});
+    return this.http.post<LeadFollowUp>(`${this.followUpsUrl}/${id}/send-now`, {}).pipe(tap(() => this.changed$.next()));
   }
 }

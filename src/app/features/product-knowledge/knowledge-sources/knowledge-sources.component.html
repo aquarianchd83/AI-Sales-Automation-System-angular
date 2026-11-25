@@ -114,7 +114,7 @@
           </header>
 
           <div class="actions">
-            <button mat-stroked-button type="button" *ngIf="(source.canRetry || source.canRescan) && canRead(source)" [disabled]="busy[source.id]" (click)="retry(source)" data-testid="retry">
+            <button mat-stroked-button type="button" *ngIf="(source.canRetry || source.canRescan) && canRead(source)" [disabled]="busy[source.id] || usedUp" (click)="retry(source)" data-testid="retry">
               <mat-icon>refresh</mat-icon>
               {{ source.canRescan ? 'Scan again' : 'Try again' }}
             </button>

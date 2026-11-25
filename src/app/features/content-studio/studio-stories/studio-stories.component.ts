@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormControl, Validators } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MatDialog } from '@angular/material/dialog';
@@ -38,6 +38,8 @@ import { formatUnits } from '../../../core/models/billing.model';
 import { NotificationService } from '../../../core/services/notification.service';
 import { StoryStudioService } from '../../../core/services/story-studio.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /**
  * The cinematic story studio on one page: the project list on the left, and on the right either the brief for a new story
@@ -130,6 +132,14 @@ export class StudioStoriesComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
   private readonly stopPolling$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free AI generations used up: what is here stays readable, making something new needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('ContentStudio') !== null;
+  }
 
   constructor(
     private readonly studio: StoryStudioService,

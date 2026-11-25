@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { Subject } from 'rxjs';
@@ -23,6 +23,8 @@ import { AppRole } from '../../../core/models/user.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { ContentStudioService } from '../../../core/services/content-studio.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 /** The panel on the right: nothing open, a fact open, or a new one being written. */
 type PanelMode = 'none' | 'view' | 'new';
@@ -87,6 +89,14 @@ export class StudioFactsComponent implements OnInit, OnDestroy {
   private page = 1;
   private pageSize = DEFAULT_PAGE_SIZE;
   private readonly destroy$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Free AI generations used up: what is here stays readable, making something new needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('ContentStudio') !== null;
+  }
 
   constructor(
     private readonly studio: ContentStudioService,

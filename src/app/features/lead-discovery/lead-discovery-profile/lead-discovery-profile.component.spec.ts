@@ -1,3 +1,4 @@
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -66,6 +67,8 @@ describe('LeadDiscoveryProfileComponent', () => {
 
     TestBed.configureTestingModule({
       declarations: [LeadDiscoveryProfileComponent],
+      // The schedule card is its own component with its own spec; here it is only a placeholder.
+      schemas: [NO_ERRORS_SCHEMA],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: LeadDiscoveryService, useValue: service },
@@ -151,6 +154,9 @@ describe('LeadDiscoveryProfileComponent', () => {
       autoCampaignStartTime: null,
       dndCheckEnabled: false,
       consentSmsEnabled: false,
+      consentReminderEnabled: false,
+      consentReminderFirstDays: 3,
+      consentReminderSecondDays: 7,
     });
     expect(notify.success).toHaveBeenCalled();
     expect(component.hasChanges).toBeFalse();
@@ -176,6 +182,79 @@ describe('LeadDiscoveryProfileComponent', () => {
 
     create({ ...profile, consentSmsEnabled: true });
     expect(component.form.controls.consentSmsEnabled.value).toBeTrue();
+  });
+
+  describe('consent reminders', () => {
+    const root = () => fixture.nativeElement as HTMLElement;
+
+    it('shows the reminder switch only once the consent SMS is on, and the days only once reminders are on', () => {
+      create(profile);
+      expect(root().querySelector('[data-testid="reminder-row"]')).toBeNull();
+
+      component.form.controls.consentSmsEnabled.setValue(true);
+      fixture.detectChanges();
+      expect(root().querySelector('[data-testid="reminder-row"]')).not.toBeNull();
+      expect(root().querySelector('[data-testid="reminder-days"]')).toBeNull();
+
+      component.form.controls.consentReminderEnabled.setValue(true);
+      fixture.detectChanges();
+      expect(root().querySelector('[data-testid="reminder-days"]')).not.toBeNull();
+    });
+
+    it('turns reminders on when the person clicks the switch', () => {
+      create({ ...profile, consentSmsEnabled: true });
+      const toggle = root().querySelector('[data-testid="reminder-row"] button[role="switch"]') as HTMLButtonElement;
+      expect(toggle.disabled).toBeFalse();
+      toggle.click();
+      fixture.detectChanges();
+
+      expect(component.form.controls.consentReminderEnabled.value).toBeTrue();
+      expect(root().querySelector('[data-testid="reminder-days"]')).not.toBeNull();
+    });
+
+    it('saves two reminders, by default day 3 and day 7', () => {
+      create({ ...profile, consentSmsEnabled: true });
+      component.form.controls.consentReminderEnabled.setValue(true);
+      component.save();
+
+      expect(service.saveProfile).toHaveBeenCalledWith(
+        jasmine.objectContaining({ consentReminderEnabled: true, consentReminderFirstDays: 3, consentReminderSecondDays: 7 })
+      );
+    });
+
+    it('offers only the days before the link closes: 1 to 13 by default', () => {
+      create({ ...profile, consentSmsEnabled: true, consentReminderEnabled: true, consentWindowDays: 14 });
+
+      expect(component.reminderDays).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    });
+
+    it('cuts the days to the Auto-Campaign: a campaign that closes after 6 days allows reminders on days 1 to 5', () => {
+      create({ ...profile, consentSmsEnabled: true, consentReminderEnabled: true, consentWindowDays: 6, consentReminderFirstDays: 2, consentReminderSecondDays: 4 });
+      fixture.detectChanges();
+
+      expect(component.reminderDays).toEqual([1, 2, 3, 4, 5]);
+      expect(component.secondReminderDays).toEqual([3, 4, 5]);
+      expect((root().querySelector('[data-testid="reminder-window"]')?.textContent ?? '')).toContain('6 days');
+      expect(component.reminderDaysInvalid).toBeFalse();
+    });
+
+    it('refuses to save a reminder that would fall after the link closes', () => {
+      create({ ...profile, consentSmsEnabled: true, consentReminderEnabled: true, consentWindowDays: 6, consentReminderFirstDays: 3, consentReminderSecondDays: 7 });
+      service.saveProfile.calls.reset();
+
+      expect(component.reminderDaysInvalid).toBeTrue();
+      component.save();
+
+      expect(service.saveProfile).not.toHaveBeenCalled();
+    });
+
+    it('drops the second reminder when the first is moved to or past it', () => {
+      create({ ...profile, consentSmsEnabled: true, consentReminderEnabled: true });
+      component.form.controls.consentReminderFirstDays.setValue(8);
+      component.onFirstReminderChange();
+
+      expect(component.form.controls.consentReminderSecondDays.value).toBeNull();
+    });
   });
 
   describe('consent SMS without an Auto-Campaign', () => {

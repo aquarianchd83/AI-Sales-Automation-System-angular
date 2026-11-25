@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-import { CreditCostItem, Entitlements, FeatureTrial, PlatformFeature } from '../models/wallet.model';
+import { CreditCostItem, Entitlements, FeatureTrial, PlanQuota, PlatformFeature } from '../models/wallet.model';
 
 /**
  * What the signed-in tenant may use and what each action costs, as last loaded - the shared state the menu, the screens and the credit placeholders read.
@@ -36,12 +36,37 @@ export class EntitlementsStore {
     return known === null || known.features.includes(feature);
   }
 
+  /**
+   * Whether the tenant may still open the feature's screens: when it can use it, and also once its free uses (or its plan's cap) are used up - what it
+   * already made stays readable, only adding new asks for an upgrade (see {@link usedUp}).
+   */
+  canView(feature: PlatformFeature): boolean {
+    return this.has(feature) || this.usedUp(feature) !== null;
+  }
+
+  /**
+   * The free uses (or the plan's cap) of a feature, once they are all used up: its screens are read-only. Null while any are left, or when it has none.
+   * A cap the API still lists the feature under (Basic's campaign limit: the campaigns stay usable, only a new one is refused) counts too.
+   */
+  usedUp(feature: PlatformFeature): FeatureTrial | null {
+    const trial = this.trialOf(feature);
+    return trial && trial.exhausted ? trial : null;
+  }
+
   /** The free uses the plan gives of a feature it does not include, or null when it includes the feature (or gives none, or is not known yet). */
   trialOf(feature: PlatformFeature): FeatureTrial | null {
     if (this.unrestricted) {
       return null;
     }
     return this.state.value?.trials?.find((t) => t.feature === feature) ?? null;
+  }
+
+  /** A plan limit that is not a feature (e.g. 'Customers'), or null when the plan has none (or is not known yet, or unrestricted). */
+  quotaOf(key: string): PlanQuota | null {
+    if (this.unrestricted) {
+      return null;
+    }
+    return this.state.value?.quotas?.find((q) => q.key === key) ?? null;
   }
 
   /** What one unit of the scenario costs in credits, or null when it is not known (or not in the plan). */

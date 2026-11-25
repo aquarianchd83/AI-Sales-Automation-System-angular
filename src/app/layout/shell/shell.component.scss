@@ -198,6 +198,23 @@
   }
 }
 
+// The quota chip beside an entry on free uses or a plan cap ("20 left", "Used up"): shaped like the Premium chip, in green, pushed to the right edge.
+// Kept outside .nav-item--locked: an entry with quota left is never locked, so nested there it was never styled.
+.nav-item .nav-trial-chip {
+  flex: none;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
 // A feature the plan lacks: still listed so the tenant knows it exists, dimmed, with a lock and a Premium chip. It opens the feature's preview.
 .nav-item--locked {
   color: #94a3b8;
@@ -209,19 +226,6 @@
   .nav-item-label {
     flex: 1 1 auto;
     opacity: 0.75;
-  }
-
-  .nav-trial-chip {
-    flex: none;
-    padding: 1px 7px;
-    border-radius: 999px;
-    background: rgba(16, 185, 129, 0.16);
-    border: 1px solid rgba(16, 185, 129, 0.4);
-    color: #34d399;
-    font-size: 10.5px;
-    font-weight: 600;
-    line-height: 16px;
-    white-space: nowrap;
   }
 
   .nav-premium-chip {
@@ -704,6 +708,12 @@ button.wallet-chip {
   }
 }
 
+.trial-bar--used-up {
+  background: #fdecea;
+  border-bottom-color: rgba(220, 38, 38, 0.3);
+  color: #7f1d1d;
+}
+
 .onboarding-bar {
   display: flex;
   align-items: center;
@@ -718,4 +728,20 @@ button.wallet-chip {
     flex: 1;
     min-width: 200px;
   }
+}
+
+/* Waiting for a person: amber, unlike the green quota chips. */
+.nav-item .nav-approve-chip {
+  flex: none;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 16px;
+  white-space: nowrap;
 }

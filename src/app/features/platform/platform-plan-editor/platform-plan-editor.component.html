@@ -77,6 +77,17 @@
             </mat-form-field>
           </div>
 
+          <div class="feature-row" data-testid="customers-row">
+            <div class="feature-name">
+              <span>Customers</span>
+              <span class="muted small">Always included. Adding by hand and importing stop at the limit; 0 is no limit.</span>
+            </div>
+            <mat-form-field subscriptSizing="dynamic" class="limit-field">
+              <mat-label>Max customers</mat-label>
+              <input matInput type="number" min="0" formControlName="maxCustomers" data-testid="max-customers" />
+            </mat-form-field>
+          </div>
+
           <div class="feature-row" *ngFor="let feature of allFeatures">
             <div class="feature-name">
               <mat-checkbox [checked]="hasFeature(feature)" (change)="toggleFeature(feature, $event.checked)" [attr.data-feature]="feature">

@@ -3,10 +3,13 @@
     title="Users &amp; roles"
     subtitle="Panel accounts and their role assignments. Restricted to Super Admins and Admins."
   >
-    <button mat-flat-button color="primary" type="button" (click)="create()">
-      <mat-icon>person_add</mat-icon>
-      New user
-    </button>
+    <!-- The plan's team limit reached: the users stay open, adding one needs Premium. The span carries the tooltip a disabled button can't. -->
+    <span [matTooltip]="usersFull ? usedUpHint : ''">
+      <button mat-flat-button color="primary" type="button" (click)="create()" [disabled]="usersFull" data-testid="new-user">
+        <mat-icon>{{ usersFull ? 'lock' : 'person_add' }}</mat-icon>
+        New user
+      </button>
+    </span>
   </app-page-header>
 
   <mat-card class="table-card">

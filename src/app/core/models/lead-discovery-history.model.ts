@@ -21,7 +21,13 @@ export interface LeadDiscoveryExecutionSummary {
   processingDate: string;
   leadDiscoveryProfileId: string;
   profileName: string;
+  /** "Scheduled", "Manual run" (Run now), "Automatic retry" or "Manual retry". */
   trigger: string;
+  /** Who started it, when a person did. */
+  startedBy?: string | null;
+  /** More than 0 when the run could not start (a plan limit): how many times, the same row updated each time. */
+  skipCount?: number;
+  lastSkippedAtUtc?: string | null;
   status: string;
   startedAtUtc: string;
   endedAtUtc: string | null;
@@ -104,6 +110,13 @@ export interface LeadDiscoveryExecutionCustomer {
   consentRecordedAtUtc?: string | null;
   /** Why no SMS went to this row, in words ("Not sent: ..."), so the Consent SMS column is never a bare dash. Null when an SMS was sent. */
   consentSmsNote?: string | null;
+  /** Waiting (link open, no answer yet), Consented, Declined or NoResponse (the link expired). Null when no SMS was sent. */
+  consentState?: string | null;
+  /** How many reminder SMS followed the invitation (0 to 2). */
+  consentReminderCount?: number;
+  consentLastReminderAtUtc?: string | null;
+  /** When the consent link stops working; after this the customer is "No response". */
+  consentLinkExpiresAtUtc?: string | null;
   /** The first sentence of the note when it names a missing setting ("Not added to a campaign: Auto-Campaign is not configured."), shown in bold ahead of the rest. */
   consentSmsHeadline?: string | null;
   /** True when no SMS went because the consent SMS switch in the discovery profile is Off - the screen links to where it is turned on. */
@@ -203,6 +216,35 @@ export function consentSmsLabel(status: string | null | undefined): string {
       return 'Failed';
     default:
       return '—';
+  }
+}
+
+/** What the customer's own answer to the consent SMS looks like in the grid. */
+export function consentStateLabel(state: string | null | undefined): string {
+  switch (state) {
+    case 'Consented':
+      return 'Consented';
+    case 'Declined':
+      return 'Declined';
+    case 'NoResponse':
+      return 'No response';
+    case 'Waiting':
+      return 'Waiting for reply';
+    default:
+      return '';
+  }
+}
+
+export function consentStateChipClass(state: string | null | undefined): string {
+  switch (state) {
+    case 'Consented':
+      return 'status-chip status-chip--completed';
+    case 'Declined':
+      return 'status-chip status-chip--opted-out';
+    case 'Waiting':
+      return 'status-chip status-chip--scheduled';
+    default:
+      return 'status-chip status-chip--inactive';
   }
 }
 
@@ -446,4 +488,53 @@ export function countCandidateOutcomes(rows: readonly LeadDiscoveryExecutionCust
   return CANDIDATE_OUTCOMES.map((o) => ({ outcome: o.value, count: rows.filter((r) => candidateOutcome(r) === o.value).length })).filter(
     (c) => c.count > 0
   );
+}
+
+/** What a status is called on screen: plain words for the ones a tenant should not have to decode. */
+export function leadDiscoveryStatusLabel(row: { status: string; skipCount?: number }): string {
+  if ((row.skipCount ?? 0) > 0) {
+    return 'Skipped';
+  }
+  switch (row.status) {
+    case 'Completed':
+      return 'Done';
+    case 'RetryPending':
+      return 'Will retry';
+    default:
+      return row.status;
+  }
+}
+
+/** One date and time the tenant set for lead discovery to run by itself, in the tenant's own time zone (date "2026-11-26", time "10:30"). */
+export interface LeadDiscoveryScheduleSlot {
+  id: string;
+  date: string;
+  time: string;
+  repeatDaily: boolean;
+  /** A single slot that has already run: kept on the list until removed, and no longer counted toward the limit. */
+  isDone: boolean;
+  nextRunAtUtc: string;
+  lastRunAtUtc: string | null;
+}
+
+/** A run the schedule will start next. `slot` is the slot's place in the list, from 1. */
+export interface LeadDiscoveryUpcomingRun {
+  runAtUtc: string;
+  slot: number;
+  repeatDaily: boolean;
+}
+
+export interface LeadDiscoverySchedule {
+  timeZoneId: string;
+  maxSlots: number;
+  slots: LeadDiscoveryScheduleSlot[];
+  upcoming: LeadDiscoveryUpcomingRun[];
+  nextRunAtUtc: string | null;
+}
+
+export interface SaveLeadDiscoverySlot {
+  id?: string | null;
+  date: string;
+  time: string;
+  repeatDaily: boolean;
 }
