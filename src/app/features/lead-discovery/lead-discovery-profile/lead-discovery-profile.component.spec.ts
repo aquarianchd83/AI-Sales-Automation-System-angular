@@ -201,6 +201,17 @@ describe('LeadDiscoveryProfileComponent', () => {
       expect(root().querySelector('[data-testid="reminder-days"]')).not.toBeNull();
     });
 
+    it('turns reminders on when the person clicks the switch', () => {
+      create({ ...profile, consentSmsEnabled: true });
+      const toggle = root().querySelector('[data-testid="reminder-row"] button[role="switch"]') as HTMLButtonElement;
+      expect(toggle.disabled).toBeFalse();
+      toggle.click();
+      fixture.detectChanges();
+
+      expect(component.form.controls.consentReminderEnabled.value).toBeTrue();
+      expect(root().querySelector('[data-testid="reminder-days"]')).not.toBeNull();
+    });
+
     it('saves two reminders, by default day 3 and day 7', () => {
       create({ ...profile, consentSmsEnabled: true });
       component.form.controls.consentReminderEnabled.setValue(true);
