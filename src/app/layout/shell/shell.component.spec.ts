@@ -342,6 +342,7 @@ describe('ShellComponent sidenav', () => {
       'forward_to_inboxSMTP/SMS Settings',
       'toggle_onFeatures',
       'hubIntegrations',
+      'datasetSimulator Dummy Data',
       'scienceRazorpay',
       'ads_clickMeta Ads',
       'receipt_longLogs',

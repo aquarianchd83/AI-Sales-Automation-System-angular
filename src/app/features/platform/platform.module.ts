@@ -36,6 +36,8 @@ import { PlatformQuotaAdjustDialogComponent } from './platform-quota-adjust-dial
 import { PlatformRefundListComponent } from './platform-refund-list/platform-refund-list.component';
 import { PlatformRefundReviewDialogComponent } from './platform-refund-review-dialog/platform-refund-review-dialog.component';
 import { PlatformShellComponent } from './platform-shell/platform-shell.component';
+import { PlatformSimulatorDataComponent } from './platform-simulator-data/platform-simulator-data.component';
+import { PlatformSimulatorDataDialogComponent } from './platform-simulator-data-dialog/platform-simulator-data-dialog.component';
 import { PlatformTicketsComponent } from './platform-tickets/platform-tickets.component';
 import { PlatformStudioQuestionnairesComponent } from './platform-studio-questionnaires/platform-studio-questionnaires.component';
 import { PlatformRefundVideoDialogComponent } from './platform-refund-video-dialog/platform-refund-video-dialog.component';
@@ -101,6 +103,7 @@ const routes: Routes = [
       { path: 'delivery-settings', component: PlatformDeliverySettingsComponent },
       { path: 'features', component: PlatformFeaturesComponent },
       { path: 'integration-settings', component: PlatformIntegrationSettingsComponent },
+      { path: 'simulator-data', component: PlatformSimulatorDataComponent },
       // The platform's own WhatsApp: the number, a template per notice, and the images they show.
       { path: 'whatsapp-settings', component: PlatformWhatsAppSettingsComponent },
       { path: 'whatsapp-provider', component: PlatformWhatsAppProviderComponent },
@@ -165,6 +168,8 @@ const routes: Routes = [
     PlatformDeliverySettingsComponent,
     PlatformFeaturesComponent,
     PlatformIntegrationSettingsComponent,
+    PlatformSimulatorDataComponent,
+    PlatformSimulatorDataDialogComponent,
     PlatformAiPolicyComponent,
     PlatformProductSourcesComponent,
     PlatformWhatsAppSettingsComponent,
