@@ -126,6 +126,26 @@
     font-size: 20px;
   }
 
+  align-items: flex-start;
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  &__when {
+    min-width: 170px;
+    font-weight: 600;
+  }
+
   &__change {
     margin-left: auto;
   }

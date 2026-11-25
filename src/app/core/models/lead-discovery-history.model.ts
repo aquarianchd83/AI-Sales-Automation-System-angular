@@ -468,3 +468,37 @@ export function leadDiscoveryStatusLabel(row: { status: string; skipCount?: numb
       return row.status;
   }
 }
+
+/** One date and time the tenant set for lead discovery to run by itself, in the tenant's own time zone (date "2026-11-26", time "10:30"). */
+export interface LeadDiscoveryScheduleSlot {
+  id: string;
+  date: string;
+  time: string;
+  repeatDaily: boolean;
+  /** A single slot that has already run: kept on the list until removed, and no longer counted toward the limit. */
+  isDone: boolean;
+  nextRunAtUtc: string;
+  lastRunAtUtc: string | null;
+}
+
+/** A run the schedule will start next. `slot` is the slot's place in the list, from 1. */
+export interface LeadDiscoveryUpcomingRun {
+  runAtUtc: string;
+  slot: number;
+  repeatDaily: boolean;
+}
+
+export interface LeadDiscoverySchedule {
+  timeZoneId: string;
+  maxSlots: number;
+  slots: LeadDiscoveryScheduleSlot[];
+  upcoming: LeadDiscoveryUpcomingRun[];
+  nextRunAtUtc: string | null;
+}
+
+export interface SaveLeadDiscoverySlot {
+  id?: string | null;
+  date: string;
+  time: string;
+  repeatDaily: boolean;
+}

@@ -1,0 +1,88 @@
+<mat-card class="schedule" id="schedule">
+  <div class="head">
+    <span class="head-icon"><mat-icon>schedule</mat-icon></span>
+    <div>
+      <h2>Scheduled runs <span class="by-chip">Automatic</span></h2>
+      <p>
+        Up to {{ maxSlots }} dates and times. Each starts a new search by itself, once or every day at that time.
+        <span *ngIf="schedule">Times are in your timezone ({{ schedule.timeZoneId }}).</span>
+      </p>
+    </div>
+    <span class="spacer"></span>
+    <span class="count" [class.count--full]="activeCount >= maxSlots" data-testid="slot-count">{{ activeCount }} / {{ maxSlots }}</span>
+  </div>
+
+  <p class="muted" *ngIf="loading">Loading the schedule…</p>
+  <p class="error" *ngIf="loadFailed" role="alert">The schedule could not be loaded. <button mat-button type="button" (click)="load()">Try again</button></p>
+
+  <ng-container *ngIf="!loading && !loadFailed">
+    <p class="empty" *ngIf="!rows.length" data-testid="no-slots">Nothing is scheduled, so nothing runs by itself. Add a date and time below, or use Run now.</p>
+
+    <div class="slot" *ngFor="let row of rows; let i = index" [class.slot--done]="row.isDone" [attr.data-testid]="'slot-' + i">
+      <span class="n">{{ row.isDone ? '✓' : i + 1 }}</span>
+
+      <ng-container *ngIf="!row.isDone; else doneRow">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="date-field">
+          <mat-label>Date</mat-label>
+          <input matInput [matDatepicker]="picker" [min]="today" [(ngModel)]="row.date" [name]="'date' + i" readonly (click)="picker.open()" />
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="time-field">
+          <mat-label>Time</mat-label>
+          <input matInput type="time" [(ngModel)]="row.time" [name]="'time' + i" />
+        </mat-form-field>
+
+        <mat-slide-toggle [(ngModel)]="row.repeatDaily" [name]="'repeat' + i" color="primary">Repeat daily</mat-slide-toggle>
+      </ng-container>
+
+      <ng-template #doneRow>
+        <span class="done-when">{{ row.ranAtUtc | zonedDate: 'medium' }}</span>
+        <span class="done-chip">Done</span>
+        <span class="muted done-note">Ran once</span>
+      </ng-template>
+
+      <span class="spacer"></span>
+      <button mat-icon-button type="button" (click)="remove(i)" [attr.aria-label]="'Remove slot ' + (i + 1)" matTooltip="Remove">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <p class="error" *ngIf="error" role="alert" data-testid="schedule-error">{{ error }}</p>
+
+    <div class="actions">
+      <span [matTooltip]="usedUp ? usedUpHint : ''">
+        <button mat-stroked-button color="primary" type="button" (click)="add()" [disabled]="activeCount >= maxSlots || usedUp" data-testid="add-slot">
+          <mat-icon>add</mat-icon>
+          Add date and time
+        </button>
+      </span>
+      <span class="spacer"></span>
+      <button mat-button type="button" (click)="cancel()" [disabled]="!hasChanges || saving">Cancel</button>
+      <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="!hasChanges || saving || usedUp" data-testid="save-schedule">
+        {{ saving ? 'Saving…' : 'Save schedule' }}
+      </button>
+    </div>
+
+    <p class="next" *ngIf="schedule?.nextRunAtUtc" data-testid="schedule-next">
+      <mat-icon>event</mat-icon>
+      <span><strong>Next scheduled run:</strong> {{ schedule?.nextRunAtUtc | zonedDate: 'medium' }}</span>
+    </p>
+  </ng-container>
+
+  <div class="manual">
+    <div>
+      <h3>Run now <span class="by-chip by-chip--manual">Manual</span></h3>
+      <p>
+        Starts one search right away. It is separate from the schedule: the times above stay as they are, and history lists it as a manual run.
+      </p>
+    </div>
+    <span [matTooltip]="usedUp ? usedUpHint : ''">
+      <button mat-stroked-button type="button" (click)="runNow()" [disabled]="runningNow || usedUp" data-testid="schedule-run-now">
+        <mat-icon>{{ usedUp ? 'lock' : 'play_arrow' }}</mat-icon>
+        {{ runningNow ? 'Queuing…' : 'Run now' }}
+      </button>
+    </span>
+  </div>
+</mat-card>

@@ -11,6 +11,7 @@ import { DiscoveredLeadListComponent } from './discovered-lead-list/discovered-l
 import { DiscoveryRunListComponent } from './discovery-run-list/discovery-run-list.component';
 import { LeadDiscoveryExecutionDetailComponent } from './lead-discovery-execution-detail/lead-discovery-execution-detail.component';
 import { LeadDiscoveryHistoryListComponent } from './lead-discovery-history-list/lead-discovery-history-list.component';
+import { LeadDiscoveryScheduleComponent } from './lead-discovery-schedule/lead-discovery-schedule.component';
 import { LeadDiscoveryProfileComponent } from './lead-discovery-profile/lead-discovery-profile.component';
 
 const routes: Routes = [
@@ -56,6 +57,7 @@ const routes: Routes = [
     DiscoveredLeadDetailDialogComponent,
     CandidatesConsideredDialogComponent,
     LeadDiscoveryProfileComponent,
+    LeadDiscoveryScheduleComponent,
     DiscoveryRunListComponent,
     AutoCampaignHistoryListComponent,
     LeadDiscoveryHistoryListComponent,

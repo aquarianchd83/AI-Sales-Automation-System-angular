@@ -497,6 +497,9 @@
     </aside>
   </form>
 
+  <!-- The runs the tenant schedules (Automatic) and Run now (Manual): its own card and its own Save, not part of the profile's. -->
+  <app-lead-discovery-schedule *ngIf="!loading && !loadFailed && saved"></app-lead-discovery-schedule>
+
   <div class="save-bar" *ngIf="!loading && !loadFailed && hasChanges">
     <mat-icon>edit_note</mat-icon>
     <span>You have unsaved changes</span>

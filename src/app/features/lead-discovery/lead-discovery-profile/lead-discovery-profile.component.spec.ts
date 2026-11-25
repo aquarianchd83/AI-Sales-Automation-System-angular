@@ -1,3 +1,4 @@
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -66,6 +67,8 @@ describe('LeadDiscoveryProfileComponent', () => {
 
     TestBed.configureTestingModule({
       declarations: [LeadDiscoveryProfileComponent],
+      // The schedule card is its own component with its own spec; here it is only a placeholder.
+      schemas: [NO_ERRORS_SCHEMA],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: LeadDiscoveryService, useValue: service },

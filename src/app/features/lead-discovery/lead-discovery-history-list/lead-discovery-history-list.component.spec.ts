@@ -82,7 +82,8 @@ describe('LeadDiscoveryHistoryListComponent', () => {
   }
 
   beforeEach(() => {
-    service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution']);
+    service = jasmine.createSpyObj('LeadDiscoveryService', ['getHistory', 'retryExecution', 'getSchedule']);
+    service.getSchedule.and.returnValue(of({ timeZoneId: 'Asia/Kolkata', maxSlots: 5, slots: [], upcoming: [], nextRunAtUtc: null }));
     notify = jasmine.createSpyObj('NotificationService', ['success', 'error']);
     tenantJobs = jasmine.createSpyObj('TenantJobService', ['trigger', 'getJobs']);
     tenantJobs.getJobs.and.returnValue(of({ runsBackgroundJobs: true, jobs: [] }));
@@ -336,21 +337,23 @@ describe('LeadDiscoveryHistoryListComponent', () => {
     expect(dialog.open).toHaveBeenCalledWith(
       TenantJobsDialogComponent,
       jasmine.objectContaining({
-        data: jasmine.objectContaining({ title: 'Lead discovery jobs', jobTypes: ['lead-discovery', 'lead-follow-ups'] }),
+        data: jasmine.objectContaining({ title: 'Lead discovery jobs', jobTypes: ['lead-follow-ups'] }),
       })
     );
   });
-  it('shows when the schedule runs next, and that scheduled runs are paused when they are', () => {
-    tenantJobs.getJobs.and.returnValue(of({
-      runsBackgroundJobs: true,
-      jobs: [{ jobType: 'lead-discovery', isEnabled: true, nextExecutionUtc: '2026-11-26T08:30:00Z' } as never],
+  it('lists the runs the schedule will start next, or says nothing is scheduled', () => {
+    service.getSchedule.and.returnValue(of({
+      timeZoneId: 'Asia/Kolkata', maxSlots: 5, slots: [], nextRunAtUtc: '2026-11-26T05:00:00Z',
+      upcoming: [{ runAtUtc: '2026-11-26T05:00:00Z', slot: 1, repeatDaily: true }, { runAtUtc: '2026-11-27T12:30:00Z', slot: 2, repeatDaily: false }],
     }));
     create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary()] }]);
-    expect(text()).toContain('Next scheduled run:');
+    expect(text()).toContain('Coming up');
+    expect(text()).toContain('Slot 1 · repeats daily');
+    expect(text()).toContain('Slot 2 · once');
 
-    tenantJobs.getJobs.and.returnValue(of({ runsBackgroundJobs: true, jobs: [{ jobType: 'lead-discovery', isEnabled: false, nextExecutionUtc: null } as never] }));
+    service.getSchedule.and.returnValue(of({ timeZoneId: 'Asia/Kolkata', maxSlots: 5, slots: [], upcoming: [], nextRunAtUtc: null }));
     create([{ processingDate: '2026-09-26T00:00:00Z', executions: [summary()] }]);
-    expect(text()).toContain('Scheduled runs are paused.');
+    expect(text()).toContain('Nothing is scheduled');
   });
 
   it('says who started a run: Automatic for the schedule, Manual with the name for Run now', () => {

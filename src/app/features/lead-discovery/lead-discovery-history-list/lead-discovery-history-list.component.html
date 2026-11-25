@@ -44,14 +44,21 @@
     (finished)="refresh()"
   ></app-job-status-banner>
 
-  <!-- When the schedule runs next, so nothing here is a surprise: a run that starts at that time is the schedule's, a Run now is a person's. -->
-  <div class="next-run" *ngIf="nextRunUtc || schedulePaused" data-testid="next-run">
+  <!-- Coming up: what the tenant's schedule will start next (Automatic). A Run now is a person's and never appears here. -->
+  <div class="next-run" *ngIf="schedule" data-testid="next-run">
     <mat-icon>schedule</mat-icon>
-    <span *ngIf="nextRunUtc">
-      <strong>Next scheduled run:</strong> {{ nextRunUtc | zonedDate: 'medium' }}. It finishes anything left over first.
-    </span>
-    <span *ngIf="schedulePaused"><strong>Scheduled runs are paused.</strong> Nothing starts by itself until you resume them.</span>
-    <button mat-button type="button" color="primary" class="next-run__change" (click)="openJobs()">Change schedule</button>
+    <div class="next-run__body">
+      <strong>Coming up</strong>
+      <ng-container *ngIf="schedule.upcoming.length; else nothingScheduled">
+        <div class="next-run__item" *ngFor="let run of schedule.upcoming">
+          <span class="next-run__when">{{ run.runAtUtc | zonedDate: 'medium' }}</span>
+          <span class="by-chip">Automatic</span>
+          <span class="muted">Slot {{ run.slot }} · {{ run.repeatDaily ? 'repeats daily' : 'once' }}</span>
+        </div>
+      </ng-container>
+      <ng-template #nothingScheduled><span class="muted"> Nothing is scheduled, so no run starts by itself.</span></ng-template>
+    </div>
+    <a mat-button color="primary" class="next-run__change" routerLink="/lead-discovery/profile" fragment="schedule">Edit schedule</a>
   </div>
 
   <mat-card class="table-card">

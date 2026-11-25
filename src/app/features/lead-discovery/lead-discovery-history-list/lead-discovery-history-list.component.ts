@@ -12,6 +12,7 @@ import {
   LeadDiscoveryExecutionSummary,
   LeadDiscoveryHistoryDay,
   LeadDiscoveryHistoryQuery,
+  LeadDiscoverySchedule,
   leadDiscoveryStatusChipClass,
   leadDiscoveryStatusLabel,
 } from '../../../core/models/lead-discovery-history.model';
@@ -63,10 +64,8 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
   /** Lead-candidate quota remaining, for the header chip — null while loading, or when the tenant
    * has never had any (capacity 0), since neither is worth showing. */
   quotaLabel: string | null = null;
-  /** When the schedule runs next (UTC), or null while loading or when scheduled runs are paused. */
-  nextRunUtc: string | null = null;
-  /** Scheduled runs are switched off, so nothing starts by itself. */
-  schedulePaused = false;
+  /** The tenant's own schedule (up to five dates and times) and the runs it will start next; null until loaded. */
+  schedule: LeadDiscoverySchedule | null = null;
   /** Execution ids currently being retried — disables their retry button until the request settles. */
   readonly retrying = new Set<string>();
 
@@ -124,15 +123,11 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
         error: () => undefined,
       });
 
-    this.tenantJobs
-      .getJobs()
+    this.leadDiscovery
+      .getSchedule()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (all) => {
-          const job = all.jobs.find((j) => j.jobType === LEAD_DISCOVERY_JOB_TYPE);
-          this.schedulePaused = !!job && !job.isEnabled;
-          this.nextRunUtc = job && job.isEnabled ? job.nextExecutionUtc : null;
-        },
+        next: (schedule) => (this.schedule = schedule),
         error: () => undefined,
       });
 
@@ -182,7 +177,8 @@ export class LeadDiscoveryHistoryListComponent implements OnInit, OnDestroy {
     const data: TenantJobsDialogData = {
       title: 'Lead discovery jobs',
       description: 'The scheduled jobs that discover new leads and follow them up.',
-      jobTypes: LEAD_DISCOVERY_JOB_TYPES,
+      // The lead discovery run itself is scheduled on the profile screen (up to five dates and times); only the follow-up job keeps a cron here.
+      jobTypes: LEAD_DISCOVERY_JOB_TYPES.filter((type) => type !== LEAD_DISCOVERY_JOB_TYPE),
     };
     this.dialog.open(TenantJobsDialogComponent, { ...TenantJobsDialogComponent.config, data });
   }
