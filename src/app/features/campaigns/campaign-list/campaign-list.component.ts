@@ -1,5 +1,5 @@
 import { ActivatedRoute, Router } from '@angular/router';
-import { Component, Inject, OnDestroy, OnInit, Optional, ViewChild } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit, Optional, ViewChild, inject } from '@angular/core';
 import { EMBEDDED_IN_ONBOARDING } from '../../../core/tokens/embedded-in-onboarding';
 import { FormControl } from '@angular/forms';
 import { CAMPAIGN_JOB_TYPES } from '../../../core/models/tenant-job.model';
@@ -31,6 +31,8 @@ import { CampaignRetireDialogComponent } from '../campaign-retire-dialog/campaig
 import { CampaignService } from '../../../core/services/campaign.service';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS, PagedQuery, PagedResult, emptyPage } from '../../../core/models/paged-result.model';
 import { NotificationService } from '../../../core/services/notification.service';
+import { EntitlementsStore } from '../../../core/services/entitlements.store';
+import { USED_UP_HINT } from '../../../core/models/wallet.model';
 
 @Component({
   selector: 'app-campaign-list',
@@ -66,6 +68,14 @@ export class CampaignListComponent implements OnInit, OnDestroy {
   private query: PagedQuery = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
   private readonly reload$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
+
+  private readonly featureAccess = inject(EntitlementsStore);
+  readonly usedUpHint = USED_UP_HINT;
+
+  /** Basic's campaign limit reached: the campaigns stay readable, a new one needs Premium. */
+  get usedUp(): boolean {
+    return this.featureAccess.usedUp('Campaigns') !== null;
+  }
 
   constructor(
     private readonly campaigns: CampaignService,

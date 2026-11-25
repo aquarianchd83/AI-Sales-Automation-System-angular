@@ -44,11 +44,11 @@ export class EntitlementsStore {
     return this.has(feature) || this.usedUp(feature) !== null;
   }
 
-  /** The free uses (or the plan's cap) of a feature, once they are all used up: its screens are read-only. Null while any are left, or when it has none. */
+  /**
+   * The free uses (or the plan's cap) of a feature, once they are all used up: its screens are read-only. Null while any are left, or when it has none.
+   * A cap the API still lists the feature under (Basic's campaign limit: the campaigns stay usable, only a new one is refused) counts too.
+   */
   usedUp(feature: PlatformFeature): FeatureTrial | null {
-    if (this.has(feature)) {
-      return null;
-    }
     const trial = this.trialOf(feature);
     return trial && trial.exhausted ? trial : null;
   }

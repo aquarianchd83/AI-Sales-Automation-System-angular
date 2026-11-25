@@ -33,6 +33,13 @@ describe('EntitlementsStore read-only access', () => {
     expect(s.usedUp('LeadDiscovery')?.used).toBe(10);
   });
 
+  it('treats a used-up cap on a feature still in the plan as read-only (Basic campaign limit)', () => {
+    const s = store(['Campaigns'], [{ ...trial(10), feature: 'Campaigns', includedInPlan: true }]);
+    expect(s.has('Campaigns')).toBeTrue();
+    expect(s.canView('Campaigns')).toBeTrue();
+    expect(s.usedUp('Campaigns')?.feature).toBe('Campaigns');
+  });
+
   it('keeps a feature with no free uses at all locked', () => {
     const s = store([], []);
     expect(s.canView('ContentStudio')).toBeFalse();

@@ -66,7 +66,7 @@ export function trialLeftLabel(trial: FeatureTrial): string {
 }
 
 /** The tooltip on an add/run button that is off because the feature's free uses are used up (its screens stay open, read-only). */
-export const USED_UP_HINT = 'Free uses used up. Upgrade to Premium to add new.';
+export const USED_UP_HINT = 'Your plan limit is used up. Upgrade to Premium to add new.';
 
 /** "You have used all 10 free leads of Lead discovery included with your Basic plan." */
 export function trialUsedUpLabel(trial: FeatureTrial, planName: string | null): string {
