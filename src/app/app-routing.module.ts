@@ -113,7 +113,7 @@ const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: TENANT_ROLES },
         loadChildren: () =>
-          import('./features/leads/follow-ups.module').then((m) => m.FollowUpsModule),
+          import('./features/follow-ups/follow-ups.module').then((m) => m.FollowUpsModule),
       },
       {
         // What customers agreed with the AI: demos, visits, appointments. Open to every tenant user, like the inbox it comes from.

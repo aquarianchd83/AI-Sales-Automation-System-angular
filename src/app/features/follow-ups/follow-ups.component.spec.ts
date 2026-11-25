@@ -3,13 +3,13 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 
-import { LeadFollowUp, LeadFollowUpStatus } from '../../../core/models/lead-follow-up.model';
-import { AuthService } from '../../../core/services/auth.service';
-import { TenantJobService } from '../../../core/services/tenant-job.service';
-import { LeadFollowUpService } from '../../../core/services/lead-follow-up.service';
-import { NotificationService } from '../../../core/services/notification.service';
-import { SharedModule } from '../../../shared/shared.module';
-import { LeadFollowUpListComponent } from './lead-follow-up-list.component';
+import { LeadFollowUp, LeadFollowUpStatus } from '../../core/models/lead-follow-up.model';
+import { AuthService } from '../../core/services/auth.service';
+import { LeadFollowUpService } from '../../core/services/lead-follow-up.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { TenantJobService } from '../../core/services/tenant-job.service';
+import { SharedModule } from '../../shared/shared.module';
+import { FollowUpsComponent } from './follow-ups.component';
 
 const row = (status: LeadFollowUpStatus, name: string, extra: Partial<LeadFollowUp> = {}): LeadFollowUp => ({
   id: `f-${name}`,
@@ -31,27 +31,26 @@ const row = (status: LeadFollowUpStatus, name: string, extra: Partial<LeadFollow
   ...extra,
 });
 
-describe('LeadFollowUpListComponent', () => {
+const jobRow = (isEnabled: boolean) => ({
+  jobType: 'lead-follow-ups', displayName: 'Lead follow-ups', description: '', cronExpression: '15 * * * *', defaultCron: '15 * * * *',
+  isEnabled, isRegistered: isEnabled, nextExecutionUtc: null, lastExecutionUtc: null, hangfireLastJobState: null,
+  lastRunAtUtc: '2026-10-15T07:15:14Z', lastRunOutcome: null, lastRunSummary: null, lastRunDurationMs: null, consecutiveFailureCount: 0,
+});
+
+describe('FollowUpsComponent', () => {
   const text = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-  const jobRow = (isEnabled: boolean) => ({
-    jobType: 'lead-follow-ups', displayName: 'Lead follow-ups', description: '', cronExpression: '15 * * * *', defaultCron: '15 * * * *',
-    isEnabled, isRegistered: isEnabled, nextExecutionUtc: null, lastExecutionUtc: null, hangfireLastJobState: null,
-    lastRunAtUtc: '2026-10-15T07:15:14Z', lastRunOutcome: null, lastRunSummary: null, lastRunDurationMs: null, consecutiveFailureCount: 0,
-  });
-
-  function render(items: LeadFollowUp[], opts: { admin?: boolean; jobEnabled?: boolean; dueNow?: number } = {}) {
+  function render(items: LeadFollowUp[], opts: { admin?: boolean; jobEnabled?: boolean; dueNow?: number; months?: number } = {}) {
     const getPaged = jasmine.createSpy('getPaged').and.returnValue(of({ items, totalCount: items.length, page: 1, pageSize: 25, totalPages: 1 }));
     const getSummary = jasmine.createSpy('getSummary').and.returnValue(of({ scheduled: 4, dueNow: opts.dueNow ?? 1, dueWithin30Days: 2, sent: 7, suggested: 3 }));
-
-    const getSetting = jasmine.createSpy('getSetting').and.returnValue(of({ months: 2, maxMonths: 12 }));
+    const getSetting = jasmine.createSpy('getSetting').and.returnValue(of({ months: opts.months ?? 2, maxMonths: 12 }));
     const saveSetting = jasmine.createSpy('saveSetting').and.callFake((months: number) => of({ months, maxMonths: 12 }));
     const getJobs = jasmine.createSpy('getJobs').and.returnValue(of({ runsBackgroundJobs: true, jobs: [jobRow(opts.jobEnabled ?? true)] }));
     const updateSchedule = jasmine.createSpy('updateSchedule').and.callFake((_t: string, r: { isEnabled: boolean }) => of(jobRow(r.isEnabled)));
     const trigger = jasmine.createSpy('trigger').and.returnValue(of({ recurringJobId: 'r', backgroundJobId: 'b' }));
 
     TestBed.configureTestingModule({
-      declarations: [LeadFollowUpListComponent],
+      declarations: [FollowUpsComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: LeadFollowUpService, useValue: { getPaged, getSummary, getSetting, saveSetting } },
@@ -61,7 +60,7 @@ describe('LeadFollowUpListComponent', () => {
       ],
     });
 
-    const fixture = TestBed.createComponent(LeadFollowUpListComponent);
+    const fixture = TestBed.createComponent(FollowUpsComponent);
     fixture.detectChanges();
     return { fixture, component: fixture.componentInstance, root: fixture.nativeElement as HTMLElement, getPaged, saveSetting, updateSchedule, trigger };
   }
@@ -72,11 +71,16 @@ describe('LeadFollowUpListComponent', () => {
     expect(getPaged.calls.mostRecent().args.slice(1)).toEqual([undefined, undefined]);
   });
 
-  it('shows the header numbers', () => {
-    const { root } = render([]);
+  it('has the Lead, Follow-up on and Scheduled date columns, with no "All leads" button', () => {
+    const { root } = render([row(LeadFollowUpStatus.Scheduled, 'Asha')]);
 
-    const tiles = Array.from(root.querySelectorAll('.tile')).map((t) => [text(t.querySelector('.tile-value')), text(t.querySelector('.muted'))]);
-    expect(tiles).toEqual([['3', 'AI suggested'], ['4', 'Waiting'], ['2', 'Due in 30 days'], ['1', 'Due now'], ['7', 'Sent so far']]);
+    const headers = Array.from(root.querySelectorAll('th')).map((h) => text(h));
+    expect(headers.slice(0, 3)).toEqual(['Lead', 'Follow-up on', 'Scheduled date']);
+    expect(text(root)).not.toContain('All leads');
+    expect(text(root.querySelector('[data-testid="follow-up-on"]'))).toContain('2026');
+    expect(text(root.querySelector('[data-testid="scheduled-date"]'))).toContain('2027');
+    expect(text(root.querySelector('[data-testid="scheduled-date"]'))).toContain('+3 months');
+    expect(text(root.querySelector('tr.mat-mdc-row'))).toContain('Budget frozen');
   });
 
   it('narrows to what is due in 30 days, or switches to a history outcome', () => {
@@ -91,7 +95,7 @@ describe('LeadFollowUpListComponent', () => {
     expect(getPaged.calls.mostRecent().args.slice(1)).toEqual(['Sent', undefined]);
   });
 
-  it('offers send and cancel only where a person can still act', () => {
+  it('offers send, change date and cancel only where a person can still act', () => {
     const { root } = render([
       row(LeadFollowUpStatus.Scheduled, 'Asha'),
       row(LeadFollowUpStatus.Failed, 'Ravi', { outcomeNote: 'rejected' }),
@@ -102,24 +106,16 @@ describe('LeadFollowUpListComponent', () => {
     const rows = Array.from(root.querySelectorAll('tr.mat-mdc-row'));
     const actions = rows.map((r) => Array.from(r.querySelectorAll('.actions-cell button')).map((b) => text(b)));
 
-    expect(actions).toEqual([['Send now', 'Cancel'], ['Try again', 'Dismiss'], [], []]);
+    expect(actions).toEqual([['Send now', 'Change date', 'Cancel'], ['Try again', 'Change date', 'Dismiss'], [], []]);
   });
 
-  it('sends a suggestion to the lead to be confirmed, or dismisses it - never sends it', () => {
+  it('lets a suggestion be approved on the lead or dismissed - never sent from here', () => {
     const { root } = render([row(LeadFollowUpStatus.Suggested, 'Asha', { messageTemplateId: null, messageTemplateName: null })]);
 
     const actions = Array.from(root.querySelectorAll('tr.mat-mdc-row .actions-cell button')).map((b) => text(b));
-    expect(actions).toEqual(['Review', 'Dismiss']);
-    expect(text(root.querySelector('tr.mat-mdc-row'))).toContain('AI suggestion');
-  });
-
-  it('can show only what the AI suggested', () => {
-    const { fixture, component, getPaged } = render([]);
-
-    component.viewControl.setValue('Suggested');
-    fixture.detectChanges();
-
-    expect(getPaged.calls.mostRecent().args.slice(1)).toEqual(['Suggested', undefined]);
+    expect(actions).toEqual(['Approve', 'Change date', 'Dismiss']);
+    expect(text(root.querySelector('tr.mat-mdc-row'))).toContain('Suggested by AI');
+    expect(text(root.querySelector('[data-testid="follow-up-on"]'))).toContain('from the WhatsApp chat');
   });
 
   it('says why one was skipped', () => {
@@ -128,28 +124,35 @@ describe('LeadFollowUpListComponent', () => {
     expect(text(root.querySelector('tr.mat-mdc-row'))).toContain('Customer got in touch');
   });
 
-  it('shows Lead, Follow-up on and Scheduled date, with the date it was noted and the date it will go out', () => {
-    const { root } = render([row(LeadFollowUpStatus.Scheduled, 'Asha')]);
+  it('marks a waiting follow-up whose date has passed as due', () => {
+    const { root } = render([row(LeadFollowUpStatus.Scheduled, 'Asha', { dueAt: '2020-01-01T00:00:00Z' })]);
 
-    const headers = Array.from(root.querySelectorAll('th')).map((h) => text(h));
-    expect(headers.slice(0, 3)).toEqual(['Lead', 'Follow-up on', 'Scheduled date']);
-    expect(text(root.querySelector('[data-testid="follow-up-on"]'))).toContain('2026');
-    expect(text(root.querySelector('[data-testid="scheduled-date"]'))).toContain('2027');
-    expect(text(root.querySelector('tr.mat-mdc-row'))).toContain('Budget frozen');
+    expect(text(root.querySelector('tr.mat-mdc-row'))).toContain('Due - waiting');
   });
 
-  it('loads the months setting and saves a new one', () => {
-    const { fixture, component, root, saveSetting } = render([]);
+  it('loads the months setting, lights the matching choice, and saves a new one', () => {
+    const { fixture, component, root, saveSetting } = render([], { months: 2 });
 
     expect(component.monthsControl.value).toBe(2);
+    expect(root.querySelector('[data-testid="months-2"]')?.classList).toContain('on');
     expect((root.querySelector('[data-testid="save-setting"]') as HTMLButtonElement).disabled).toBeTrue();
 
-    component.monthsControl.setValue(3);
-    component.monthsControl.markAsDirty();
+    (root.querySelector('[data-testid="months-3"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     (root.querySelector('[data-testid="save-setting"]') as HTMLButtonElement).click();
 
     expect(saveSetting).toHaveBeenCalledWith(3);
+  });
+
+  it('opens the 4 to 12 month picker for Custom', () => {
+    const { fixture, component, root } = render([], { months: 2 });
+
+    (root.querySelector('[data-testid="months-custom"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(root.querySelector('[data-testid="custom-months"]')).not.toBeNull();
+    expect(component.monthsControl.value).toBe(4);
+    expect(component.customMonths).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12]);
   });
 
   it('warns when follow-ups are due but sending is paused, and resumes it', () => {
@@ -171,7 +174,7 @@ describe('LeadFollowUpListComponent', () => {
     expect(trigger).toHaveBeenCalledWith('lead-follow-ups');
   });
 
-  it('hides the sender controls and the save button from anyone but the tenant Admin', () => {
+  it('hides the sender card and the save button from anyone but the tenant Admin', () => {
     const { root } = render([], { admin: false });
 
     expect(root.querySelector('[data-testid="job-bar"]')).toBeNull();
