@@ -47,6 +47,12 @@ const routes: Routes = [
   { path: 'terms-and-conditions', redirectTo: 'terms', pathMatch: 'full' },
   { path: 'terms-of-service', redirectTo: 'terms', pathMatch: 'full' },
   {
+    // Public data deletion instructions: static content, no guard, outside ShellComponent. Linked from Meta app settings.
+    path: 'data-deletion',
+    loadChildren: () => import('./features/data-deletion/data-deletion.module').then((m) => m.DataDeletionModule),
+  },
+  { path: 'delete-data', redirectTo: 'data-deletion', pathMatch: 'full' },
+  {
     // What a customer reaches from the link in the SMS. No guard of any kind: the customer has no account, and the secret in the
     // link is the whole credential. Outside ShellComponent, so none of the app's chrome (menus, tenant data) is on it.
     path: 'consent/:token',
