@@ -83,6 +83,23 @@
         <span class="badge badge--off" *ngIf="!t.isActive">Switched off</span>
       </div>
 
+      <div class="meta-note meta-note--error" *ngIf="t.status === 'Rejected'" role="note">
+        <mat-icon>error_outline</mat-icon>
+        <div>
+          <strong>Why Meta rejected it: {{ t.rejectionTitle || 'Rejected by Meta' }}</strong>
+          <span class="muted reason-code" *ngIf="t.rejectionReason"> ({{ t.rejectionReason }})</span>
+          <p *ngIf="t.rejectionTip"><strong>How to fix:</strong> {{ t.rejectionTip }}</p>
+        </div>
+      </div>
+
+      <div class="meta-note meta-note--warn" *ngIf="t.lastSyncError" role="note">
+        <mat-icon>sync_problem</mat-icon>
+        <div>
+          <strong>Last sync failed</strong>
+          <p>Meta said: {{ t.lastSyncError }}</p>
+        </div>
+      </div>
+
       <div class="preview">
         <img *ngIf="t.headerPreviewUrl" class="preview-image" [src]="imageUrl(t.headerPreviewUrl)" [alt]="t.headerFileName || 'Template image'" loading="lazy" />
         <p class="preview-text">{{ preview(t) }}</p>

@@ -164,6 +164,28 @@ describe('PlatformMessageTemplatesComponent', () => {
     expect(notify.success).toHaveBeenCalledWith('Plan expiring in 7 days: Approved.');
   });
 
+  it("shows Meta's rejection reason with a fix, and the last sync error", () => {
+    const { text } = create([
+      template({
+        status: 'Rejected',
+        rejectionReason: 'TAG_CONTENT_MISMATCH',
+        rejectionTitle: 'Wording does not match category or language',
+        rejectionTip: 'Write it in English.',
+        lastSyncError: 'Invalid parameter',
+      }),
+    ]);
+
+    expect(text()).toContain('Why Meta rejected it: Wording does not match category or language');
+    expect(text()).toContain('(TAG_CONTENT_MISMATCH)');
+    expect(text()).toContain('How to fix: Write it in English.');
+    expect(text()).toContain('Meta said: Invalid parameter');
+  });
+
+  it('shows no rejection note on an approved template', () => {
+    const { text } = create([template({ status: 'Approved' })]);
+    expect(text()).not.toContain('Why Meta rejected it');
+  });
+
   it('restores the default text only after confirmation', () => {
     const { component } = create([template({ status: 'Approved', metaTemplateId: 'm1' })]);
     api.restoreDefault.and.returnValue(of(template({ status: 'Pending', metaTemplateId: 'm1' })));
