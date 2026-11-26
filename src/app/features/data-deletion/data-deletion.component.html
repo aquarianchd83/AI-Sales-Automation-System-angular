@@ -1,0 +1,72 @@
+<main class="privacy-page">
+  <article class="privacy-card">
+    <a routerLink="/login" class="legal-logo"><img class="app-logo" src="assets/brand/aisaarthi-logo.png" alt="AiSaarthi" width="1048" height="251" /></a>
+    <h1>Data Deletion Instructions</h1>
+    <p class="updated">Last updated: {{ lastUpdated }}</p>
+
+    <p>
+      This page explains how a business ("tenant") using {{ productName }}, or a person whose data is held in {{ productName }}, can ask
+      for that data to be deleted, what gets deleted, and how long it takes.
+    </p>
+
+    <h2>1. How to request deletion</h2>
+    <p>Data deletion is handled by email. To request it:</p>
+    <ol>
+      <li>
+        Send an email to <a [href]="'mailto:' + contactEmail + '?subject=' + mailSubject">{{ contactEmail }}</a> with the subject
+        <strong>"Data deletion request"</strong>.
+      </li>
+      <li>Send it from the email address registered with your {{ productName }} account, so we can confirm the request is genuine.</li>
+      <li>
+        Include your <strong>business name</strong> and <strong>registered phone number</strong>, and say whether you want the whole
+        account deleted or only specific data (for example, one customer's records).
+      </li>
+    </ol>
+    <p>
+      If the request comes from an address we cannot match to the account, we will reply asking you to verify ownership before we delete
+      anything.
+    </p>
+
+    <h2>2. How long it takes</h2>
+    <p>
+      Once the request is verified, deletion is completed <strong>within 48 hours</strong>.
+    </p>
+
+    <h2>3. What gets deleted</h2>
+    <p>For a full account deletion, we permanently delete:</p>
+    <ul>
+      <li><strong>Account data:</strong> the workspace, its users (names, emails, sign-in details) and settings.</li>
+      <li><strong>Leads:</strong> all leads, including discovered businesses and lead-form submissions.</li>
+      <li><strong>Customers:</strong> customer records, phone numbers, emails, tags and consent records.</li>
+      <li><strong>Conversations:</strong> WhatsApp and SMS message history and media, campaigns, follow-ups and templates.</li>
+      <li>
+        <strong>WhatsApp and Meta connected data:</strong> connected WhatsApp Business and Meta (Facebook/Instagram) account identifiers and
+        access tokens, and data received from those platforms. The connection to your WhatsApp Business account is removed from
+        {{ productName }}.
+      </li>
+    </ul>
+    <p>
+      We may keep a limited record of payments and invoices where the law requires it (for example, for tax purposes). This record is not
+      used for any other purpose.
+    </p>
+
+    <h2>4. Confirmation</h2>
+    <p>
+      When deletion is complete, we send a confirmation email to the address the request came from. Deleted data cannot be recovered, so
+      please export anything you want to keep before sending the request.
+    </p>
+
+    <h2>5. If you are a customer of a business</h2>
+    <p>
+      If a business contacted you through {{ productName }} and you want your data removed, you can ask that business directly, or email
+      <a [href]="'mailto:' + contactEmail + '?subject=' + mailSubject">{{ contactEmail }}</a> with your phone number and the business's
+      name. We will work with the business to complete the deletion within the same 48 hours.
+    </p>
+
+    <h2>6. Contact</h2>
+    <p>Questions about data deletion: <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a>.</p>
+    <p class="legal-links">
+      See also our <a routerLink="/privacy">Privacy Policy</a> and <a routerLink="/terms">Terms and Conditions</a>.
+    </p>
+  </article>
+</main>

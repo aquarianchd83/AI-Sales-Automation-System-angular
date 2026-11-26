@@ -66,8 +66,8 @@
     <p>
       You may ask to access, correct, export or delete your personal data, and to withdraw consent. If your data is held by a business that
       uses {{ productName }}, please contact that business first; we will assist it in responding. To request deletion of data we hold, email
-      <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a> with the phone number or email address concerned, and we will respond
-      within 30 days.
+      <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a>; deletion is completed within 48 hours. See our
+      <a routerLink="/data-deletion">Data Deletion Instructions</a> for the full process.
     </p>
 
     <h2>8. Cookies and similar technologies</h2>
@@ -84,6 +84,6 @@
 
     <h2>11. Contact</h2>
     <p>Questions about privacy: <a [href]="'mailto:' + contactEmail">{{ contactEmail }}</a>.</p>
-    <p class="legal-links">See also our <a routerLink="/terms">Terms and Conditions</a>.</p>
+    <p class="legal-links">See also our <a routerLink="/terms">Terms and Conditions</a> and <a routerLink="/data-deletion">Data Deletion Instructions</a>.</p>
   </article>
 </main>
