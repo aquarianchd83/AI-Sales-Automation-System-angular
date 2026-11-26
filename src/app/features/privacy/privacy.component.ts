@@ -10,5 +10,5 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 export class PrivacyComponent {
   readonly productName = 'AiSaarthi';
   readonly contactEmail = 'support@aisaarthi.in';
-  readonly lastUpdated = '25 November 2026';
+  readonly lastUpdated = '26 November 2026';
 }
