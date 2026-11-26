@@ -120,6 +120,19 @@ describe('PlatformMessageTemplatesComponent', () => {
     expect(text()).toContain('tenant_alert_x: Meta said no.');
   });
 
+  it('says when templates were missing on Meta and were sent again', () => {
+    const { fixture, component, text } = create([template()]);
+    api.sync.and.returnValue(
+      of({ configured: true, note: null, created: 12, updated: 0, failures: [], remoteCount: 12, statusUpdated: 0, missingOnMeta: 12 })
+    );
+
+    component.syncAll();
+    fixture.detectChanges();
+
+    expect(text()).toContain('12 templates were not found on Meta under the current WhatsApp');
+    expect(text()).toContain('sent to Meta again for review');
+  });
+
   it('explains an unconfigured sync instead of claiming success', () => {
     const { fixture, component, text } = create([template()]);
     api.sync.and.returnValue(of({ configured: false, note: 'The platform WhatsApp number is not set up.', created: 0, updated: 0, failures: [], remoteCount: 0, statusUpdated: 0 }));

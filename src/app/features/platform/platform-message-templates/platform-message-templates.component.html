@@ -38,6 +38,11 @@
           {{ syncResult.created }} sent to Meta, {{ syncResult.updated }} updated, {{ syncResult.statusUpdated }} review
           result{{ syncResult.statusUpdated === 1 ? '' : 's' }} changed.
         </strong>
+        <p class="sync-result__note" *ngIf="syncResult.missingOnMeta">
+          {{ syncResult.missingOnMeta }} template{{ syncResult.missingOnMeta === 1 ? ' was' : 's were' }} not found on Meta under the current WhatsApp
+          Business Account (deleted there, or the number was moved to another account), so {{ syncResult.missingOnMeta === 1 ? 'it was' : 'they were' }}
+          sent to Meta again for review.
+        </p>
         <ul *ngIf="syncResult.failures.length">
           <li *ngFor="let f of syncResult.failures">{{ f }}</li>
         </ul>

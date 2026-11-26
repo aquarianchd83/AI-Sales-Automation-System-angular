@@ -69,6 +69,8 @@ export interface PlatformTemplateSyncResult {
   failures: string[];
   remoteCount: number;
   statusUpdated: number;
+  /** Templates that had a Meta id but are not on the WhatsApp Business Account (deleted there, or the number moved to another account); sent again. */
+  missingOnMeta?: number;
 }
 
 /** What a notice can fill in. Anything else in a body is refused by the server. */
