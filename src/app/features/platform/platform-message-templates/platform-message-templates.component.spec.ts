@@ -120,6 +120,19 @@ describe('PlatformMessageTemplatesComponent', () => {
     expect(text()).toContain('tenant_alert_x: Meta said no.');
   });
 
+  it('says when templates were missing on Meta and were sent again', () => {
+    const { fixture, component, text } = create([template()]);
+    api.sync.and.returnValue(
+      of({ configured: true, note: null, created: 12, updated: 0, failures: [], remoteCount: 12, statusUpdated: 0, missingOnMeta: 12 })
+    );
+
+    component.syncAll();
+    fixture.detectChanges();
+
+    expect(text()).toContain('12 templates were not found on Meta under the current WhatsApp');
+    expect(text()).toContain('sent to Meta again for review');
+  });
+
   it('explains an unconfigured sync instead of claiming success', () => {
     const { fixture, component, text } = create([template()]);
     api.sync.and.returnValue(of({ configured: false, note: 'The platform WhatsApp number is not set up.', created: 0, updated: 0, failures: [], remoteCount: 0, statusUpdated: 0 }));
@@ -149,6 +162,34 @@ describe('PlatformMessageTemplatesComponent', () => {
 
     expect(component.templates[0].status).toBe('Approved');
     expect(notify.success).toHaveBeenCalledWith('Plan expiring in 7 days: Approved.');
+  });
+
+  it("shows Meta's rejection reason with a fix, and the last sync error", () => {
+    const { text } = create([
+      template({
+        status: 'Rejected',
+        rejectionReason: 'TAG_CONTENT_MISMATCH',
+        rejectionTitle: 'Wording does not match category or language',
+        rejectionTip: 'Write it in English.',
+        lastSyncError: 'Invalid parameter',
+      }),
+    ]);
+
+    expect(text()).toContain('Why Meta rejected it: Wording does not match category or language');
+    expect(text()).toContain('(TAG_CONTENT_MISMATCH)');
+    expect(text()).toContain('How to fix: Write it in English.');
+    expect(text()).toContain('Meta said: Invalid parameter');
+  });
+
+  it('still gives a fix when the server sends no reason', () => {
+    const { text } = create([template({ status: 'Rejected' })]);
+    expect(text()).toContain('How to fix:');
+    expect(text()).toContain('WhatsApp Manager');
+  });
+
+  it('shows no rejection note on an approved template', () => {
+    const { text } = create([template({ status: 'Approved' })]);
+    expect(text()).not.toContain('Why Meta rejected it');
   });
 
   it('restores the default text only after confirmation', () => {

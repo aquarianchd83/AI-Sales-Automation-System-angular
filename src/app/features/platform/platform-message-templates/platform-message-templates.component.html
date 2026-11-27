@@ -38,6 +38,11 @@
           {{ syncResult.created }} sent to Meta, {{ syncResult.updated }} updated, {{ syncResult.statusUpdated }} review
           result{{ syncResult.statusUpdated === 1 ? '' : 's' }} changed.
         </strong>
+        <p class="sync-result__note" *ngIf="syncResult.missingOnMeta">
+          {{ syncResult.missingOnMeta }} template{{ syncResult.missingOnMeta === 1 ? ' was' : 's were' }} not found on Meta under the current WhatsApp
+          Business Account (deleted there, or the number was moved to another account), so {{ syncResult.missingOnMeta === 1 ? 'it was' : 'they were' }}
+          sent to Meta again for review.
+        </p>
         <ul *ngIf="syncResult.failures.length">
           <li *ngFor="let f of syncResult.failures">{{ f }}</li>
         </ul>
@@ -76,6 +81,29 @@
         <span class="badge" [ngClass]="'badge--' + t.status.toLowerCase()">{{ statusLabel(t) }}</span>
         <span class="badge badge--live" *ngIf="isLive(t)">Live</span>
         <span class="badge badge--off" *ngIf="!t.isActive">Switched off</span>
+      </div>
+
+      <div class="meta-note meta-note--error" *ngIf="t.status === 'Rejected'" role="note">
+        <mat-icon>error_outline</mat-icon>
+        <div>
+          <strong>Why Meta rejected it: {{ t.rejectionTitle || 'Rejected by Meta' }}</strong>
+          <span class="muted reason-code" *ngIf="t.rejectionReason"> ({{ t.rejectionReason }})</span>
+          <p>
+            <strong>How to fix:</strong>
+            {{
+              t.rejectionTip ||
+                'Meta gave no specific reason. Open WhatsApp Manager > Message templates to see Meta\'s note. Common fixes: keep the wording factual (no sales lines), write it in English to match the template language, and don\'t start or end with a placeholder. Then press Edit, change the wording, save and press Sync.'
+            }}
+          </p>
+        </div>
+      </div>
+
+      <div class="meta-note meta-note--warn" *ngIf="t.lastSyncError" role="note">
+        <mat-icon>sync_problem</mat-icon>
+        <div>
+          <strong>Last sync failed</strong>
+          <p>Meta said: {{ t.lastSyncError }}</p>
+        </div>
       </div>
 
       <div class="preview">

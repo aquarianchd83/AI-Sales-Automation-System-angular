@@ -50,6 +50,13 @@ export interface PlatformMessageTemplate {
   headerPreviewUrl: string | null;
   createdAt: string;
   updatedAt: string | null;
+  /** Meta's rejected_reason code (e.g. INVALID_FORMAT) while the template is Rejected. */
+  rejectionReason?: string | null;
+  /** That reason in plain words, and what to change before syncing again. */
+  rejectionTitle?: string | null;
+  rejectionTip?: string | null;
+  /** What Meta answered when the last sync tried to create or edit this template and failed. */
+  lastSyncError?: string | null;
 }
 
 /** headerMediaAssetId: null keeps the current image; removeHeaderImage clears it. */
@@ -69,6 +76,8 @@ export interface PlatformTemplateSyncResult {
   failures: string[];
   remoteCount: number;
   statusUpdated: number;
+  /** Templates that had a Meta id but are not on the WhatsApp Business Account (deleted there, or the number moved to another account); sent again. */
+  missingOnMeta?: number;
 }
 
 /** What a notice can fill in. Anything else in a body is refused by the server. */

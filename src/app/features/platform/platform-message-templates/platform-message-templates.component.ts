@@ -144,8 +144,14 @@ export class PlatformMessageTemplatesComponent implements OnInit {
       .pipe(finalize(() => (this.busyId = null)))
       .subscribe({
         next: (updated) => {
+          const wasOnMeta = t.metaTemplateId;
           this.replace(updated);
-          this.notify.success(`${updated.name}: ${this.statusLabel(updated)}.`);
+          const resent = !!wasOnMeta && wasOnMeta !== updated.metaTemplateId;
+          this.notify.success(
+            resent
+              ? `${updated.name}: it was not on Meta any more, so it was sent again for review.`
+              : `${updated.name}: ${this.statusLabel(updated)}.`
+          );
         },
         error: () => {
           // ErrorInterceptor toasts it.
