@@ -181,6 +181,12 @@ describe('PlatformMessageTemplatesComponent', () => {
     expect(text()).toContain('Meta said: Invalid parameter');
   });
 
+  it('still gives a fix when the server sends no reason', () => {
+    const { text } = create([template({ status: 'Rejected' })]);
+    expect(text()).toContain('How to fix:');
+    expect(text()).toContain('WhatsApp Manager');
+  });
+
   it('shows no rejection note on an approved template', () => {
     const { text } = create([template({ status: 'Approved' })]);
     expect(text()).not.toContain('Why Meta rejected it');

@@ -88,7 +88,13 @@
         <div>
           <strong>Why Meta rejected it: {{ t.rejectionTitle || 'Rejected by Meta' }}</strong>
           <span class="muted reason-code" *ngIf="t.rejectionReason"> ({{ t.rejectionReason }})</span>
-          <p *ngIf="t.rejectionTip"><strong>How to fix:</strong> {{ t.rejectionTip }}</p>
+          <p>
+            <strong>How to fix:</strong>
+            {{
+              t.rejectionTip ||
+                'Meta gave no specific reason. Open WhatsApp Manager > Message templates to see Meta\'s note. Common fixes: keep the wording factual (no sales lines), write it in English to match the template language, and don\'t start or end with a placeholder. Then press Edit, change the wording, save and press Sync.'
+            }}
+          </p>
         </div>
       </div>
 
