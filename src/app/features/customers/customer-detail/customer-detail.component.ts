@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -29,10 +30,22 @@ export class CustomerDetailComponent implements OnInit {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
+    private readonly location: Location,
     private readonly customers: CustomerService,
     private readonly dialog: MatDialog,
     private readonly notify: NotificationService
   ) {}
+
+  /** Back to wherever the user came from (a campaign's recipients, the customer list, ...). Opened directly in a
+   * fresh tab there is nothing to go back to, so fall back to the customer list. */
+  goBack(): void {
+    const cameFromInsideTheApp = (window.history.state?.navigationId ?? 1) > 1;
+    if (cameFromInsideTheApp) {
+      this.location.back();
+    } else {
+      void this.router.navigate(['/customers']);
+    }
+  }
 
   ngOnInit(): void {
     this.route.paramMap
