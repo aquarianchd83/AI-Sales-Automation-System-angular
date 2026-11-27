@@ -102,8 +102,9 @@ export class CustomerService {
   }
 
   /**
-   * Records consent. Idempotent — calling it on an already opted-in customer returns the
-   * record unchanged rather than overwriting the original consent timestamp.
+   * Records consent. Calling it again with the same scope on an already opted-in customer returns the
+   * record unchanged (the original consent timestamp is kept); with a different scope it records the new
+   * consent and keeps the earlier evidence in the customer's history.
    */
   optIn(id: string, request: OptInCustomerRequest): Observable<Customer> {
     return this.http.post<Customer>(`${this.baseUrl}/${id}/opt-in`, request);
