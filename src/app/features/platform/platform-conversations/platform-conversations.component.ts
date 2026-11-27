@@ -384,12 +384,10 @@ export class PlatformConversationsComponent implements OnInit, OnDestroy {
     this.newPhone.setValue('');
     this.contactSearch.setValue('');
     if (this.showNewChat) {
-      this.service
-        .contacts()
-        .subscribe({
-          next: (contacts) => (this.contacts = contacts),
-          error: () => undefined,
-        });
+      this.service.contacts().subscribe({
+        next: (contacts) => (this.contacts = contacts),
+        error: () => undefined,
+      });
     }
   }
 
@@ -438,9 +436,34 @@ export class PlatformConversationsComponent implements OnInit, OnDestroy {
               queryParams: {},
               replaceUrl: true,
             });
+            this.openNewChatFor(tenantId);
           }
         },
       });
+  }
+
+  /** The "New chat" form with this tenant already picked and the number box empty. */
+  private openNewChatFor(tenantId: string): void {
+    this.showNewChat = true;
+    this.newPhone.setValue('');
+    this.pickedContact = {
+      tenantId,
+      tenantName: 'Selected tenant',
+      phones: [],
+      conversationId: null,
+    };
+    this.contactSearch.setValue('', { emitEvent: false });
+    this.service.contacts().subscribe({
+      next: (contacts) => {
+        this.contacts = contacts;
+        const found = contacts.find((c) => c.tenantId === tenantId);
+        if (found && this.pickedContact?.tenantId === tenantId) {
+          this.pickedContact = { ...found, phones: [] };
+          this.contactSearch.setValue(found.tenantName, { emitEvent: false });
+        }
+      },
+      error: () => undefined,
+    });
   }
 
   private scrollToBottom(): void {

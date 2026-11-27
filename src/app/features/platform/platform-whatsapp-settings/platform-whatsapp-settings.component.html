@@ -149,7 +149,7 @@
 
         <mat-form-field class="field field--wide">
           <mat-label>App secret (for tenant replies)</mat-label>
-          <input matInput type="password" autocomplete="new-password" formControlName="appSecret" />
+          <input matInput type="password" autocomplete="new-password" formControlName="appSecret" [readonly]="form.controls.removeAppSecret.value" />
           <mat-hint>
             Proves tenant replies on Tenant Conversations really came from Meta.
             {{ current?.hasAppSecret ? 'Stored: ' + (current?.appSecretHint || 'set') + ' - leave blank to keep.' : 'Empty uses the shared Meta app secret below.' }}
@@ -158,6 +158,7 @@
       </div>
 
       <mat-checkbox formControlName="removeAccessToken" *ngIf="current?.hasAccessToken">Remove the stored access token</mat-checkbox>
+      <mat-checkbox formControlName="removeAppSecret" *ngIf="current?.hasAppSecret">Remove the stored app secret (use the shared Meta app secret)</mat-checkbox>
     </mat-card>
 
     <!-- 3. Advanced -->

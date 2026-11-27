@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { NEVER, of } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 
 import {
   PlatformConversation,
@@ -13,7 +13,9 @@ import { PlatformConversationService } from '../../../core/services/platform-con
 import { SharedModule } from '../../../shared/shared.module';
 import { PlatformConversationsComponent } from './platform-conversations.component';
 
-const chat = (over: Partial<PlatformConversation> = {}): PlatformConversation => ({
+const chat = (
+  over: Partial<PlatformConversation> = {},
+): PlatformConversation => ({
   id: 'c1',
   tenantId: 't1',
   tenantName: 'Acme Traders',
@@ -51,7 +53,8 @@ const template: PlatformConversationTemplate = {
   name: 'Message from the AiSaarthi team',
   whatsAppTemplateName: 'platform_admin_message',
   language: 'en',
-  bodyText: 'Hi {{TenantName}}, the AiSaarthi team has a message about your account. {{Message}} You can reply to this message.',
+  bodyText:
+    'Hi {{TenantName}}, the AiSaarthi team has a message about your account. {{Message}} You can reply to this message.',
   usesTitle: false,
   usesMessage: true,
   isDefault: true,
@@ -68,12 +71,21 @@ describe('PlatformConversationsComponent', () => {
     service.get.and.returnValue(of(detail(c)));
     fixture = TestBed.createComponent(PlatformConversationsComponent);
     fixture.detectChanges();
-    (fixture.componentInstance as unknown as { open(id: string): void }).open(c.id);
+    (fixture.componentInstance as unknown as { open(id: string): void }).open(
+      c.id,
+    );
     fixture.detectChanges();
   }
 
   beforeEach(async () => {
-    service = jasmine.createSpyObj('PlatformConversationService', ['list', 'get', 'contacts', 'templates', 'start', 'send']);
+    service = jasmine.createSpyObj('PlatformConversationService', [
+      'list',
+      'get',
+      'contacts',
+      'templates',
+      'start',
+      'send',
+    ]);
     service.templates.and.returnValue(of([template]));
     service.contacts.and.returnValue(of([]));
     await TestBed.configureTestingModule({
@@ -81,7 +93,10 @@ describe('PlatformConversationsComponent', () => {
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: PlatformConversationService, useValue: service },
-        { provide: NotificationHubService, useValue: { platformConversationUpdated$: NEVER } },
+        {
+          provide: NotificationHubService,
+          useValue: { platformConversationUpdated$: NEVER },
+        },
       ],
     }).compileComponents();
   });
@@ -98,13 +113,24 @@ describe('PlatformConversationsComponent', () => {
   it('sends free text inside the window', () => {
     build(chat());
     service.send.and.returnValue(
-      of({ ...detail(chat()).messages[0], id: 'm2', direction: 'Outbound', body: 'Hello', status: 'Sent' })
+      of({
+        ...detail(chat()).messages[0],
+        id: 'm2',
+        direction: 'Outbound',
+        body: 'Hello',
+        status: 'Sent',
+      }),
     );
 
     fixture.componentInstance.composeForm.patchValue({ text: 'Hello' });
     fixture.componentInstance.send();
 
-    expect(service.send).toHaveBeenCalledWith('c1', { text: 'Hello', templateId: null, title: null, message: null });
+    expect(service.send).toHaveBeenCalledWith('c1', {
+      text: 'Hello',
+      templateId: null,
+      title: null,
+      message: null,
+    });
     expect(fixture.componentInstance.messages.length).toBe(2);
   });
 
@@ -116,9 +142,42 @@ describe('PlatformConversationsComponent', () => {
     expect(text()).toContain('24-hour window is closed');
     expect(fixture.componentInstance.canSend).toBeFalse(); // the template's message is still empty
 
-    fixture.componentInstance.composeForm.patchValue({ message: 'Campaign paused hai.' });
-    expect(fixture.componentInstance.templatePreview).toContain('Hi Acme Traders,');
-    expect(fixture.componentInstance.templatePreview).toContain('Campaign paused hai.');
+    fixture.componentInstance.composeForm.patchValue({
+      message: 'Campaign paused hai.',
+    });
+    expect(fixture.componentInstance.templatePreview).toContain(
+      'Hi Acme Traders,',
+    );
+    expect(fixture.componentInstance.templatePreview).toContain(
+      'Campaign paused hai.',
+    );
     expect(fixture.componentInstance.canSend).toBeTrue();
+  });
+
+  it('opens the new-chat form with the tenant picked when the tenant has no number on file', () => {
+    build(chat());
+    service.start.and.returnValue(throwError(() => new Error('no number')));
+    service.contacts.and.returnValue(
+      of([
+        {
+          tenantId: 't9',
+          tenantName: 'Zed Clinic',
+          phones: [],
+          conversationId: null,
+        },
+      ]),
+    );
+
+    (
+      fixture.componentInstance as unknown as {
+        startWith(t: string, p: string | null): void;
+      }
+    ).startWith('t9', null);
+
+    expect(fixture.componentInstance.showNewChat).toBeTrue();
+    expect(fixture.componentInstance.pickedContact?.tenantId).toBe('t9');
+    expect(fixture.componentInstance.pickedContact?.tenantName).toBe(
+      'Zed Clinic',
+    );
   });
 });
