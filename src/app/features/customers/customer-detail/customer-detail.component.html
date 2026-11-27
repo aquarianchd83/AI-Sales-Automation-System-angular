@@ -1,8 +1,8 @@
 <div class="page">
-  <a mat-button routerLink="/customers" class="back-link">
+  <button mat-button type="button" class="back-link" (click)="goBack()">
     <mat-icon>arrow_back</mat-icon>
-    Back to customers
-  </a>
+    Back
+  </button>
 
   <mat-progress-bar mode="indeterminate" *ngIf="loading"></mat-progress-bar>
 
