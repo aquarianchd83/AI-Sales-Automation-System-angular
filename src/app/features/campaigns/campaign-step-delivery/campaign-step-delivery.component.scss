@@ -67,6 +67,24 @@
   font-size: 13px;
 }
 
+.blocked-banner {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 8px 0 12px;
+  padding: 10px 14px;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  background: #fff3e0;
+  color: #7a4a00;
+  font-size: 13px;
+
+  mat-icon {
+    flex: none;
+    color: #f59e0b;
+  }
+}
+
 .outcome-filters {
   display: flex;
   flex-wrap: wrap;

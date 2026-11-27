@@ -56,6 +56,9 @@ export class CustomerOptInDialogComponent {
   readonly maxProofLength = OPT_IN_PROOF_MAX_LENGTH;
   readonly scopes = CONSENT_SCOPES;
   readonly displayName = customerDisplayName(this.data.customer);
+  /** Already opted in for service messages only; this dialog then widens the consent rather than creating it. */
+  readonly widening =
+    this.data.customer.optInStatus === 'OptedIn' && this.data.customer.optInScope === 'Transactional';
   /** The API rejects a future consent date, so the picker cannot offer one. */
   readonly today = new Date();
 
@@ -65,7 +68,7 @@ export class CustomerOptInDialogComponent {
       [Validators.required, Validators.maxLength(OPT_IN_SOURCE_MAX_LENGTH)],
     ],
     proof: ['', [Validators.required, Validators.maxLength(OPT_IN_PROOF_MAX_LENGTH)]],
-    scope: [null as ConsentScope | null, [Validators.required]],
+    scope: [(this.widening ? 'Marketing' : null) as ConsentScope | null, [Validators.required]],
     capturedAt: [null as Date | null],
   });
 
@@ -103,7 +106,7 @@ export class CustomerOptInDialogComponent {
       .pipe(finalize(() => (this.saving = false)))
       .subscribe({
         next: (customer) => {
-          this.notify.success(`${this.displayName} is now opted in.`);
+          this.notify.success(this.widening ? `${this.displayName}’s consent was updated.` : `${this.displayName} is now opted in.`);
           this.dialogRef.close(customer);
         },
         error: () => {

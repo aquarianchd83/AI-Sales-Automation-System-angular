@@ -372,6 +372,45 @@ export class CampaignDetailComponent implements OnInit, OnDestroy {
   }
 
   start(): void {
+    if (!this.campaign) {
+      return;
+    }
+    // Starting never fails on consent - the send job just holds those customers back - so say so up front instead of
+    // leaving a campaign that looks started but sends nothing. If the check itself fails, start as before.
+    this.campaigns
+      .getConsentCheck(this.campaign.id)
+      .pipe(catchError(() => of(null)))
+      .subscribe((check) => {
+        if (!check || check.blocked === 0) {
+          this.doStart();
+          return;
+        }
+        const names = check.blockedRecipients
+          .slice(0, 5)
+          .map((r) => [r.firstName, r.lastName].filter(Boolean).join(' ').trim() || r.phoneNumberE164)
+          .join(', ');
+        const more = check.blocked > 5 ? ` and ${check.blocked - 5} more` : '';
+        const data: ConfirmDialogData = {
+          title: 'Some customers will not get the first message',
+          message:
+            `${check.blocked} of ${check.recipients} customers will not get the first message: their consent does not ` +
+            `cover this message${check.templateCategory === 'Marketing' ? ' (it is promotional and they agreed to service messages only)' : ''}. ` +
+            `${names}${more}. You can start now; each of them gets the message by itself once you update their consent ` +
+            'on the customer page (Update consent).',
+          confirmLabel: 'Start anyway',
+        };
+        this.dialog
+          .open(ConfirmDialogComponent, { data, width: '520px' })
+          .afterClosed()
+          .subscribe((confirmed) => {
+            if (confirmed) {
+              this.doStart();
+            }
+          });
+      });
+  }
+
+  private doStart(): void {
     this.runAction(() => this.campaigns.start(this.campaign!.id), 'Campaign started.');
   }
 

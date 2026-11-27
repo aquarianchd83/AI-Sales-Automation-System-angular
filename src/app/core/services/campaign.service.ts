@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import {
   Campaign,
   CampaignAudienceMember,
+  CampaignConsentCheck,
   CampaignCustomerJourney,
   CampaignHistoryFilter,
   CampaignMessageHistoryEntry,
@@ -98,6 +99,11 @@ export class CampaignService {
    */
   start(campaignId: string): Observable<Campaign> {
     return this.http.post<Campaign>(`${this.baseUrl}/${campaignId}/start`, null);
+  }
+
+  /** Who the first message cannot reach because of consent; call before start() to warn the user. */
+  getConsentCheck(campaignId: string): Observable<CampaignConsentCheck> {
+    return this.http.get<CampaignConsentCheck>(`${this.baseUrl}/${campaignId}/consent-check`);
   }
 
   /** Allowed only from Running or Scheduled. */

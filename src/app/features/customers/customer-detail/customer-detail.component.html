@@ -21,11 +21,11 @@
         mat-stroked-button
         color="primary"
         type="button"
-        [disabled]="isOptedIn"
+        [disabled]="isOptedIn && !canWidenConsent"
         (click)="optIn()"
       >
         <mat-icon>how_to_reg</mat-icon>
-        Record opt-in
+        {{ canWidenConsent ? 'Update consent' : 'Record opt-in' }}
       </button>
       <button
         mat-stroked-button
