@@ -28,6 +28,7 @@ import { PlatformKnowledgeComponent } from './platform-knowledge/platform-knowle
 import { PlatformKnowledgeDeprecateDialogComponent } from './platform-knowledge-deprecate-dialog/platform-knowledge-deprecate-dialog.component';
 import { PlatformKnowledgeFormDialogComponent } from './platform-knowledge-form-dialog/platform-knowledge-form-dialog.component';
 import { PlatformLogsComponent } from './platform-logs/platform-logs.component';
+import { PlatformConversationsComponent } from './platform-conversations/platform-conversations.component';
 import { CountryPriceEditorComponent } from './country-price-editor/country-price-editor.component';
 import { PlatformConfigurationComponent } from './platform-configuration/platform-configuration.component';
 import { PlatformCreditPackFormDialogComponent } from './platform-credit-pack-form-dialog/platform-credit-pack-form-dialog.component';
@@ -124,6 +125,7 @@ const routes: Routes = [
       { path: 'announcements', component: PlatformAnnouncementListComponent },
       // What tenants were told, by mode (in-app, email, WhatsApp) and delivery status.
       { path: 'tenant-notifications', component: PlatformTenantNotificationsComponent },
+      { path: 'conversations', component: PlatformConversationsComponent },
     ],
   },
 ];
@@ -156,6 +158,7 @@ const routes: Routes = [
     PlatformRevenueComponent,
     PlatformTenantPaymentsComponent,
     PlatformTenantNotificationsComponent,
+    PlatformConversationsComponent,
     PlatformConfigurationComponent,
     PlatformRefundListComponent,
     PlatformRefundReviewDialogComponent,

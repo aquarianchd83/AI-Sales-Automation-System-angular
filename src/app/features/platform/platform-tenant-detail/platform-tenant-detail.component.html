@@ -13,6 +13,16 @@
       <mat-icon>receipt_long</mat-icon>
       View logs
     </a>
+    <a
+      *ngIf="tenant"
+      mat-stroked-button
+      [routerLink]="['/platform/conversations']"
+      [queryParams]="{ tenantId: tenant.id }"
+      data-testid="whatsapp-chat-link"
+    >
+      <mat-icon>forum</mat-icon>
+      WhatsApp chat
+    </a>
     <a mat-button routerLink="/platform/tenants">
       <mat-icon>arrow_back</mat-icon>
       Back to tenants

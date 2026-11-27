@@ -1,0 +1,367 @@
+<div class="page">
+  <app-page-header
+    title="Tenant Conversations"
+    subtitle="Chat with tenants on WhatsApp from the platform's own number. Their replies show up here."
+  >
+    <a mat-stroked-button routerLink="/platform/whatsapp-settings">
+      <mat-icon>chat</mat-icon>
+      Platform WhatsApp
+    </a>
+  </app-page-header>
+
+  <div class="chat-layout">
+    <!-- Left: the chats -->
+    <mat-card class="list-pane">
+      <div class="list-head">
+        <mat-form-field subscriptSizing="dynamic" class="search-field">
+          <mat-icon matPrefix>search</mat-icon>
+          <mat-label>Search</mat-label>
+          <input matInput [formControl]="search" autocomplete="off" />
+        </mat-form-field>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="toggleNewChat()"
+          data-testid="new-chat"
+        >
+          <mat-icon>{{ showNewChat ? "close" : "add_comment" }}</mat-icon>
+          {{ showNewChat ? "Cancel" : "New chat" }}
+        </button>
+      </div>
+
+      <div class="new-chat" *ngIf="showNewChat">
+        <mat-form-field subscriptSizing="dynamic" class="full-width">
+          <mat-label>Tenant</mat-label>
+          <input
+            matInput
+            [formControl]="contactSearch"
+            [matAutocomplete]="tenantAuto"
+            placeholder="Type a tenant name"
+          />
+          <mat-autocomplete
+            #tenantAuto="matAutocomplete"
+            [displayWith]="contactLabel"
+            (optionSelected)="pickContact($event.option.value)"
+          >
+            <mat-option *ngFor="let c of contacts" [value]="c">
+              {{ c.tenantName }}
+              <span class="muted small" *ngIf="!c.phones.length">
+                · no number on file</span
+              >
+              <span class="muted small" *ngIf="c.conversationId">
+                · has a chat</span
+              >
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <mat-form-field
+          subscriptSizing="dynamic"
+          class="full-width"
+          *ngIf="pickedContact?.phones?.length"
+        >
+          <mat-label>Number</mat-label>
+          <mat-select [formControl]="newPhone">
+            <mat-option
+              *ngFor="let p of pickedContact!.phones"
+              [value]="p.phoneE164"
+              >{{ p.phoneE164 }} ({{ p.label }})</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field
+          subscriptSizing="dynamic"
+          class="full-width"
+          *ngIf="!pickedContact?.phones?.length"
+        >
+          <mat-label>WhatsApp number</mat-label>
+          <input
+            matInput
+            [formControl]="newPhone"
+            placeholder="+919876543210"
+            autocomplete="off"
+          />
+          <mat-hint>With the country code.</mat-hint>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          class="full-width"
+          [disabled]="starting"
+          (click)="startNewChat()"
+        >
+          {{ starting ? "Opening…" : "Open chat" }}
+        </button>
+      </div>
+
+      <mat-progress-bar
+        mode="indeterminate"
+        *ngIf="loadingList"
+      ></mat-progress-bar>
+
+      <div class="conv-list" role="list">
+        <button
+          type="button"
+          role="listitem"
+          class="conv-row"
+          *ngFor="let c of conversations"
+          [class.active]="selected?.id === c.id"
+          (click)="select(c)"
+        >
+          <div class="conv-top">
+            <span class="conv-name">{{ displayName(c) }}</span>
+            <span class="conv-time muted">{{
+              c.lastMessageAtUtc | zonedDate: "dd MMM yyyy, HH:mm"
+            }}</span>
+          </div>
+          <div class="conv-sub">
+            <span
+              class="dot"
+              [class.dot--open]="c.windowOpen"
+              [matTooltip]="
+                c.windowOpen
+                  ? '24-hour window open'
+                  : 'Window closed: template only'
+              "
+            ></span>
+            <span class="conv-preview muted">{{
+              c.lastMessagePreview || c.phoneE164
+            }}</span>
+            <span class="unread" *ngIf="c.unreadCount">{{
+              c.unreadCount > 9 ? "9+" : c.unreadCount
+            }}</span>
+          </div>
+        </button>
+
+        <div class="empty-state" *ngIf="!loadingList && !conversations.length">
+          <mat-icon class="empty-icon">forum</mat-icon>
+          <p>No chats yet. Press "New chat" to message a tenant.</p>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- Right: the open chat -->
+    <mat-card class="chat-pane">
+      <div class="empty-state" *ngIf="!selected && !loadingMessages">
+        <mat-icon class="empty-icon">chat_bubble_outline</mat-icon>
+        <p>Pick a chat on the left, or start a new one.</p>
+      </div>
+      <mat-progress-bar
+        mode="indeterminate"
+        *ngIf="loadingMessages"
+      ></mat-progress-bar>
+
+      <ng-container *ngIf="selected as c">
+        <div class="chat-head">
+          <div>
+            <h2>{{ displayName(c) }}</h2>
+            <p class="muted">
+              {{ c.phoneE164 }}
+              <ng-container *ngIf="c.contactName && c.tenantName">
+                · WhatsApp name: {{ c.contactName }}</ng-container
+              >
+              <ng-container *ngIf="c.tenantId">
+                ·
+                <a [routerLink]="['/platform/tenants', c.tenantId]"
+                  >Open tenant</a
+                >
+              </ng-container>
+              <ng-container *ngIf="!c.tenantId">
+                · Not matched to a tenant</ng-container
+              >
+            </p>
+          </div>
+          <span class="spacer"></span>
+          <span
+            class="window-chip"
+            [class.window-chip--open]="c.windowOpen"
+            data-testid="window-chip"
+          >
+            <mat-icon>{{ c.windowOpen ? "lock_open" : "lock" }}</mat-icon>
+            <ng-container *ngIf="c.windowOpen"
+              >Window open · closes
+              {{
+                c.windowClosesAtUtc | zonedDate: "dd MMM yyyy, HH:mm"
+              }}</ng-container
+            >
+            <ng-container *ngIf="!c.windowOpen"
+              >Window closed · template only</ng-container
+            >
+          </span>
+        </div>
+
+        <div class="transcript" #transcript>
+          <div class="load-older" *ngIf="hasOlder">
+            <button
+              mat-button
+              type="button"
+              [disabled]="loadingOlder"
+              (click)="loadOlder()"
+            >
+              {{ loadingOlder ? "Loading…" : "Load older messages" }}
+            </button>
+          </div>
+
+          <div class="empty-state" *ngIf="!loadingMessages && !messages.length">
+            <p class="muted">
+              No messages yet.
+              {{
+                c.windowOpen
+                  ? "Say hello."
+                  : "Start with a template - when the tenant replies, you can write freely."
+              }}
+            </p>
+          </div>
+
+          <div
+            *ngFor="let m of messages"
+            class="msg-row"
+            [class.outbound]="m.direction === 'Outbound'"
+          >
+            <div
+              class="msg-bubble"
+              [class.outbound]="m.direction === 'Outbound'"
+              [class.failed]="m.status === 'Failed'"
+            >
+              <div class="msg-meta muted" *ngIf="m.templateName">
+                Template: {{ m.templateName }}
+              </div>
+              <div class="msg-text">{{ m.body || "—" }}</div>
+              <div
+                class="msg-error"
+                *ngIf="m.status === 'Failed' && m.errorMessage"
+              >
+                {{ m.errorMessage }}
+              </div>
+              <div class="msg-footer muted">
+                {{ m.sentAtUtc | zonedDate: "dd MMM yyyy, HH:mm" }}
+                <ng-container *ngIf="m.direction === 'Outbound'">
+                  <span *ngIf="m.sentByEmail"> · {{ m.sentByEmail }}</span>
+                  <mat-icon
+                    class="status-icon"
+                    [class.status-icon--read]="m.status === 'Read'"
+                    [matTooltip]="m.status"
+                    >{{ statusIcon(m) }}</mat-icon
+                  >
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form class="compose" [formGroup]="composeForm" (ngSubmit)="send()">
+          <mat-button-toggle-group
+            formControlName="mode"
+            class="compose-mode"
+            aria-label="Send as"
+          >
+            <mat-button-toggle value="text" [disabled]="!c.windowOpen"
+              >Text</mat-button-toggle
+            >
+            <mat-button-toggle value="template">Template</mat-button-toggle>
+          </mat-button-toggle-group>
+
+          <p
+            class="window-hint"
+            *ngIf="!c.windowOpen"
+            data-testid="window-closed-hint"
+          >
+            <mat-icon>info</mat-icon>
+            The 24-hour window is closed: WhatsApp only delivers free text
+            within 24 hours of the tenant's last message. Send an approved
+            template - once the tenant replies, you can write freely again.
+          </p>
+
+          <ng-container *ngIf="mode === 'text'">
+            <mat-form-field class="full-width" subscriptSizing="dynamic">
+              <mat-label>Message</mat-label>
+              <textarea
+                matInput
+                formControlName="text"
+                rows="2"
+                maxlength="4000"
+                (keydown)="onKeydown($event)"
+              ></textarea>
+              <mat-hint>Enter sends · Shift+Enter for a new line</mat-hint>
+            </mat-form-field>
+          </ng-container>
+
+          <ng-container *ngIf="mode === 'template'">
+            <ng-container *ngIf="templates.length; else noTemplates">
+              <mat-form-field class="full-width" subscriptSizing="dynamic">
+                <mat-label>Template</mat-label>
+                <mat-select formControlName="templateId">
+                  <mat-option *ngFor="let t of templates" [value]="t.id"
+                    >{{ t.name
+                    }}<span class="muted small">
+                      · {{ t.whatsAppTemplateName }}</span
+                    ></mat-option
+                  >
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field
+                class="full-width"
+                subscriptSizing="dynamic"
+                *ngIf="selectedTemplate?.usesTitle"
+              >
+                <mat-label>Title</mat-label>
+                <input matInput formControlName="title" maxlength="600" />
+              </mat-form-field>
+              <mat-form-field
+                class="full-width"
+                subscriptSizing="dynamic"
+                *ngIf="selectedTemplate?.usesMessage"
+              >
+                <mat-label>Your message (goes inside the template)</mat-label>
+                <textarea
+                  matInput
+                  formControlName="message"
+                  rows="2"
+                  maxlength="600"
+                ></textarea>
+              </mat-form-field>
+              <div class="template-preview" *ngIf="selectedTemplate">
+                <span class="muted small">Tenant will see:</span>
+                <p>{{ templatePreview }}</p>
+              </div>
+            </ng-container>
+            <ng-template #noTemplates>
+              <p class="window-hint window-hint--warn">
+                <mat-icon>warning</mat-icon>
+                <span>
+                  No Approved template yet. Open
+                  <a routerLink="/platform/notice-templates">Notice Templates</a
+                  >, sync "Message from the AiSaarthi team (Tenant
+                  conversations)" to Meta and wait for approval.
+                </span>
+              </p>
+            </ng-template>
+          </ng-container>
+
+          <div class="compose-actions">
+            <button
+              mat-flat-button
+              color="primary"
+              type="submit"
+              [disabled]="!canSend"
+              data-testid="send"
+            >
+              <mat-icon>send</mat-icon>
+              {{
+                sending
+                  ? "Sending…"
+                  : mode === "template"
+                    ? "Send template"
+                    : "Send"
+              }}
+            </button>
+          </div>
+        </form>
+      </ng-container>
+    </mat-card>
+  </div>
+</div>

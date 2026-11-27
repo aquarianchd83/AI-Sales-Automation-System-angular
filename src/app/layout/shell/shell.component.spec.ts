@@ -320,6 +320,7 @@ describe('ShellComponent sidenav', () => {
       'manage_accountsUsers',
       'campaignAnnouncements',
       'forward_to_inboxTenant Notifications',
+      'forumTenant Conversations',
       'menu_bookKnowledge Base', // platform knowledge: stays
       'quizStudio Questionnaires',
       'movieVideo Requests',

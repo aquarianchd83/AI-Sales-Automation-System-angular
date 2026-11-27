@@ -26,6 +26,8 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
     whatsAppBusinessAccountId: ['', [Validators.pattern(/^\d{5,30}$/)]],
     accessToken: '',
     removeAccessToken: false,
+    /** The Meta App Secret of this number's webhooks (tenant replies on Tenant Conversations). Blank keeps the stored one. */
+    appSecret: '',
     apiVersion: ['v19.0', [Validators.required, Validators.pattern(/^v\d{1,2}\.\d{1,2}$/)]],
     apiBaseUrl: ['', [Validators.pattern(/^https:\/\/\S+$/i)]],
   });
@@ -284,6 +286,7 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
       phoneNumberId: raw.phoneNumberId.trim(),
       whatsAppBusinessAccountId: raw.whatsAppBusinessAccountId.trim(),
       accessToken: raw.removeAccessToken ? '' : raw.accessToken.trim() || null,
+      appSecret: raw.appSecret.trim() || null,
       apiVersion: raw.apiVersion.trim(),
       apiBaseUrl: raw.apiBaseUrl.trim(),
     };
@@ -297,6 +300,7 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
       whatsAppBusinessAccountId: settings.whatsAppBusinessAccountId,
       accessToken: '',
       removeAccessToken: false,
+      appSecret: '',
       apiVersion: settings.apiVersion,
       apiBaseUrl: settings.apiBaseUrl,
     });

@@ -21,6 +21,7 @@ export class NotificationHubService {
   private readonly received$ = new Subject<unknown>();
   private readonly jobFinished$ = new Subject<string>();
   private readonly jobStarted$ = new Subject<string>();
+  private readonly platformConversation$ = new Subject<string>();
 
   constructor(private readonly tokenStorage: TokenStorageService) {}
 
@@ -35,6 +36,11 @@ export class NotificationHubService {
    * `types` are passed through; pass none to hear every job. */
   jobFinished(types?: readonly string[]): Observable<string> {
     return this.jobFinished$.pipe(filter((jobType) => !types || types.includes(jobType)));
+  }
+
+  /** Platform operators only: emits a Tenant Conversations chat's id whenever a reply arrives on it or one of its messages changes status. */
+  get platformConversationUpdated$(): Observable<string> {
+    return this.platformConversation$.asObservable();
   }
 
   /** Emits the same DTO shape the REST list endpoint already returns for that bell — a
@@ -66,6 +72,11 @@ export class NotificationHubService {
     connection.on('JobFinished', (payload: { jobType?: string } | null) => {
       if (payload?.jobType) {
         this.jobFinished$.next(payload.jobType);
+      }
+    });
+    connection.on('PlatformConversationUpdated', (payload: { conversationId?: string } | null) => {
+      if (payload?.conversationId) {
+        this.platformConversation$.next(payload.conversationId);
       }
     });
     this.connection = connection;
