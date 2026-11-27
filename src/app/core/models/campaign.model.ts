@@ -497,6 +497,8 @@ export enum CampaignStepOutcome {
   Read = 'Read',
   Failed = 'Failed',
   Upcoming = 'Upcoming',
+  /** Due now, but the consent check holds it back (e.g. service-only consent for a promotional template). */
+  Blocked = 'Blocked',
   WillNotReceive = 'WillNotReceive',
 }
 
@@ -507,6 +509,7 @@ export const CAMPAIGN_STEP_OUTCOME_LABELS: Record<CampaignStepOutcome, string> =
   [CampaignStepOutcome.Read]: 'Read',
   [CampaignStepOutcome.Failed]: 'Failed',
   [CampaignStepOutcome.Upcoming]: 'Will receive',
+  [CampaignStepOutcome.Blocked]: 'Blocked: consent',
   [CampaignStepOutcome.WillNotReceive]: 'Will not receive',
 };
 
@@ -518,6 +521,7 @@ export const CAMPAIGN_STEP_OUTCOME_DESCRIPTIONS: Record<CampaignStepOutcome, str
   [CampaignStepOutcome.Read]: 'The customer opened the message.',
   [CampaignStepOutcome.Failed]: 'WhatsApp did not accept it or delivery failed. Can be resent while the campaign is Running.',
   [CampaignStepOutcome.Upcoming]: 'Not sent yet, but still due this step — it goes out when the earlier steps and delay are done.',
+  [CampaignStepOutcome.Blocked]: 'Due now but held back because the customer’s consent does not cover this message (for example service-only consent for a promotional template). It goes out by itself once consent is updated.',
   [CampaignStepOutcome.WillNotReceive]: 'Will never get this step — they replied, opted out, were handed off or the campaign ended first.',
 };
 
@@ -535,6 +539,7 @@ export interface CampaignStepDeliverySummary {
   failed: number;
   upcoming: number;
   willNotReceive: number;
+  blocked?: number;
 }
 
 /** CampaignStepRecipientDto — one audience member's outcome for one step. */
@@ -556,6 +561,16 @@ export interface CampaignStepRecipient {
   note: string | null;
 }
 
+/** CampaignConsentCheckDto — who the first message cannot reach because of consent. Shown before Start. */
+export interface CampaignConsentCheck {
+  stepNumber: number;
+  templateName: string | null;
+  templateCategory: string | null;
+  recipients: number;
+  blocked: number;
+  blockedRecipients: CampaignStepRecipient[];
+}
+
 /** SendRunResult — the outcome of a bulk resend. */
 export interface ResendFailedResult {
   considered: number;
@@ -574,6 +589,7 @@ export function stepOutcomeChipClass(outcome: string): string {
     case CampaignStepOutcome.Upcoming:
       return 'status-chip status-chip--scheduled';
     case CampaignStepOutcome.Failed:
+    case CampaignStepOutcome.Blocked:
       return 'status-chip status-chip--stopped';
     case CampaignStepOutcome.Queued:
       return 'status-chip status-chip--paused';

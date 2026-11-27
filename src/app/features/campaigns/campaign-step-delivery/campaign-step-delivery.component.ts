@@ -47,6 +47,7 @@ export class CampaignStepDeliveryComponent implements OnInit, OnChanges, OnDestr
     { value: '', label: 'All', info: 'Everyone attached to the campaign, whatever has happened with this step.' },
     ...[
       [CampaignStepOutcome.Failed, 'Failed'],
+      [CampaignStepOutcome.Blocked, 'Blocked: consent'],
       [CampaignStepOutcome.Upcoming, 'Will receive'],
       [CampaignStepOutcome.Sent, 'Sent'],
       [CampaignStepOutcome.Delivered, 'Delivered'],

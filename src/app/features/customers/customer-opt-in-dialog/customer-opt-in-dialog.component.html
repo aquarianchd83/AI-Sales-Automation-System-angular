@@ -1,7 +1,13 @@
-<h2 mat-dialog-title>Record opt-in</h2>
+<h2 mat-dialog-title>{{ widening ? 'Update consent' : 'Record opt-in' }}</h2>
 
 <mat-dialog-content>
-  <p class="intro muted">
+  <p class="intro muted" *ngIf="widening">
+    <strong>{{ displayName }}</strong> currently agreed to service messages only. Record the new agreement
+    (what they agreed to, how and the proof) so promotional campaigns can reach them. The earlier consent stays
+    in their history.
+  </p>
+
+  <p class="intro muted" *ngIf="!widening">
     Records consent for <strong>{{ displayName }}</strong> ({{ data.customer.phoneNumberE164 }}),
     which allows automated messaging. Only record it if the customer actually agreed —
     this is the compliance evidence.
@@ -79,6 +85,6 @@
 <mat-dialog-actions align="end">
   <button mat-button type="button" (click)="cancel()">Cancel</button>
   <button mat-flat-button color="primary" type="button" [disabled]="saving" (click)="save()">
-    {{ saving ? 'Saving…' : 'Record opt-in' }}
+    {{ saving ? 'Saving…' : widening ? 'Save consent' : 'Record opt-in' }}
   </button>
 </mat-dialog-actions>

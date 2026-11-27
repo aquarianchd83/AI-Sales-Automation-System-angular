@@ -55,6 +55,15 @@
       </button>
     </div>
 
+    <div class="blocked-banner" *ngIf="selectedSummary?.blocked as blockedCount">
+      <mat-icon>warning_amber</mat-icon>
+      <span>
+        <strong>{{ blockedCount }} customer{{ blockedCount === 1 ? '' : 's' }} will not get this step yet.</strong>
+        Their consent does not cover this message, so it is held back. Update their consent and it goes out by itself.
+        <a href="javascript:void(0)" (click)="setOutcomeFilter('Blocked')">Show them</a>
+      </span>
+    </div>
+
     <div class="outcome-filters">
       <button
         *ngFor="let f of outcomeFilters"
@@ -108,6 +117,15 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef aria-label="Actions"></th>
           <td mat-cell *matCellDef="let row">
+            <a
+              mat-button
+              color="primary"
+              *ngIf="row.outcome === 'Blocked'"
+              [routerLink]="['/customers', row.customerId]"
+              matTooltip="Open the customer to update what their consent covers"
+            >
+              Update consent
+            </a>
             <button
               mat-icon-button
               type="button"

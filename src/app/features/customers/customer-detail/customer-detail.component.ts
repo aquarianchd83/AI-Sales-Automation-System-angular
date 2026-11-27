@@ -62,6 +62,11 @@ export class CustomerDetailComponent implements OnInit {
     return this.customer?.optInStatus === OptInStatus.OptedIn;
   }
 
+  /** Opted in for service messages only: can still be widened to promotions with fresh proof. */
+  get canWidenConsent(): boolean {
+    return this.isOptedIn && this.customer?.optInScope === 'Transactional';
+  }
+
   optIn(): void {
     if (!this.customer) {
       return;
