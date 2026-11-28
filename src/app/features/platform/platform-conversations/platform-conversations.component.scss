@@ -359,3 +359,17 @@
   height: 12px;
   vertical-align: middle;
 }
+
+.email-preview {
+  padding: 8px 10px;
+  border-left: 3px solid #00897b;
+  background: rgba(0, 0, 0, 0.03);
+
+  pre {
+    margin: 6px 0 0;
+    font-family: inherit;
+    font-size: 13px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}

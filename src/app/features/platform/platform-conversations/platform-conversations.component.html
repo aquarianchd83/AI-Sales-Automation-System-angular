@@ -303,6 +303,12 @@
               Loading the link and email…
             </p>
             <ng-container *ngIf="invite as inv">
+              <div class="invite-row" *ngIf="inv.platformNumber">
+                <span class="invite-label">WhatsApp number</span>
+                <strong data-testid="invite-number">{{
+                  inv.platformNumber
+                }}</strong>
+              </div>
               <div class="invite-row" *ngIf="inv.whatsAppLink; else noNumber">
                 <span class="invite-label">WhatsApp link</span>
                 <a
@@ -360,6 +366,18 @@
                     placeholder="e.g. Your campaign is paused - let's fix it together."
                   />
                 </mat-form-field>
+                <div
+                  class="email-preview"
+                  *ngIf="inv.emailBody"
+                  data-testid="email-preview"
+                >
+                  <span class="muted small">Email the tenant will get</span>
+                  <div class="small"><strong>To:</strong> {{ inv.email }}</div>
+                  <div class="small">
+                    <strong>Subject:</strong> {{ inv.emailSubject }}
+                  </div>
+                  <pre>{{ emailPreview }}</pre>
+                </div>
                 <div class="compose-actions">
                   <button
                     mat-stroked-button

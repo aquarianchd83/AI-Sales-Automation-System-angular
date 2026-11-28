@@ -88,4 +88,7 @@ export interface PlatformConversationInvite {
   /** Where the email came from: "Billing alerts", "Owner" or "Support". */
   emailSource: string | null;
   prefilledText: string;
+  emailSubject: string;
+  /** The email exactly as it goes, without the admin's note (which goes in as a paragraph after the greeting). Null with no link. */
+  emailBody: string | null;
 }

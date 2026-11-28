@@ -97,6 +97,10 @@ describe('PlatformConversationsComponent', () => {
         email: 'owner@acme.in',
         emailSource: 'Owner',
         prefilledText: 'Hi AiSaarthi team',
+        emailSubject:
+          'The AiSaarthi team would like to chat with you on WhatsApp',
+        emailBody:
+          'Hi Acme Traders,\n\nThe AiSaarthi team would like to talk to you on WhatsApp. Please send us a message on +919800011111.',
       }),
     );
     await TestBed.configureTestingModule({
@@ -202,6 +206,17 @@ describe('PlatformConversationsComponent', () => {
     expect(
       root.querySelector('[data-testid=invite-email]')?.textContent,
     ).toContain('owner@acme.in');
+
+    expect(
+      root.querySelector('[data-testid=invite-number]')?.textContent,
+    ).toContain('+919800011111');
+    fixture.componentInstance.inviteNote.setValue('Campaign paused hai.');
+    fixture.detectChanges();
+    expect(
+      root.querySelector('[data-testid=email-preview]')?.textContent,
+    ).toContain(
+      'Hi Acme Traders,\n\nCampaign paused hai.\n\nThe AiSaarthi team',
+    );
 
     service.emailInvite.and.returnValue(
       of({

@@ -389,6 +389,19 @@ export class PlatformConversationsComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** The invite email as the tenant will read it, with the note typed so far. */
+  get emailPreview(): string {
+    const body = this.invite?.emailBody ?? '';
+    const note = this.inviteNote.value.trim();
+    if (!note) {
+      return body;
+    }
+    const i = body.indexOf('\n\n');
+    return i < 0
+      ? `${note}\n\n${body}`
+      : `${body.slice(0, i + 2)}${note}\n\n${body.slice(i + 2)}`;
+  }
+
   retryInvite(): void {
     if (this.selected) {
       this.loadInvite(this.selected.id);
