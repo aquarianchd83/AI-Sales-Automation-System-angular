@@ -369,16 +369,30 @@ export class PlatformConversationsComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** True when the link and email could not be loaded - the box then says so instead of staying empty. */
+  inviteFailed = false;
+
   private loadInvite(id: string): void {
     this.invite = null;
+    this.inviteFailed = false;
     this.service.invite(id).subscribe({
       next: (invite) => {
         if (this.selected?.id === id) {
           this.invite = invite;
         }
       },
-      error: () => undefined,
+      error: () => {
+        if (this.selected?.id === id) {
+          this.inviteFailed = true;
+        }
+      },
     });
+  }
+
+  retryInvite(): void {
+    if (this.selected) {
+      this.loadInvite(this.selected.id);
+    }
   }
 
   copyInviteLink(): void {

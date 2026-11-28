@@ -289,6 +289,19 @@
               they do, the window opens and you can type freely for 24 hours.
             </p>
 
+            <p
+              class="small invite-warn"
+              *ngIf="inviteFailed"
+              data-testid="invite-failed"
+            >
+              Couldn't load the WhatsApp link and email.
+              <button mat-button type="button" (click)="retryInvite()">
+                Try again
+              </button>
+            </p>
+            <p class="muted small" *ngIf="!invite && !inviteFailed">
+              Loading the link and email…
+            </p>
             <ng-container *ngIf="invite as inv">
               <div class="invite-row" *ngIf="inv.whatsAppLink; else noNumber">
                 <span class="invite-label">WhatsApp link</span>
