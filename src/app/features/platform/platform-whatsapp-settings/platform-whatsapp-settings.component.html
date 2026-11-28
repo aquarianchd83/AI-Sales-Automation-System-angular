@@ -135,6 +135,13 @@
         </mat-form-field>
 
         <mat-form-field class="field">
+          <mat-label>WhatsApp number</mat-label>
+          <input matInput formControlName="displayPhoneNumber" autocomplete="off" placeholder="+919876543210" />
+          <mat-hint>The number itself, for the "message us first" link on Tenant Conversations. Verify fills it in.</mat-hint>
+          <mat-error>Enter the number with the country code.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
           <mat-label>WhatsApp Business Account id</mat-label>
           <input matInput formControlName="whatsAppBusinessAccountId" autocomplete="off" inputmode="numeric" />
           <mat-hint>Where the notice templates live and are reviewed.</mat-hint>

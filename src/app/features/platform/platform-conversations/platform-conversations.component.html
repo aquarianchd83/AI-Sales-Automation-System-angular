@@ -227,6 +227,9 @@
               [class.outbound]="m.direction === 'Outbound'"
               [class.failed]="m.status === 'Failed'"
             >
+              <div class="msg-meta muted" *ngIf="m.messageType === 'email'">
+                <mat-icon class="meta-icon">mail</mat-icon> Email
+              </div>
               <div class="msg-meta muted" *ngIf="m.templateName">
                 Template: {{ m.templateName }}
               </div>
@@ -275,6 +278,95 @@
             within 24 hours of the tenant's last message. Send an approved
             template - once the tenant replies, you can write freely again.
           </p>
+
+          <div class="invite" *ngIf="!c.windowOpen" data-testid="invite">
+            <div class="invite-head">
+              <mat-icon>waving_hand</mat-icon>
+              <strong>Want to start with text instead of a template?</strong>
+            </div>
+            <p class="muted small">
+              Ask the tenant to message the platform number first. As soon as
+              they do, the window opens and you can type freely for 24 hours.
+            </p>
+
+            <ng-container *ngIf="invite as inv">
+              <div class="invite-row" *ngIf="inv.whatsAppLink; else noNumber">
+                <span class="invite-label">WhatsApp link</span>
+                <a
+                  class="invite-link"
+                  [href]="inv.whatsAppLink"
+                  target="_blank"
+                  rel="noopener"
+                  data-testid="invite-link"
+                  >{{ inv.whatsAppLink }}</a
+                >
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Copy link"
+                  aria-label="Copy link"
+                  (click)="copyInviteLink()"
+                >
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
+              <ng-template #noNumber>
+                <p class="small invite-warn">
+                  The platform's WhatsApp number isn't saved yet. Open
+                  <a routerLink="/platform/whatsapp-settings"
+                    >Platform WhatsApp</a
+                  >
+                  and press Verify (it fills the number in), or type it there.
+                </p>
+              </ng-template>
+
+              <div class="invite-row">
+                <span class="invite-label">Email</span>
+                <ng-container *ngIf="inv.email; else noEmail">
+                  <a
+                    [href]="'mailto:' + inv.email"
+                    data-testid="invite-email"
+                    >{{ inv.email }}</a
+                  >
+                  <span class="muted small">({{ inv.emailSource }})</span>
+                </ng-container>
+                <ng-template #noEmail
+                  ><span class="muted small"
+                    >No email on file for this tenant.</span
+                  ></ng-template
+                >
+              </div>
+
+              <ng-container *ngIf="inv.email && inv.whatsAppLink">
+                <mat-form-field class="full-width" subscriptSizing="dynamic">
+                  <mat-label>Note in the email (optional)</mat-label>
+                  <input
+                    matInput
+                    [formControl]="inviteNote"
+                    maxlength="1000"
+                    placeholder="e.g. Your campaign is paused - let's fix it together."
+                  />
+                </mat-form-field>
+                <div class="compose-actions">
+                  <button
+                    mat-stroked-button
+                    color="primary"
+                    type="button"
+                    [disabled]="emailingInvite"
+                    (click)="emailInvite()"
+                    data-testid="email-invite"
+                  >
+                    <mat-icon>mail</mat-icon>
+                    {{
+                      emailingInvite
+                        ? "Sending…"
+                        : "Email the link to " + inv.email
+                    }}
+                  </button>
+                </div>
+              </ng-container>
+            </ng-container>
+          </div>
 
           <ng-container *ngIf="mode === 'text'">
             <mat-form-field class="full-width" subscriptSizing="dynamic">

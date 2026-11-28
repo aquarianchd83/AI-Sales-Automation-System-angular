@@ -79,3 +79,13 @@ export interface SendPlatformConversationMessageRequest {
   title: string | null;
   message: string | null;
 }
+
+/** How to get the tenant to write first (so free text works without a template): a wa.me link to the platform number and the tenant's email. */
+export interface PlatformConversationInvite {
+  platformNumber: string | null;
+  whatsAppLink: string | null;
+  email: string | null;
+  /** Where the email came from: "Billing alerts", "Owner" or "Support". */
+  emailSource: string | null;
+  prefilledText: string;
+}

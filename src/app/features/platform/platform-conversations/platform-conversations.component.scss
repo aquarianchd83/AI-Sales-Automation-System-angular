@@ -305,3 +305,57 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.invite {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(0, 137, 123, 0.5);
+  border-radius: 8px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.invite-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  mat-icon {
+    color: #00897b;
+  }
+}
+
+.invite-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.invite-label {
+  min-width: 96px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.invite-link {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.invite-warn {
+  color: #e65100;
+}
+
+.meta-icon {
+  font-size: 12px;
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+}

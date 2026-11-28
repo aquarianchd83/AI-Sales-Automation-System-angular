@@ -85,9 +85,20 @@ describe('PlatformConversationsComponent', () => {
       'templates',
       'start',
       'send',
+      'invite',
+      'emailInvite',
     ]);
     service.templates.and.returnValue(of([template]));
     service.contacts.and.returnValue(of([]));
+    service.invite.and.returnValue(
+      of({
+        platformNumber: '+919800011111',
+        whatsAppLink: 'https://wa.me/919800011111?text=Hi%20AiSaarthi%20team',
+        email: 'owner@acme.in',
+        emailSource: 'Owner',
+        prefilledText: 'Hi AiSaarthi team',
+      }),
+    );
     await TestBed.configureTestingModule({
       declarations: [PlatformConversationsComponent],
       imports: [SharedModule, NoopAnimationsModule, RouterTestingModule],
@@ -179,5 +190,47 @@ describe('PlatformConversationsComponent', () => {
     expect(fixture.componentInstance.pickedContact?.tenantName).toBe(
       'Zed Clinic',
     );
+  });
+
+  it('offers the wa.me link and an email to the tenant when the window is closed', () => {
+    build(chat({ windowOpen: false, windowClosesAtUtc: null }));
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(
+      root.querySelector('[data-testid=invite-link]')?.getAttribute('href'),
+    ).toBe('https://wa.me/919800011111?text=Hi%20AiSaarthi%20team');
+    expect(
+      root.querySelector('[data-testid=invite-email]')?.textContent,
+    ).toContain('owner@acme.in');
+
+    service.emailInvite.and.returnValue(
+      of({
+        ...detail(chat()).messages[0],
+        id: 'm9',
+        direction: 'Outbound',
+        messageType: 'email',
+        body: 'Email to owner@acme.in',
+        status: 'Sent',
+      }),
+    );
+    fixture.componentInstance.inviteNote.setValue('Campaign paused hai.');
+    fixture.componentInstance.emailInvite();
+
+    expect(service.emailInvite).toHaveBeenCalledWith(
+      'c1',
+      'Campaign paused hai.',
+    );
+    expect(
+      fixture.componentInstance.messages.some((m) => m.messageType === 'email'),
+    ).toBeTrue();
+  });
+
+  it('hides the invite while the window is open', () => {
+    build(chat());
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid=invite]',
+      ),
+    ).toBeNull();
   });
 });

@@ -23,6 +23,8 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
   readonly form = this.fb.group({
     enabled: true,
     phoneNumberId: ['', [Validators.pattern(/^\d{5,30}$/)]],
+    /** The number as tenants dial it - the wa.me link on Tenant Conversations opens it. Verify fills it in. */
+    displayPhoneNumber: ['', [Validators.pattern(/^\s*\+?[0-9 ()-]{8,20}\s*$/)]],
     whatsAppBusinessAccountId: ['', [Validators.pattern(/^\d{5,30}$/)]],
     accessToken: '',
     removeAccessToken: false,
@@ -285,6 +287,8 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
     return {
       enabled: raw.enabled,
       phoneNumberId: raw.phoneNumberId.trim(),
+      // Only when edited: Verify may have filled it in since this page loaded.
+      displayPhoneNumber: this.form.controls.displayPhoneNumber.dirty ? raw.displayPhoneNumber.trim() : null,
       whatsAppBusinessAccountId: raw.whatsAppBusinessAccountId.trim(),
       accessToken: raw.removeAccessToken ? '' : raw.accessToken.trim() || null,
       appSecret: raw.removeAppSecret ? '' : raw.appSecret.trim() || null,
@@ -298,6 +302,7 @@ export class PlatformWhatsAppSettingsComponent implements OnInit {
     this.form.reset({
       enabled: settings.enabled,
       phoneNumberId: settings.phoneNumberId,
+      displayPhoneNumber: settings.displayPhoneNumber ?? '',
       whatsAppBusinessAccountId: settings.whatsAppBusinessAccountId,
       accessToken: '',
       removeAccessToken: false,

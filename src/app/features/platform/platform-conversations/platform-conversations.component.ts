@@ -20,6 +20,7 @@ import {
 import {
   PlatformConversation,
   PlatformConversationContact,
+  PlatformConversationInvite,
   PlatformConversationMessage,
   PlatformConversationTemplate,
 } from '../../../core/models/platform-conversation.model';
@@ -62,6 +63,11 @@ export class PlatformConversationsComponent implements OnInit, OnDestroy {
     message: '',
   });
   sending = false;
+
+  /** How to get the tenant to write first: the wa.me link and their email. Loaded with each chat. */
+  invite: PlatformConversationInvite | null = null;
+  readonly inviteNote = this.fb.control('');
+  emailingInvite = false;
 
   // "New chat": pick a tenant (and one of its numbers), or type any number.
   showNewChat = false;
@@ -181,6 +187,7 @@ export class PlatformConversationsComponent implements OnInit, OnDestroy {
           this.hasOlder = detail.hasOlder;
           this.composeForm.patchValue({ text: '', title: '', message: '' });
           this.syncComposeMode(true);
+          this.loadInvite(id);
           const row = this.conversations.find((c) => c.id === id);
           if (row) {
             row.unreadCount = 0;
@@ -359,6 +366,65 @@ export class PlatformConversationsComponent implements OnInit, OnDestroy {
         },
         // ErrorInterceptor toasts the reason (e.g. the 24-hour window closed meanwhile); refresh so the window state is current.
         error: () => this.reloadSelected(),
+      });
+  }
+
+  private loadInvite(id: string): void {
+    this.invite = null;
+    this.service.invite(id).subscribe({
+      next: (invite) => {
+        if (this.selected?.id === id) {
+          this.invite = invite;
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  copyInviteLink(): void {
+    const link = this.invite?.whatsAppLink;
+    if (!link) {
+      return;
+    }
+    navigator.clipboard?.writeText(link).then(
+      () =>
+        this.notify.success(
+          'Link copied. Send it to the tenant any way you like.',
+        ),
+      () => this.notify.error('Could not copy - select the link and copy it.'),
+    );
+  }
+
+  /** Emails the tenant the link; the email is added to the chat so it is clear what was sent and when. */
+  emailInvite(): void {
+    const c = this.selected;
+    if (
+      !c ||
+      !this.invite?.email ||
+      !this.invite.whatsAppLink ||
+      this.emailingInvite
+    ) {
+      return;
+    }
+    this.emailingInvite = true;
+    this.service
+      .emailInvite(c.id, this.inviteNote.value.trim() || null)
+      .pipe(finalize(() => (this.emailingInvite = false)))
+      .subscribe({
+        next: (message) => {
+          this.messages = [...this.messages, message];
+          this.scrollToBottom();
+          if (message.status === 'Failed') {
+            this.notify.error(
+              message.errorMessage || 'The email could not be sent.',
+            );
+          } else {
+            this.notify.success(`Emailed the link to ${this.invite?.email}.`);
+            this.inviteNote.setValue('');
+          }
+          this.loadList(true);
+        },
+        error: () => undefined,
       });
   }
 

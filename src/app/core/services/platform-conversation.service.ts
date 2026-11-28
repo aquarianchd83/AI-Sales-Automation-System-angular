@@ -7,6 +7,7 @@ import {
   PlatformConversation,
   PlatformConversationContact,
   PlatformConversationDetail,
+  PlatformConversationInvite,
   PlatformConversationMessage,
   PlatformConversationTemplate,
   SendPlatformConversationMessageRequest,
@@ -67,6 +68,24 @@ export class PlatformConversationService {
     return this.http.post<PlatformConversationMessage>(
       `${this.baseUrl}/${id}/messages`,
       request,
+    );
+  }
+
+  /** The wa.me link to the platform number and the tenant's email. */
+  invite(id: string): Observable<PlatformConversationInvite> {
+    return this.http.get<PlatformConversationInvite>(
+      `${this.baseUrl}/${id}/invite`,
+    );
+  }
+
+  /** Emails the tenant the wa.me link; the email shows up in the chat as its own message. */
+  emailInvite(
+    id: string,
+    note: string | null,
+  ): Observable<PlatformConversationMessage> {
+    return this.http.post<PlatformConversationMessage>(
+      `${this.baseUrl}/${id}/invite/email`,
+      { note },
     );
   }
 }
