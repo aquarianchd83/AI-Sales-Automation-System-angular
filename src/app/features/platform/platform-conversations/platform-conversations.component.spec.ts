@@ -248,4 +248,30 @@ describe('PlatformConversationsComponent', () => {
       ),
     ).toBeNull();
   });
+
+  it('still shows the email preview before the platform number is saved, but cannot send it', () => {
+    service.invite.and.returnValue(
+      of({
+        platformNumber: null,
+        whatsAppLink: null,
+        email: 'owner@acme.in',
+        emailSource: 'Owner',
+        prefilledText: 'Hi AiSaarthi team',
+        emailSubject:
+          'The AiSaarthi team would like to chat with you on WhatsApp',
+        emailBody:
+          'Hi Acme Traders,\n\nPlease send us a message on [platform WhatsApp number].',
+      }),
+    );
+    build(chat({ windowOpen: false, windowClosesAtUtc: null }));
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(
+      root.querySelector('[data-testid=email-preview]')?.textContent,
+    ).toContain('[platform WhatsApp number]');
+    expect(
+      (root.querySelector('[data-testid=email-invite]') as HTMLButtonElement)
+        .disabled,
+    ).toBeTrue();
+  });
 });

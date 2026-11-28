@@ -356,7 +356,7 @@
                 >
               </div>
 
-              <ng-container *ngIf="inv.email && inv.whatsAppLink">
+              <ng-container *ngIf="inv.email">
                 <mat-form-field class="full-width" subscriptSizing="dynamic">
                   <mat-label>Note in the email (optional)</mat-label>
                   <input
@@ -383,7 +383,12 @@
                     mat-stroked-button
                     color="primary"
                     type="button"
-                    [disabled]="emailingInvite"
+                    [disabled]="emailingInvite || !inv.whatsAppLink"
+                    [matTooltip]="
+                      inv.whatsAppLink
+                        ? ''
+                        : 'Save the platform WhatsApp number first'
+                    "
                     (click)="emailInvite()"
                     data-testid="email-invite"
                   >
