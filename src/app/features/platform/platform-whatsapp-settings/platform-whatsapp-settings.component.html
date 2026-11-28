@@ -135,6 +135,13 @@
         </mat-form-field>
 
         <mat-form-field class="field">
+          <mat-label>WhatsApp number</mat-label>
+          <input matInput formControlName="displayPhoneNumber" autocomplete="off" placeholder="+919876543210" />
+          <mat-hint>The number itself, for the "message us first" link on Tenant Conversations. Verify fills it in.</mat-hint>
+          <mat-error>Enter the number with the country code.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="field">
           <mat-label>WhatsApp Business Account id</mat-label>
           <input matInput formControlName="whatsAppBusinessAccountId" autocomplete="off" inputmode="numeric" />
           <mat-hint>Where the notice templates live and are reviewed.</mat-hint>
@@ -146,9 +153,19 @@
           <input matInput type="password" autocomplete="new-password" formControlName="accessToken" [readonly]="form.controls.removeAccessToken.value" />
           <mat-hint>{{ storedTokenHint ? 'Stored: ' + storedTokenHint + ' - leave blank to keep' : 'None stored' }}</mat-hint>
         </mat-form-field>
+
+        <mat-form-field class="field field--wide">
+          <mat-label>App secret (for tenant replies)</mat-label>
+          <input matInput type="password" autocomplete="new-password" formControlName="appSecret" [readonly]="form.controls.removeAppSecret.value" />
+          <mat-hint>
+            Proves tenant replies on Tenant Conversations really came from Meta.
+            {{ current?.hasAppSecret ? 'Stored: ' + (current?.appSecretHint || 'set') + ' - leave blank to keep.' : 'Empty uses the shared Meta app secret below.' }}
+          </mat-hint>
+        </mat-form-field>
       </div>
 
       <mat-checkbox formControlName="removeAccessToken" *ngIf="current?.hasAccessToken">Remove the stored access token</mat-checkbox>
+      <mat-checkbox formControlName="removeAppSecret" *ngIf="current?.hasAppSecret">Remove the stored app secret (use the shared Meta app secret)</mat-checkbox>
     </mat-card>
 
     <!-- 3. Advanced -->

@@ -11,6 +11,11 @@ export interface PlatformWhatsAppSettings {
   isConfigured: boolean;
   /** Configured and has a business account id - what pushing templates to Meta needs. */
   canManageTemplates: boolean;
+  /** A Meta App Secret is stored for this number's webhooks (otherwise the shared WhatsApp:AppSecret is used). */
+  hasAppSecret?: boolean;
+  appSecretHint?: string | null;
+  /** The number itself (+91...), for the "message us first" link on Tenant Conversations. Verify fills it in. */
+  displayPhoneNumber?: string;
 }
 
 /** accessToken: null keeps the stored one, '' clears it, anything else replaces it. */
@@ -21,6 +26,10 @@ export interface UpdatePlatformWhatsAppSettingsRequest {
   accessToken: string | null;
   apiVersion: string;
   apiBaseUrl: string;
+  /** null keeps the stored one, '' clears it. */
+  appSecret?: string | null;
+  /** null keeps the stored one. */
+  displayPhoneNumber?: string | null;
 }
 
 export type PlatformTemplateStatus = 'Pending' | 'Approved' | 'Rejected';
